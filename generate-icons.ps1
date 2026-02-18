@@ -4,11 +4,11 @@
 Add-Type -AssemblyName System.Drawing
 
 $sizes = @(16, 32, 48, 128)
-$iconDir = "$PSScriptRoot\icons"
+$iconDir = "$PSScriptRoot\assets\icons"
 
 # Create icons directory if it doesn't exist
 if (-not (Test-Path $iconDir)) {
-    New-Item -ItemType Directory -Path $iconDir | Out-Null
+    New-Item -ItemType Directory -Path $iconDir -Force | Out-Null
 }
 
 foreach ($size in $sizes) {

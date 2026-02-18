@@ -4,18 +4,18 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
-    setupFiles: ['./test/setup.js'],
+    setupFiles: ['./tests/setup.js'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
-        'test/',
+        'tests/',
         'dist/',
         '*.config.js'
       ]
     },
-    include: ['test/**/*.test.js'],
+    include: ['tests/**/*.test.js'],
     exclude: ['node_modules', 'dist']
   }
 });

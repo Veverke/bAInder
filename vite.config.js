@@ -5,9 +5,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        background: resolve(__dirname, 'background.js'),
-        content: resolve(__dirname, 'content.js'),
-        sidepanel: resolve(__dirname, 'sidepanel.html')
+        background: resolve(__dirname, 'src/background/background.js'),
+        content: resolve(__dirname, 'src/content/content.js'),
+        sidepanel: resolve(__dirname, 'src/sidepanel/index.html')
       },
       output: {
         entryFileNames: '[name].js',

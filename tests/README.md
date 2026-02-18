@@ -31,14 +31,14 @@ npm run test:coverage
 ## Test Structure
 
 ```
-test/
+tests/
 ├── setup.js          # Chrome API mocks & global test setup
 └── example.test.js   # Example tests (can be deleted)
 ```
 
 ## Chrome API Mocks
 
-All Chrome Extension APIs are automatically mocked in `test/setup.js`:
+All Chrome Extension APIs are automatically mocked in `tests/setup.js`:
 
 ### Available Mocks
 
@@ -234,7 +234,7 @@ await expect(promise).rejects.toThrow();
 
 ### 1. Run Single Test File
 ```bash
-npm test test/storage.test.js
+npm test tests/storage.test.js
 ```
 
 ### 2. Run Tests Matching Pattern

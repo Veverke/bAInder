@@ -127,12 +127,12 @@ npm run test:coverage
 
 ### Test Files
 
-All tests are in the `test/` directory:
-- `test/setup.js` - Chrome API mocks & global configuration
-- `test/example.test.js` - Example tests (verify setup works)
-- `test/README.md` - Comprehensive testing guide
+All tests are in the `tests/` directory:
+- `tests/setup.js` - Chrome API mocks & global configuration
+- `tests/example.test.js` - Example tests (verify setup works)
+- `tests/README.md` - Comprehensive testing guide
 
-See [test/README.md](test/README.md) for detailed testing documentation, best practices, and examples.
+See [tests/README.md](tests/README.md) for detailed testing documentation, best practices, and examples.
 
 ## Troubleshooting
 
@@ -171,26 +171,27 @@ bAInder/
 ├── vite.config.js                   # Vite bundler config (for future)
 ├── vitest.config.js                 # Vitest testing config
 ├── .gitignore                       # Git ignore rules
-├── background.js                    # Service worker (message handling)
-├── content.js                       # Content script (chat detection)
-├── sidepanel.html                   # Side panel UI
 ├── generate-icons.ps1               # Icon generation script
-├── DESIGN_SPECS.md                  # Complete design documentation
-├── TESTING_FRAMEWORK_DECISION.md    # Unit testing framework analysis
 ├── README.md                        # This file
-├── icons/                           # Extension icons
-│   ├── icon16.png
-│   ├── icon32.png
-│   ├── icon48.png
-│   └── icon128.png
-├── scripts/                         # JavaScript files
-│   └── sidepanel.js                # Side panel logic
-├── styles/                          # CSS files
-│   └── sidepanel.css               # Side panel styling
-├── test/                            # Test files
-│   ├── setup.js                    # Chrome API mocks
-│   ├── example.test.js             # Example tests
-│   └── README.md                   # Testing guide
+├── assets/                          # Static assets
+│   └── icons/                       # Extension icons (16, 32, 48, 128)
+├── src/                             # Source code
+│   ├── background/                  # Background service worker
+│   │   └── index.js
+│   ├── content/                     # Content scripts
+│   │   └── index.js
+│   ├── sidepanel/                   # Side panel UI
+│   │   ├── index.html
+│   │   ├── sidepanel.js
+│   │   └── sidepanel.css
+│   └── lib/                         # Shared libraries (Stage 2+)
+├── tests/                           # Test files
+│   ├── setup.js                     # Chrome API mocks
+│   ├── example.test.js              # Example tests
+│   └── README.md                    # Testing guide
+├── docs/                            # Documentation
+│   ├── DESIGN_SPECS.md              # Complete design documentation
+│   └── TESTING_FRAMEWORK_DECISION.md # Testing framework analysis
 └── node_modules/                    # npm dependencies (gitignored)
 ```
 
@@ -205,7 +206,7 @@ Ready to proceed with:
 - **Stage 4:** Side Panel UI - Basic Tree View
 - **Stage 5:** Topic Management UI
 
-See [DESIGN_SPECS.md](DESIGN_SPECS.md) for complete development roadmap.
+See [docs/DESIGN_SPECS.md](docs/DESIGN_SPECS.md) for complete development roadmap.
 
 ## Development Notes
 
@@ -219,15 +220,15 @@ The extension requests:
 
 ### Storage Strategy
 
-Currently using `chrome.storage.local` with unlimited storage permission. See [DESIGN_SPECS.md](DESIGN_SPECS.md) Section 0.2 for database strategy details.
+Currently using `chrome.storage.local` with unlimited storage permission. See [docs/DESIGN_SPECS.md](docs/DESIGN_SPECS.md) Section 0.2 for database strategy details.
 
 ### Testing Framework
 
-**Vitest configured and ready!** ✅ See [test/README.md](test/README.md) for comprehensive testing guide. Run `npm test` to start testing. See [TESTING_FRAMEWORK_DECISION.md](TESTING_FRAMEWORK_DECISION.md) for rationale behind choosing Vitest over Jest.
+**Vitest configured and ready!** ✅ See [tests/README.md](tests/README.md) for comprehensive testing guide. Run `npm test` to start testing. See [docs/TESTING_FRAMEWORK_DECISION.md](docs/TESTING_FRAMEWORK_DECISION.md) for rationale behind choosing Vitest over Jest.
 
 ### NLP/ML Features
 
-Optional smart features (Stage 11) using local NLP libraries for auto-categorization and topic similarity. See [DESIGN_SPECS.md](DESIGN_SPECS.md) Section 0.7 for detailed analysis of technology options and privacy considerations.
+Optional smart features (Stage 11) using local NLP libraries for auto-categorization and topic similarity. See [docs/DESIGN_SPECS.md](docs/DESIGN_SPECS.md) Section 0.7 for detailed analysis of technology options and privacy considerations.
 
 ### Supported Platforms
 
