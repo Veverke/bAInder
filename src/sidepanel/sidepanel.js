@@ -1,5 +1,9 @@
 // bAInder Side Panel Script
-// Stage 1: Basic initialization and UI setup
+// Stage 4: Tree rendering with TreeRenderer
+
+import { TopicTree } from '../lib/tree.js';
+import { TreeRenderer } from '../lib/tree-renderer.js';
+import { StorageService } from '../lib/storage.js';
 
 console.log('bAInder Side Panel loaded');
 
@@ -23,10 +27,9 @@ const elements = {
 
 // Application State
 const state = {
-  topics: [],
-  chats: [],
-  expandedTopics: new Set(),
-  selectedItem: null,
+  tree: null, // TopicTree instance
+  renderer: null, // TreeRenderer instance
+  storage: null, // StorageService instance
   searchQuery: '',
   theme: 'light' // 'light', 'dark', or 'auto'
 };
@@ -35,20 +38,23 @@ const state = {
 async function init() {
   console.log('Initializing bAInder...');
   
+  // Initialize storage service
+  state.storage = StorageService.getInstance('chrome');
+  
   // Initialize theme
   await initTheme();
   
   // Set up event listeners
   setupEventListeners();
   
-  // Load data from storage
-  await loadData();
+  // Load tree from storage
+  await loadTree();
+  
+  // Initialize tree renderer
+  initTreeRenderer();
   
   // Update storage usage display
   updateStorageUsage();
-  
-  // Render the tree view
-  renderTreeView();
   
   console.log('bAInder initialized successfully');
 }
@@ -137,44 +143,85 @@ function setupEventListeners() {
 
 // Load data from storage
 async function loadData() {
+  console.log('loadData is deprecated, use loadTree instead');
+}
+
+// Load tree from storage
+async function loadTree() {
   try {
-    const result = await chrome.storage.local.get(['topics', 'chats', 'expandedTopics', 'theme']);
-    state.topics = result.topics || [];
-    state.chats = result.chats || [];
-    state.expandedTopics = new Set(result.expandedTopics || []);
-    state.theme = result.theme || 'light';
-    
-    console.log(`Loaded ${state.topics.length} topics and ${state.chats.length} chats`);
+    const treeData = await state.storage.loadTree();
+    state.tree = TopicTree.fromObject(treeData);
+    console.log(`Loaded tree with ${state.tree.getAllTopics().length} topics`);
   } catch (error) {
-    console.error('Error loading data:', error);
+    console.error('Error loading tree:', error);
+    // Initialize empty tree on error
+    state.tree = new TopicTree();
   }
 }
 
-// Save data to storage
-async function saveData() {
+// Save tree to storage
+async function saveTree() {
   try {
-    await chrome.storage.local.set({
-      topics: state.topics,
-      chats: state.chats,
-      expandedTopics: Array.from(state.expandedTopics),
-      theme: state.theme
-    });
-    console.log('Data saved successfully');
+    await state.storage.saveTree(state.tree.toObject());
+    console.log('Tree saved successfully');
+    await updateStorageUsage();
   } catch (error) {
-    console.error('Error saving data:', error);
+    console.error('Error saving tree:', error);
+    showNotification('Error saving changes', 'error');
   }
+}
+
+// Initialize tree renderer
+function initTreeRenderer() {
+  state.renderer = new TreeRenderer(elements.treeView, state.tree);
+  
+  // Set up event handlers
+  state.renderer.onTopicClick = handleTopicClick;
+  state.renderer.onTopicContextMenu = handleTopicContextMenu;
+  
+  // Load expanded state from localStorage (UI preference)
+  const savedExpanded = localStorage.getItem('expandedNodes');
+  if (savedExpanded) {
+    try {
+      state.renderer.setExpandedState(JSON.parse(savedExpanded));
+    } catch (error) {
+      console.error('Error loading expanded state:', error);
+    }
+  }
+  
+  // Render the tree
+  state.renderer.render();
+  state.renderer.updateTopicCount();
+}
+
+// Save expanded state to localStorage
+function saveExpandedState() {
+  if (state.renderer) {
+    const expandedIds = state.renderer.getExpandedState();
+    localStorage.setItem('expandedNodes', JSON.stringify(expandedIds));
+  }
+}
+
+// Handle topic click
+function handleTopicClick(topic) {
+  console.log('Topic clicked:', topic.name);
+  // Save expanded state whenever user interacts
+  saveExpandedState();
+  // TODO: Show topic details/chats in Stage 7
+}
+
+// Handle topic context menu
+function handleTopicContextMenu(topic, event) {
+  console.log('Topic context menu:', topic.name);
+  // TODO: Implement context menu in Stage 5
+  showNotification('Topic management coming in Stage 5', 'info');
 }
 
 // Render the tree view
 function renderTreeView() {
-  if (state.topics.length === 0) {
-    elements.emptyState.style.display = 'flex';
-    elements.treeView.innerHTML = '';
-    elements.itemCount.textContent = '0 topics';
-  } else {
-    elements.emptyState.style.display = 'none';
-    // TODO: Implement tree rendering in later stages
-    elements.itemCount.textContent = `${state.topics.length} topic${state.topics.length !== 1 ? 's' : ''}`;
+  if (state.renderer) {
+    state.renderer.render();
+    state.renderer.updateTopicCount();
   }
 }
 
@@ -187,8 +234,18 @@ function handleSearch(event) {
   elements.clearSearchBtn.style.display = query ? 'block' : 'none';
   
   if (query) {
-    performSearch(query);
+    // Highlight matching topics in tree
+    if (state.renderer) {
+      state.renderer.highlightSearch(query);
+      // Expand all to show matches
+      state.renderer.expandAll();
+      saveExpandedState();
+    }
+    // TODO: Full search functionality in Stage 8
   } else {
+    if (state.renderer) {
+      state.renderer.clearHighlight();
+    }
     hideSearchResults();
   }
 }
@@ -198,6 +255,9 @@ function clearSearch() {
   elements.searchInput.value = '';
   state.searchQuery = '';
   elements.clearSearchBtn.style.display = 'none';
+  if (state.renderer) {
+    state.renderer.clearHighlight();
+  }
   hideSearchResults();
 }
 
@@ -294,10 +354,12 @@ if (document.readyState === 'loading') {
 // Export for use in other modules (future stages)
 window.bAInder = {
   state,
-  loadData,
-  saveData,
+  tree: () => state.tree,
+  renderer: () => state.renderer,
+  storage: () => state.storage,
+  loadTree,
+  saveTree,
   renderTreeView,
   showNotification,
-  showModal,
-  closeModal
+  saveExpandedState
 };

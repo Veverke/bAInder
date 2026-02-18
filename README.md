@@ -188,6 +188,107 @@ const stats = tree.getStatistics();
 // Returns: { totalTopics: 2, totalChats: 0, maxDepth: 2 }
 ```
 
+## Stage 4: Side Panel UI - Basic Tree View ✅
+
+Interactive tree view displaying hierarchical topics in the side panel!
+
+### What's Included
+
+- ✅ **TreeRenderer Class** - Complete tree rendering engine
+- ✅ **Hierarchical Display** - Indented tree structure with proper nesting
+- ✅ **Expand/Collapse** - Fully functional expandable nodes
+- ✅ **Timespan Badges** - Display date ranges for topics with chats
+- ✅ **Chat Count Badges** - Show number of chats per topic
+- ✅ **Selection State** - Visual feedback for selected topics
+- ✅ **Search Highlighting** - Highlight matching topics in tree
+- ✅ **Accessibility** - ARIA attributes and keyboard navigation support
+- ✅ **Comprehensive Tests** - 48 unit tests covering all tree rendering features
+
+### Tree Features
+
+**Display:**
+- Hierarchical indentation (20px per level)
+- Folder icons (📁) for topics with children
+- Document icons (📄) for leaf topics
+- Topic names with text truncation
+- Timespan badges (e.g., "Jan 2024 - Mar 2024")
+- Chat count badges with hover tooltips
+- Alphabetical sorting at all levels
+
+**Interaction:**
+- Click to select topic
+- Click expand/collapse button (▶/▼) to toggle children
+- Right-click for context menu (Stage 5)
+- Smooth animations and transitions
+- Hover states and visual feedback
+
+**State Management:**
+- Expanded nodes tracked and persisted to localStorage
+- Selected node highlighted
+- Search highlighting with auto-expand
+- Lazy rendering for performance
+
+### Testing Stage 4
+
+Run the tree renderer tests:
+```bash
+npm test tests/tree-renderer.test.js
+```
+
+Run all tests:
+```bash
+npm run test:run
+```
+
+All 152 tests should pass (104 from Stages 1-3 + 48 from Stage 4).
+
+### Testing in Browser
+
+1. Load the extension in Chrome (see instructions below)
+2. Open DevTools Console for the side panel: Right-click side panel → Inspect
+3. Create sample topics in the console:
+
+```javascript
+const { tree, saveTree } = window.bAInder;
+const treeObj = tree();
+
+// Add some sample topics
+const workId = treeObj.addTopic('Work');
+treeObj.addTopic('Projects', workId);
+treeObj.addTopic('Meetings', workId);
+
+const personalId = treeObj.addTopic('Personal');
+treeObj.addTopic('Health', personalId);
+treeObj.addTopic('Finance', personalId);
+
+const learningId = treeObj.addTopic('Learning');
+treeObj.addTopic('JavaScript', learningId);
+treeObj.addTopic('Python', learningId);
+
+// Save and refresh
+await saveTree();
+window.bAInder.renderTreeView();
+```
+
+4. Test tree functionality:
+   - Click expand buttons to show/hide children
+   - Click topics to select them
+   - Search for topics in the search box (auto-expands matching nodes)
+   - Reload the extension - expanded state persists
+
+### CSS Styling
+
+All tree styles are in [src/sidepanel/sidepanel.css](src/sidepanel/sidepanel.css):
+- `.tree-root`, `.tree-children` - Tree structure
+- `.tree-node`, `.tree-node-content` - Individual nodes
+- `.tree-expand-btn` - Expand/collapse buttons
+- `.tree-icon` - Topic icons
+- `.tree-label`, `.tree-label-text` - Topic names
+- `.tree-timespan` - Date range badges
+- `.tree-chat-count` - Chat count badges
+- `.search-match` - Search highlighting
+- `.selected` - Selected node style
+
 ## How to Load the Extension in Chrome
 
 ### Step 1: Open Chrome Extensions Page
