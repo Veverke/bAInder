@@ -1,9 +1,11 @@
 // bAInder Side Panel Script
-// Stage 4: Tree rendering with TreeRenderer
+// Stage 5: Topic Management UI
 
 import { TopicTree } from '../lib/tree.js';
 import { TreeRenderer } from '../lib/tree-renderer.js';
 import { StorageService } from '../lib/storage.js';
+import { DialogManager } from '../lib/dialog-manager.js';
+import { TopicDialogs } from '../lib/topic-dialogs.js';
 
 console.log('bAInder Side Panel loaded');
 
@@ -30,8 +32,11 @@ const state = {
   tree: null, // TopicTree instance
   renderer: null, // TreeRenderer instance
   storage: null, // StorageService instance
+  dialog: null, // DialogManager instance
+  topicDialogs: null, // TopicDialogs instance
   searchQuery: '',
-  theme: 'light' // 'light', 'dark', or 'auto'
+  theme: 'light', // 'light', 'dark', or 'auto'
+  contextMenuTopic: null // Currently selected topic for context menu
 };
 
 // Initialize the application
@@ -41,6 +46,9 @@ async function init() {
   // Initialize storage service
   state.storage = StorageService.getInstance('chrome');
   
+  // Initialize dialog manager
+  state.dialog = new DialogManager(elements.modalContainer);
+  
   // Initialize theme
   await initTheme();
   
@@ -49,6 +57,9 @@ async function init() {
   
   // Load tree from storage
   await loadTree();
+  
+  // Initialize topic dialogs (needs tree instance)
+  state.topicDialogs = new TopicDialogs(state.dialog, state.tree);
   
   // Initialize tree renderer
   initTreeRenderer();
@@ -120,6 +131,12 @@ function setupEventListeners() {
   // Add topic button
   elements.addTopicBtn.addEventListener('click', handleAddTopic);
   
+  // Create first topic button (in empty state)
+  const createFirstTopicBtn = document.getElementById('createFirstTopicBtn');
+  if (createFirstTopicBtn) {
+    createFirstTopicBtn.addEventListener('click', handleAddTopic);
+  }
+  
   // Settings button
   elements.settingsBtn.addEventListener('click', handleSettings);
   
@@ -132,6 +149,9 @@ function setupEventListeners() {
       hideContextMenu();
     }
   });
+  
+  // Context menu action handlers
+  setupContextMenuActions();
   
   // Modal container - close when clicking backdrop
   elements.modalContainer.addEventListener('click', (e) => {
@@ -210,13 +230,6 @@ function handleTopicClick(topic) {
   // TODO: Show topic details/chats in Stage 7
 }
 
-// Handle topic context menu
-function handleTopicContextMenu(topic, event) {
-  console.log('Topic context menu:', topic.name);
-  // TODO: Implement context menu in Stage 5
-  showNotification('Topic management coming in Stage 5', 'info');
-}
-
 // Render the tree view
 function renderTreeView() {
   if (state.renderer) {
@@ -277,10 +290,119 @@ function hideSearchResults() {
 }
 
 // Handle add topic button
-function handleAddTopic() {
-  console.log('Add topic clicked');
-  // TODO: Implement add topic dialog in Stage 5
-  showNotification('Topic creation coming in Stage 5');
+async function handleAddTopic() {
+  const result = await state.topicDialogs.showAddTopic();
+  
+  if (result) {
+    console.log('Topic created:', result.name);
+    await saveTree();
+    renderTreeView();
+    
+    // Expand parent if needed
+    if (result.parentId) {
+      state.renderer.expandToTopic(result.topicId);
+    }
+    
+    // Select new topic
+    state.renderer.selectNode(result.topicId);
+    saveExpandedState();
+  }
+}
+
+// Handle topic context menu
+async function handleTopicContextMenu(topic, event) {
+  state.contextMenuTopic = topic;
+  showContextMenu(event.clientX, event.clientY);
+}
+
+// Setup context menu action handlers
+function setupContextMenuActions() {
+  const actions = {
+    rename: handleRenameTopic,
+    move: handleMoveTopic,
+    merge: handleMergeTopic,
+    delete: handleDeleteTopic
+  };
+  
+  elements.contextMenu.querySelectorAll('[data-action]').forEach(item => {
+    item.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const action = item.dataset.action;
+      hideContextMenu();
+      
+      if (actions[action]) {
+        await actions[action]();
+      }
+    });
+  });
+}
+
+// Handle rename topic
+async function handleRenameTopic() {
+  if (!state.contextMenuTopic) return;
+  
+  const result = await state.topicDialogs.showRenameTopic(state.contextMenuTopic.id);
+  
+  if (result) {
+    console.log('Topic renamed:', result.oldName, '->', result.newName);
+    await saveTree();
+    renderTreeView();
+    state.renderer.selectNode(result.topicId);
+  }
+}
+
+// Handle move topic
+async function handleMoveTopic() {
+  if (!state.contextMenuTopic) return;
+  
+  const result = await state.topicDialogs.showMoveTopic(state.contextMenuTopic.id);
+  
+  if (result) {
+    console.log('Topic moved:', result);
+    await saveTree();
+    renderTreeView();
+    
+    // Expand to show moved topic
+    state.renderer.expandToTopic(result.topicId);
+    state.renderer.selectNode(result.topicId);
+    saveExpandedState();
+  }
+}
+
+// Handle delete topic
+async function handleDeleteTopic() {
+  if (!state.contextMenuTopic) return;
+  
+  const result = await state.topicDialogs.showDeleteTopic(state.contextMenuTopic.id);
+  
+  if (result) {
+    console.log('Topic deleted:', result.name);
+    await saveTree();
+    renderTreeView();
+    
+    // TODO: Handle chat deletion (Stage 6)
+    if (result.deletedChatCount > 0) {
+      console.log(`Note: ${result.deletedChatCount} chats were unassigned`);
+    }
+  }
+}
+
+// Handle merge topic
+async function handleMergeTopic() {
+  if (!state.contextMenuTopic) return;
+  
+  const result = await state.topicDialogs.showMergeTopic(state.contextMenuTopic.id);
+  
+  if (result) {
+    console.log('Topics merged:', result);
+    await saveTree();
+    renderTreeView();
+    
+    // Select target topic
+    state.renderer.expandToTopic(result.targetTopicId);
+    state.renderer.selectNode(result.targetTopicId);
+    saveExpandedState();
+  }
 }
 
 // Handle settings button
@@ -291,31 +413,42 @@ function handleSettings() {
 }
 
 // Show context menu
-function showContextMenu(x, y, itemType, itemId) {
+function showContextMenu(x, y) {
+  // Position context menu
   elements.contextMenu.style.left = `${x}px`;
   elements.contextMenu.style.top = `${y}px`;
   elements.contextMenu.style.display = 'block';
   
-  // Store context for menu actions
-  elements.contextMenu.dataset.itemType = itemType;
-  elements.contextMenu.dataset.itemId = itemId;
+  // Adjust if menu goes off screen
+  setTimeout(() => {
+    const rect = elements.contextMenu.getBoundingClientRect();
+    
+    if (rect.right > window.innerWidth) {
+      elements.contextMenu.style.left = `${window.innerWidth - rect.width - 10}px`;
+    }
+    
+    if (rect.bottom > window.innerHeight) {
+      elements.contextMenu.style.top = `${window.innerHeight - rect.height - 10}px`;
+    }
+  }, 0);
 }
 
 // Hide context menu
 function hideContextMenu() {
   elements.contextMenu.style.display = 'none';
+  state.contextMenuTopic = null;
 }
 
-// Show modal
+// Show modal (deprecated - use DialogManager)
 function showModal(content) {
-  elements.modalContainer.innerHTML = content;
-  elements.modalContainer.style.display = 'flex';
+  console.warn('showModal is deprecated, use DialogManager instead');
 }
 
-// Close modal
+// Close modal (deprecated - use DialogManager)
 function closeModal() {
-  elements.modalContainer.style.display = 'none';
-  elements.modalContainer.innerHTML = '';
+  if (state.dialog) {
+    state.dialog.close();
+  }
 }
 
 // Update storage usage display
@@ -357,6 +490,8 @@ window.bAInder = {
   tree: () => state.tree,
   renderer: () => state.renderer,
   storage: () => state.storage,
+  dialog: () => state.dialog,
+  topicDialogs: () => state.topicDialogs,
   loadTree,
   saveTree,
   renderTreeView,

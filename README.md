@@ -289,6 +289,179 @@ All tree styles are in [src/sidepanel/sidepanel.css](src/sidepanel/sidepanel.css
 - `.search-match` - Search highlighting
 - `.selected` - Selected node style
 
+## Stage 5: Topic Management UI ✅
+
+Complete topic management with modal dialogs for all CRUD operations!
+
+### What's Included
+
+- ✅ **DialogManager Class** - Generic modal dialog system
+- ✅ **TopicDialogs Class** - Topic-specific dialog workflows
+- ✅ **Modal Dialog System** - Alert, confirm, prompt, and custom form dialogs
+- ✅ **CRUD Operations** - Add, rename, move, delete, and merge topics
+- ✅ **Context Menu** - Right-click menu for topic actions
+- ✅ **Form Validation** - Client-side validation with error states
+- ✅ **Hierarchical Selection** - Dropdown menus with indented topic tree
+- ✅ **CSS Styling** - Professional dialog and form styles with animations
+- ✅ **Comprehensive Tests** - 40 unit tests covering all dialog operations
+
+### Dialog Features
+
+**Dialog Types:**
+- **Alert** - Simple informational dialogs
+- **Confirm** - Yes/No confirmation dialogs
+- **Prompt** - Single text input dialogs
+- **Form** - Multi-field custom forms (text, select, textarea)
+
+**Dialog Capabilities:**
+- ESC key to close
+- Click backdrop to close
+- Auto-focus first input
+- Promise-based API for async/await
+- HTML escaping for XSS prevention
+- Multiple sizes (small, medium, large)
+- Modal overlay with backdrop
+
+### Topic Operations
+
+**Add Topic:**
+- Modal form with topic name input
+- Parent topic selection dropdown (hierarchical)
+- Create at root level or as child of any topic
+- Validation prevents empty names
+- Auto-alphabetical sorting after creation
+
+**Rename Topic:**
+- Pre-filled form with current topic name
+- Validation prevents empty names
+- Returns null if name unchanged (no-op)
+- Auto-alphabetical re-sort after rename
+
+**Move Topic:**
+- Dropdown shows all valid parent options
+- Excludes topic itself and all descendants (prevents circular references)
+- Move to root level or under any other topic
+- Shows "(Root Level)" option in dropdown
+- Alert if no valid move destinations available
+
+**Delete Topic:**
+- Confirmation dialog before deletion
+- Warning if topic has child topics
+- Warning if topic has associated chats
+- Note about chats becoming unassigned
+
+**Merge Topics:**
+- Select target topic from dropdown
+- Excludes topic itself, ancestors, and descendants
+- Confirmation dialog shows merge details:
+  - Number of chats to move
+  - Child topics to move
+  - Source topic will be deleted
+- All chats and children merged into target
+- Date ranges combined
+- Alert if no valid merge targets available
+
+### Context Menu
+
+Right-click any topic to access:
+- **Rename** - Rename the topic
+- **Move** - Move to different location
+- **Delete** - Delete topic
+- **Merge** - Merge into another topic
+
+Context menu features:
+- Screen boundary detection (prevents overflow)
+- Click outside to close
+- Displays topic name at top
+
+### Form Validation
+
+All forms include:
+- Required field validation (red border on error)
+- Real-time error removal on input
+- Client-side validation before submission
+- Error messages via alert dialogs
+- Graceful error handling
+
+### Testing Stage 5
+
+Run the dialog tests:
+```bash
+npm test tests/dialogs.test.js
+```
+
+Run all tests:
+```bash
+npm run test:run
+```
+
+All 192 tests should pass (152 from Stages 1-4 + 40 from Stage 5).
+
+### Testing in Browser
+
+1. Load the extension and open the side panel
+2. Open DevTools Console: Right-click side panel → Inspect
+3. Test dialog system directly:
+
+```javascript
+const { dialog, topicDialogs } = window.bAInder;
+
+// Test alert
+await dialog().alert('Hello world!', 'My Alert');
+
+// Test confirm
+const confirmed = await dialog().confirm('Are you sure?', 'Confirmation');
+console.log('User confirmed:', confirmed);
+
+// Test prompt
+const name = await dialog().prompt('Enter your name:', 'Default Name');
+console.log('User entered:', name);
+
+// Test form
+const result = await dialog().form([
+  { name: 'firstName', label: 'First Name', type: 'text', required: true },
+  { name: 'age', label: 'Age', type: 'number' },
+  { name: 'country', label: 'Country', type: 'select', options: [
+    { value: 'us', label: 'United States' },
+    { value: 'uk', label: 'United Kingdom' }
+  ]}
+], 'User Info', 'Submit');
+console.log('Form result:', result);
+```
+
+4. Create and manage topics:
+
+```javascript
+const { tree, saveTree } = window.bAInder;
+
+// Add some topics first
+const workId = tree().addTopic('Work');
+const personalId = tree().addTopic('Personal');
+await saveTree();
+window.bAInder.renderTreeView();
+
+// Now use the UI:
+// - Click "+ Add Topic" button
+// - Right-click any topic for context menu
+// - Try rename, move, delete, merge operations
+```
+
+### CSS Styling
+
+All dialog styles are in [src/sidepanel/sidepanel.css](src/sidepanel/sidepanel.css):
+- `.modal`, `.modal-content` - Modal container and sizing
+- `.modal-header`, `.modal-body`, `.modal-footer` - Dialog structure
+- `.dialog-form`, `.form-group` - Form layout
+- `.form-input`, `.form-select`, `.form-textarea` - Form fields
+- `.form-hint` - Field hints/descriptions
+- `.error` - Validation error states
+- `.btn-primary`, `.btn-secondary` - Button styles
+
+### Keyboard Shortcuts
+
+- **ESC** - Close current dialog
+- **Enter** - Submit single-field forms (prompt dialogs)
+
 ## How to Load the Extension in Chrome
 
 ### Step 1: Open Chrome Extensions Page
@@ -325,8 +498,8 @@ You should see:
 The side panel should open with:
 - 📖 Header with "bAInder" title
 - 🔍 Search box (functional in Stage 8)
-- ➕ "Add Topic" button (functional in Stage 5)
-- Empty state message: "No topics yet"
+- ➕ "Add Topic" button (fully functional with modal dialog)
+- Empty state message: "No topics yet" (or tree view if topics exist)
 - 💾 Storage usage indicator in footer
 - ⚙️ Settings button (functional in Stage 10)
 
@@ -358,17 +531,14 @@ The side panel should open with:
    - Open DevTools console on the page (F12)
    - Should see: "bAInder content script loaded on: [hostname]"
 
-### Known Stage 1 Limitations
+### Known Limitations
 
 The following features are **not yet implemented** (coming in later stages):
-- ❌ Creating topics (Stage 5)
-- ❌ Displaying/managing topics in tree (Stage 4)
-- ❌ Saving chats (Stage 6-7)
+- ❌ Saving chats from AI websites (Stage 6-7)
 - ❌ Search functionality (Stage 8)
-- ❌ Export features (Stage 9)
+- ❌ Export/Import features (Stage 9)
 - ❌ Settings page (Stage 10)
-
-Buttons for these features show alerts saying they're coming in future stages.
+- ❌ Advanced features (Stage 11)
 
 ## Testing Setup ✅
 
@@ -471,14 +641,14 @@ bAInder/
 
 ## Next Steps
 
-Stage 1 Foundation ✅ and Testing Setup ✅ are complete!
+Stages 1-5 Complete! ✅
 
 Ready to proceed with:
 
-- **Stage 2:** Storage Abstraction Layer (with tests!)
-- **Stage 3:** Data Models & Tree Structure
-- **Stage 4:** Side Panel UI - Basic Tree View
-- **Stage 5:** Topic Management UI
+- **Stage 6:** Content Script - Chat Detection
+- **Stage 7:** Chat Assignment UI
+- **Stage 8:** Search Functionality
+- **Stage 9:** Export & Import
 
 See [docs/DESIGN_SPECS.md](docs/DESIGN_SPECS.md) for complete development roadmap.
 
@@ -517,6 +687,7 @@ This is currently in active development following the stage-by-stage approach ou
 
 ## Version
 
-**Current Stage:** Stage 1 Complete ✅ + Testing Setup ✅  
+**Current Stage:** Stages 1-5 Complete ✅  
 **Version:** 1.0.0  
-**Last Updated:** February 18, 2026
+**Last Updated:** February 18, 2026  
+**Tests Passing:** 192/192
