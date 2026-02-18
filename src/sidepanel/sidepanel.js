@@ -13,6 +13,7 @@ const elements = {
   searchResultsList: document.getElementById('searchResultsList'),
   addTopicBtn: document.getElementById('addTopicBtn'),
   settingsBtn: document.getElementById('settingsBtn'),
+  themeToggle: document.getElementById('themeToggle'),
   contextMenu: document.getElementById('contextMenu'),
   modalContainer: document.getElementById('modalContainer'),
   itemCount: document.getElementById('itemCount'),
@@ -26,12 +27,16 @@ const state = {
   chats: [],
   expandedTopics: new Set(),
   selectedItem: null,
-  searchQuery: ''
+  searchQuery: '',
+  theme: 'light' // 'light', 'dark', or 'auto'
 };
 
 // Initialize the application
 async function init() {
   console.log('Initializing bAInder...');
+  
+  // Initialize theme
+  await initTheme();
   
   // Set up event listeners
   setupEventListeners();
@@ -48,6 +53,58 @@ async function init() {
   console.log('bAInder initialized successfully');
 }
 
+// Initialize theme system
+async function initTheme() {
+  try {
+    const result = await chrome.storage.local.get('theme');
+    state.theme = result.theme || 'light';
+    applyTheme(state.theme);
+  } catch (error) {
+    console.error('Error loading theme:', error);
+    applyTheme('light');
+  }
+}
+
+// Apply theme to document
+function applyTheme(theme) {
+  const html = document.documentElement;
+  const themeIcon = elements.themeToggle?.querySelector('.theme-icon');
+  
+  if (theme === 'auto') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    if (themeIcon) themeIcon.textContent = '🌓';
+  } else {
+    html.setAttribute('data-theme', theme);
+    if (themeIcon) themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+  }
+  
+  state.theme = theme;
+}
+
+// Toggle theme
+async function toggleTheme() {
+  const themes = ['light', 'dark', 'auto'];
+  const currentIndex = themes.indexOf(state.theme);
+  const nextTheme = themes[(currentIndex + 1) % themes.length];
+  
+  applyTheme(nextTheme);
+  
+  try {
+    await chrome.storage.local.set({ theme: nextTheme });
+    console.log('Theme changed to:', nextTheme);
+  } catch (error) {
+    console.error('Error saving theme:', error);
+  }
+}
+
+// Listen for system theme changes when in auto mode
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (state.theme === 'auto') {
+    applyTheme('auto');
+  }
+});
+
 // Set up event listeners
 function setupEventListeners() {
   // Search functionality
@@ -59,6 +116,9 @@ function setupEventListeners() {
   
   // Settings button
   elements.settingsBtn.addEventListener('click', handleSettings);
+  
+  // Theme toggle button
+  elements.themeToggle.addEventListener('click', toggleTheme);
   
   // Context menu - hide when clicking outside
   document.addEventListener('click', (e) => {
@@ -78,10 +138,11 @@ function setupEventListeners() {
 // Load data from storage
 async function loadData() {
   try {
-    const result = await chrome.storage.local.get(['topics', 'chats', 'expandedTopics']);
+    const result = await chrome.storage.local.get(['topics', 'chats', 'expandedTopics', 'theme']);
     state.topics = result.topics || [];
     state.chats = result.chats || [];
     state.expandedTopics = new Set(result.expandedTopics || []);
+    state.theme = result.theme || 'light';
     
     console.log(`Loaded ${state.topics.length} topics and ${state.chats.length} chats`);
   } catch (error) {
@@ -95,7 +156,8 @@ async function saveData() {
     await chrome.storage.local.set({
       topics: state.topics,
       chats: state.chats,
-      expandedTopics: Array.from(state.expandedTopics)
+      expandedTopics: Array.from(state.expandedTopics),
+      theme: state.theme
     });
     console.log('Data saved successfully');
   } catch (error) {
@@ -201,10 +263,17 @@ async function updateStorageUsage() {
   try {
     const usage = await chrome.storage.local.getBytesInUse();
     const usageMB = (usage / (1024 * 1024)).toFixed(2);
-    elements.storageUsage.textContent = `Storage: ${usageMB} MB used`;
+    const usageKB = (usage / 1024).toFixed(1);
+    
+    // Show KB for small values, MB for larger
+    if (usage < 1024 * 1024) {
+      elements.storageUsage.textContent = `${usageKB} KB`;
+    } else {
+      elements.storageUsage.textContent = `${usageMB} MB`;
+    }
   } catch (error) {
     console.error('Error getting storage usage:', error);
-    elements.storageUsage.textContent = 'Storage: Unknown';
+    elements.storageUsage.textContent = 'Unknown';
   }
 }
 

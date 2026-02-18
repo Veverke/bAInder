@@ -287,13 +287,13 @@ This shifts the testing recommendation significantly.
 bAInder/
 ├── src/
 │   ├── background/
-│   │   └── index.js
+│   │   └── background.js
 │   ├── content/
-│   │   └── index.js
+│   │   └── content.js
 │   ├── sidepanel/
-│   │   ├── index.html
-│   │   ├── main.js
-│   │   └── styles.css
+│   │   ├── sidepanel.html
+│   │   ├── sidepanel.js
+│   │   └── sidepanel.css
 │   ├── lib/
 │   │   ├── storage.js
 │   │   ├── tree.js

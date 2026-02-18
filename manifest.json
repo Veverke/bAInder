@@ -31,7 +31,7 @@
     "128": "assets/icons/icon128.png"
   },
   "side_panel": {
-    "default_path": "src/sidepanel/index.html"
+    "default_path": "src/sidepanel/sidepanel.html"
   },
   "background": {
     "service_worker": "src/background/background.js"

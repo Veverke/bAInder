@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>bAInder Theme Test</title>
+  <style>
+    /* Include minimal theme CSS for testing */
+    [data-theme="light"] {
+      --bg-primary: #ffffff;
+      --text-primary: #0f172a;
+    }
+    
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --text-primary: #f1f5f9;
+    }
+    
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      padding: 40px;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    
+    #status {
+      margin-top: 20px;
+      padding: 20px;
+      border: 2px solid currentColor;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>bAInder Theme System Test</h1>
+  
+  <button id="themeToggle">
+    <span class="theme-icon">🌙</span>
+    Toggle Theme
+  </button>
+  
+  <div id="status">
+    <h2>Current Status:</h2>
+    <p>Theme: <strong id="currentTheme">light</strong></p>
+    <p>HTML data-theme: <strong id="htmlTheme">light</strong></p>
+    <p>Icon: <strong id="iconText">🌙</strong></p>
+  </div>
+  
+  <h3>Test Instructions:</h3>
+  <ol>
+    <li>Click the "Toggle Theme" button</li>
+    <li>Theme should cycle: light → dark → auto → light</li>
+    <li>Background and text colors should change</li>
+    <li>Icon should change: 🌙 → ☀️ → 🌓 → 🌙</li>
+    <li>Check console for any errors</li>
+  </ol>
+  
+  <script>
+    // Mock Chrome Storage API for standalone testing
+    if (typeof chrome === 'undefined') {
+      window.chrome = {
+        storage: {
+          local: {
+            get: (keys) => Promise.resolve({}),
+            set: (items) => {
+              console.log('Storage set:', items);
+              return Promise.resolve();
+            }
+          }
+        }
+      };
+    }
+    
+    // Theme state
+    let currentTheme = 'light';
+    
+    // DOM elements
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = themeToggle.querySelector('.theme-icon');
+    const statusTheme = document.getElementById('currentTheme');
+    const statusHtmlTheme = document.getElementById('htmlTheme');
+    const statusIcon = document.getElementById('iconText');
+    
+    // Apply theme to document
+    function applyTheme(theme) {
+      const html = document.documentElement;
+      
+      if (theme === 'auto') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+        if (themeIcon) themeIcon.textContent = '🌓';
+      } else {
+        html.setAttribute('data-theme', theme);
+        if (themeIcon) themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+      }
+      
+      currentTheme = theme;
+      updateStatus();
+    }
+    
+    // Toggle theme
+    async function toggleTheme() {
+      const themes = ['light', 'dark', 'auto'];
+      const currentIndex = themes.indexOf(currentTheme);
+      const nextTheme = themes[(currentIndex + 1) % themes.length];
+      
+      console.log('Toggling theme from', currentTheme, 'to', nextTheme);
+      applyTheme(nextTheme);
+      
+      try {
+        await chrome.storage.local.set({ theme: nextTheme });
+        console.log('Theme saved to storage:', nextTheme);
+      } catch (error) {
+        console.error('Error saving theme:', error);
+      }
+    }
+    
+    // Update status display
+    function updateStatus() {
+      statusTheme.textContent = currentTheme;
+      statusHtmlTheme.textContent = document.documentElement.getAttribute('data-theme');
+      statusIcon.textContent = themeIcon.textContent;
+    }
+    
+    // Initialize
+    themeToggle.addEventListener('click', toggleTheme);
+    updateStatus();
+    
+    console.log('✅ Theme test page loaded successfully');
+    console.log('No syntax errors detected');
+  </script>
+</body>
+</html>
