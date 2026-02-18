@@ -826,23 +826,29 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
 ---
 
 ### Stage 9: Export & Content Transformation
-**Goal:** Export chats in various formats with style transformation
+**Goal:** Export chats in various formats with style transformation, plus folder structure export for local browsing
 
 **Tasks:**
 - Add export option to context menu
 - Create export dialog:
-  - Format selection (Markdown, HTML, PDF)
+  - Format selection (Markdown, HTML, PDF, **ZIP Archive**)
   - Style selection:
     - Technical article
     - Academic journal
     - Blog post
     - LinkedIn article
     - Raw transcript
+  - Export scope:
+    - Single chat
+    - Single topic
+    - Topic with all children (recursive)
+    - **Entire tree as folder structure**
   - Preview pane (optional)
 - Implement export engines:
   - **Markdown:** Format with headers, code blocks, lists
   - **HTML:** Styled with CSS, responsive
   - **PDF:** Use browser print API or library (jsPDF)
+  - **ZIP Archive (New):** Complete folder structure export
 - Implement style transformers:
   - Use templates for each style
   - Reformat conversation structure
@@ -851,16 +857,307 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
 - Download file to user's system
 - Support batch export (entire topic with all chats)
 
-**Deliverable:** Export system with multiple formats
+**New Feature: Folder Structure Export to ZIP**
+
+Export the entire topic tree as a ZIP file containing:
+- Hierarchical folder structure mirroring the topic tree
+- Each chat saved as individual Markdown file
+- Metadata file (tree structure, timestamps, sources)
+- README.md with navigation instructions
+
+**Implementation Details:**
+
+*Folder Structure:*
+```
+bAInder-export-2024-03-15/
+├── README.md (export info, navigation guide)
+├── _metadata.json (tree structure, export date, version)
+├── Work/
+│   ├── Projects/
+│   │   ├── chat-001-project-alpha-discussion.md
+│   │   ├── chat-002-technical-requirements.md
+│   │   └── chat-003-architecture-decisions.md
+│   ├── Meetings/
+│   │   └── chat-004-weekly-standup-notes.md
+│   └── _topic.json (topic metadata: name, dates, chat count)
+├── Personal/
+│   ├── Health/
+│   │   └── chat-005-workout-routine-planning.md
+│   └── Finance/
+│       └── chat-006-budget-analysis.md
+└── Learning/
+    ├── JavaScript/
+    │   └── chat-007-async-await-patterns.md
+    └── Python/
+        └── chat-008-data-science-intro.md
+```
+
+*Markdown File Format:*
+```markdown
+---
+title: "Project Alpha Discussion"
+source: chatgpt
+url: https://chat.openai.com/c/abc123
+date: 2024-03-15T10:30:00Z
+topic: Work > Projects
+chat_id: chat-001
+---
+
+# Project Alpha Discussion
+
+**Source:** ChatGPT  
+**Date:** March 15, 2024 at 10:30 AM  
+**Topic Path:** Work > Projects
+
+---
+
+## Conversation
+
+### User
+[First message content...]
+
+### Assistant
+[Response content...]
+
+### User
+[Next message...]
+
+[Continue conversation...]
+
+---
+
+*Exported from bAInder on March 15, 2024*
+```
+
+*_metadata.json Format:*
+```json
+{
+  "export_version": "1.0",
+  "export_date": "2024-03-15T14:30:00Z",
+  "bainder_version": "1.0.0",
+  "tree_structure": {
+    "topics": [...],
+    "total_chats": 8,
+    "total_topics": 8
+  },
+  "statistics": {
+    "date_range": {
+      "first_chat": "2024-01-15T10:00:00Z",
+      "last_chat": "2024-03-15T10:30:00Z"
+    },
+    "sources": {
+      "chatgpt": 5,
+      "claude": 2,
+      "gemini": 1
+    }
+  }
+}
+```
+
+*Implementation:*
+- Use JSZip library for ZIP file creation
+- Sanitize folder/file names (remove special chars, limit length)
+- Handle name collisions with numeric suffixes
+- Progress indicator for large exports
+- Async/chunked processing to prevent UI freeze
+- Download via Blob URL and `<a download>` trigger
+
+*Benefits:*
+- Browse chats locally in VS Code or any text editor
+- Full-text search with tools like `grep` or VS Code search
+- Version control with Git (markdown is VCS-friendly)
+- Local backup without vendor lock-in
+- Works offline permanently
+- Can share entire knowledge base as ZIP file
+
+**Deliverable:** Export system with multiple formats including ZIP archive
 
 **Dependencies:** Stage 7 (Chat Display)
 
 **Test Strategy:**
 - Export single chat in all formats
-- Export entire topic tree
+- Export entire topic tree as ZIP
+- Verify folder structure matches tree hierarchy
+- Test with special characters in topic/chat names
+- Test with large datasets (100+ topics, 500+ chats)
+- Verify markdown formatting in exported files
+- Test ZIP file integrity
 - Verify style transformations
 - Test PDF generation quality
 - Test with long chats (100+ exchanges)
+
+**New Feature: Import Folder Structure from ZIP**
+
+Import and merge an entire folder structure from a previously exported ZIP file (or manually created folder structure) into the existing topic tree.
+
+**Use Cases:**
+- Restore from backup
+- Migrate from another device
+- Share knowledge base with team members
+- Merge multiple exported archives
+- Import manually organized markdown files
+
+**Implementation Details:**
+
+*Import Dialog:*
+- File picker for ZIP file selection (or drag & drop)
+- Import strategy options:
+  - **Merge (default):** Combine with existing tree, skip duplicate topics
+  - **Replace:** Clear existing data and import fresh
+  - **Create New Root:** Import under a new parent topic
+- Conflict resolution settings:
+  - Skip existing topics (preserve current structure)
+  - Update existing topics (merge chats)
+  - Rename imported topics (append suffix)
+- Preview pane showing:
+  - Topics to be created
+  - Topics to be merged
+  - Total chats to be imported
+  - Conflicts detected
+- Progress indicator during import
+
+*Import Algorithm:*
+
+```javascript
+async function importFromZip(zipFile, strategy) {
+  // 1. Extract and parse ZIP
+  const zip = await JSZip.loadAsync(zipFile);
+  const metadata = await zip.file('_metadata.json').async('string');
+  const metaObj = JSON.parse(metadata);
+  
+  // 2. Build folder map
+  const folderStructure = await parseFolderStructure(zip);
+  
+  // 3. Process based on strategy
+  if (strategy === 'merge') {
+    // Navigate existing tree and merge
+    await mergeImportedStructure(folderStructure);
+  } else if (strategy === 'replace') {
+    // Clear existing tree and import fresh
+    await clearAndImport(folderStructure);
+  } else if (strategy === 'create_root') {
+    // Create new parent topic and import under it
+    await importUnderNewRoot(folderStructure);
+  }
+  
+  // 4. Save updated tree
+  await saveTree();
+  
+  // 5. Refresh UI
+  renderer.render();
+}
+```
+
+*Merge Strategy Details:*
+
+When importing with merge strategy:
+
+1. **For each folder (topic):**
+   - Check if topic with same name exists at same level
+   - **If exists:** 
+     - Skip topic creation
+     - Proceed to import chats into existing topic
+     - Recursively process subfolders/chats
+   - **If not exists:**
+     - Create new topic
+     - Import all chats
+     - Recursively import subfolders
+
+2. **For each markdown file (chat):**
+   - Parse frontmatter to extract metadata
+   - Check if chat with same ID already exists
+   - **If exists:** 
+     - Skip or update based on settings
+   - **If not exists:**
+     - Create new chat entry
+     - Add to topic's chat list
+     - Update topic date range
+
+3. **Edge Cases:**
+   - Orphaned files (no parent folder) → Import to root
+   - Invalid markdown → Skip with warning
+   - Name collisions → Offer rename or skip
+   - Circular references → Detect and prevent
+
+*File Format Compatibility:*
+
+Support importing from:
+- bAInder ZIP exports (with _metadata.json)
+- Generic folder structures (auto-detect from structure)
+- Individual markdown files (create single topic)
+
+*Markdown Parsing:*
+
+Extract metadata from frontmatter:
+```markdown
+---
+title: "Chat Title"
+source: chatgpt
+url: https://...
+date: 2024-03-15T10:30:00Z
+topic: Work > Projects
+chat_id: chat-001
+---
+```
+
+If no frontmatter exists, fallback to:
+- Filename as title
+- File modification date as chat date
+- Default source to "imported"
+
+*Implementation Steps:*
+
+1. Add "Import from ZIP" button in settings or main menu
+2. File input dialog with ZIP file picker
+3. Parse ZIP contents:
+   - Read _metadata.json (if exists)
+   - Walk directory structure
+   - Parse all .md files
+4. Build import preview:
+   - Show topic tree to be imported
+   - Highlight conflicts
+   - Allow user to customize before import
+5. Execute import with progress tracking
+6. Show import summary:
+   - Topics created: X
+   - Topics merged: Y
+   - Chats imported: Z
+   - Errors/warnings: N
+7. Refresh tree view
+
+*Error Handling:*
+- Validate ZIP structure before import
+- Graceful handling of corrupt files
+- Continue import on individual file errors
+- Collect and display all errors at end
+- Offer rollback/undo option
+
+*Security Considerations:*
+- Validate file types (only .md, .json)
+- Sanitize filenames before creating topics
+- Limit file sizes (max 10MB per chat)
+- Limit total import size (max 500MB)
+- No script execution from imported content
+
+*Benefits:*
+- Easy backup and restore workflow
+- Share curated knowledge bases
+- Collaborate with team members
+- Migrate between devices
+- Integrate manually organized markdown notes
+- Recover from data loss
+
+**Testing Strategy for Import:**
+- Import previously exported ZIP
+- Verify tree structure matches original
+- Test merge with existing data (duplicates handled)
+- Test with missing metadata files
+- Test with invalid/corrupted files
+- Test with large imports (1000+ files)
+- Test rollback/undo functionality
+- Verify chat content integrity
+- Test conflict resolution strategies
+- Import manually created folder structure
 
 ---
 
@@ -882,7 +1179,7 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
 - Settings page:
   - Storage usage display
   - Auto-save preferences
-  - Export/import entire database
+  - Export/import entire database (see Stage 9 for ZIP folder structure export/import)
   - Clear all data option
   - Site-specific extraction settings
 - Error handling:
