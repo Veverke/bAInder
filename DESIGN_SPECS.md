@@ -223,6 +223,213 @@ Store tree structure in `chrome.storage.local` and actual chat content in Indexe
 
 Start with `chrome.storage.local` + `unlimitedStorage` permission. This provides simplicity now with scalability later. Given the export features (MD/HTML/PDF), power users will accumulate data quickly, making unlimited storage essential from day one.
 
+### 0.7 NLP/ML Libraries & Smart Features
+
+#### Use Cases for Natural Language Processing
+
+The extension can benefit from NLP/ML capabilities for intelligent features:
+
+1. **Auto-categorization** - Analyze chat content and automatically suggest appropriate topics
+2. **Similar Topic Detection** - Identify topics that could be merged based on content similarity
+3. **Smart Search** - Semantic search beyond simple keyword matching
+4. **Duplicate Detection** - Find conversations covering similar subjects
+5. **Auto-summarization** - Generate descriptive titles or summaries for topics
+6. **Keyword Extraction** - Identify main themes from chat conversations
+
+#### Technology Options Evaluated
+
+**Option A: Client-Side ML (TensorFlow.js)**
+
+*Description:* Run machine learning models directly in the browser
+
+*Advantages:*
+- ✅ Privacy-preserving (data never leaves device)
+- ✅ Works offline
+- ✅ No API costs
+- ✅ Full user control
+
+*Disadvantages:*
+- ❌ Large bundle size (several MB)
+- ❌ Slower performance on low-end devices
+- ❌ Limited model sophistication
+- ❌ Requires model training/fine-tuning
+
+*Best for:* Embeddings generation, similarity scoring, basic classification
+
+---
+
+**Option B: Lightweight NLP Libraries (Recommended for MVP)**
+
+*Libraries considered:*
+- **compromise** (~200KB) - Fast NLP with POS tagging, entity extraction
+- **natural** - Tokenization, stemming, TF-IDF, Levenshtein distance
+- **stopword** - Remove common words for better analysis
+
+*Advantages:*
+- ✅ Small footprint (< 500KB total)
+- ✅ Fast, synchronous operations
+- ✅ Privacy-preserving (local only)
+- ✅ No internet required
+- ✅ Good enough for 80% of use cases
+
+*Disadvantages:*
+- ❌ Less sophisticated than deep learning
+- ❌ Rule-based rather than learned
+- ❌ Limited understanding of context
+
+*Best for:* Keyword extraction, basic similarity, topic suggestions
+
+**Example Implementation:**
+```javascript
+import nlp from 'compromise';
+import natural from 'natural';
+
+// Extract keywords from chat
+function extractKeywords(chatContent) {
+  const doc = nlp(chatContent);
+  const nouns = doc.nouns().out('array');
+  const topics = doc.topics().out('array');
+  return [...new Set([...nouns, ...topics])];
+}
+
+// Calculate topic similarity
+function calculateSimilarity(topic1Content, topic2Content) {
+  const tfidf = new natural.TfIdf();
+  tfidf.addDocument(topic1Content);
+  tfidf.addDocument(topic2Content);
+  
+  // Calculate cosine similarity
+  return natural.JaroWinklerDistance(topic1Content, topic2Content);
+}
+```
+
+---
+
+**Option C: External AI APIs (OpenAI/Claude/Gemini)**
+
+*Description:* Send content to cloud AI services for analysis
+
+*Advantages:*
+- ✅ Most powerful and accurate
+- ✅ State-of-the-art understanding
+- ✅ Continuously improving
+- ✅ Can handle complex reasoning
+
+*Disadvantages:*
+- ❌ Costs money (per API call)
+- ❌ Requires internet connection
+- ❌ Privacy concerns (data sent to third party)
+- ❌ Latency (network round-trip)
+- ❌ API key management
+
+*Best for:* Advanced categorization, content summarization, style transformation
+
+---
+
+**Option D: Hybrid Approach (Recommended for Full Product) ⭐**
+
+*Strategy:* Combine local and cloud processing intelligently
+
+*Tier 1 - Local (Free, Private, Fast):*
+- Basic keyword extraction (compromise)
+- Simple similarity scoring (natural + TF-IDF)
+- Duplicate detection (fuzzy matching)
+
+*Tier 2 - Cloud (Optional, Opt-in):*
+- Advanced auto-categorization (OpenAI API)
+- Intelligent summaries (Claude API)
+- Style transformation for exports (Gemini API)
+
+*Implementation:*
+```javascript
+// User preference in settings
+const nlpMode = 'local'; // or 'local+api'
+
+async function suggestTopic(chatContent) {
+  if (nlpMode === 'local') {
+    return suggestTopicLocal(chatContent);
+  } else {
+    return await suggestTopicWithAPI(chatContent);
+  }
+}
+```
+
+*Advantages:*
+- ✅ Best of both worlds
+- ✅ User choice (privacy vs power)
+- ✅ Graceful degradation (works offline)
+- ✅ Scalable (API only when needed)
+
+#### Impact on Technology Stack
+
+**If implementing NLP features, requires:**
+
+1. **Package Manager:** npm/pnpm/yarn for dependencies
+2. **Module Bundler:** Vite (recommended) or Webpack
+3. **Build Process:** Compile and bundle for Chrome extension
+4. **ES Modules:** Modern import/export syntax
+5. **Testing:** Vitest (over Jest) for better npm package testing
+
+**Dependencies Example:**
+```json
+{
+  "dependencies": {
+    "compromise": "^14.13.0",
+    "natural": "^6.10.0",
+    "stopword": "^2.0.8"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "vitest": "^1.2.0"
+  }
+}
+```
+
+#### Recommendation for bAInder
+
+**Phase 1 (MVP - Stages 1-10):**
+- Build core functionality WITHOUT NLP
+- Keep vanilla JavaScript for simplicity
+- Manual topic assignment by user
+
+**Phase 2 (Enhancement - Stage 11):**
+- Add lightweight NLP (compromise + natural)
+- Implement local-only smart features:
+  - Keyword extraction for search
+  - Topic similarity suggestions
+  - Duplicate detection
+- Requires refactoring to use Vite bundler
+
+**Phase 3 (Advanced - Future):**
+- Add optional AI API integration
+- User opt-in with API key
+- Advanced features:
+  - Auto-categorization
+  - Intelligent summarization
+  - Style transformation
+
+**Migration Path:**
+1. Stage 1-10: Vanilla JS → Focus on core features
+2. Stage 11: Add Vite + npm packages → Local NLP
+3. Future: Add API integration → Cloud AI (optional)
+
+#### Privacy & Data Considerations
+
+**Local NLP (compromise, natural):**
+- ✅ All data stays on device
+- ✅ No tracking, no external requests
+- ✅ Works completely offline
+- ✅ No privacy policy needed for this feature
+
+**API-based features (if implemented):**
+- ⚠️ Must clearly inform users data will be sent externally
+- ⚠️ User opt-in required
+- ⚠️ API key stored securely
+- ⚠️ Option to exclude sensitive chats
+- ⚠️ Privacy policy required
+
+**Recommendation:** Start with local-only, add API as optional premium feature later.
+
 ---
 
 ## 1. Extension Goals & Features
@@ -282,11 +489,25 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
 ## 2. Architecture & Technical Design
 
 ### 2.1 Technology Stack
+
+**MVP (Stages 1-10):**
 - **Manifest Version:** 3 (latest Chrome extension standard)
-- **Storage:** chrome.storage.local with unlimitedStorage permission (MVP)
+- **Storage:** chrome.storage.local with unlimitedStorage permission
 - **Future Migration:** IndexedDB support via abstraction layer
 - **UI Framework:** Vanilla JavaScript + CSS (lightweight, no dependencies)
-- **Optional:** Consider lightweight library (e.g., Preact) if needed
+- **Testing:** Jest + jest-chrome (no build tooling required)
+
+**Advanced (Stage 11+):**
+- **Build System:** Vite (for bundling npm packages)
+- **NLP Libraries:** compromise (~200KB), natural (for local AI features)
+- **Testing:** Vitest (better npm package integration)
+- **Optional:** External AI APIs (OpenAI/Claude) for advanced features
+- **See Section 0.7** for detailed NLP/ML strategy discussion
+
+**Technology Evolution Path:**
+1. Stages 1-10: Vanilla JS → Core functionality without dependencies
+2. Stage 11: Add Vite + npm → NLP libraries for smart features
+3. Future: Optional API integration → Cloud AI capabilities
 
 ### 2.2 Component Architecture
 
@@ -696,15 +917,21 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
 - **Cloud sync:**
   - Optional Google Drive backup
   - Cross-device synchronization
-- **AI-powered features:**
-  - Auto-categorization of chats
-  - Suggested topic names
+- **AI-powered features (See Section 0.7 for detailed analysis):**
+  - Auto-categorization of chats using NLP
+  - Suggested topic names based on content analysis
   - Chat summarization
-  - Duplicate detection
+  - Duplicate detection via similarity algorithms
+  - Smart topic merging suggestions
+  - Keyword extraction for improved search
+  - **Technology:** Lightweight NLP libraries (compromise, natural) for local processing
+  - **Optional:** External AI API integration (OpenAI/Claude) for advanced features
+  - **Migration required:** Vite bundler + npm package management
 - **Collaboration:**
   - Share topics/chats via export
   - Import shared collections
 - **Advanced search:**
+  - Semantic search using NLP embeddings
   - Regex support
   - Boolean operators (AND, OR, NOT)
   - Saved searches
@@ -714,6 +941,14 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
   - Chat heat map by date
 
 **Independent:** ✅ Each feature can be developed separately
+
+**Note on NLP Implementation:**
+This stage requires significant architectural changes:
+- Migration from vanilla JS to bundled modules (Vite)
+- Addition of npm dependencies (compromise, natural)
+- Updated testing strategy (Vitest over Jest)
+- See [TESTING_FRAMEWORK_DECISION.md](TESTING_FRAMEWORK_DECISION.md) for testing approach
+- Prioritize local-only NLP for privacy; API features are optional user opt-in
 
 ---
 

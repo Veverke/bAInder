@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "bAInder - AI Chat Organizer",
+  "version": "1.0.0",
+  "description": "Organize AI browser chats into a hierarchical notebook with topics, table of contents, and search functionality",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "tabs",
+    "activeTab",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*"
+  ],
+  "action": {
+    "default_title": "bAInder - Organize AI Chats",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
