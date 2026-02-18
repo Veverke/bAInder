@@ -96,6 +96,44 @@ The following features are **not yet implemented** (coming in later stages):
 
 Buttons for these features show alerts saying they're coming in future stages.
 
+## Testing Setup ✅
+
+Vitest is configured and ready for unit testing.
+
+### Running Tests
+
+```bash
+# Install dependencies first (if not done already)
+npm install
+
+# Run tests once
+npm run test:run
+
+# Run tests in watch mode
+npm test
+
+# Run tests with UI
+npm run test:ui
+
+# Run with coverage report
+npm run test:coverage
+```
+
+### What's Tested
+
+- ✅ Chrome API mocks (storage, runtime, tabs, sidePanel)
+- ✅ Example tests demonstrating the setup
+- ✅ Ready for Stage 2+ feature tests
+
+### Test Files
+
+All tests are in the `test/` directory:
+- `test/setup.js` - Chrome API mocks & global configuration
+- `test/example.test.js` - Example tests (verify setup works)
+- `test/README.md` - Comprehensive testing guide
+
+See [test/README.md](test/README.md) for detailed testing documentation, best practices, and examples.
+
 ## Troubleshooting
 
 ### Extension Won't Load
@@ -129,6 +167,10 @@ Buttons for these features show alerts saying they're coming in future stages.
 ```
 bAInder/
 ├── manifest.json                    # Extension configuration
+├── package.json                     # npm project configuration
+├── vite.config.js                   # Vite bundler config (for future)
+├── vitest.config.js                 # Vitest testing config
+├── .gitignore                       # Git ignore rules
 ├── background.js                    # Service worker (message handling)
 ├── content.js                       # Content script (chat detection)
 ├── sidepanel.html                   # Side panel UI
@@ -143,15 +185,22 @@ bAInder/
 │   └── icon128.png
 ├── scripts/                         # JavaScript files
 │   └── sidepanel.js                # Side panel logic
-└── styles/                          # CSS files
-    └── sidepanel.css               # Side panel styling
+├── styles/                          # CSS files
+│   └── sidepanel.css               # Side panel styling
+├── test/                            # Test files
+│   ├── setup.js                    # Chrome API mocks
+│   ├── example.test.js             # Example tests
+│   └── README.md                   # Testing guide
+└── node_modules/                    # npm dependencies (gitignored)
 ```
 
 ## Next Steps
 
-After successful Stage 1 testing, we'll proceed with:
+Stage 1 Foundation ✅ and Testing Setup ✅ are complete!
 
-- **Stage 2:** Storage Abstraction Layer
+Ready to proceed with:
+
+- **Stage 2:** Storage Abstraction Layer (with tests!)
 - **Stage 3:** Data Models & Tree Structure
 - **Stage 4:** Side Panel UI - Basic Tree View
 - **Stage 5:** Topic Management UI
@@ -174,7 +223,7 @@ Currently using `chrome.storage.local` with unlimited storage permission. See [D
 
 ### Testing Framework
 
-Testing strategy to be implemented in Stage 2. See [TESTING_FRAMEWORK_DECISION.md](TESTING_FRAMEWORK_DECISION.md) for comprehensive analysis of Jest vs Vitest and considerations for NLP/ML library integration.
+**Vitest configured and ready!** ✅ See [test/README.md](test/README.md) for comprehensive testing guide. Run `npm test` to start testing. See [TESTING_FRAMEWORK_DECISION.md](TESTING_FRAMEWORK_DECISION.md) for rationale behind choosing Vitest over Jest.
 
 ### NLP/ML Features
 
@@ -193,6 +242,6 @@ This is currently in active development following the stage-by-stage approach ou
 
 ## Version
 
-**Current Stage:** Stage 1 - Foundation & Project Setup ✅  
+**Current Stage:** Stage 1 Complete ✅ + Testing Setup ✅  
 **Version:** 1.0.0  
 **Last Updated:** February 18, 2026
