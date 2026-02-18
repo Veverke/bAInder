@@ -122,6 +122,16 @@ export function setStorageMockData(data) {
   });
 }
 
+// Helper function to clear storage mock data
+export function clearStorageMock() {
+  global.chrome.storage.local.get.mockImplementation((keys, callback) => {
+    if (callback) {
+      callback({});
+    }
+    return Promise.resolve({});
+  });
+}
+
 // Helper function to get what was saved to storage
 export function getStorageMockCalls() {
   return global.chrome.storage.local.set.mock.calls;
