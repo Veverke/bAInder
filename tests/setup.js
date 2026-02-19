@@ -82,8 +82,18 @@ global.chrome = {
       return Promise.resolve(tab);
     }),
     onUpdated: {
-      addListener: vi.fn()
-    }
+      addListener: vi.fn(),
+      removeListener: vi.fn()
+    },
+    sendMessage: vi.fn((tabId, message, callback) => {
+      if (callback) callback({ success: true });
+      return Promise.resolve({ success: true });
+    })
+  },
+
+  // Scripting API
+  scripting: {
+    executeScript: vi.fn(() => Promise.resolve([{ result: { found: false } }]))
   },
 
   // Windows API

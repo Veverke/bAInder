@@ -316,6 +316,37 @@ export function extractCopilotChatUrl(doc) {
     return pageUrl;
   }
 
+  // Strategy 0: Read the most recent GetConversation fetch from
+  // PerformanceResourceTiming. The Copilot SPA never puts the conversation ID
+  // in the browser URL, but every time a chat is opened it fires:
+  //   GET substrate.office.com/m365Copilot/GetConversation
+  //       ?request={"conversationId":"<guid>",...}
+  // PerformanceResourceTiming exposes the full URL (incl. cross-origin) so
+  // we can extract the GUID without any extra permissions or network hooks.
+  try {
+    const perf = doc.defaultView && doc.defaultView.performance;
+    if (perf && typeof perf.getEntriesByType === 'function') {
+      const entries = perf.getEntriesByType('resource');
+      for (let i = entries.length - 1; i >= 0; i--) {
+        const entryName = entries[i].name || '';
+        if (!entryName.includes('GetConversation')) continue;
+        try {
+          const reqParam = new URL(entryName).searchParams.get('request');
+          if (reqParam) {
+            // searchParams.get() already URL-decodes; parse JSON directly
+            const parsed = JSON.parse(reqParam);
+            if (parsed && parsed.conversationId) {
+              try {
+                const base = new URL(pageUrl).origin;
+                return `${base}/chat?conversationId=${encodeURIComponent(parsed.conversationId)}`;
+              } catch (_) { /* malformed pageUrl — skip */ }
+            }
+          }
+        } catch (_) { /* malformed entry URL or JSON — skip */ }
+      }
+    }
+  } catch (_) { /* performance API unavailable */ }
+
   // Strategy 2: Selected chat history item carries a navigable href
   const linkSelectors = [
     '[aria-selected="true"] a[href]',

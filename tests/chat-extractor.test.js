@@ -980,10 +980,143 @@ describe('extractCopilotChatUrl()', () => {
     const doc = {
       location: { href },
       querySelector: (sel) => document.querySelector(sel),
+      // no defaultView → Strategy 0 is skipped; keeps existing tests isolated
     };
     bodyFn();
     return doc;
   }
+
+  /** Build a doc whose window.performance.getEntriesByType returns `entries`. */
+  function makeDocWithPerf(href = 'https://m365.cloud.microsoft/chat', entries = []) {
+    return {
+      location: { href },
+      querySelector: (sel) => document.querySelector(sel),
+      defaultView: {
+        performance: {
+          getEntriesByType: (type) => (type === 'resource' ? entries : []),
+        },
+      },
+    };
+  }
+
+  /** Encode a GetConversation URL the same way the Copilot SPA does. */
+  function makeGetConvEntry(conversationId, extra = {}) {
+    const req = JSON.stringify({ conversationId, source: 'officeweb', ...extra });
+    return {
+      name: `https://substrate.office.com/m365Copilot/GetConversation?request=${encodeURIComponent(req)}&variants=feature.EnableGetConversationMetadataPhase2`,
+    };
+  }
+
+  describe('Strategy 0 — PerformanceResourceTiming', () => {
+    it('extracts conversationId from the most recent GetConversation entry', () => {
+      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
+        makeGetConvEntry('106db17b-155c-4622-806d-927491981c14'),
+      ]);
+      expect(extractCopilotChatUrl(doc)).toBe(
+        'https://m365.cloud.microsoft/chat?conversationId=106db17b-155c-4622-806d-927491981c14'
+      );
+    });
+
+    it('uses the LAST (most recent) GetConversation entry when multiple exist', () => {
+      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
+        makeGetConvEntry('old-conv-id'),
+        makeGetConvEntry('new-conv-id'),
+      ]);
+      expect(extractCopilotChatUrl(doc)).toBe(
+        'https://m365.cloud.microsoft/chat?conversationId=new-conv-id'
+      );
+    });
+
+    it('URL-encodes the conversationId', () => {
+      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
+        makeGetConvEntry('id with spaces & chars'),
+      ]);
+      const result = extractCopilotChatUrl(doc);
+      expect(result).toContain('conversationId=id%20with%20spaces%20%26%20chars');
+    });
+
+    it('works for copilot.microsoft.com host too', () => {
+      const doc = makeDocWithPerf('https://copilot.microsoft.com/chat', [
+        makeGetConvEntry('abc-123'),
+      ]);
+      expect(extractCopilotChatUrl(doc)).toBe(
+        'https://copilot.microsoft.com/chat?conversationId=abc-123'
+      );
+    });
+
+    it('skips entries that are not GetConversation requests', () => {
+      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
+        { name: 'https://substrate.office.com/m365Copilot/SomeOtherApi?foo=bar' },
+        makeGetConvEntry('real-id'),
+      ]);
+      expect(extractCopilotChatUrl(doc)).toBe(
+        'https://m365.cloud.microsoft/chat?conversationId=real-id'
+      );
+    });
+
+    it('falls through to later strategies when performance has no GetConversation entries', () => {
+      // No GetConversation entry — should fall through to DOM strategies
+      document.body.innerHTML = '';
+      const li = document.createElement('li');
+      li.setAttribute('aria-selected', 'true');
+      const a = document.createElement('a');
+      a.href = 'https://m365.cloud.microsoft/chat/entity/fallback-thread';
+      li.appendChild(a);
+      document.body.appendChild(li);
+
+      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
+        { name: 'https://example.com/unrelated' },
+      ]);
+      doc.querySelector = (sel) => document.querySelector(sel);
+
+      expect(extractCopilotChatUrl(doc)).toBe(
+        'https://m365.cloud.microsoft/chat/entity/fallback-thread'
+      );
+    });
+
+    it('falls through gracefully when performance API is absent', () => {
+      // defaultView exists but no performance property
+      const doc = {
+        location: { href: 'https://m365.cloud.microsoft/chat' },
+        querySelector: () => null,
+        defaultView: {},
+      };
+      expect(extractCopilotChatUrl(doc)).toBe('https://m365.cloud.microsoft/chat');
+    });
+
+    it('handles malformed JSON in the request param without throwing', () => {
+      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
+        { name: 'https://substrate.office.com/m365Copilot/GetConversation?request=NOT_JSON' },
+      ]);
+      // Should fall back to page URL rather than throwing
+      expect(extractCopilotChatUrl(doc)).toBe('https://m365.cloud.microsoft/chat');
+    });
+
+    it('handles a GetConversation entry whose request param lacks conversationId', () => {
+      const req = encodeURIComponent(JSON.stringify({ source: 'officeweb' })); // no conversationId
+      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
+        { name: `https://substrate.office.com/m365Copilot/GetConversation?request=${req}` },
+      ]);
+      expect(extractCopilotChatUrl(doc)).toBe('https://m365.cloud.microsoft/chat');
+    });
+
+    it('Strategy 0 takes priority over Strategy 1 (URL param present)', () => {
+      // Both Strategy 0 and Strategy 1 could match; Strategy 0 runs first and
+      // returns the performance-derived URL (the more accurate one)
+      const doc = makeDocWithPerf(
+        'https://m365.cloud.microsoft/chat?conversationId=old-from-url',
+        [makeGetConvEntry('fresh-from-perf')]
+      );
+      // Strategy 1 would return the URL as-is; Strategy 0 runs first, but
+      // Strategy 1 check is BEFORE Strategy 0 in code — verify Strategy 1 wins
+      // when the URL already contains a param (we intentionally keep Strategy 1
+      // first so a shareable link is honoured; Strategy 0 only fires when no
+      // param is in the URL).
+      expect(extractCopilotChatUrl(doc)).toBe(
+        'https://m365.cloud.microsoft/chat?conversationId=old-from-url'
+      );
+    });
+  });
 
   it('returns page URL when it already has entityid query param', () => {
     const url = 'https://m365.cloud.microsoft/chat?entityid=abc-123';

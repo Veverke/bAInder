@@ -123,28 +123,123 @@
 
   function extractCopilot(doc) {
     const messages = [];
-    const userEls    = Array.from(doc.querySelectorAll(
-      '[data-testid="user-message"], .UserMessage, [class*="UserMessage"], [class*="user-message"]'
-    ));
-    const copilotEls = Array.from(doc.querySelectorAll(
-      '[data-testid="copilot-message"], [data-testid="assistant-message"], ' +
-      '[class*="CopilotMessage"], [class*="AssistantMessage"], [class*="copilot-message"]'
-    ));
+
+    // Selectors that cover both copilot.microsoft.com and m365.cloud.microsoft.
+    // If none match, the console.warn below will print a DOM sample so we can
+    // identify the right selectors for the production build.
+    const userSelectors = [
+      '[data-testid="user-message"]',
+      '.UserMessage', '[class*="UserMessage"]', '[class*="user-message"]',
+      '[class*="userMessage"]', '[class*="HumanMessage"]', '[class*="human-message"]',
+      '[data-author-role="user"]', '[data-content-type="user"]',
+      '[aria-label*="You said"]', '[aria-label*="you said"]',
+    ];
+    const assistantSelectors = [
+      '[data-testid="copilot-message"]', '[data-testid="assistant-message"]',
+      '[class*="CopilotMessage"]', '[class*="AssistantMessage"]', '[class*="copilot-message"]',
+      '[class*="botMessage"]',   '[class*="BotMessage"]',   '[class*="bot-message"]',
+      '[data-author-role="assistant"]', '[data-author-role="bot"]',
+      '[aria-label*="Copilot said"]', '[aria-label*="Copilot:"]',
+    ];
+
+    const dedup = (els) => [...new Set(els)];
+    const userEls    = dedup(userSelectors.flatMap(sel => {
+      try { return Array.from(doc.querySelectorAll(sel)); } catch (_) { return []; }
+    }));
+    const copilotEls = dedup(assistantSelectors.flatMap(sel => {
+      try { return Array.from(doc.querySelectorAll(sel)); } catch (_) { return []; }
+    }));
+
+    console.log(`bAInder: extractCopilot found ${userEls.length} user, ${copilotEls.length} assistant elements`);
+    if (userEls.length === 0 && copilotEls.length === 0) {
+      // Log a DOM sample so we can identify the correct selectors
+      console.warn('bAInder: no messages found. Inspect page DOM. Body classes:', doc.body && doc.body.className);
+      const chatArea = doc.querySelector('[class*="chat"], [class*="Chat"], [class*="conversation"], main');
+      if (chatArea) console.warn('bAInder: chat area innerHTML sample:', chatArea.innerHTML.slice(0, 800));
+    }
+
+    // M365 Copilot prepends "You said: " to user message elements as a label.
+    // Strip it so titles and content match what the sidebar displays.
+    const stripCopilotLabel = (text) =>
+      text.replace(/^you said:\s*/i, '').replace(/^i said:\s*/i, '').trim();
+
     const allEls = [
       ...userEls.map(el => ({ el, role: 'user' })),
       ...copilotEls.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
     allEls.forEach(({ el, role }) => {
-      const content = getTextContent(el);
+      let content = getTextContent(el);
+      if (role === 'user') content = stripCopilotLabel(content);
       if (content) messages.push(formatMessage(role, content));
     });
-    return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
+    return { title: generateTitle(messages, doc.location?.href || ''), messages, messageCount: messages.length };
   }
+
+  // ─── Copilot conversation-ID bridge ─────────────────────────────────────────
+  // copilot-interceptor.js runs in the MAIN world and wraps window.fetch.
+  // When it sees a GetConversation request it fires this CustomEvent on document,
+  // which crosses the isolated-world boundary so we can hear it here.
+  let _lastCopilotConversationId = null;
+  document.addEventListener('bAInder:copilotConversationId', (e) => {
+    if (e && e.detail && e.detail.conversationId) {
+      _lastCopilotConversationId = e.detail.conversationId;
+      console.log('bAInder: captured conversationId', _lastCopilotConversationId);
+    }
+  });
 
   // Attempt to extract the specific per-conversation URL from the Copilot SPA.
   function extractCopilotChatUrl(doc) {
     const pageUrl = (doc.location && doc.location.href) || '';
-    if (/[?&](entityid|ThreadId|conversationId|chatId|threadId)=/i.test(pageUrl)) return pageUrl;
+    console.log('bAInder: extractCopilotChatUrl start | _lastCopilotConversationId =', _lastCopilotConversationId);
+    if (/[?&](entityid|ThreadId|conversationId|chatId|threadId)=/i.test(pageUrl)) {
+      console.log('bAInder: URL already has conversationId param, using as-is');
+      return pageUrl;
+    }
+
+    // Strategy 0a (primary): conversationId relayed by copilot-interceptor.js
+    // running in the MAIN world via CustomEvent bridge (registered at script load).
+    if (_lastCopilotConversationId) {
+      try {
+        const base = new URL(pageUrl).origin;
+        return `${base}/chat?conversationId=${encodeURIComponent(_lastCopilotConversationId)}`;
+      } catch (_) { /* malformed pageUrl — fall through */ }
+    }
+
+    // Strategy 0b (fallback): read PerformanceResourceTiming entries directly.
+    // Content scripts share window.performance with the page, so the
+    // GetConversation fetch entries are visible here without any MAIN-world
+    // script. Walk backwards to find the most recent one.
+    try {
+      const entries = window.performance.getEntriesByType('resource');
+      // Log a sample of API calls so we can identify the right URL pattern
+      const apiEntries = entries.filter(e => e.name && (
+        e.name.includes('substrate') || e.name.includes('copilot') ||
+        e.name.includes('GetConversation') || e.name.includes('graph.microsoft') ||
+        e.name.includes('m365')
+      ));
+      console.log('bAInder: Strategy 0b — total resource entries:', entries.length, '| API-related:', apiEntries.length);
+      if (apiEntries.length > 0) {
+        console.log('bAInder: API resource URLs (last 10):', apiEntries.slice(-10).map(e => e.name.slice(0, 150)));
+      }
+      for (let i = entries.length - 1; i >= 0; i--) {
+        const name = entries[i].name || '';
+        if (!name.includes('GetConversation')) continue;
+        try {
+          // searchParams.get() URL-decodes the value; parse JSON directly
+          const reqParam = new URL(name).searchParams.get('request');
+          if (reqParam) {
+            const parsed = JSON.parse(reqParam);
+            if (parsed && parsed.conversationId) {
+              try {
+                const base = new URL(pageUrl).origin;
+                return `${base}/chat?conversationId=${encodeURIComponent(parsed.conversationId)}`;
+              } catch (_) { /* malformed pageUrl — skip */ }
+            }
+          }
+        } catch (_) { /* malformed entry or JSON — skip */ }
+      }
+    } catch (_) { /* performance API unavailable */ }
+
     const linkSelectors = [
       '[aria-selected="true"] a[href]',
       '[aria-current="page"] a[href]',
@@ -291,22 +386,23 @@
    * @param {HTMLButtonElement} btn
    * @param {'loading'|'success'|'error'|'empty'|'default'} state
    */
-  function setButtonState(btn, state) {
+  function setButtonState(btn, s, detail) {
     if (!btn) return;
+    const errorText = detail ? `❌ ${String(detail).slice(0, 28)}` : '❌ Error';
     const states = {
-      loading: { text: '⏳ Saving...',      bg: '#6366f1', disabled: true  },
-      success: { text: '✅ Saved!',          bg: '#16a34a', disabled: true  },
-      error:   { text: '❌ Error',           bg: '#dc2626', disabled: true  },
-      empty:   { text: '⚠️ No chat yet',    bg: '#d97706', disabled: false },
+      loading: { text: '⏳ Saving...',       bg: '#6366f1', disabled: true  },
+      success: { text: '✅ Saved!',           bg: '#16a34a', disabled: true  },
+      error:   { text: errorText,              bg: '#dc2626', disabled: false },
+      empty:   { text: '⚠️ No chat yet',     bg: '#d97706', disabled: false },
       default: { text: '💾 Save to bAInder', bg: '#4f46e5', disabled: false }
     };
-    const s = states[state] || states.default;
-    btn.textContent      = s.text;
-    btn.style.background = s.bg;
-    btn.disabled         = s.disabled;
+    const st = states[s] || states.default;
+    btn.textContent      = st.text;
+    btn.style.background = st.bg;
+    btn.disabled         = st.disabled;
 
-    if (state === 'success' || state === 'error' || state === 'empty') {
-      setTimeout(() => setButtonState(btn, 'default'), 2500);
+    if (s === 'success' || s === 'error' || s === 'empty') {
+      setTimeout(() => setButtonState(btn, 'default'), 3500);
     }
   }
 
@@ -322,6 +418,7 @@
 
     try {
       const chatData    = extractChat(platform, document);
+      console.log('bAInder: extracted', platform, 'msgs:', chatData.messageCount, 'url:', chatData.url, 'convId:', _lastCopilotConversationId);
 
       if (chatData.messageCount === 0) {
         setButtonState(btn, 'empty');
@@ -338,7 +435,7 @@
         throw new Error((response && response.error) || 'Unknown error');
       }
     } catch (err) {
-      setButtonState(btn, 'error');
+      setButtonState(btn, 'error', err.message);
       console.error('bAInder: Failed to save chat', err);
     }
   }
@@ -372,6 +469,66 @@
     const platform = detectPlatform(window.location.hostname);
 
     switch (message.type) {
+      case 'GET_COPILOT_CONVERSATION_ID': {
+        // Asked by the background service worker when saving a Copilot excerpt
+        // via the browser context menu, so the saved URL carries the conversationId.
+        sendResponse({ conversationId: _lastCopilotConversationId || null });
+        break;
+      }
+
+      case 'NAVIGATE_TO_CONVERSATION': {
+        // Sent by the sidepanel when the user clicks a saved Copilot chat.
+        // We search the sidebar for a history item matching the conversationId
+        // (via data attributes) or title (via text match), and click it.
+        const { conversationId, title } = message;
+        console.log('bAInder: NAVIGATE_TO_CONVERSATION', { conversationId, title });
+        let found = false;
+
+        // Strategy 1: element with a conversationId data attribute
+        const idAttrs = [
+          'data-conversation-id', 'data-conversationid',
+          'data-entity-id',       'data-entityid',
+          'data-thread-id',       'data-threadid',
+          'data-item-key', 'data-id', 'data-key',
+        ];
+        for (const attr of idAttrs) {
+          try {
+            const el = document.querySelector(`[${attr}="${conversationId}"]`) ||
+                       document.querySelector(`[${attr}*="${conversationId}"]`);
+            if (el) { el.click(); found = true; console.log('bAInder: clicked by attr', attr); break; }
+          } catch (_) {}
+        }
+
+        // Strategy 2: sidebar list item whose visible text starts with the saved title
+        if (!found && title) {
+          const probe = title.slice(0, 25).toLowerCase();
+          const sidebarSelectors = [
+            'nav [role="listitem"]', 'nav li', 'nav button',
+            '[role="navigation"] [role="listitem"]',
+            '[class*="side"] li', '[class*="side"] [role="listitem"]',
+            '[class*="history"] li', '[class*="history"] [role="listitem"]',
+            '[class*="thread"] li', '[class*="conversation"] li',
+            '[class*="chatItem"]',  '[class*="ChatItem"]',
+            '[class*="threadItem"]',
+          ];
+          outer: for (const sel of sidebarSelectors) {
+            try {
+              for (const item of document.querySelectorAll(sel)) {
+                if (item.textContent.toLowerCase().trim().startsWith(probe)) {
+                  item.click(); found = true;
+                  console.log('bAInder: clicked by title in', sel);
+                  break outer;
+                }
+              }
+            } catch (_) {}
+          }
+        }
+
+        console.log('bAInder: NAVIGATE_TO_CONVERSATION result', { found });
+        sendResponse({ success: true, found });
+        break;
+      }
+
       case 'EXTRACT_CHAT': {
         if (!platform) {
           sendResponse({ success: false, error: 'Not on a supported AI chat platform' });
@@ -408,8 +565,11 @@
   function onUrlChange() {
     const currentUrl = document.location.href;
     if (currentUrl === lastUrl) return;
+    console.log('bAInder: URL change detected', { from: lastUrl, to: currentUrl });
     lastUrl = currentUrl;
-    console.log('bAInder: URL change detected, re-initialising');
+    // On a real URL change the SPA has navigated away; the stored conversationId
+    // is no longer valid for the new page context.
+    _lastCopilotConversationId = null;
     removeSaveButton();
     initContentScript();
   }
