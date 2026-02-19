@@ -30,22 +30,9 @@ function setupContextMenus() {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== 'save-excerpt') return;
   try {
-    let pageUrl = info.pageUrl || '';
-
-    // For Copilot pages, ask the content script for the captured conversationId
-    // so the saved URL matches the specific conversation (not the generic auth URL).
-    if ((pageUrl.includes('m365.cloud.microsoft') || pageUrl.includes('copilot.microsoft.com')) && tab?.id) {
-      try {
-        const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_COPILOT_CONVERSATION_ID' });
-        if (response?.conversationId) {
-          pageUrl = `https://m365.cloud.microsoft/chat?conversationId=${encodeURIComponent(response.conversationId)}`;
-        }
-      } catch (_) { /* content script may not be ready — fall back to pageUrl */ }
-    }
-
+    const pageUrl = info.pageUrl || '';
     const payload = buildExcerptPayload(info.selectionText, pageUrl);
     const entry = await handleSaveChat(payload, { tab });
-    console.log('bAInder: Excerpt saved', entry.id);
     chrome.runtime.sendMessage({ type: 'CHAT_SAVED', data: entry }).catch(() => {});
   } catch (err) {
     console.error('bAInder: Excerpt save failed', err.message);

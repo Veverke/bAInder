@@ -60,6 +60,7 @@ global.chrome = {
       version: '1.0.0',
       name: 'bAInder'
     })),
+    getURL: vi.fn((path) => `chrome-extension://test-id/${path}`),
     lastError: null
   },
 

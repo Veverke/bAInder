@@ -9,8 +9,7 @@
     "tabs",
     "activeTab",
     "sidePanel",
-    "contextMenus",
-    "scripting"
+    "contextMenus"
   ],
   "host_permissions": [
     "https://chat.openai.com/*",
@@ -42,15 +41,6 @@
     "type": "module"
   },
   "content_scripts": [
-    {
-      "matches": [
-        "https://copilot.microsoft.com/*",
-        "https://m365.cloud.microsoft/*"
-      ],
-      "js": ["src/content/copilot-interceptor.js"],
-      "run_at": "document_start",
-      "world": "MAIN"
-    },
     {
       "matches": [
         "https://chat.openai.com/*",

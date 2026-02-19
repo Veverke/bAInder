@@ -273,37 +273,38 @@ function handleTopicClick(topic) {
   saveExpandedState();
 }
 
-// Handle chat click — open in a new/existing tab, with Copilot-specific navigation
+// Handle chat click — open content in the built-in reader, with URL-based fallback for legacy saves
 async function handleChatClick(chat) {
-  console.log('bAInder[sidepanel]: handleChatClick', { url: chat?.url, source: chat?.source, title: chat?.title });
-  if (!chat || !chat.url) return;
+  if (!chat) return;
 
-  // Copilot's SPA has no URL-based deep linking: the browser URL never changes
-  // between conversations. Instead we find/open a Copilot tab and send a message
-  // to the content script, which clicks the matching sidebar item.
-  const isCopilot = chat.source === 'copilot' ||
-    (chat.url && (chat.url.includes('m365.cloud.microsoft') ||
-                  chat.url.includes('copilot.microsoft.com')));
-  console.log('bAInder[sidepanel]: isCopilot =', isCopilot, '| isSpecificChatUrl =', isSpecificChatUrl(chat.url));
-  if (isCopilot) {
-    await openCopilotChat(chat);
+  // Primary path: if this chat has stored content, open the built-in reader.
+  // Works for all platforms and all saves regardless of age — the content is
+  // self-contained in storage.  Old saves (plain-text content) are rendered in
+  // a simple preformatted view; new saves (markdown-v1) get full rendering.
+  if (chat.id && chat.content) {
+    const readerUrl = chrome.runtime.getURL(
+      `src/reader/reader.html?chatId=${encodeURIComponent(chat.id)}`
+    );
+    chrome.tabs.create({ url: readerUrl });
     return;
   }
 
-  // Non-Copilot: skip dedup for generic/non-specific URLs to avoid false positives
+  // Fallback: legacy save with a URL but no stored content — try to navigate
+  // the browser to the original conversation.
+  if (!chat.url) return;
+
+  // Other platforms: focus the existing tab if already open, otherwise create.
   if (isSpecificChatUrl(chat.url)) {
     let existing = [];
     try {
       existing = await chrome.tabs.query({ url: chat.url });
-    } catch (_) {
-      // tabs.query can fail for non-http(s) URLs (e.g. blob:); treat as no match
-    }
+    } catch (_) {}
 
     if (existing.length > 0) {
       try {
         await chrome.tabs.update(existing[0].id, { active: true });
         if (chrome.windows) await chrome.windows.update(existing[0].windowId, { focused: true });
-      } catch (_) { /* focus attempt failed — still notify */ }
+      } catch (_) {}
       showNotification('Chat is already open in a tab', 'info');
       return;
     }
@@ -312,262 +313,6 @@ async function handleChatClick(chat) {
   chrome.tabs.create({ url: chat.url });
 }
 
-/**
- * Injected into the Copilot tab by chrome.scripting.executeScript.
- * Must NOT reference any outer-scope variables (gets serialised by Chrome).
- * Searches the sidebar for the conversation by ID data-attr then by title text,
- * clicks it, and returns {found, method, debug}.
- *
- * @param {string} conversationId
- * @param {string} title
- */
-async function _copilotFindAndClick(conversationId, title) {
-  const tag = 'bAInder[inject]';
-
-  // ── Inner: attempt match via all three strategies + expand check ──────────
-  // Returns a result object if actionable (found or expanded), or null to keep waiting.
-  function attemptMatch() {
-    // Pre-step: click "Show all" / "View all" if present so older chats render
-    const expandSelectors = [
-      '[class*="navItem"] button',
-      '[class*="NavItem"] button',
-      '[class*="showAll"]', '[class*="ShowAll"]',
-      '[class*="viewAll"]', '[class*="ViewAll"]',
-      '[class*="seeAll"]',  '[class*="SeeAll"]',
-    ];
-    for (const sel of expandSelectors) {
-      try {
-        for (const btn of document.querySelectorAll(sel)) {
-          const txt = btn.textContent.trim().toLowerCase();
-          if (txt === 'show all' || txt === 'view all' || txt === 'see all' ||
-              txt === 'show all chats' || txt === 'view all chats' ||
-              txt.startsWith('show all') || txt.startsWith('view all')) {
-            console.log(tag, 'Clicking expand button:', btn.textContent.trim());
-            btn.click();
-            return { found: false, expanded: true };
-          }
-        }
-      } catch (_) {}
-    }
-
-    // ── Strategy 1: React fiber props (rename-safe) ──────────────────────────
-    function getFiberConversationId(el) {
-      try {
-        const fiberKey = Object.keys(el).find(k => k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$'));
-        if (!fiberKey) return null;
-        let fiber = el[fiberKey];
-        let depth = 0;
-        while (fiber && depth++ < 30) {
-          const props = fiber.memoizedProps || fiber.pendingProps;
-          if (props) {
-            const id = props.conversationId || props.threadId || props.entityId ||
-                       props.itemKey || props.chatId ||
-                       props.item?.conversationId || props.item?.threadId ||
-                       props.data?.conversationId || props.data?.threadId;
-            if (id && typeof id === 'string') return id;
-          }
-          fiber = fiber.return;
-        }
-      } catch (_) {}
-      return null;
-    }
-
-    const navItemEls = document.querySelectorAll('[class*="navItem"], [class*="NavItem"], [class*="ChatItem"], [class*="chatItem"], [class*="threadItem"], [class*="ThreadItem"]');
-    for (const el of navItemEls) {
-      const id = getFiberConversationId(el);
-      if (id && id.toLowerCase() === conversationId.toLowerCase()) {
-        console.log(tag, 'Strategy 1 HIT via React fiber');
-        el.click();
-        return { found: true, method: 'react-fiber' };
-      }
-    }
-
-    // ── Strategy 2: data-attribute match ────────────────────────────────────
-    const idAttrs = [
-      'data-conversation-id', 'data-conversationid',
-      'data-entity-id',       'data-entityid',
-      'data-thread-id',       'data-threadid',
-      'data-item-key',        'data-id', 'data-key', 'data-chat-id',
-    ];
-    for (const attr of idAttrs) {
-      try {
-        const el = document.querySelector(`[${attr}="${CSS.escape(conversationId)}"]`) ||
-                   document.querySelector(`[${attr}*="${conversationId}"]`);
-        if (el) {
-          console.log(tag, 'Strategy 2 HIT', attr);
-          el.click();
-          return { found: true, method: attr };
-        }
-      } catch (_) {}
-    }
-
-    // ── Strategy 3: title text match (last resort) ──────────────────────────
-    if (title) {
-      const cleanTitle = title.replace(/^you said:\s*/i, '').replace(/^i said:\s*/i, '').trim();
-      const probe = cleanTitle.slice(0, 30).toLowerCase().trim();
-      const sidebarSelectors = [
-        '[class*="navItem"]', '[class*="NavItem"]',
-        '[class*="chatItem"]', '[class*="ChatItem"]',
-        '[class*="threadItem"]', '[class*="ThreadItem"]',
-        '[class*="historyItem"]', '[class*="HistoryItem"]',
-        '[class*="conversationItem"]', '[class*="ConversationItem"]',
-      ];
-      if (probe) {
-        for (const sel of sidebarSelectors) {
-          try {
-            for (const item of document.querySelectorAll(sel)) {
-              const txt = item.textContent.toLowerCase().trim();
-              if (txt.startsWith(probe) || txt.includes(probe)) {
-                console.log(tag, 'Strategy 3 HIT (title)', sel);
-                item.click();
-                return { found: true, method: 'title:' + sel };
-              }
-            }
-          } catch (_) {}
-        }
-      }
-    }
-
-    return null; // nothing actionable yet
-  } // end attemptMatch
-
-  // ── Try immediately first ──────────────────────────────────────────────────
-  const immediate = attemptMatch();
-  if (immediate) return immediate;
-
-  // ── Wait up to 2 s for DOM changes (sidebar lazy-renders) ─────────────────
-  // MutationObserver fires the moment a matching item appears, so the caller
-  // gets a result as soon as the sidebar has loaded — no fixed polling needed.
-  return new Promise(resolve => {
-    const timer = setTimeout(() => {
-      obs.disconnect();
-      console.log(tag, 'MutationObserver timed out — no match in 2 s');
-      resolve({ found: false });
-    }, 2000);
-
-    const obs = new MutationObserver(() => {
-      const r = attemptMatch();
-      if (r) {
-        clearTimeout(timer);
-        obs.disconnect();
-        resolve(r);
-      }
-    });
-
-    // Observe the nearest sidebar ancestor; fall back to body
-    const root = document.querySelector('[class*="nav"]') ||
-                 document.querySelector('nav') ||
-                 document.querySelector('[class*="sidebar"]') ||
-                 document.body;
-    obs.observe(root, { childList: true, subtree: true });
-  });
-}
-
-// Find or open a Copilot tab and navigate to the correct conversation.
-//
-// M365 does not honour ?conversationId= as a deep-link on initial page load —
-// it always renders the history view on first load. The reliable path is:
-//   1. Navigate the tab to the conversation URL (keeps auth cookies live and
-//      sets the URL so the SPA "knows" which conversation is contextual).
-//   2. Wait for the page to become idle, then use executeScript to find the
-//      matching item in the left-sidebar history list and click it — exactly
-//      what the user would do manually, but automated.
-async function openCopilotChat(chat) {
-  let conversationId = null;
-  try {
-    const u = new URL(chat.url);
-    conversationId = u.searchParams.get('conversationId') ||
-                     u.searchParams.get('entityid')       ||
-                     u.searchParams.get('ThreadId')       ||
-                     u.searchParams.get('chatId');
-  } catch (_) {}
-
-  const targetUrl = conversationId
-    ? `https://m365.cloud.microsoft/chat?conversationId=${encodeURIComponent(conversationId)}`
-    : 'https://m365.cloud.microsoft/chat';
-
-  // Reuse an existing Copilot tab if one is open, otherwise open a new one
-  let tab = null;
-  let isNewTab = false;
-  try {
-    const tabs = await chrome.tabs.query({
-      url: ['https://m365.cloud.microsoft/*', 'https://copilot.microsoft.com/*']
-    });
-    if (tabs.length > 0) {
-      tab = tabs[0];
-      await chrome.tabs.update(tab.id, { active: true, url: targetUrl });
-      if (chrome.windows) await chrome.windows.update(tab.windowId, { focused: true });
-    }
-  } catch (_) {}
-
-  if (!tab) {
-    isNewTab = true;
-    tab = await chrome.tabs.create({ url: targetUrl });
-  }
-
-  if (!conversationId) {
-    showNotification('Copilot opened — select the conversation manually', 'info');
-    return;
-  }
-
-  // Show a persistent loading indicator while we wait for Copilot to render
-  showNotification('Opening Copilot conversation…', 'loading');
-
-  // After the tab finishes loading (including the M365 auth redirect), use
-  // executeScript to click the matching sidebar history item.
-  //
-  // Each call to _copilotFindAndClick internally waits up to 2 s for DOM
-  // changes via MutationObserver, so retryMs is just a safety-net gap between
-  // attempts rather than the primary wait mechanism.
-  const runWhenReady = (tabId) => {
-    const maxAttempts   = 6;
-    const retryMs       = 400;  // safety-net gap; real waiting is inside _copilotFindAndClick
-    const expandRetryMs = 800;  // after "Show all" click, give the list a moment to render
-    const initialDelay  = isNewTab ? 3000 : 1500;
-    let attempt = 0;
-
-    const tryClick = async () => {
-      attempt++;
-      try {
-        const results = await chrome.scripting.executeScript({
-          target: { tabId },
-          func: _copilotFindAndClick,
-          args: [conversationId, chat.title || '']
-        });
-        const res = results?.[0]?.result;
-        if (res?.found) {
-          showNotification('Conversation opened', 'success');
-          return;
-        }
-        // "Show all" was clicked — give the list a moment to render, then retry
-        if (res?.expanded) {
-          if (attempt < maxAttempts) setTimeout(tryClick, expandRetryMs);
-          else showNotification('Conversation not found in sidebar — it may be too old. Try searching in Copilot.', 'info');
-          return;
-        }
-      } catch (_) {}
-      if (attempt < maxAttempts) {
-        setTimeout(tryClick, retryMs);
-      } else {
-        showNotification('Conversation not found in sidebar — it may be too old. Try searching in Copilot.', 'info');
-      }
-    };
-
-    setTimeout(tryClick, initialDelay);
-  };
-
-  if (tab.status === 'complete' && !isNewTab) {
-    runWhenReady(tab.id);
-  } else {
-    const onUpdated = (tabId, changeInfo) => {
-      if (tabId === tab.id && changeInfo.status === 'complete') {
-        chrome.tabs.onUpdated.removeListener(onUpdated);
-        runWhenReady(tabId);
-      }
-    };
-    chrome.tabs.onUpdated.addListener(onUpdated);
-  }
-}
 
 // Handle chat context menu
 function handleChatContextMenu(chat, event) {
@@ -1009,6 +754,5 @@ window.bAInder = {
   renderTreeView,
   showNotification,
   saveExpandedState,
-  isSpecificChatUrl,
-  openCopilotChat
+  isSpecificChatUrl
 };

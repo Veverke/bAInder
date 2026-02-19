@@ -12,6 +12,8 @@
  *   - Copilot (copilot.microsoft.com → redirects to m365.cloud.microsoft/chat)
  */
 
+import { messagesToMarkdown } from '../lib/markdown-serialiser.js';
+
 // ─── Platform Detection ──────────────────────────────────────────────────────
 
 /**
@@ -293,118 +295,6 @@ export function extractCopilot(doc) {
   return { title, messages, messageCount: messages.length };
 }
 
-// ─── Main Dispatch ───────────────────────────────────────────────────────────
-
-/**
- * Attempt to extract the specific per-conversation URL from an M365 Copilot
- * page. The app at m365.cloud.microsoft/chat can keep the same base URL even
- * while different conversations are loaded dynamically in the SPA.
- *
- * Tries multiple strategies in order of confidence:
- *   1. The current URL already has a conversation-specific query param.
- *   2. An aria-selected / aria-current item in the chat list has an <a href>.
- *   3. That item (or a parent) carries a conversation-ID data attribute.
- *
- * @param {Document} doc
- * @returns {string}
- */
-export function extractCopilotChatUrl(doc) {
-  const pageUrl = (doc.location && doc.location.href) || '';
-
-  // Strategy 1: URL already contains a conversation identifier
-  if (/[?&](entityid|ThreadId|conversationId|chatId|threadId)=/i.test(pageUrl)) {
-    return pageUrl;
-  }
-
-  // Strategy 0: Read the most recent GetConversation fetch from
-  // PerformanceResourceTiming. The Copilot SPA never puts the conversation ID
-  // in the browser URL, but every time a chat is opened it fires:
-  //   GET substrate.office.com/m365Copilot/GetConversation
-  //       ?request={"conversationId":"<guid>",...}
-  // PerformanceResourceTiming exposes the full URL (incl. cross-origin) so
-  // we can extract the GUID without any extra permissions or network hooks.
-  try {
-    const perf = doc.defaultView && doc.defaultView.performance;
-    if (perf && typeof perf.getEntriesByType === 'function') {
-      const entries = perf.getEntriesByType('resource');
-      for (let i = entries.length - 1; i >= 0; i--) {
-        const entryName = entries[i].name || '';
-        if (!entryName.includes('GetConversation')) continue;
-        try {
-          const reqParam = new URL(entryName).searchParams.get('request');
-          if (reqParam) {
-            // searchParams.get() already URL-decodes; parse JSON directly
-            const parsed = JSON.parse(reqParam);
-            if (parsed && parsed.conversationId) {
-              try {
-                const base = new URL(pageUrl).origin;
-                return `${base}/chat?conversationId=${encodeURIComponent(parsed.conversationId)}`;
-              } catch (_) { /* malformed pageUrl — skip */ }
-            }
-          }
-        } catch (_) { /* malformed entry URL or JSON — skip */ }
-      }
-    }
-  } catch (_) { /* performance API unavailable */ }
-
-  // Strategy 2: Selected chat history item carries a navigable href
-  const linkSelectors = [
-    '[aria-selected="true"] a[href]',
-    '[aria-current="page"] a[href]',
-    '[class*="selected"][class*="item"] a[href]',
-    '[class*="isSelected"] a[href]',
-    '[class*="is-selected"] a[href]',
-    '[data-is-focused="true"] a[href]',
-  ];
-  for (const sel of linkSelectors) {
-    try {
-      const el = doc.querySelector(sel);
-      if (el && el.href && el.href.startsWith('https://')) return el.href;
-    } catch (_) { /* invalid selector in some environments */ }
-  }
-
-  // Strategy 3: Active item carries a conversation ID as a data attribute
-  const idAttrs = [
-    'data-conversation-id', 'data-conversationid',
-    'data-thread-id',       'data-threadid',
-    'data-entity-id',       'data-entityid',
-    'data-chat-id',         'data-chatid',
-  ];
-  const activeSelectors = ['[aria-selected="true"]', '[aria-current="page"]'];
-  for (const containerSel of activeSelectors) {
-    try {
-      const container = doc.querySelector(containerSel);
-      if (!container) continue;
-      for (const attr of idAttrs) {
-        const id = container.getAttribute(attr)
-          || container.closest(`[${attr}]`)?.getAttribute(attr);
-        if (id) {
-          try {
-            const base = new URL(pageUrl).origin;
-            return `${base}/chat?entityid=${encodeURIComponent(id)}`;
-          } catch (_) { /* malformed base URL */ }
-        }
-      }
-    } catch (_) { /* ignore */ }
-  }
-
-  return pageUrl;
-}
-
-/**
- * @param {'chatgpt'|'claude'|'gemini'|'copilot'} platform
- * @param {Document} doc
- * @param {string} [url]  Explicit URL (optional, used in title generation)
- * @returns {{
- *   platform: string,
- *   url: string,
- *   title: string,
- *   messages: Array<{role:string, content:string}>,
- *   messageCount: number,
- *   extractedAt: number
- * }}
- * @throws {Error} for unsupported platforms or extraction failures
- */
 export function extractChat(platform, doc, url) {
   if (!platform) throw new Error('Platform is required');
   if (!doc)      throw new Error('Document is required');
@@ -428,10 +318,7 @@ export function extractChat(platform, doc, url) {
       throw new Error(`Unsupported platform: ${platform}`);
   }
 
-  // For Copilot the SPA URL is often static; try harder to get the per-conversation URL
-  const finalUrl = platform === 'copilot'
-    ? extractCopilotChatUrl(doc)
-    : (url || (doc.location && doc.location.href) || '');
+  const finalUrl = url || (doc.location && doc.location.href) || '';
 
   return {
     platform,
@@ -451,20 +338,25 @@ export function extractChat(platform, doc, url) {
 export function prepareChatForSave(chatData) {
   if (!chatData) throw new Error('Chat data is required');
 
-  const content = chatData.messages
-    .map(m => `[${m.role.toUpperCase()}]\n${m.content}`)
-    .join('\n\n---\n\n');
+  const content = messagesToMarkdown(chatData.messages, {
+    title:        chatData.title,
+    source:       chatData.platform,
+    url:          chatData.url,
+    timestamp:    chatData.extractedAt,
+    messageCount: chatData.messageCount,
+  });
 
   return {
-    title:       chatData.title,
+    title:        chatData.title,
     content,
-    url:         chatData.url,
-    source:      chatData.platform,
+    url:          chatData.url,
+    source:       chatData.platform,
     messageCount: chatData.messageCount,
-    messages:    chatData.messages,
+    messages:     chatData.messages,
     metadata: {
-      extractedAt: chatData.extractedAt,
-      messageCount: chatData.messageCount
+      extractedAt:   chatData.extractedAt,
+      messageCount:  chatData.messageCount,
+      contentFormat: 'markdown-v1',
     }
   };
 }

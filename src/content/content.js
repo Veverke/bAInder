@@ -175,106 +175,6 @@
     return { title: generateTitle(messages, doc.location?.href || ''), messages, messageCount: messages.length };
   }
 
-  // ─── Copilot conversation-ID bridge ─────────────────────────────────────────
-  // copilot-interceptor.js runs in the MAIN world and wraps window.fetch.
-  // When it sees a GetConversation request it fires this CustomEvent on document,
-  // which crosses the isolated-world boundary so we can hear it here.
-  let _lastCopilotConversationId = null;
-  document.addEventListener('bAInder:copilotConversationId', (e) => {
-    if (e && e.detail && e.detail.conversationId) {
-      _lastCopilotConversationId = e.detail.conversationId;
-      console.log('bAInder: captured conversationId', _lastCopilotConversationId);
-    }
-  });
-
-  // Attempt to extract the specific per-conversation URL from the Copilot SPA.
-  function extractCopilotChatUrl(doc) {
-    const pageUrl = (doc.location && doc.location.href) || '';
-    console.log('bAInder: extractCopilotChatUrl start | _lastCopilotConversationId =', _lastCopilotConversationId);
-    if (/[?&](entityid|ThreadId|conversationId|chatId|threadId)=/i.test(pageUrl)) {
-      console.log('bAInder: URL already has conversationId param, using as-is');
-      return pageUrl;
-    }
-
-    // Strategy 0a (primary): conversationId relayed by copilot-interceptor.js
-    // running in the MAIN world via CustomEvent bridge (registered at script load).
-    if (_lastCopilotConversationId) {
-      try {
-        const base = new URL(pageUrl).origin;
-        return `${base}/chat?conversationId=${encodeURIComponent(_lastCopilotConversationId)}`;
-      } catch (_) { /* malformed pageUrl — fall through */ }
-    }
-
-    // Strategy 0b (fallback): read PerformanceResourceTiming entries directly.
-    // Content scripts share window.performance with the page, so the
-    // GetConversation fetch entries are visible here without any MAIN-world
-    // script. Walk backwards to find the most recent one.
-    try {
-      const entries = window.performance.getEntriesByType('resource');
-      // Log a sample of API calls so we can identify the right URL pattern
-      const apiEntries = entries.filter(e => e.name && (
-        e.name.includes('substrate') || e.name.includes('copilot') ||
-        e.name.includes('GetConversation') || e.name.includes('graph.microsoft') ||
-        e.name.includes('m365')
-      ));
-      console.log('bAInder: Strategy 0b — total resource entries:', entries.length, '| API-related:', apiEntries.length);
-      if (apiEntries.length > 0) {
-        console.log('bAInder: API resource URLs (last 10):', apiEntries.slice(-10).map(e => e.name.slice(0, 150)));
-      }
-      for (let i = entries.length - 1; i >= 0; i--) {
-        const name = entries[i].name || '';
-        if (!name.includes('GetConversation')) continue;
-        try {
-          // searchParams.get() URL-decodes the value; parse JSON directly
-          const reqParam = new URL(name).searchParams.get('request');
-          if (reqParam) {
-            const parsed = JSON.parse(reqParam);
-            if (parsed && parsed.conversationId) {
-              try {
-                const base = new URL(pageUrl).origin;
-                return `${base}/chat?conversationId=${encodeURIComponent(parsed.conversationId)}`;
-              } catch (_) { /* malformed pageUrl — skip */ }
-            }
-          }
-        } catch (_) { /* malformed entry or JSON — skip */ }
-      }
-    } catch (_) { /* performance API unavailable */ }
-
-    const linkSelectors = [
-      '[aria-selected="true"] a[href]',
-      '[aria-current="page"] a[href]',
-      '[class*="selected"][class*="item"] a[href]',
-      '[class*="isSelected"] a[href]',
-      '[class*="is-selected"] a[href]',
-      '[data-is-focused="true"] a[href]',
-    ];
-    for (const sel of linkSelectors) {
-      try {
-        const el = doc.querySelector(sel);
-        if (el && el.href && el.href.startsWith('https://')) return el.href;
-      } catch (_) { /* ignore */ }
-    }
-    const idAttrs = [
-      'data-conversation-id', 'data-conversationid',
-      'data-thread-id',       'data-threadid',
-      'data-entity-id',       'data-entityid',
-      'data-chat-id',         'data-chatid',
-    ];
-    for (const containerSel of ['[aria-selected="true"]', '[aria-current="page"]']) {
-      try {
-        const el = doc.querySelector(containerSel);
-        if (!el) continue;
-        for (const attr of idAttrs) {
-          const id = el.getAttribute(attr) || el.closest(`[${attr}]`)?.getAttribute(attr);
-          if (id) {
-            try { return `${new URL(pageUrl).origin}/chat?entityid=${encodeURIComponent(id)}`; } catch (_) {}
-          }
-        }
-      } catch (_) { /* ignore */ }
-    }
-    return pageUrl;
-  }
-
   function extractChat(platform, doc) {
     if (!platform) throw new Error('Platform is required');
     if (!doc)      throw new Error('Document is required');
@@ -288,7 +188,7 @@
     }
     return {
       platform,
-      url:          platform === 'copilot' ? extractCopilotChatUrl(doc) : doc.location.href,
+      url:          doc.location?.href || '',
       title:        result.title,
       messages:     result.messages,
       messageCount: result.messageCount,
@@ -298,9 +198,26 @@
 
   function prepareChatForSave(chatData) {
     if (!chatData) throw new Error('Chat data is required');
-    const content = chatData.messages
-      .map(m => `[${m.role.toUpperCase()}]\n${m.content}`)
-      .join('\n\n---\n\n');
+
+    // Inline markdown-v1 formatter (mirrors markdown-serialiser.js, no import needed)
+    function escYaml(v) { return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
+    function roleLabel(r) { return r === 'user' ? 'User' : r === 'assistant' ? 'Assistant' : r.charAt(0).toUpperCase() + r.slice(1); }
+    function toISO(ts) { try { return new Date(ts).toISOString(); } catch (_) { return ''; } }
+
+    const title = chatData.title || 'Untitled Chat';
+    const ts = chatData.extractedAt ? toISO(chatData.extractedAt) : '';
+    const headerLines = ['---', `title: "${escYaml(title)}"`, `source: ${chatData.platform || ''}`];
+    if (chatData.url) headerLines.push(`url: ${chatData.url}`);
+    if (ts) headerLines.push(`date: ${ts}`);
+    headerLines.push(`messageCount: ${chatData.messageCount || 0}`, 'contentFormat: markdown-v1', '---');
+
+    const body = (chatData.messages || []).map((m, i) => {
+      const sep = i > 0 ? '\n---\n\n' : '';
+      return `${sep}**${roleLabel(m.role)}**\n\n${m.content || ''}`;
+    }).join('\n\n');
+
+    const content = headerLines.join('\n') + '\n\n# ' + title + (body ? '\n\n' + body : '');
+
     return {
       title:        chatData.title,
       content,
@@ -308,7 +225,11 @@
       source:       chatData.platform,
       messageCount: chatData.messageCount,
       messages:     chatData.messages,
-      metadata: { extractedAt: chatData.extractedAt, messageCount: chatData.messageCount }
+      metadata: {
+        extractedAt:   chatData.extractedAt,
+        messageCount:  chatData.messageCount,
+        contentFormat: 'markdown-v1',
+      }
     };
   }
 
@@ -418,8 +339,6 @@
 
     try {
       const chatData    = extractChat(platform, document);
-      console.log('bAInder: extracted', platform, 'msgs:', chatData.messageCount, 'url:', chatData.url, 'convId:', _lastCopilotConversationId);
-
       if (chatData.messageCount === 0) {
         setButtonState(btn, 'empty');
         return;
@@ -469,65 +388,7 @@
     const platform = detectPlatform(window.location.hostname);
 
     switch (message.type) {
-      case 'GET_COPILOT_CONVERSATION_ID': {
-        // Asked by the background service worker when saving a Copilot excerpt
-        // via the browser context menu, so the saved URL carries the conversationId.
-        sendResponse({ conversationId: _lastCopilotConversationId || null });
-        break;
-      }
 
-      case 'NAVIGATE_TO_CONVERSATION': {
-        // Sent by the sidepanel when the user clicks a saved Copilot chat.
-        // We search the sidebar for a history item matching the conversationId
-        // (via data attributes) or title (via text match), and click it.
-        const { conversationId, title } = message;
-        console.log('bAInder: NAVIGATE_TO_CONVERSATION', { conversationId, title });
-        let found = false;
-
-        // Strategy 1: element with a conversationId data attribute
-        const idAttrs = [
-          'data-conversation-id', 'data-conversationid',
-          'data-entity-id',       'data-entityid',
-          'data-thread-id',       'data-threadid',
-          'data-item-key', 'data-id', 'data-key',
-        ];
-        for (const attr of idAttrs) {
-          try {
-            const el = document.querySelector(`[${attr}="${conversationId}"]`) ||
-                       document.querySelector(`[${attr}*="${conversationId}"]`);
-            if (el) { el.click(); found = true; console.log('bAInder: clicked by attr', attr); break; }
-          } catch (_) {}
-        }
-
-        // Strategy 2: sidebar list item whose visible text starts with the saved title
-        if (!found && title) {
-          const probe = title.slice(0, 25).toLowerCase();
-          const sidebarSelectors = [
-            'nav [role="listitem"]', 'nav li', 'nav button',
-            '[role="navigation"] [role="listitem"]',
-            '[class*="side"] li', '[class*="side"] [role="listitem"]',
-            '[class*="history"] li', '[class*="history"] [role="listitem"]',
-            '[class*="thread"] li', '[class*="conversation"] li',
-            '[class*="chatItem"]',  '[class*="ChatItem"]',
-            '[class*="threadItem"]',
-          ];
-          outer: for (const sel of sidebarSelectors) {
-            try {
-              for (const item of document.querySelectorAll(sel)) {
-                if (item.textContent.toLowerCase().trim().startsWith(probe)) {
-                  item.click(); found = true;
-                  console.log('bAInder: clicked by title in', sel);
-                  break outer;
-                }
-              }
-            } catch (_) {}
-          }
-        }
-
-        console.log('bAInder: NAVIGATE_TO_CONVERSATION result', { found });
-        sendResponse({ success: true, found });
-        break;
-      }
 
       case 'EXTRACT_CHAT': {
         if (!platform) {
@@ -567,9 +428,6 @@
     if (currentUrl === lastUrl) return;
     console.log('bAInder: URL change detected', { from: lastUrl, to: currentUrl });
     lastUrl = currentUrl;
-    // On a real URL change the SPA has navigated away; the stored conversationId
-    // is no longer valid for the new page context.
-    _lastCopilotConversationId = null;
     removeSaveButton();
     initContentScript();
   }

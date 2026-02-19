@@ -6,6 +6,8 @@
  * so unit tests can import and exercise them directly.
  */
 
+import { messagesToMarkdown } from '../lib/markdown-serialiser.js';
+
 /**
  * Detect the AI source platform from a URL string.
  * @param {string} url
@@ -103,14 +105,21 @@ export function buildExcerptPayload(selectionText, pageUrl) {
   const text   = selectionText.trim();
   const title  = text.split('\n')[0].slice(0, 80).trim() || 'Excerpt';
   const source = detectSource(pageUrl || '');
+  const content = messagesToMarkdown([], {
+    title,
+    source,
+    url:       pageUrl || '',
+    isExcerpt: true,
+    body:      text,
+  });
   return {
     title,
-    content:      text,
+    content,
     url:          pageUrl || '',
     source,
     messageCount: 0,
     messages:     [],
-    metadata:     { isExcerpt: true }
+    metadata:     { isExcerpt: true, contentFormat: 'markdown-v1' }
   };
 }
 

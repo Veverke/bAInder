@@ -431,9 +431,10 @@ describe('buildExcerptPayload()', () => {
     expect(() => buildExcerptPayload('   \n  ', 'https://chat.openai.com/')).toThrow('Selection is empty');
   });
 
-  it('returns trimmed content', () => {
+  it('content is a markdown document containing the selection text', () => {
     const p = buildExcerptPayload('  hello world  ', 'https://chat.openai.com/');
-    expect(p.content).toBe('hello world');
+    expect(p.content).toContain('hello world');
+    expect(p.content).toContain('contentFormat: markdown-v1');
   });
 
   it('sets title to first line of selection', () => {
@@ -472,9 +473,10 @@ describe('buildExcerptPayload()', () => {
     expect(p.source).toBe('copilot');
   });
 
-  it('sets metadata.isExcerpt to true', () => {
+  it('sets metadata.isExcerpt to true and contentFormat to markdown-v1', () => {
     const p = buildExcerptPayload('Hello', 'https://chat.openai.com/');
     expect(p.metadata.isExcerpt).toBe(true);
+    expect(p.metadata.contentFormat).toBe('markdown-v1');
   });
 
   it('sets messageCount to 0', () => {

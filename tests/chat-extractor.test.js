@@ -16,7 +16,6 @@ import {
   extractClaude,
   extractGemini,
   extractCopilot,
-  extractCopilotChatUrl,
   extractChat,
   prepareChatForSave
 } from '../src/content/chat-extractor.js';
@@ -725,7 +724,7 @@ describe('prepareChatForSave()', () => {
     expect(result.metadata.extractedAt).toBe(1234567890);
   });
 
-  it('generates content string from messages', () => {
+  it('generates content as markdown with bold role labels', () => {
     const chatData = {
       platform:     'claude',
       url:          '',
@@ -738,13 +737,13 @@ describe('prepareChatForSave()', () => {
       extractedAt:  0
     };
     const result = prepareChatForSave(chatData);
-    expect(result.content).toContain('[USER]');
-    expect(result.content).toContain('[ASSISTANT]');
+    expect(result.content).toContain('**User**');
+    expect(result.content).toContain('**Assistant**');
     expect(result.content).toContain('Hi');
     expect(result.content).toContain('Hello');
   });
 
-  it('formats content with separators between messages', () => {
+  it('includes YAML frontmatter separator in content', () => {
     const chatData = {
       platform: 'gemini', url: '', title: 'T',
       messages: [
@@ -757,22 +756,24 @@ describe('prepareChatForSave()', () => {
     expect(result.content).toContain('---');
   });
 
-  it('handles empty messages array', () => {
+  it('handles empty messages array — content has frontmatter but no role labels', () => {
     const chatData = {
       platform: 'chatgpt', url: '', title: 'Empty',
       messages: [], messageCount: 0, extractedAt: 0
     };
     const result = prepareChatForSave(chatData);
-    expect(result.content).toBe('');
+    expect(result.content).toContain('contentFormat: markdown-v1');
+    expect(result.content).not.toContain('**User**');
     expect(result.messages).toHaveLength(0);
   });
 
-  it('includes metadata with messageCount', () => {
+  it('includes contentFormat in metadata', () => {
     const chatData = {
       platform: 'chatgpt', url: '', title: 'T',
       messages: [{ role: 'user', content: 'Q' }],
       messageCount: 1, extractedAt: 999
     };
+    expect(prepareChatForSave(chatData).metadata.contentFormat).toBe('markdown-v1');
     expect(prepareChatForSave(chatData).metadata.messageCount).toBe(1);
   });
 });
@@ -795,8 +796,8 @@ describe('Full extraction pipeline', () => {
     expect(saveReady.title).toBe('Explain recursion');
     expect(saveReady.source).toBe('chatgpt');
     expect(saveReady.messageCount).toBe(4);
-    expect(saveReady.content).toContain('[USER]');
-    expect(saveReady.content).toContain('[ASSISTANT]');
+    expect(saveReady.content).toContain('**User**');
+    expect(saveReady.content).toContain('**Assistant**');
     expect(saveReady.content).toContain('Explain recursion');
   });
 
@@ -839,8 +840,8 @@ describe('Full extraction pipeline', () => {
     expect(saveReady.title).toBe('How do I reverse a string in Python?');
     expect(saveReady.source).toBe('copilot');
     expect(saveReady.messageCount).toBe(4);
-    expect(saveReady.content).toContain('[USER]');
-    expect(saveReady.content).toContain('[ASSISTANT]');
+    expect(saveReady.content).toContain('**User**');
+    expect(saveReady.content).toContain('**Assistant**');
     expect(saveReady.content).toContain('How do I reverse a string in Python?');
   });
 
@@ -850,7 +851,7 @@ describe('Full extraction pipeline', () => {
     const saveReady = prepareChatForSave(chatData);
 
     expect(saveReady.messageCount).toBe(0);
-    expect(saveReady.content).toBe('');
+    expect(saveReady.content).toContain('contentFormat: markdown-v1');
     expect(typeof saveReady.title).toBe('string');
   });
 });
@@ -969,284 +970,16 @@ describe('extractChat() – URL resolution branches', () => {
     const result = extractChat('chatgpt', fakeDoc);
     expect(result.url).toBe('');
   });
-});
-
-// ─── extractCopilotChatUrl ────────────────────────────────────────────────────
-
-describe('extractCopilotChatUrl()', () => {
-  beforeEach(() => { document.body.innerHTML = ''; });
-
-  function makeDoc(href = 'https://m365.cloud.microsoft/chat', bodyFn = () => {}) {
-    const doc = {
-      location: { href },
-      querySelector: (sel) => document.querySelector(sel),
-      // no defaultView → Strategy 0 is skipped; keeps existing tests isolated
-    };
-    bodyFn();
-    return doc;
-  }
-
-  /** Build a doc whose window.performance.getEntriesByType returns `entries`. */
-  function makeDocWithPerf(href = 'https://m365.cloud.microsoft/chat', entries = []) {
-    return {
-      location: { href },
-      querySelector: (sel) => document.querySelector(sel),
-      defaultView: {
-        performance: {
-          getEntriesByType: (type) => (type === 'resource' ? entries : []),
-        },
-      },
-    };
-  }
-
-  /** Encode a GetConversation URL the same way the Copilot SPA does. */
-  function makeGetConvEntry(conversationId, extra = {}) {
-    const req = JSON.stringify({ conversationId, source: 'officeweb', ...extra });
-    return {
-      name: `https://substrate.office.com/m365Copilot/GetConversation?request=${encodeURIComponent(req)}&variants=feature.EnableGetConversationMetadataPhase2`,
-    };
-  }
-
-  describe('Strategy 0 — PerformanceResourceTiming', () => {
-    it('extracts conversationId from the most recent GetConversation entry', () => {
-      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
-        makeGetConvEntry('106db17b-155c-4622-806d-927491981c14'),
-      ]);
-      expect(extractCopilotChatUrl(doc)).toBe(
-        'https://m365.cloud.microsoft/chat?conversationId=106db17b-155c-4622-806d-927491981c14'
-      );
-    });
-
-    it('uses the LAST (most recent) GetConversation entry when multiple exist', () => {
-      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
-        makeGetConvEntry('old-conv-id'),
-        makeGetConvEntry('new-conv-id'),
-      ]);
-      expect(extractCopilotChatUrl(doc)).toBe(
-        'https://m365.cloud.microsoft/chat?conversationId=new-conv-id'
-      );
-    });
-
-    it('URL-encodes the conversationId', () => {
-      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
-        makeGetConvEntry('id with spaces & chars'),
-      ]);
-      const result = extractCopilotChatUrl(doc);
-      expect(result).toContain('conversationId=id%20with%20spaces%20%26%20chars');
-    });
-
-    it('works for copilot.microsoft.com host too', () => {
-      const doc = makeDocWithPerf('https://copilot.microsoft.com/chat', [
-        makeGetConvEntry('abc-123'),
-      ]);
-      expect(extractCopilotChatUrl(doc)).toBe(
-        'https://copilot.microsoft.com/chat?conversationId=abc-123'
-      );
-    });
-
-    it('skips entries that are not GetConversation requests', () => {
-      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
-        { name: 'https://substrate.office.com/m365Copilot/SomeOtherApi?foo=bar' },
-        makeGetConvEntry('real-id'),
-      ]);
-      expect(extractCopilotChatUrl(doc)).toBe(
-        'https://m365.cloud.microsoft/chat?conversationId=real-id'
-      );
-    });
-
-    it('falls through to later strategies when performance has no GetConversation entries', () => {
-      // No GetConversation entry — should fall through to DOM strategies
-      document.body.innerHTML = '';
-      const li = document.createElement('li');
-      li.setAttribute('aria-selected', 'true');
-      const a = document.createElement('a');
-      a.href = 'https://m365.cloud.microsoft/chat/entity/fallback-thread';
-      li.appendChild(a);
-      document.body.appendChild(li);
-
-      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
-        { name: 'https://example.com/unrelated' },
-      ]);
-      doc.querySelector = (sel) => document.querySelector(sel);
-
-      expect(extractCopilotChatUrl(doc)).toBe(
-        'https://m365.cloud.microsoft/chat/entity/fallback-thread'
-      );
-    });
-
-    it('falls through gracefully when performance API is absent', () => {
-      // defaultView exists but no performance property
-      const doc = {
-        location: { href: 'https://m365.cloud.microsoft/chat' },
-        querySelector: () => null,
-        defaultView: {},
-      };
-      expect(extractCopilotChatUrl(doc)).toBe('https://m365.cloud.microsoft/chat');
-    });
-
-    it('handles malformed JSON in the request param without throwing', () => {
-      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
-        { name: 'https://substrate.office.com/m365Copilot/GetConversation?request=NOT_JSON' },
-      ]);
-      // Should fall back to page URL rather than throwing
-      expect(extractCopilotChatUrl(doc)).toBe('https://m365.cloud.microsoft/chat');
-    });
-
-    it('handles a GetConversation entry whose request param lacks conversationId', () => {
-      const req = encodeURIComponent(JSON.stringify({ source: 'officeweb' })); // no conversationId
-      const doc = makeDocWithPerf('https://m365.cloud.microsoft/chat', [
-        { name: `https://substrate.office.com/m365Copilot/GetConversation?request=${req}` },
-      ]);
-      expect(extractCopilotChatUrl(doc)).toBe('https://m365.cloud.microsoft/chat');
-    });
-
-    it('Strategy 0 takes priority over Strategy 1 (URL param present)', () => {
-      // Both Strategy 0 and Strategy 1 could match; Strategy 0 runs first and
-      // returns the performance-derived URL (the more accurate one)
-      const doc = makeDocWithPerf(
-        'https://m365.cloud.microsoft/chat?conversationId=old-from-url',
-        [makeGetConvEntry('fresh-from-perf')]
-      );
-      // Strategy 1 would return the URL as-is; Strategy 0 runs first, but
-      // Strategy 1 check is BEFORE Strategy 0 in code — verify Strategy 1 wins
-      // when the URL already contains a param (we intentionally keep Strategy 1
-      // first so a shareable link is honoured; Strategy 0 only fires when no
-      // param is in the URL).
-      expect(extractCopilotChatUrl(doc)).toBe(
-        'https://m365.cloud.microsoft/chat?conversationId=old-from-url'
-      );
-    });
+  it('copilot: uses explicit url arg when provided', () => {
+    buildCopilotDoc([{ role: 'user', content: 'Hello' }]);
+    const result = extractChat('copilot', document, 'https://m365.cloud.microsoft/chat?conversationId=abc');
+    expect(result.url).toBe('https://m365.cloud.microsoft/chat?conversationId=abc');
   });
 
-  it('returns page URL when it already has entityid query param', () => {
-    const url = 'https://m365.cloud.microsoft/chat?entityid=abc-123';
-    const doc = makeDoc(url);
-    expect(extractCopilotChatUrl(doc)).toBe(url);
+  it('copilot: falls back to doc.location.href when no url arg', () => {
+    buildCopilotDoc([{ role: 'user', content: 'Hello' }]);
+    const result = extractChat('copilot', document);
+    expect(typeof result.url).toBe('string');
   });
 
-  it('returns page URL when it already has ThreadId query param', () => {
-    const url = 'https://m365.cloud.microsoft/chat?ThreadId=xyz';
-    const doc = makeDoc(url);
-    expect(extractCopilotChatUrl(doc)).toBe(url);
-  });
-
-  it('returns page URL when it already has conversationId query param', () => {
-    const url = 'https://m365.cloud.microsoft/chat?conversationId=foo';
-    const doc = makeDoc(url);
-    expect(extractCopilotChatUrl(doc)).toBe(url);
-  });
-
-  it('extracts href from aria-selected item (strategy 2)', () => {
-    const chatUrl = 'https://m365.cloud.microsoft/chat/entity/thread-001';
-    const doc = makeDoc('https://m365.cloud.microsoft/chat', () => {
-      const li = document.createElement('li');
-      li.setAttribute('aria-selected', 'true');
-      const a = document.createElement('a');
-      a.href = chatUrl;
-      li.appendChild(a);
-      document.body.appendChild(li);
-    });
-    expect(extractCopilotChatUrl(doc)).toBe(chatUrl);
-  });
-
-  it('extracts href from aria-current item (strategy 2)', () => {
-    const chatUrl = 'https://m365.cloud.microsoft/chat?id=999';
-    const doc = makeDoc('https://m365.cloud.microsoft/chat', () => {
-      const li = document.createElement('li');
-      li.setAttribute('aria-current', 'page');
-      const a = document.createElement('a');
-      a.href = chatUrl;
-      li.appendChild(a);
-      document.body.appendChild(li);
-    });
-    expect(extractCopilotChatUrl(doc)).toBe(chatUrl);
-  });
-
-  it('builds URL from data-entityid on aria-selected item (strategy 3)', () => {
-    const doc = makeDoc('https://m365.cloud.microsoft/chat', () => {
-      const li = document.createElement('li');
-      li.setAttribute('aria-selected', 'true');
-      li.setAttribute('data-entityid', 'thread-456');
-      document.body.appendChild(li);
-    });
-    const result = extractCopilotChatUrl(doc);
-    expect(result).toContain('entityid=thread-456');
-    expect(result).toContain('https://m365.cloud.microsoft');
-  });
-
-  it('builds URL from data-conversationid on aria-selected item (strategy 3)', () => {
-    const doc = makeDoc('https://m365.cloud.microsoft/chat', () => {
-      const li = document.createElement('li');
-      li.setAttribute('aria-selected', 'true');
-      li.setAttribute('data-conversationid', 'conv-789');
-      document.body.appendChild(li);
-    });
-    const result = extractCopilotChatUrl(doc);
-    expect(result).toContain('entityid=conv-789');
-  });
-
-  it('URL-encodes the conversation ID', () => {
-    const doc = makeDoc('https://m365.cloud.microsoft/chat', () => {
-      const li = document.createElement('li');
-      li.setAttribute('aria-selected', 'true');
-      li.setAttribute('data-entityid', 'id with spaces');
-      document.body.appendChild(li);
-    });
-    const result = extractCopilotChatUrl(doc);
-    expect(result).toContain('entityid=id%20with%20spaces');
-  });
-
-  it('falls back to page URL when no selected item found', () => {
-    const baseUrl = 'https://m365.cloud.microsoft/chat';
-    const doc = makeDoc(baseUrl);
-    expect(extractCopilotChatUrl(doc)).toBe(baseUrl);
-  });
-
-  it('falls back to empty string when doc.location is null', () => {
-    const doc = { location: null, querySelector: () => null };
-    expect(extractCopilotChatUrl(doc)).toBe('');
-  });
-
-  it('extractChat uses extractCopilotChatUrl for copilot platform', () => {
-    // Set up a selected item with a specific URL
-    const chatUrl = 'https://m365.cloud.microsoft/chat?entityid=from-dom';
-    const li = document.createElement('li');
-    li.setAttribute('aria-selected', 'true');
-    const a = document.createElement('a');
-    a.href = chatUrl;
-    li.appendChild(a);
-    document.body.appendChild(li);
-
-    // Add a user message so extraction succeeds
-    const msg = document.createElement('div');
-    msg.setAttribute('data-testid', 'user-message');
-    msg.textContent = 'Hello Copilot';
-    document.body.appendChild(msg);
-
-    const result = extractChat('copilot', document, 'https://m365.cloud.microsoft/chat');
-    // Should use the DOM-discovered URL, not the fallback
-    expect(result.url).toBe(chatUrl);
-  });
-
-  it('extractChat uses page URL for non-copilot platforms (not DOM strategy)', () => {
-    // Even if there's an aria-selected link in DOM, non-copilot uses the plain URL
-    const li = document.createElement('li');
-    li.setAttribute('aria-selected', 'true');
-    const a = document.createElement('a');
-    a.href = 'https://irrelevant.example.com/chat/123';
-    li.appendChild(a);
-    document.body.appendChild(li);
-
-    const turn = document.createElement('article');
-    turn.setAttribute('data-testid', 'conversation-turn-1');
-    const roleEl = document.createElement('div');
-    roleEl.setAttribute('data-message-author-role', 'user');
-    roleEl.textContent = 'Test message';
-    turn.appendChild(roleEl);
-    document.body.appendChild(turn);
-
-    const explicitUrl = 'https://chat.openai.com/c/specific-chat';
-    const result = extractChat('chatgpt', document, explicitUrl);
-    expect(result.url).toBe(explicitUrl);
-  });
 });
