@@ -26,7 +26,7 @@
     if (h.includes('chat.openai.com'))    return 'chatgpt';
     if (h.includes('claude.ai'))          return 'claude';
     if (h.includes('gemini.google.com'))  return 'gemini';
-    if (h.includes('copilot.microsoft.com')) return 'copilot';
+    if (h.includes('copilot.microsoft.com') || h.includes('m365.cloud.microsoft')) return 'copilot';
     return null;
   }
 
@@ -141,6 +141,45 @@
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
   }
 
+  // Attempt to extract the specific per-conversation URL from the Copilot SPA.
+  function extractCopilotChatUrl(doc) {
+    const pageUrl = (doc.location && doc.location.href) || '';
+    if (/[?&](entityid|ThreadId|conversationId|chatId|threadId)=/i.test(pageUrl)) return pageUrl;
+    const linkSelectors = [
+      '[aria-selected="true"] a[href]',
+      '[aria-current="page"] a[href]',
+      '[class*="selected"][class*="item"] a[href]',
+      '[class*="isSelected"] a[href]',
+      '[class*="is-selected"] a[href]',
+      '[data-is-focused="true"] a[href]',
+    ];
+    for (const sel of linkSelectors) {
+      try {
+        const el = doc.querySelector(sel);
+        if (el && el.href && el.href.startsWith('https://')) return el.href;
+      } catch (_) { /* ignore */ }
+    }
+    const idAttrs = [
+      'data-conversation-id', 'data-conversationid',
+      'data-thread-id',       'data-threadid',
+      'data-entity-id',       'data-entityid',
+      'data-chat-id',         'data-chatid',
+    ];
+    for (const containerSel of ['[aria-selected="true"]', '[aria-current="page"]']) {
+      try {
+        const el = doc.querySelector(containerSel);
+        if (!el) continue;
+        for (const attr of idAttrs) {
+          const id = el.getAttribute(attr) || el.closest(`[${attr}]`)?.getAttribute(attr);
+          if (id) {
+            try { return `${new URL(pageUrl).origin}/chat?entityid=${encodeURIComponent(id)}`; } catch (_) {}
+          }
+        }
+      } catch (_) { /* ignore */ }
+    }
+    return pageUrl;
+  }
+
   function extractChat(platform, doc) {
     if (!platform) throw new Error('Platform is required');
     if (!doc)      throw new Error('Document is required');
@@ -154,7 +193,7 @@
     }
     return {
       platform,
-      url:          doc.location.href,
+      url:          platform === 'copilot' ? extractCopilotChatUrl(doc) : doc.location.href,
       title:        result.title,
       messages:     result.messages,
       messageCount: result.messageCount,

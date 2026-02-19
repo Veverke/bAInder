@@ -16,6 +16,7 @@ import {
   extractClaude,
   extractGemini,
   extractCopilot,
+  extractCopilotChatUrl,
   extractChat,
   prepareChatForSave
 } from '../src/content/chat-extractor.js';
@@ -139,6 +140,14 @@ describe('detectPlatform()', () => {
 
   it('detects copilot with path on copilot.microsoft.com', () => {
     expect(detectPlatform('copilot.microsoft.com')).toBe('copilot');
+  });
+
+  it('detects copilot from m365.cloud.microsoft (redirect target)', () => {
+    expect(detectPlatform('m365.cloud.microsoft')).toBe('copilot');
+  });
+
+  it('detects copilot from m365.cloud.microsoft with subdomain', () => {
+    expect(detectPlatform('m365.cloud.microsoft')).toBe('copilot');
   });
 
   it('is case-insensitive', () => {
@@ -959,5 +968,152 @@ describe('extractChat() – URL resolution branches', () => {
     // Provide fakeDoc with null location but no url → finalUrl = ''
     const result = extractChat('chatgpt', fakeDoc);
     expect(result.url).toBe('');
+  });
+});
+
+// ─── extractCopilotChatUrl ────────────────────────────────────────────────────
+
+describe('extractCopilotChatUrl()', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  function makeDoc(href = 'https://m365.cloud.microsoft/chat', bodyFn = () => {}) {
+    const doc = {
+      location: { href },
+      querySelector: (sel) => document.querySelector(sel),
+    };
+    bodyFn();
+    return doc;
+  }
+
+  it('returns page URL when it already has entityid query param', () => {
+    const url = 'https://m365.cloud.microsoft/chat?entityid=abc-123';
+    const doc = makeDoc(url);
+    expect(extractCopilotChatUrl(doc)).toBe(url);
+  });
+
+  it('returns page URL when it already has ThreadId query param', () => {
+    const url = 'https://m365.cloud.microsoft/chat?ThreadId=xyz';
+    const doc = makeDoc(url);
+    expect(extractCopilotChatUrl(doc)).toBe(url);
+  });
+
+  it('returns page URL when it already has conversationId query param', () => {
+    const url = 'https://m365.cloud.microsoft/chat?conversationId=foo';
+    const doc = makeDoc(url);
+    expect(extractCopilotChatUrl(doc)).toBe(url);
+  });
+
+  it('extracts href from aria-selected item (strategy 2)', () => {
+    const chatUrl = 'https://m365.cloud.microsoft/chat/entity/thread-001';
+    const doc = makeDoc('https://m365.cloud.microsoft/chat', () => {
+      const li = document.createElement('li');
+      li.setAttribute('aria-selected', 'true');
+      const a = document.createElement('a');
+      a.href = chatUrl;
+      li.appendChild(a);
+      document.body.appendChild(li);
+    });
+    expect(extractCopilotChatUrl(doc)).toBe(chatUrl);
+  });
+
+  it('extracts href from aria-current item (strategy 2)', () => {
+    const chatUrl = 'https://m365.cloud.microsoft/chat?id=999';
+    const doc = makeDoc('https://m365.cloud.microsoft/chat', () => {
+      const li = document.createElement('li');
+      li.setAttribute('aria-current', 'page');
+      const a = document.createElement('a');
+      a.href = chatUrl;
+      li.appendChild(a);
+      document.body.appendChild(li);
+    });
+    expect(extractCopilotChatUrl(doc)).toBe(chatUrl);
+  });
+
+  it('builds URL from data-entityid on aria-selected item (strategy 3)', () => {
+    const doc = makeDoc('https://m365.cloud.microsoft/chat', () => {
+      const li = document.createElement('li');
+      li.setAttribute('aria-selected', 'true');
+      li.setAttribute('data-entityid', 'thread-456');
+      document.body.appendChild(li);
+    });
+    const result = extractCopilotChatUrl(doc);
+    expect(result).toContain('entityid=thread-456');
+    expect(result).toContain('https://m365.cloud.microsoft');
+  });
+
+  it('builds URL from data-conversationid on aria-selected item (strategy 3)', () => {
+    const doc = makeDoc('https://m365.cloud.microsoft/chat', () => {
+      const li = document.createElement('li');
+      li.setAttribute('aria-selected', 'true');
+      li.setAttribute('data-conversationid', 'conv-789');
+      document.body.appendChild(li);
+    });
+    const result = extractCopilotChatUrl(doc);
+    expect(result).toContain('entityid=conv-789');
+  });
+
+  it('URL-encodes the conversation ID', () => {
+    const doc = makeDoc('https://m365.cloud.microsoft/chat', () => {
+      const li = document.createElement('li');
+      li.setAttribute('aria-selected', 'true');
+      li.setAttribute('data-entityid', 'id with spaces');
+      document.body.appendChild(li);
+    });
+    const result = extractCopilotChatUrl(doc);
+    expect(result).toContain('entityid=id%20with%20spaces');
+  });
+
+  it('falls back to page URL when no selected item found', () => {
+    const baseUrl = 'https://m365.cloud.microsoft/chat';
+    const doc = makeDoc(baseUrl);
+    expect(extractCopilotChatUrl(doc)).toBe(baseUrl);
+  });
+
+  it('falls back to empty string when doc.location is null', () => {
+    const doc = { location: null, querySelector: () => null };
+    expect(extractCopilotChatUrl(doc)).toBe('');
+  });
+
+  it('extractChat uses extractCopilotChatUrl for copilot platform', () => {
+    // Set up a selected item with a specific URL
+    const chatUrl = 'https://m365.cloud.microsoft/chat?entityid=from-dom';
+    const li = document.createElement('li');
+    li.setAttribute('aria-selected', 'true');
+    const a = document.createElement('a');
+    a.href = chatUrl;
+    li.appendChild(a);
+    document.body.appendChild(li);
+
+    // Add a user message so extraction succeeds
+    const msg = document.createElement('div');
+    msg.setAttribute('data-testid', 'user-message');
+    msg.textContent = 'Hello Copilot';
+    document.body.appendChild(msg);
+
+    const result = extractChat('copilot', document, 'https://m365.cloud.microsoft/chat');
+    // Should use the DOM-discovered URL, not the fallback
+    expect(result.url).toBe(chatUrl);
+  });
+
+  it('extractChat uses page URL for non-copilot platforms (not DOM strategy)', () => {
+    // Even if there's an aria-selected link in DOM, non-copilot uses the plain URL
+    const li = document.createElement('li');
+    li.setAttribute('aria-selected', 'true');
+    const a = document.createElement('a');
+    a.href = 'https://irrelevant.example.com/chat/123';
+    li.appendChild(a);
+    document.body.appendChild(li);
+
+    const turn = document.createElement('article');
+    turn.setAttribute('data-testid', 'conversation-turn-1');
+    const roleEl = document.createElement('div');
+    roleEl.setAttribute('data-message-author-role', 'user');
+    roleEl.textContent = 'Test message';
+    turn.appendChild(roleEl);
+    document.body.appendChild(turn);
+
+    const explicitUrl = 'https://chat.openai.com/c/specific-chat';
+    const result = extractChat('chatgpt', document, explicitUrl);
+    expect(result.url).toBe(explicitUrl);
   });
 });

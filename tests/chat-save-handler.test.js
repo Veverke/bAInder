@@ -39,6 +39,14 @@ describe('detectSource()', () => {
     expect(detectSource('https://copilot.microsoft.com/chats/abc123')).toBe('copilot');
   });
 
+  it('detects copilot from m365.cloud.microsoft URL (redirect target)', () => {
+    expect(detectSource('https://m365.cloud.microsoft/chat')).toBe('copilot');
+  });
+
+  it('detects copilot from m365.cloud.microsoft with chat path', () => {
+    expect(detectSource('https://m365.cloud.microsoft/chat/entity/abc123')).toBe('copilot');
+  });
+
   it('returns unknown for unrecognised URL', () => {
     expect(detectSource('https://example.com/chat')).toBe('unknown');
   });
@@ -456,6 +464,11 @@ describe('buildExcerptPayload()', () => {
 
   it('detects copilot source from copilot.microsoft.com URL', () => {
     const p = buildExcerptPayload('Hello', 'https://copilot.microsoft.com/');
+    expect(p.source).toBe('copilot');
+  });
+
+  it('detects copilot source from m365.cloud.microsoft URL', () => {
+    const p = buildExcerptPayload('Hello', 'https://m365.cloud.microsoft/chat');
     expect(p.source).toBe('copilot');
   });
 

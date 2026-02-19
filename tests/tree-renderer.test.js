@@ -670,3 +670,257 @@ describe('TreeRenderer – refreshNode() early-return branches', () => {
     expect(afterNode.textContent).toContain('Updated');
   });
 });
+
+// ─── Stage 7: Chat item rendering ────────────────────────────────────────────
+
+describe('TreeRenderer – Stage 7 chat items', () => {
+  let container;
+  let tree;
+  let renderer;
+
+  const makeChat = (id, topicId, overrides = {}) => ({
+    id, title: `Chat ${id}`, url: 'https://chat.openai.com', timestamp: Date.now(),
+    topicId, metadata: {}, ...overrides
+  });
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const emptyState = document.createElement('div');
+    emptyState.id = 'emptyState';
+    emptyState.style.display = 'flex';
+    document.body.appendChild(emptyState);
+
+    const itemCount = document.createElement('span');
+    itemCount.id = 'itemCount';
+    document.body.appendChild(itemCount);
+
+    tree = new TopicTree();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  describe('setChatData', () => {
+    it('stores a valid array', () => {
+      renderer = new TreeRenderer(container, tree);
+      const chats = [makeChat('c1', null)];
+      renderer.setChatData(chats);
+      expect(renderer.chats).toBe(chats);
+    });
+
+    it('initialises to empty array in constructor', () => {
+      renderer = new TreeRenderer(container, tree);
+      expect(renderer.chats).toEqual([]);
+    });
+
+    it('falls back to empty array for non-array input', () => {
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData(null);
+      expect(renderer.chats).toEqual([]);
+      renderer.setChatData('bad');
+      expect(renderer.chats).toEqual([]);
+    });
+  });
+
+  describe('hasChildren includes chats', () => {
+    it('topic with no children and no chats is a leaf node', () => {
+      const topicId = tree.addTopic('Empty');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([]);
+      renderer.render();
+      const node = container.querySelector(`[data-topic-id="${topicId}"]`);
+      // leaf nodes use 📄 icon
+      expect(node.textContent).toContain('📄');
+    });
+
+    it('topic with assigned chat shows folder icon (has children)', () => {
+      const topicId = tree.addTopic('Has Chats');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('c1', topicId)]);
+      renderer.render();
+      const node = container.querySelector(`[data-topic-id="${topicId}"]`);
+      // folder icon when hasChildren is true
+      expect(node.textContent).toContain('📁');
+    });
+  });
+
+  describe('chat item rendering', () => {
+    it('renders chat items inside expanded topic', () => {
+      const topicId = tree.addTopic('Work');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('c1', topicId), makeChat('c2', topicId)]);
+      renderer.expandNode(topicId);
+      renderer.render();
+
+      const chatItems = container.querySelectorAll('.tree-chat-item');
+      expect(chatItems.length).toBe(2);
+    });
+
+    it('does not render chat items when topic is collapsed', () => {
+      const topicId = tree.addTopic('Work');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('c1', topicId)]);
+      // NOT expanded
+      renderer.render();
+
+      const chatItems = container.querySelectorAll('.tree-chat-item');
+      expect(chatItems.length).toBe(0);
+    });
+
+    it('renders chat item with correct data-chat-id', () => {
+      const topicId = tree.addTopic('Work');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('chat-abc', topicId)]);
+      renderer.expandNode(topicId);
+      renderer.render();
+
+      const item = container.querySelector('[data-chat-id="chat-abc"]');
+      expect(item).not.toBeNull();
+    });
+
+    it('shows 💬 icon for regular chats', () => {
+      const topicId = tree.addTopic('T');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('c1', topicId, { metadata: { isExcerpt: false } })]);
+      renderer.expandNode(topicId);
+      renderer.render();
+
+      const icon = container.querySelector('.tree-chat-item .tree-icon');
+      expect(icon.textContent).toBe('💬');
+    });
+
+    it('shows ✂️ icon for excerpt chats', () => {
+      const topicId = tree.addTopic('T');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('c1', topicId, { metadata: { isExcerpt: true } })]);
+      renderer.expandNode(topicId);
+      renderer.render();
+
+      const icon = container.querySelector('.tree-chat-item .tree-icon');
+      expect(icon.textContent).toBe('✂️');
+    });
+
+    it('shows chat title in label', () => {
+      const topicId = tree.addTopic('T');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('c1', topicId, { title: 'My Interesting Chat' })]);
+      renderer.expandNode(topicId);
+      renderer.render();
+
+      const label = container.querySelector('.tree-chat-item .tree-label-text');
+      expect(label.textContent).toBe('My Interesting Chat');
+    });
+
+    it('falls back to "Untitled Chat" when title is missing', () => {
+      const topicId = tree.addTopic('T');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([{ id: 'c1', topicId, metadata: {}, timestamp: null }]);
+      renderer.expandNode(topicId);
+      renderer.render();
+
+      const label = container.querySelector('.tree-chat-item .tree-label-text');
+      expect(label.textContent).toBe('Untitled Chat');
+    });
+
+    it('shows date badge when chat has timestamp', () => {
+      const topicId = tree.addTopic('T');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('c1', topicId, { timestamp: new Date('2024-06-01').getTime() })]);
+      renderer.expandNode(topicId);
+      renderer.render();
+
+      const badge = container.querySelector('.tree-chat-item .tree-timespan');
+      expect(badge).not.toBeNull();
+      expect(badge.textContent.length).toBeGreaterThan(0);
+    });
+
+    it('omits date badge when chat has no timestamp', () => {
+      const topicId = tree.addTopic('T');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('c1', topicId, { timestamp: null })]);
+      renderer.expandNode(topicId);
+      renderer.render();
+
+      const badge = container.querySelector('.tree-chat-item .tree-timespan');
+      expect(badge).toBeNull();
+    });
+
+    it('renders chats from other topics only in their own topic', () => {
+      const t1 = tree.addTopic('T1');
+      const t2 = tree.addTopic('T2');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('ca', t1), makeChat('cb', t2)]);
+      renderer.expandNode(t1);
+      renderer.expandNode(t2);
+      renderer.render();
+
+      const t1Node = container.querySelector(`[data-topic-id="${t1}"]`).closest('li');
+      const t2Node = container.querySelector(`[data-topic-id="${t2}"]`).closest('li');
+      expect(t1Node.querySelector('[data-chat-id="ca"]')).not.toBeNull();
+      expect(t1Node.querySelector('[data-chat-id="cb"]')).toBeNull();
+      expect(t2Node.querySelector('[data-chat-id="cb"]')).not.toBeNull();
+    });
+  });
+
+  describe('chat item event handlers', () => {
+    it('calls onChatClick when chat item is clicked', () => {
+      const topicId = tree.addTopic('T');
+      renderer = new TreeRenderer(container, tree);
+      const chat = makeChat('c1', topicId);
+      renderer.setChatData([chat]);
+      renderer.expandNode(topicId);
+      renderer.onChatClick = vi.fn();
+      renderer.render();
+
+      const content = container.querySelector('.tree-chat-item .tree-node-content');
+      content.click();
+      expect(renderer.onChatClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'c1' }));
+    });
+
+    it('does not throw when onChatClick is null', () => {
+      const topicId = tree.addTopic('T');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('c1', topicId)]);
+      renderer.expandNode(topicId);
+      renderer.onChatClick = null;
+      renderer.render();
+
+      const content = container.querySelector('.tree-chat-item .tree-node-content');
+      expect(() => content.click()).not.toThrow();
+    });
+
+    it('calls onChatContextMenu on right-click', () => {
+      const topicId = tree.addTopic('T');
+      renderer = new TreeRenderer(container, tree);
+      const chat = makeChat('c1', topicId);
+      renderer.setChatData([chat]);
+      renderer.expandNode(topicId);
+      renderer.onChatContextMenu = vi.fn();
+      renderer.render();
+
+      const content = container.querySelector('.tree-chat-item .tree-node-content');
+      const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+      content.dispatchEvent(event);
+      expect(renderer.onChatContextMenu).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'c1' }),
+        expect.any(MouseEvent)
+      );
+    });
+
+    it('does not throw when onChatContextMenu is null', () => {
+      const topicId = tree.addTopic('T');
+      renderer = new TreeRenderer(container, tree);
+      renderer.setChatData([makeChat('c1', topicId)]);
+      renderer.expandNode(topicId);
+      renderer.onChatContextMenu = null;
+      renderer.render();
+
+      const content = container.querySelector('.tree-chat-item .tree-node-content');
+      const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+      expect(() => content.dispatchEvent(event)).not.toThrow();
+    });
+  });
+});

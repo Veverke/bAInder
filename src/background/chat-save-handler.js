@@ -16,7 +16,7 @@ export function detectSource(url) {
   if (url.includes('chat.openai.com'))   return 'chatgpt';
   if (url.includes('claude.ai'))         return 'claude';
   if (url.includes('gemini.google.com')) return 'gemini';
-  if (url.includes('copilot.microsoft.com')) return 'copilot';
+  if (url.includes('copilot.microsoft.com') || url.includes('m365.cloud.microsoft')) return 'copilot';
   return 'unknown';
 }
 

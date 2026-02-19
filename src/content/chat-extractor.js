@@ -9,7 +9,7 @@
  *   - ChatGPT (chat.openai.com)
  *   - Claude  (claude.ai)
  *   - Gemini  (gemini.google.com)
- *   - Copilot (copilot.microsoft.com)
+ *   - Copilot (copilot.microsoft.com → redirects to m365.cloud.microsoft/chat)
  */
 
 // ─── Platform Detection ──────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ export function detectPlatform(hostname) {
   if (h.includes('chat.openai.com'))   return 'chatgpt';
   if (h.includes('claude.ai'))         return 'claude';
   if (h.includes('gemini.google.com')) return 'gemini';
-  if (h.includes('copilot.microsoft.com')) return 'copilot';
+  if (h.includes('copilot.microsoft.com') || h.includes('m365.cloud.microsoft')) return 'copilot';
   return null;
 }
 
@@ -250,7 +250,7 @@ export function extractGemini(doc) {
 /**
  * Extract messages from a GitHub Copilot conversation page.
  *
- * Copilot DOM (copilot.microsoft.com, as of 2025/2026):
+ * Copilot DOM (copilot.microsoft.com / m365.cloud.microsoft/chat, as of 2025/2026):
  *   User messages:      [data-testid="user-message"],  .UserMessage,  [class*="UserMessage"]
  *   Copilot responses:  [data-testid="copilot-message"],[class*="CopilotMessage"],
  *                       [data-testid="assistant-message"],[class*="AssistantMessage"],
@@ -296,7 +296,71 @@ export function extractCopilot(doc) {
 // ─── Main Dispatch ───────────────────────────────────────────────────────────
 
 /**
- * Extract a chat from the given document for the detected platform.
+ * Attempt to extract the specific per-conversation URL from an M365 Copilot
+ * page. The app at m365.cloud.microsoft/chat can keep the same base URL even
+ * while different conversations are loaded dynamically in the SPA.
+ *
+ * Tries multiple strategies in order of confidence:
+ *   1. The current URL already has a conversation-specific query param.
+ *   2. An aria-selected / aria-current item in the chat list has an <a href>.
+ *   3. That item (or a parent) carries a conversation-ID data attribute.
+ *
+ * @param {Document} doc
+ * @returns {string}
+ */
+export function extractCopilotChatUrl(doc) {
+  const pageUrl = (doc.location && doc.location.href) || '';
+
+  // Strategy 1: URL already contains a conversation identifier
+  if (/[?&](entityid|ThreadId|conversationId|chatId|threadId)=/i.test(pageUrl)) {
+    return pageUrl;
+  }
+
+  // Strategy 2: Selected chat history item carries a navigable href
+  const linkSelectors = [
+    '[aria-selected="true"] a[href]',
+    '[aria-current="page"] a[href]',
+    '[class*="selected"][class*="item"] a[href]',
+    '[class*="isSelected"] a[href]',
+    '[class*="is-selected"] a[href]',
+    '[data-is-focused="true"] a[href]',
+  ];
+  for (const sel of linkSelectors) {
+    try {
+      const el = doc.querySelector(sel);
+      if (el && el.href && el.href.startsWith('https://')) return el.href;
+    } catch (_) { /* invalid selector in some environments */ }
+  }
+
+  // Strategy 3: Active item carries a conversation ID as a data attribute
+  const idAttrs = [
+    'data-conversation-id', 'data-conversationid',
+    'data-thread-id',       'data-threadid',
+    'data-entity-id',       'data-entityid',
+    'data-chat-id',         'data-chatid',
+  ];
+  const activeSelectors = ['[aria-selected="true"]', '[aria-current="page"]'];
+  for (const containerSel of activeSelectors) {
+    try {
+      const container = doc.querySelector(containerSel);
+      if (!container) continue;
+      for (const attr of idAttrs) {
+        const id = container.getAttribute(attr)
+          || container.closest(`[${attr}]`)?.getAttribute(attr);
+        if (id) {
+          try {
+            const base = new URL(pageUrl).origin;
+            return `${base}/chat?entityid=${encodeURIComponent(id)}`;
+          } catch (_) { /* malformed base URL */ }
+        }
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  return pageUrl;
+}
+
+/**
  * @param {'chatgpt'|'claude'|'gemini'|'copilot'} platform
  * @param {Document} doc
  * @param {string} [url]  Explicit URL (optional, used in title generation)
@@ -333,7 +397,10 @@ export function extractChat(platform, doc, url) {
       throw new Error(`Unsupported platform: ${platform}`);
   }
 
-  const finalUrl = url || (doc.location && doc.location.href) || '';
+  // For Copilot the SPA URL is often static; try harder to get the per-conversation URL
+  const finalUrl = platform === 'copilot'
+    ? extractCopilotChatUrl(doc)
+    : (url || (doc.location && doc.location.href) || '');
 
   return {
     platform,

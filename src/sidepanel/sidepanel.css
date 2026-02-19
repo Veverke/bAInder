@@ -1150,3 +1150,36 @@ button:focus-visible {
     animation: none;
   }
 }
+/* ─── Toast Notification ─────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 56px; /* just above the footer */
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  background: var(--text-primary);
+  color: var(--text-inverse);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  max-width: calc(100% - 32px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition:
+    opacity var(--transition-base),
+    transform var(--transition-base);
+}
+
+.toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast--info    { background: var(--text-secondary); }
+.toast--success { background: #16a34a; }
+.toast--error   { background: #dc2626; }

@@ -15,10 +15,13 @@ export class TreeRenderer {
     this.tree = topicTree;
     this.expandedNodes = new Set(); // Track which nodes are expanded
     this.selectedNodeId = null; // Track selected node
-    
+    this.chats = []; // Flat chats array (Stage 7)
+
     // Event handlers (can be overridden)
     this.onTopicClick = null;
     this.onTopicContextMenu = null;
+    this.onChatClick = null;        // Stage 7
+    this.onChatContextMenu = null;  // Stage 7
   }
 
   /**
@@ -26,6 +29,14 @@ export class TreeRenderer {
    */
   setTree(topicTree) {
     this.tree = topicTree;
+  }
+
+  /**
+   * Set the flat chats array so the renderer can display chat items (Stage 7).
+   * @param {Array} chats
+   */
+  setChatData(chats) {
+    this.chats = Array.isArray(chats) ? chats : [];
   }
 
   /**
@@ -87,7 +98,8 @@ export class TreeRenderer {
     li.setAttribute('aria-level', level + 1);
     li.dataset.topicId = topic.id;
     
-    const hasChildren = topic.children.length > 0;
+    const hasChildren = topic.children.length > 0 ||
+      this.chats.some(c => c.topicId === topic.id);
     const isExpanded = this.expandedNodes.has(topic.id);
     const isSelected = this.selectedNodeId === topic.id;
     
@@ -154,9 +166,9 @@ export class TreeRenderer {
       chatBadge.setAttribute('title', `${topic.chatIds.length} chat${topic.chatIds.length !== 1 ? 's' : ''}`);
       label.appendChild(chatBadge);
     }
-    
+
     nodeContent.appendChild(label);
-    
+
     // Click handler for selection
     nodeContent.addEventListener('click', () => {
       this.selectNode(topic.id);
@@ -164,7 +176,7 @@ export class TreeRenderer {
         this.onTopicClick(topic);
       }
     });
-    
+
     // Context menu handler
     nodeContent.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -172,15 +184,16 @@ export class TreeRenderer {
         this.onTopicContextMenu(topic, e);
       }
     });
-    
+
     li.appendChild(nodeContent);
-    
-    // Render children if expanded
+
+    // Render children and chats if expanded
+    const topicChats = this.chats.filter(c => c.topicId === topic.id);
     if (hasChildren && isExpanded) {
       const childrenUl = document.createElement('ul');
       childrenUl.className = 'tree-children';
       childrenUl.setAttribute('role', 'group');
-      
+
       topic.children.forEach(childId => {
         const childTopic = this.tree.topics[childId];
         if (childTopic) {
@@ -188,10 +201,79 @@ export class TreeRenderer {
           childrenUl.appendChild(childLi);
         }
       });
-      
+
+      // Render chat items after child topics
+      topicChats.forEach(chat => {
+        const chatLi = this._renderChatItem(chat, level + 1);
+        childrenUl.appendChild(chatLi);
+      });
+
       li.appendChild(childrenUl);
     }
-    
+
+    return li;
+  }
+
+  /**
+   * Return a single rendered <li> element for a chat entry.
+   * @param {Object} chat
+   * @param {number} level  Indentation level
+   * @returns {HTMLElement}
+   */
+  _renderChatItem(chat, level) {
+    const li = document.createElement('li');
+    li.className = 'tree-node tree-chat-item';
+    li.setAttribute('role', 'treeitem');
+    li.setAttribute('data-chat-id', chat.id);
+
+    const content = document.createElement('div');
+    content.className = 'tree-node-content';
+    content.style.paddingLeft = `${level * 20}px`;
+
+    // Spacer (no expand button – chats are leaf items)
+    const spacer = document.createElement('span');
+    spacer.className = 'tree-expand-spacer';
+    content.appendChild(spacer);
+
+    // Icon: excerpt vs full chat
+    const icon = document.createElement('span');
+    icon.className = 'tree-icon';
+    icon.textContent = chat.metadata?.isExcerpt ? '✂️' : '💬';
+    content.appendChild(icon);
+
+    // Label
+    const label = document.createElement('span');
+    label.className = 'tree-label';
+
+    const labelText = document.createElement('span');
+    labelText.className = 'tree-label-text';
+    labelText.textContent = chat.title || 'Untitled Chat';
+    label.appendChild(labelText);
+
+    // Date badge
+    if (chat.timestamp) {
+      const dateBadge = document.createElement('span');
+      dateBadge.className = 'tree-timespan';
+      dateBadge.textContent = new Date(chat.timestamp).toLocaleDateString(
+        'en-US', { month: 'short', day: 'numeric', year: 'numeric' }
+      );
+      label.appendChild(dateBadge);
+    }
+
+    content.appendChild(label);
+
+    // Click → open original chat URL
+    content.addEventListener('click', () => {
+      if (this.onChatClick) this.onChatClick(chat);
+    });
+
+    // Right-click → chat context menu
+    content.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (this.onChatContextMenu) this.onChatContextMenu(chat, e);
+    });
+
+    li.appendChild(content);
     return li;
   }
 

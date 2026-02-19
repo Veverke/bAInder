@@ -156,6 +156,39 @@
     </div>
   </div>
 
+  <!-- Chat Context Menu (Stage 7, hidden by default) -->
+  <div id="chatContextMenu" class="context-menu" style="display: none;">
+    <div class="context-menu-item" data-chat-action="open">
+      <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M7 3H3C2.4 3 2 3.4 2 4V13C2 13.6 2.4 14 3 14H12C12.6 14 13 13.6 13 13V9M9 2H14V7M14 2L7 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Open Chat</span>
+    </div>
+    <div class="context-menu-item" data-chat-action="rename">
+      <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M11.3 1.9L14.1 4.7L5.6 13.2H2.8V10.4L11.3 1.9Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Rename</span>
+    </div>
+    <div class="context-menu-item" data-chat-action="move">
+      <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M13 5V3C13 2.4 12.6 2 12 2H4C3.4 2 3 2.4 3 3V5M6 8H10M6 11H10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M2 5H14V13C14 13.6 13.6 14 13 14H3C2.4 14 2 13.6 2 13V5Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span>Move to...</span>
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item danger" data-chat-action="delete">
+      <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M3 4H13M12 4V13C12 13.5 11.5 14 11 14H5C4.5 14 4 13.5 4 13V4M6 4V3C6 2.5 6.5 2 7 2H9C9.5 2 10 2.5 10 3V4M6.5 7V11M9.5 7V11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Delete</span>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
   <!-- Modal Container (for dialogs) -->
   <div id="modalContainer" class="modal-container" style="display: none;">
     <!-- Modals will be dynamically inserted here -->

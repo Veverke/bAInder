@@ -1,11 +1,20 @@
 // bAInder Side Panel Script
 // Stage 5: Topic Management UI
+// Stage 7: Chat management integration
 
 import { TopicTree } from '../lib/tree.js';
 import { TreeRenderer } from '../lib/tree-renderer.js';
 import { StorageService } from '../lib/storage.js';
 import { DialogManager } from '../lib/dialog-manager.js';
 import { TopicDialogs } from '../lib/topic-dialogs.js';
+import { ChatDialogs } from '../lib/chat-dialogs.js';
+import {
+  assignChatToTopic,
+  moveChatToTopic,
+  removeChatFromTopic,
+  updateChatInArray,
+  removeChatFromArray
+} from '../lib/chat-manager.js';
 
 console.log('bAInder Side Panel loaded');
 
@@ -21,6 +30,7 @@ const elements = {
   settingsBtn: document.getElementById('settingsBtn'),
   themeToggle: document.getElementById('themeToggle'),
   contextMenu: document.getElementById('contextMenu'),
+  chatContextMenu: document.getElementById('chatContextMenu'),
   modalContainer: document.getElementById('modalContainer'),
   itemCount: document.getElementById('itemCount'),
   resultCount: document.getElementById('resultCount'),
@@ -34,9 +44,13 @@ const state = {
   storage: null, // StorageService instance
   dialog: null, // DialogManager instance
   topicDialogs: null, // TopicDialogs instance
+  chatDialogs: null, // ChatDialogs instance
+  chats: [], // Loaded chat entries
+  contextMenuTopic: null, // Currently selected topic for context menu
+  contextMenuChat: null, // Currently selected chat for context menu
   searchQuery: '',
   theme: 'light', // 'light', 'dark', or 'auto'
-  contextMenuTopic: null // Currently selected topic for context menu
+  _toastTimer: null // setTimeout handle for auto-dismissing toast
 };
 
 // Initialize the application
@@ -57,9 +71,15 @@ async function init() {
   
   // Load tree from storage
   await loadTree();
+
+  // Load chats from storage
+  await loadChats();
   
   // Initialize topic dialogs (needs tree instance)
   state.topicDialogs = new TopicDialogs(state.dialog, state.tree);
+
+  // Initialize chat dialogs (needs tree instance)
+  state.chatDialogs = new ChatDialogs(state.dialog, state.tree);
   
   // Initialize tree renderer
   initTreeRenderer();
@@ -143,16 +163,21 @@ function setupEventListeners() {
   // Theme toggle button
   elements.themeToggle.addEventListener('click', toggleTheme);
   
-  // Context menu - hide when clicking outside
+  // Topic context menu - hide when clicking outside
   document.addEventListener('click', (e) => {
-    if (!elements.contextMenu.contains(e.target)) {
+    if (elements.contextMenu && !elements.contextMenu.contains(e.target)) {
       hideContextMenu();
-      state.contextMenuTopic = null; // Clear topic when clicking outside
+      state.contextMenuTopic = null;
+    }
+    if (elements.chatContextMenu && !elements.chatContextMenu.contains(e.target)) {
+      hideChatContextMenu();
+      state.contextMenuChat = null;
     }
   });
   
   // Context menu action handlers
   setupContextMenuActions();
+  setupChatContextMenuActions();
   
   // Modal container - close when clicking backdrop
   elements.modalContainer.addEventListener('click', (e) => {
@@ -165,6 +190,18 @@ function setupEventListeners() {
 // Load data from storage
 async function loadData() {
   console.log('loadData is deprecated, use loadTree instead');
+}
+
+// Load chats from storage
+async function loadChats() {
+  try {
+    const result = await chrome.storage.local.get(['chats']);
+    state.chats = Array.isArray(result.chats) ? result.chats : [];
+    console.log(`Loaded ${state.chats.length} chats`);
+  } catch (error) {
+    console.error('Error loading chats:', error);
+    state.chats = [];
+  }
 }
 
 // Load tree from storage
@@ -196,9 +233,14 @@ async function saveTree() {
 function initTreeRenderer() {
   state.renderer = new TreeRenderer(elements.treeView, state.tree);
   
-  // Set up event handlers
+  // Set up topic event handlers
   state.renderer.onTopicClick = handleTopicClick;
   state.renderer.onTopicContextMenu = handleTopicContextMenu;
+
+  // Set up chat event handlers (Stage 7)
+  state.renderer.setChatData(state.chats);
+  state.renderer.onChatClick = handleChatClick;
+  state.renderer.onChatContextMenu = handleChatContextMenu;
   
   // Load expanded state from localStorage (UI preference)
   const savedExpanded = localStorage.getItem('expandedNodes');
@@ -228,7 +270,61 @@ function handleTopicClick(topic) {
   console.log('Topic clicked:', topic.name);
   // Save expanded state whenever user interacts
   saveExpandedState();
-  // TODO: Show topic details/chats in Stage 7
+}
+
+// Handle chat click — open the chat URL in a new tab, or focus the existing tab
+async function handleChatClick(chat) {
+  if (!chat || !chat.url) return;
+
+  // Query for an already-open tab with this exact URL
+  let existing = [];
+  try {
+    existing = await chrome.tabs.query({ url: chat.url });
+  } catch (_) {
+    // tabs.query can fail for non-http(s) URLs (e.g. blob:); treat as no match
+  }
+
+  if (existing.length > 0) {
+    // Focus the existing tab instead of duplicating it
+    try {
+      await chrome.tabs.update(existing[0].id, { active: true });
+      if (chrome.windows) await chrome.windows.update(existing[0].windowId, { focused: true });
+    } catch (_) { /* focus attempt failed — still notify */ }
+    showNotification('Chat is already open in a tab', 'info');
+    return;
+  }
+
+  chrome.tabs.create({ url: chat.url });
+}
+
+// Handle chat context menu
+function handleChatContextMenu(chat, event) {
+  event.preventDefault();
+  state.contextMenuChat = chat;
+  console.log('Chat context menu opened for:', chat.title);
+  showChatContextMenu(event.clientX, event.clientY);
+}
+
+// Handle incoming CHAT_SAVED message from background
+async function handleChatSaved(chatEntry) {
+  // Add to in-memory list
+  state.chats = [...state.chats, chatEntry];
+  state.renderer.setChatData(state.chats);
+
+  // Prompt user to assign the new chat to a topic
+  const result = await state.chatDialogs.showAssignChat(chatEntry);
+  if (!result) return;
+
+  const updatedChat = assignChatToTopic(chatEntry, result.topicId, state.tree);
+  if (result.title && result.title !== chatEntry.title) {
+    updatedChat.title = result.title;
+  }
+  state.chats = updateChatInArray(chatEntry.id, updatedChat, state.chats);
+  await chrome.storage.local.set({ chats: state.chats });
+  await saveTree();
+  state.renderer.setChatData(state.chats);
+  renderTreeView();
+  state.renderer.expandToTopic(result.topicId);
 }
 
 // Render the tree view
@@ -331,12 +427,11 @@ function setupContextMenuActions() {
       e.stopPropagation();
       const action = item.dataset.action;
       
-      // Store topic reference before hiding menu (which clears state.contextMenuTopic)
+      // Store topic reference before hiding menu
       const topic = state.contextMenuTopic;
       console.log('Context menu action clicked:', action, 'for topic:', topic?.name);
       hideContextMenu();
       
-      // Temporarily restore topic for the action handler
       if (topic && actions[action]) {
         state.contextMenuTopic = topic;
         await actions[action]();
@@ -348,6 +443,90 @@ function setupContextMenuActions() {
       }
     });
   });
+}
+
+// Setup chat context menu action handlers (Stage 7)
+function setupChatContextMenuActions() {
+  if (!elements.chatContextMenu) return;
+
+  const actions = {
+    open:   handleOpenChatAction,
+    rename: handleRenameChatAction,
+    move:   handleMoveChatAction,
+    delete: handleDeleteChatAction
+  };
+
+  elements.chatContextMenu.querySelectorAll('[data-chat-action]').forEach(item => {
+    item.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const action = item.dataset.chatAction;
+      const chat = state.contextMenuChat;
+      console.log('Chat context menu action clicked:', action, 'for chat:', chat?.title);
+      hideChatContextMenu();
+
+      if (chat && actions[action]) {
+        state.contextMenuChat = chat;
+        await actions[action]();
+        state.contextMenuChat = null;
+      } else if (!chat) {
+        console.warn('No chat selected for action:', action);
+      } else if (!actions[action]) {
+        console.warn('Unknown chat action:', action);
+      }
+    });
+  });
+}
+
+// Handle "Open" chat action
+function handleOpenChatAction() {
+  if (state.contextMenuChat) {
+    handleChatClick(state.contextMenuChat);
+  }
+}
+
+// Handle "Rename" chat action
+async function handleRenameChatAction() {
+  if (!state.contextMenuChat) return;
+  const result = await state.chatDialogs.showRenameChat(state.contextMenuChat);
+  if (!result) return;
+
+  state.chats = updateChatInArray(state.contextMenuChat.id, { title: result.title }, state.chats);
+  await chrome.storage.local.set({ chats: state.chats });
+  state.renderer.setChatData(state.chats);
+  renderTreeView();
+}
+
+// Handle "Move" chat action
+async function handleMoveChatAction() {
+  if (!state.contextMenuChat) return;
+  const result = await state.chatDialogs.showMoveChat(state.contextMenuChat);
+  if (!result) return;
+
+  const movedChat = moveChatToTopic(state.contextMenuChat, result.topicId, state.tree);
+  state.chats = updateChatInArray(state.contextMenuChat.id, movedChat, state.chats);
+  await chrome.storage.local.set({ chats: state.chats });
+  await saveTree();
+  state.renderer.setChatData(state.chats);
+  renderTreeView();
+  state.renderer.expandToTopic(result.topicId);
+  saveExpandedState();
+}
+
+// Handle "Delete" chat action
+async function handleDeleteChatAction() {
+  if (!state.contextMenuChat) return;
+  const result = await state.chatDialogs.showDeleteChat(state.contextMenuChat);
+  if (!result) return;
+
+  const chat = state.contextMenuChat;
+  if (chat.topicId) {
+    removeChatFromTopic(chat.id, chat.topicId, state.tree);
+    await saveTree();
+  }
+  state.chats = removeChatFromArray(chat.id, state.chats);
+  await chrome.storage.local.set({ chats: state.chats });
+  state.renderer.setChatData(state.chats);
+  renderTreeView();
 }
 
 // Handle rename topic
@@ -425,6 +604,31 @@ function handleSettings() {
   showNotification('Settings coming in Stage 10');
 }
 
+// Show chat context menu
+function showChatContextMenu(x, y) {
+  if (!elements.chatContextMenu) return;
+  elements.chatContextMenu.style.left = `${x}px`;
+  elements.chatContextMenu.style.top = `${y}px`;
+  elements.chatContextMenu.style.display = 'block';
+
+  setTimeout(() => {
+    const rect = elements.chatContextMenu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+      elements.chatContextMenu.style.left = `${window.innerWidth - rect.width - 10}px`;
+    }
+    if (rect.bottom > window.innerHeight) {
+      elements.chatContextMenu.style.top = `${window.innerHeight - rect.height - 10}px`;
+    }
+  }, 0);
+}
+
+// Hide chat context menu
+function hideChatContextMenu() {
+  if (elements.chatContextMenu) {
+    elements.chatContextMenu.style.display = 'none';
+  }
+}
+
 // Show context menu
 function showContextMenu(x, y) {
   // Position context menu
@@ -484,12 +688,28 @@ async function updateStorageUsage() {
   }
 }
 
-// Show notification (simple toast)
+// Show notification as a toast
 function showNotification(message, type = 'info') {
   console.log(`[${type.toUpperCase()}] ${message}`);
-  // TODO: Implement toast notifications in Stage 10
-  alert(message); // Temporary
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.className = `toast toast--${type} toast--visible`;
+  clearTimeout(state._toastTimer);
+  state._toastTimer = setTimeout(() => {
+    toast.className = 'toast';
+  }, 3000);
 }
+
+// Listen for messages from the background service worker (e.g. CHAT_SAVED)
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === 'CHAT_SAVED') {
+    handleChatSaved(message.data)
+      .then(() => sendResponse({ success: true }))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true; // async
+  }
+});
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
@@ -506,7 +726,10 @@ window.bAInder = {
   storage: () => state.storage,
   dialog: () => state.dialog,
   topicDialogs: () => state.topicDialogs,
+  chatDialogs: () => state.chatDialogs,
+  chats: () => state.chats,
   loadTree,
+  loadChats,
   saveTree,
   renderTreeView,
   showNotification,

@@ -15,7 +15,8 @@
     "https://chat.openai.com/*",
     "https://claude.ai/*",
     "https://gemini.google.com/*",
-    "https://copilot.microsoft.com/*"
+    "https://copilot.microsoft.com/*",
+    "https://m365.cloud.microsoft/*"
   ],
   "action": {
     "default_title": "bAInder - Organize AI Chats",
@@ -45,7 +46,8 @@
         "https://chat.openai.com/*",
         "https://claude.ai/*",
         "https://gemini.google.com/*",
-        "https://copilot.microsoft.com/*"
+        "https://copilot.microsoft.com/*",
+        "https://m365.cloud.microsoft/*"
       ],
       "js": ["src/content/content.js"],
       "run_at": "document_idle"

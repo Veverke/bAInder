@@ -12,7 +12,8 @@ const SUPPORTED_URL_PATTERNS = [
   'https://chat.openai.com/*',
   'https://claude.ai/*',
   'https://gemini.google.com/*',
-  'https://copilot.microsoft.com/*'
+  'https://copilot.microsoft.com/*',
+  'https://m365.cloud.microsoft/*'
 ];
 
 function setupContextMenus() {
@@ -31,7 +32,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   try {
     const payload = buildExcerptPayload(info.selectionText, info.pageUrl);
     handleSaveChat(payload, { tab })
-      .then(entry => console.log('bAInder: Excerpt saved', entry.id))
+      .then(entry => {
+        console.log('bAInder: Excerpt saved', entry.id);
+        chrome.runtime.sendMessage({ type: 'CHAT_SAVED', data: entry }).catch(() => {});
+      })
       .catch(err  => console.error('bAInder: Excerpt save failed', err.message));
   } catch (err) {
     console.error('bAInder: Could not build excerpt payload', err.message);
@@ -102,7 +106,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
     case 'SAVE_CHAT':
       handleSaveChat(message.data, sender)
-        .then(result => sendResponse({ success: true, data: result }))
+        .then(result => {
+          sendResponse({ success: true, data: result });
+          chrome.runtime.sendMessage({ type: 'CHAT_SAVED', data: result }).catch(() => {});
+        })
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true; // Keep channel open for async response
       

@@ -66,22 +66,38 @@ global.chrome = {
   // Tabs API
   tabs: {
     query: vi.fn((queryInfo, callback) => {
-      const tabs = [{ id: 1, url: 'https://chat.openai.com', active: true }];
-      if (callback) {
-        callback(tabs);
-      }
+      // Default: no existing tabs match (avoids false deduplication in tests)
+      const tabs = [];
+      if (callback) callback(tabs);
       return Promise.resolve(tabs);
     }),
     create: vi.fn((createProperties, callback) => {
       const tab = { id: 2, ...createProperties };
-      if (callback) {
-        callback(tab);
-      }
+      if (callback) callback(tab);
+      return Promise.resolve(tab);
+    }),
+    update: vi.fn((tabId, updateProperties, callback) => {
+      const tab = { id: tabId, ...updateProperties };
+      if (callback) callback(tab);
       return Promise.resolve(tab);
     }),
     onUpdated: {
       addListener: vi.fn()
     }
+  },
+
+  // Windows API
+  windows: {
+    update: vi.fn((windowId, updateInfo, callback) => {
+      const win = { id: windowId, ...updateInfo };
+      if (callback) callback(win);
+      return Promise.resolve(win);
+    }),
+    getCurrent: vi.fn((callback) => {
+      const win = { id: 1, focused: true };
+      if (callback) callback(win);
+      return Promise.resolve(win);
+    })
   },
 
   // Action API (for toolbar icon)
