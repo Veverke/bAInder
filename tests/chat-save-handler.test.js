@@ -12,6 +12,7 @@ import {
   validateChatData,
   findDuplicate,
   buildChatEntry,
+  buildExcerptPayload,
   handleSaveChat
 } from '../src/background/chat-save-handler.js';
 
@@ -28,6 +29,14 @@ describe('detectSource()', () => {
 
   it('detects gemini from gemini.google.com URL', () => {
     expect(detectSource('https://gemini.google.com/app/xyz')).toBe('gemini');
+  });
+
+  it('detects copilot from copilot.microsoft.com URL', () => {
+    expect(detectSource('https://copilot.microsoft.com/')).toBe('copilot');
+  });
+
+  it('detects copilot from copilot.microsoft.com with path', () => {
+    expect(detectSource('https://copilot.microsoft.com/chats/abc123')).toBe('copilot');
   });
 
   it('returns unknown for unrecognised URL', () => {
@@ -135,6 +144,19 @@ describe('validateChatData()', () => {
     ['chatgpt', 'claude', 'gemini'].forEach(source => {
       expect(() => validateChatData({ ...validData, source })).not.toThrow();
     });
+  });
+
+  it('accepts copilot as a valid source', () => {
+    expect(() => validateChatData({ ...validData, source: 'copilot' })).not.toThrow();
+  });
+
+  it('error message for invalid source mentions all valid platforms including copilot', () => {
+    try {
+      validateChatData({ ...validData, source: 'bing' });
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect(err.message).toContain('copilot');
+    }
   });
 });
 
@@ -383,5 +405,87 @@ describe('buildChatEntry() – optional-field fallbacks', () => {
     const noUrl = { title: base.title, content: base.content, source: base.source };
     const e = buildChatEntry(noUrl, '');  // tabUrl is also ''
     expect(e.url).toBe('');
+  });
+});
+
+// ─── buildExcerptPayload ──────────────────────────────────────────────────────
+
+describe('buildExcerptPayload()', () => {
+  it('throws when selection is empty string', () => {
+    expect(() => buildExcerptPayload('', 'https://chat.openai.com/')).toThrow('Selection is empty');
+  });
+
+  it('throws when selection is null', () => {
+    expect(() => buildExcerptPayload(null, 'https://chat.openai.com/')).toThrow('Selection is empty');
+  });
+
+  it('throws when selection is whitespace only', () => {
+    expect(() => buildExcerptPayload('   \n  ', 'https://chat.openai.com/')).toThrow('Selection is empty');
+  });
+
+  it('returns trimmed content', () => {
+    const p = buildExcerptPayload('  hello world  ', 'https://chat.openai.com/');
+    expect(p.content).toBe('hello world');
+  });
+
+  it('sets title to first line of selection', () => {
+    const p = buildExcerptPayload('First line\nSecond line\nThird line', 'https://chat.openai.com/');
+    expect(p.title).toBe('First line');
+  });
+
+  it('truncates title to 80 characters', () => {
+    const long = 'A'.repeat(120);
+    const p = buildExcerptPayload(long, 'https://chat.openai.com/');
+    expect(p.title.length).toBe(80);
+  });
+
+  it('detects chatgpt source from openai URL', () => {
+    const p = buildExcerptPayload('Hello', 'https://chat.openai.com/c/abc');
+    expect(p.source).toBe('chatgpt');
+  });
+
+  it('detects claude source from claude URL', () => {
+    const p = buildExcerptPayload('Hello', 'https://claude.ai/chat/123');
+    expect(p.source).toBe('claude');
+  });
+
+  it('detects gemini source from gemini URL', () => {
+    const p = buildExcerptPayload('Hello', 'https://gemini.google.com/app/x');
+    expect(p.source).toBe('gemini');
+  });
+
+  it('detects copilot source from copilot.microsoft.com URL', () => {
+    const p = buildExcerptPayload('Hello', 'https://copilot.microsoft.com/');
+    expect(p.source).toBe('copilot');
+  });
+
+  it('sets metadata.isExcerpt to true', () => {
+    const p = buildExcerptPayload('Hello', 'https://chat.openai.com/');
+    expect(p.metadata.isExcerpt).toBe(true);
+  });
+
+  it('sets messageCount to 0', () => {
+    const p = buildExcerptPayload('Hello', 'https://chat.openai.com/');
+    expect(p.messageCount).toBe(0);
+  });
+
+  it('sets messages to empty array', () => {
+    const p = buildExcerptPayload('Hello', 'https://chat.openai.com/');
+    expect(p.messages).toEqual([]);
+  });
+
+  it('sets url from pageUrl', () => {
+    const p = buildExcerptPayload('Hello', 'https://claude.ai/chat/xyz');
+    expect(p.url).toBe('https://claude.ai/chat/xyz');
+  });
+
+  it('sets url to empty string when pageUrl is omitted', () => {
+    const p = buildExcerptPayload('Hello');
+    expect(p.url).toBe('');
+  });
+
+  it('produces a payload that passes validateChatData', () => {
+    const p = buildExcerptPayload('Some selected text', 'https://chat.openai.com/c/abc');
+    expect(() => validateChatData(p)).not.toThrow();
   });
 });

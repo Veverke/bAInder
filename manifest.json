@@ -8,12 +8,14 @@
     "unlimitedStorage",
     "tabs",
     "activeTab",
-    "sidePanel"
+    "sidePanel",
+    "contextMenus"
   ],
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://claude.ai/*",
-    "https://gemini.google.com/*"
+    "https://gemini.google.com/*",
+    "https://copilot.microsoft.com/*"
   ],
   "action": {
     "default_title": "bAInder - Organize AI Chats",
@@ -42,7 +44,8 @@
       "matches": [
         "https://chat.openai.com/*",
         "https://claude.ai/*",
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/*",
+        "https://copilot.microsoft.com/*"
       ],
       "js": ["src/content/content.js"],
       "run_at": "document_idle"

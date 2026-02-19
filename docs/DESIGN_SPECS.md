@@ -751,6 +751,46 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
 - Save various chat types (short, long, with code, with images)
 - Test with empty or unsupported pages
 
+#### Stage 6 Extension: Context Menu — Save Chat Excerpt
+
+**Goal:** Allow saving a user-selected portion of a chat as a `ChatEntry` instead of the full conversation.
+
+**Rationale:** The floating button saves the entire conversation. For cases where only a specific exchange or passage is relevant, the user should be able to highlight text on the page and save just that selection via right-click.
+
+**Tasks:**
+- Register a `chrome.contextMenus` item in `background.js`:
+  - Title: `"💾 Save selection to bAInder"`
+  - `contexts: ['selection']` — only appears when text is selected
+  - Only shown on supported AI chat platforms (filter by `documentUrlPatterns` matching all supported hostnames)
+- On context menu click, background sends a `SAVE_EXCERPT` message to the active tab's content script
+- Content script `SAVE_EXCERPT` handler:
+  - Reads `window.getSelection().toString()` for the selected text
+  - Detects the platform via `detectPlatform(window.location.hostname)`
+  - Builds a `ChatEntry`-compatible object:
+    - `title`: first line / first 80 chars of the selection
+    - `content`: full selected text
+    - `source`: detected platform
+    - `url`: `window.location.href`
+    - `messageCount`: 0 (not a full conversation)
+    - `metadata.isExcerpt: true` (flag to distinguish from full-chat saves)
+  - Sends `SAVE_CHAT` message to background with this payload (reuses existing save pipeline)
+- The excerpt is stored as a regular `ChatEntry` with `topicId: null`, same as full saves
+- Visual feedback: brief status indicator (reuse `setButtonState` pattern or a transient toast)
+
+**Design Decisions:**
+- Excerpts are treated as first-class `ChatEntry` items — no separate data type for MVP
+- `metadata.isExcerpt: true` allows future UI differentiation (e.g. different icon in tree)
+- Selection is captured at the moment background fires the message; no selection state is stored in background
+
+**Test Strategy:**
+- Select text on a supported AI chat site → context menu item appears
+- Context menu item absent on non-supported sites
+- Context menu item absent when nothing is selected
+- Saved excerpt has correct `title`, `content`, `source`, `url`
+- `metadata.isExcerpt` is `true`
+- Empty/whitespace-only selection is rejected gracefully
+- Reuses deduplication logic from `handleSaveChat`
+
 ---
 
 ### Stage 7: Chat Assignment UI

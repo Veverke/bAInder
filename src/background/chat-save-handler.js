@@ -13,9 +13,10 @@
  */
 export function detectSource(url) {
   if (!url || typeof url !== 'string') return 'unknown';
-  if (url.includes('chat.openai.com')) return 'chatgpt';
-  if (url.includes('claude.ai'))       return 'claude';
+  if (url.includes('chat.openai.com'))   return 'chatgpt';
+  if (url.includes('claude.ai'))         return 'claude';
   if (url.includes('gemini.google.com')) return 'gemini';
+  if (url.includes('copilot.microsoft.com')) return 'copilot';
   return 'unknown';
 }
 
@@ -40,7 +41,7 @@ export function validateChatData(chatData) {
   if (!chatData.content || typeof chatData.content !== 'string' || !chatData.content.trim()) {
     throw new Error('Chat content is required');
   }
-  const validSources = ['chatgpt', 'claude', 'gemini'];
+  const validSources = ['chatgpt', 'claude', 'gemini', 'copilot'];
   const source = chatData.source || 'unknown';
   if (!validSources.includes(source)) {
     throw new Error(`Invalid source: ${source}. Must be one of: ${validSources.join(', ')}`);
@@ -83,6 +84,33 @@ export function buildChatEntry(chatData, tabUrl) {
     messageCount: chatData.messageCount || 0,
     messages:     chatData.messages     || [],
     metadata:     chatData.metadata     || {}
+  };
+}
+
+/**
+ * Build a save payload from a text selection (context menu excerpt save).
+ * The returned object is compatible with validateChatData / handleSaveChat.
+ *
+ * @param {string} selectionText  The user-selected text
+ * @param {string} pageUrl        URL of the page where the selection was made
+ * @returns {Object}  chatData payload ready for handleSaveChat
+ * @throws {Error} if selection is empty
+ */
+export function buildExcerptPayload(selectionText, pageUrl) {
+  if (!selectionText || !selectionText.trim()) {
+    throw new Error('Selection is empty');
+  }
+  const text   = selectionText.trim();
+  const title  = text.split('\n')[0].slice(0, 80).trim() || 'Excerpt';
+  const source = detectSource(pageUrl || '');
+  return {
+    title,
+    content:      text,
+    url:          pageUrl || '',
+    source,
+    messageCount: 0,
+    messages:     [],
+    metadata:     { isExcerpt: true }
   };
 }
 

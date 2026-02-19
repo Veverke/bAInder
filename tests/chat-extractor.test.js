@@ -15,6 +15,7 @@ import {
   extractChatGPT,
   extractClaude,
   extractGemini,
+  extractCopilot,
   extractChat,
   prepareChatForSave
 } from '../src/content/chat-extractor.js';
@@ -80,6 +81,27 @@ function buildGeminiDoc(turns = []) {
   return document;
 }
 
+/**
+ * Build a minimal Copilot-style DOM document with the given conversation turns.
+ * User messages use data-testid="user-message";
+ * assistant messages use data-testid="copilot-message".
+ */
+function buildCopilotDoc(turns = []) {
+  const div = document.createElement('div');
+  turns.forEach(turn => {
+    const el = document.createElement('div');
+    el.setAttribute(
+      'data-testid',
+      turn.role === 'user' ? 'user-message' : 'copilot-message'
+    );
+    el.textContent = turn.content;
+    div.appendChild(el);
+  });
+  document.body.innerHTML = '';
+  document.body.appendChild(div);
+  return document;
+}
+
 // ─── detectPlatform ───────────────────────────────────────────────────────────
 
 describe('detectPlatform()', () => {
@@ -109,6 +131,14 @@ describe('detectPlatform()', () => {
 
   it('returns null for undefined', () => {
     expect(detectPlatform(undefined)).toBeNull();
+  });
+
+  it('detects copilot from copilot.microsoft.com hostname', () => {
+    expect(detectPlatform('copilot.microsoft.com')).toBe('copilot');
+  });
+
+  it('detects copilot with path on copilot.microsoft.com', () => {
+    expect(detectPlatform('copilot.microsoft.com')).toBe('copilot');
   });
 
   it('is case-insensitive', () => {
@@ -496,6 +526,95 @@ describe('extractGemini()', () => {
   });
 });
 
+// ─── extractCopilot ────────────────────────────────────────────────────────
+
+describe('extractCopilot()', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('throws when document is null', () => {
+    expect(() => extractCopilot(null)).toThrow('Document is required');
+  });
+
+  it('returns empty messages when no elements found', () => {
+    document.body.innerHTML = '<div></div>';
+    const result = extractCopilot(document);
+    expect(result.messages).toHaveLength(0);
+    expect(result.messageCount).toBe(0);
+    expect(result.title).toBeDefined();
+  });
+
+  it('extracts a single user message via data-testid="user-message"', () => {
+    buildCopilotDoc([{ role: 'user', content: 'Hello Copilot' }]);
+    const result = extractCopilot(document);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('user');
+    expect(result.messages[0].content).toBe('Hello Copilot');
+  });
+
+  it('extracts a single assistant message via data-testid="copilot-message"', () => {
+    buildCopilotDoc([{ role: 'assistant', content: 'Hi there!' }]);
+    const result = extractCopilot(document);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('assistant');
+    expect(result.messages[0].content).toBe('Hi there!');
+  });
+
+  it('extracts multi-turn conversation in DOM order', () => {
+    buildCopilotDoc([
+      { role: 'user',      content: 'What is TypeScript?' },
+      { role: 'assistant', content: 'TypeScript is a typed superset of JavaScript.' },
+      { role: 'user',      content: 'Give me an example.' },
+      { role: 'assistant', content: 'const x: number = 42;' }
+    ]);
+    const result = extractCopilot(document);
+    expect(result.messages).toHaveLength(4);
+    expect(result.messages[0].role).toBe('user');
+    expect(result.messages[1].role).toBe('assistant');
+    expect(result.messages[2].role).toBe('user');
+    expect(result.messages[3].role).toBe('assistant');
+  });
+
+  it('sets title from the first user message', () => {
+    buildCopilotDoc([{ role: 'user', content: 'Explain async/await' }]);
+    const result = extractCopilot(document);
+    expect(result.title).toBe('Explain async/await');
+  });
+
+  it('uses fallback title when no user message present', () => {
+    buildCopilotDoc([{ role: 'assistant', content: 'Hello!' }]);
+    const result = extractCopilot(document);
+    expect(typeof result.title).toBe('string');
+  });
+
+  it('returns messageCount equal to messages length', () => {
+    buildCopilotDoc([
+      { role: 'user',      content: 'Q1' },
+      { role: 'assistant', content: 'A1' },
+      { role: 'user',      content: 'Q2' }
+    ]);
+    const result = extractCopilot(document);
+    expect(result.messageCount).toBe(3);
+  });
+
+  it('matches user elements with .UserMessage class fallback', () => {
+    const el = document.createElement('div');
+    el.className = 'UserMessage';
+    el.textContent = 'Via class fallback';
+    document.body.appendChild(el);
+    const result = extractCopilot(document);
+    expect(result.messages.some(m => m.content === 'Via class fallback')).toBe(true);
+  });
+
+  it('matches assistant elements with data-testid="assistant-message" fallback', () => {
+    const el = document.createElement('div');
+    el.setAttribute('data-testid', 'assistant-message');
+    el.textContent = 'Fallback assistant';
+    document.body.appendChild(el);
+    const result = extractCopilot(document);
+    expect(result.messages.some(m => m.content === 'Fallback assistant')).toBe(true);
+  });
+});
+
 // ─── extractChat (dispatch) ───────────────────────────────────────────────────
 
 describe('extractChat()', () => {
@@ -532,6 +651,13 @@ describe('extractChat()', () => {
     const result = extractChat('gemini', document);
     expect(result.platform).toBe('gemini');
     expect(result.messages[0].content).toBe('Gemini question');
+  });
+
+  it('dispatches to extractCopilot', () => {
+    buildCopilotDoc([{ role: 'user', content: 'Copilot question' }]);
+    const result = extractChat('copilot', document);
+    expect(result.platform).toBe('copilot');
+    expect(result.messages[0].content).toBe('Copilot question');
   });
 
   it('includes extractedAt timestamp', () => {
@@ -691,6 +817,24 @@ describe('Full extraction pipeline', () => {
     expect(saveReady.messageCount).toBe(2);
   });
 
+  it('Copilot: end-to-end extract and prepare', () => {
+    buildCopilotDoc([
+      { role: 'user',      content: 'How do I reverse a string in Python?' },
+      { role: 'assistant', content: 'Use slicing: s[::-1]' },
+      { role: 'user',      content: 'What about in JavaScript?' },
+      { role: 'assistant', content: "str.split('').reverse().join('')" }
+    ]);
+    const chatData  = extractChat('copilot', document, 'https://copilot.microsoft.com/');
+    const saveReady = prepareChatForSave(chatData);
+
+    expect(saveReady.title).toBe('How do I reverse a string in Python?');
+    expect(saveReady.source).toBe('copilot');
+    expect(saveReady.messageCount).toBe(4);
+    expect(saveReady.content).toContain('[USER]');
+    expect(saveReady.content).toContain('[ASSISTANT]');
+    expect(saveReady.content).toContain('How do I reverse a string in Python?');
+  });
+
   it('handles an empty conversation gracefully end-to-end', () => {
     document.body.innerHTML = '<main></main>';
     const chatData  = extractChat('chatgpt', document, 'https://chat.openai.com/c/empty');
@@ -756,6 +900,33 @@ describe('extractGemini() – sort returns 1 when model element precedes user in
 
     const result = extractGemini(document);
     expect(result.messages.length).toBe(2);
+    expect(result.messages[0].role).toBe('assistant');
+    expect(result.messages[1].role).toBe('user');
+  });
+});
+
+describe('extractCopilot() – sort returns 1 when assistant element precedes user in DOM', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('should still capture messages correctly when assistant turn appears before user in DOM', () => {
+    const div = document.createElement('div');
+
+    const assistantEl = document.createElement('div');
+    assistantEl.setAttribute('data-testid', 'copilot-message');
+    assistantEl.textContent = 'I am GitHub Copilot.';
+
+    const userEl = document.createElement('div');
+    userEl.setAttribute('data-testid', 'user-message');
+    userEl.textContent = 'Who are you?';
+
+    // Assistant comes first in DOM (before user)
+    div.appendChild(assistantEl);
+    div.appendChild(userEl);
+    document.body.appendChild(div);
+
+    const result = extractCopilot(document);
+    expect(result.messages.length).toBe(2);
+    // After sort, assistant (first in DOM) stays first
     expect(result.messages[0].role).toBe('assistant');
     expect(result.messages[1].role).toBe('user');
   });

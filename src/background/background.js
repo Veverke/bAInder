@@ -1,15 +1,50 @@
 // bAInder Background Service Worker
 // Stage 1: Basic setup and lifecycle management
-// Stage 6: Enhanced SAVE_CHAT handler with validation and deduplication
+// Stage 6: Enhanced SAVE_CHAT handler with validation, deduplication, and context menu excerpt save
 
-import { handleSaveChat as _handleSaveChat, detectSource } from './chat-save-handler.js';
+import { handleSaveChat as _handleSaveChat, detectSource, buildExcerptPayload } from './chat-save-handler.js';
 
 console.log('bAInder Background Service Worker initialized');
+
+// ─── Context Menu ────────────────────────────────────────────────────────────
+
+const SUPPORTED_URL_PATTERNS = [
+  'https://chat.openai.com/*',
+  'https://claude.ai/*',
+  'https://gemini.google.com/*',
+  'https://copilot.microsoft.com/*'
+];
+
+function setupContextMenus() {
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id:                  'save-excerpt',
+      title:               '💾 Save selection to bAInder',
+      contexts:            ['selection'],
+      documentUrlPatterns: SUPPORTED_URL_PATTERNS
+    });
+  });
+}
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId !== 'save-excerpt') return;
+  try {
+    const payload = buildExcerptPayload(info.selectionText, info.pageUrl);
+    handleSaveChat(payload, { tab })
+      .then(entry => console.log('bAInder: Excerpt saved', entry.id))
+      .catch(err  => console.error('bAInder: Excerpt save failed', err.message));
+  } catch (err) {
+    console.error('bAInder: Could not build excerpt payload', err.message);
+  }
+});
+
+// ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 // Extension installed or updated
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Extension installed/updated:', details.reason);
-  
+  setupContextMenus();
+
   if (details.reason === 'install') {
     // First time installation
     console.log('First time installation - setting up defaults');

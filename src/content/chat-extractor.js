@@ -9,6 +9,7 @@
  *   - ChatGPT (chat.openai.com)
  *   - Claude  (claude.ai)
  *   - Gemini  (gemini.google.com)
+ *   - Copilot (copilot.microsoft.com)
  */
 
 // ─── Platform Detection ──────────────────────────────────────────────────────
@@ -16,14 +17,15 @@
 /**
  * Detect the AI platform from a hostname.
  * @param {string} hostname
- * @returns {'chatgpt'|'claude'|'gemini'|null}
+ * @returns {'chatgpt'|'claude'|'gemini'|'copilot'|null}
  */
 export function detectPlatform(hostname) {
   if (!hostname || typeof hostname !== 'string') return null;
   const h = hostname.toLowerCase();
-  if (h.includes('chat.openai.com')) return 'chatgpt';
-  if (h.includes('claude.ai'))       return 'claude';
+  if (h.includes('chat.openai.com'))   return 'chatgpt';
+  if (h.includes('claude.ai'))         return 'claude';
   if (h.includes('gemini.google.com')) return 'gemini';
+  if (h.includes('copilot.microsoft.com')) return 'copilot';
   return null;
 }
 
@@ -245,11 +247,57 @@ export function extractGemini(doc) {
   return { title, messages, messageCount: messages.length };
 }
 
+/**
+ * Extract messages from a GitHub Copilot conversation page.
+ *
+ * Copilot DOM (copilot.microsoft.com, as of 2025/2026):
+ *   User messages:      [data-testid="user-message"],  .UserMessage,  [class*="UserMessage"]
+ *   Copilot responses:  [data-testid="copilot-message"],[class*="CopilotMessage"],
+ *                       [data-testid="assistant-message"],[class*="AssistantMessage"],
+ *                       .markdown-body (inside a copilot turn container)
+ *
+ * @param {Document} doc
+ * @returns {{title: string, messages: Array, messageCount: number}}
+ */
+export function extractCopilot(doc) {
+  if (!doc) throw new Error('Document is required');
+
+  const messages = [];
+
+  const userEls = Array.from(
+    doc.querySelectorAll(
+      '[data-testid="user-message"], .UserMessage, [class*="UserMessage"], [class*="user-message"]'
+    )
+  );
+  const copilotEls = Array.from(
+    doc.querySelectorAll(
+      '[data-testid="copilot-message"], [data-testid="assistant-message"], ' +
+      '[class*="CopilotMessage"], [class*="AssistantMessage"], [class*="copilot-message"]'
+    )
+  );
+
+  const allEls = [
+    ...userEls.map(el => ({ el, role: 'user' })),
+    ...copilotEls.map(el => ({ el, role: 'assistant' }))
+  ].sort((a, b) => {
+    const pos = a.el.compareDocumentPosition(b.el);
+    return pos & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+  });
+
+  allEls.forEach(({ el, role }) => {
+    const content = getTextContent(el);
+    if (content) messages.push(formatMessage(role, content));
+  });
+
+  const title = generateTitle(messages, doc.location?.href || '');
+  return { title, messages, messageCount: messages.length };
+}
+
 // ─── Main Dispatch ───────────────────────────────────────────────────────────
 
 /**
  * Extract a chat from the given document for the detected platform.
- * @param {'chatgpt'|'claude'|'gemini'} platform
+ * @param {'chatgpt'|'claude'|'gemini'|'copilot'} platform
  * @param {Document} doc
  * @param {string} [url]  Explicit URL (optional, used in title generation)
  * @returns {{
@@ -277,6 +325,9 @@ export function extractChat(platform, doc, url) {
       break;
     case 'gemini':
       result = extractGemini(doc);
+      break;
+    case 'copilot':
+      result = extractCopilot(doc);
       break;
     default:
       throw new Error(`Unsupported platform: ${platform}`);

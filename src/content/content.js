@@ -26,6 +26,7 @@
     if (h.includes('chat.openai.com'))    return 'chatgpt';
     if (h.includes('claude.ai'))          return 'claude';
     if (h.includes('gemini.google.com'))  return 'gemini';
+    if (h.includes('copilot.microsoft.com')) return 'copilot';
     return null;
   }
 
@@ -120,6 +121,26 @@
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
   }
 
+  function extractCopilot(doc) {
+    const messages = [];
+    const userEls    = Array.from(doc.querySelectorAll(
+      '[data-testid="user-message"], .UserMessage, [class*="UserMessage"], [class*="user-message"]'
+    ));
+    const copilotEls = Array.from(doc.querySelectorAll(
+      '[data-testid="copilot-message"], [data-testid="assistant-message"], ' +
+      '[class*="CopilotMessage"], [class*="AssistantMessage"], [class*="copilot-message"]'
+    ));
+    const allEls = [
+      ...userEls.map(el => ({ el, role: 'user' })),
+      ...copilotEls.map(el => ({ el, role: 'assistant' }))
+    ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+    allEls.forEach(({ el, role }) => {
+      const content = getTextContent(el);
+      if (content) messages.push(formatMessage(role, content));
+    });
+    return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
+  }
+
   function extractChat(platform, doc) {
     if (!platform) throw new Error('Platform is required');
     if (!doc)      throw new Error('Document is required');
@@ -127,7 +148,8 @@
     switch (platform) {
       case 'chatgpt': result = extractChatGPT(doc); break;
       case 'claude':  result = extractClaude(doc);  break;
-      case 'gemini':  result = extractGemini(doc);  break;
+      case 'gemini':   result = extractGemini(doc);   break;
+      case 'copilot':  result = extractCopilot(doc);  break;
       default: throw new Error(`Unsupported platform: ${platform}`);
     }
     return {
