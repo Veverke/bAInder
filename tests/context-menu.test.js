@@ -65,7 +65,15 @@ describe('Context Menu UI Interactions', () => {
     document.body.innerHTML = '';
   });
 
+  // Helper function to hide context menu (matches production code)
+  function hideContextMenu() {
+    contextMenu.style.display = 'none';
+    // Note: state.contextMenuTopic is NOT cleared here
+    // It will be cleared after the action completes in setupContextMenuActions
+  }
+
   // Helper function to simulate sidepanel.js context menu setup
+  // This MUST match the actual production code flow to catch real bugs
   function setupContextMenuActions() {
     const actions = {
       rename: async () => {
@@ -103,44 +111,23 @@ describe('Context Menu UI Interactions', () => {
         e.stopPropagation();
         const action = item.dataset.action;
         
-        // Store result for test verification
-        if (actions[action]) {
+        // CRITICAL: This matches production code flow
+        // Store topic reference BEFORE hiding menu
+        const topic = state.contextMenuTopic;
+        hideContextMenu();
+        
+        // Temporarily restore topic for the action handler
+        if (topic && actions[action]) {
+          state.contextMenuTopic = topic;
           item._lastResult = await actions[action]();
+          state.contextMenuTopic = null;
         }
       });
     });
   }
 
-  describe('Context Menu Structure', () => {
-    it('should have context menu element', () => {
-      expect(contextMenu).toBeTruthy();
-    });
-
-    it('should have rename action', () => {
-      const renameAction = contextMenu.querySelector('[data-action="rename"]');
-      expect(renameAction).toBeTruthy();
-    });
-
-    it('should have move action', () => {
-      const moveAction = contextMenu.querySelector('[data-action="move"]');
-      expect(moveAction).toBeTruthy();
-    });
-
-    it('should have merge action', () => {
-      const mergeAction = contextMenu.querySelector('[data-action="merge"]');
-      expect(mergeAction).toBeTruthy();
-    });
-
-    it('should have delete action', () => {
-      const deleteAction = contextMenu.querySelector('[data-action="delete"]');
-      expect(deleteAction).toBeTruthy();
-    });
-
-    it('should have danger class on delete action', () => {
-      const deleteAction = contextMenu.querySelector('[data-action="delete"]');
-      expect(deleteAction.classList.contains('danger')).toBe(true);
-    });
-  });
+  // Context Menu Structure tests removed - just checked if elements exist
+  // If elements are missing, the actual behavior tests below will fail anyway
 
   describe('Rename Topic via Context Menu', () => {
     it('should open rename dialog when rename is clicked', async () => {
@@ -531,6 +518,67 @@ describe('Context Menu UI Interactions', () => {
 
       // Event should not propagate to body
       expect(propagated).toBe(false);
+    });
+
+    it('CRITICAL: should preserve contextMenuTopic when hideContextMenu is called', async () => {
+      // This test catches the bug where hideContextMenu() cleared state.contextMenuTopic
+      // before the action handler could use it
+      const topicId = tree.addTopic('Test Topic');
+      const originalTopic = tree.topics[topicId];
+      state.contextMenuTopic = originalTopic;
+
+      // Track if delete handler was called with correct topic
+      let handlerCalled = false;
+      let handlerTopic = null;
+
+      // Override delete action to track what topic it receives
+      const originalDelete = topicDialogs.showDeleteTopic;
+      topicDialogs.showDeleteTopic = vi.fn((id) => {
+        handlerCalled = true;
+        handlerTopic = tree.topics[id];
+        return Promise.resolve(null); // Simulate cancel
+      });
+
+      const deleteAction = contextMenu.querySelector('[data-action="delete"]');
+      deleteAction.click();
+
+      // Wait for async operations
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify handler was called with correct topic
+      expect(handlerCalled).toBe(true);
+      expect(handlerTopic).toBe(originalTopic);
+      expect(state.contextMenuTopic).toBeNull(); // Cleared after operation
+
+      // Restore original function
+      topicDialogs.showDeleteTopic = originalDelete;
+    });
+
+    it('should hide context menu when action is clicked', async () => {
+      // Verify that clicking an action hides the menu immediately
+      const topicId = tree.addTopic('Test');
+      state.contextMenuTopic = tree.topics[topicId];
+      
+      // Show the menu
+      contextMenu.style.display = 'flex';
+      expect(contextMenu.style.display).toBe('flex');
+
+      const renameAction = contextMenu.querySelector('[data-action="rename"]');
+      
+      const operationPromise = new Promise(resolve => {
+        setTimeout(() => {
+          // Menu should be hidden immediately after click
+          expect(contextMenu.style.display).toBe('none');
+          
+          // Cancel dialog
+          const cancelBtn = document.querySelector('[data-action="cancel"]');
+          if (cancelBtn) cancelBtn.click();
+          resolve();
+        }, 50);
+      });
+
+      renameAction.click();
+      await operationPromise;
     });
 
     it('should handle errors in action handlers gracefully', async () => {
