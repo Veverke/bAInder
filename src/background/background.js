@@ -1,5 +1,8 @@
 // bAInder Background Service Worker
 // Stage 1: Basic setup and lifecycle management
+// Stage 6: Enhanced SAVE_CHAT handler with validation and deduplication
+
+import { handleSaveChat as _handleSaveChat, detectSource } from './chat-save-handler.js';
 
 console.log('bAInder Background Service Worker initialized');
 
@@ -87,38 +90,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Handle saving a chat from content script
+// Delegates to the testable handler module, passing chrome.storage.local as storage
 async function handleSaveChat(chatData, sender) {
-  console.log('Saving chat:', chatData.title);
-  
-  try {
-    // Get existing chats
-    const result = await chrome.storage.local.get(['chats']);
-    const chats = result.chats || [];
-    
-    // Create new chat entry
-    const newChat = {
-      id: generateId(),
-      title: chatData.title,
-      content: chatData.content,
-      url: chatData.url || sender.tab?.url,
-      source: detectSource(sender.tab?.url),
-      timestamp: Date.now(),
-      topicId: null, // Will be assigned by user
-      metadata: chatData.metadata || {}
-    };
-    
-    // Add to chats array
-    chats.push(newChat);
-    
-    // Save back to storage
-    await chrome.storage.local.set({ chats });
-    
-    console.log('Chat saved successfully:', newChat.id);
-    return newChat;
-  } catch (error) {
-    console.error('Error saving chat:', error);
-    throw error;
-  }
+  return _handleSaveChat(chatData, sender, chrome.storage.local);
 }
 
 // Get storage usage
@@ -133,22 +107,6 @@ async function getStorageUsage() {
     console.error('Error getting storage usage:', error);
     throw error;
   }
-}
-
-// Generate unique ID
-function generateId() {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
-
-// Detect source from URL
-function detectSource(url) {
-  if (!url) return 'unknown';
-  
-  if (url.includes('chat.openai.com')) return 'chatgpt';
-  if (url.includes('claude.ai')) return 'claude';
-  if (url.includes('gemini.google.com')) return 'gemini';
-  
-  return 'unknown';
 }
 
 // Keep service worker alive (optional, for debugging)

@@ -582,3 +582,303 @@ describe('TopicDialogs', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Additional DialogManager edge-case coverage
+// ---------------------------------------------------------------------------
+
+describe('DialogManager – escapeHtml() edge cases', () => {
+  let container;
+  let dialog;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    dialog = new DialogManager(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it('should return empty string for undefined input', () => {
+    expect(dialog.escapeHtml(undefined)).toBe('');
+  });
+
+  it('should return empty string for null input', () => {
+    expect(dialog.escapeHtml(null)).toBe('');
+  });
+
+  it('should convert number to string', () => {
+    expect(dialog.escapeHtml(42)).toBe('42');
+  });
+});
+
+describe('DialogManager – close() with no active dialog', () => {
+  let container;
+  let dialog;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    dialog = new DialogManager(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it('should not throw when close() is called with no dialog open', () => {
+    expect(() => dialog.close()).not.toThrow();
+    expect(dialog.isOpen()).toBe(false);
+  });
+
+  it('should still hide container when close() is called with no dialog', () => {
+    container.style.display = 'flex';
+    dialog.close();
+    expect(container.style.display).toBe('none');
+  });
+});
+
+describe('DialogManager – form() additional field types', () => {
+  let container;
+  let dialog;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    dialog = new DialogManager(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it('should pre-fill textarea with field.value', async () => {
+    dialog.form([
+      { name: 'notes', label: 'Notes', type: 'textarea', value: 'pre-filled text' }
+    ], 'Test', 'OK');
+
+    const textarea = container.querySelector('[data-field="notes"]');
+    expect(textarea).toBeTruthy();
+    expect(textarea.value).toBe('pre-filled text');
+  });
+
+  it('should render textarea hint text', async () => {
+    dialog.form([
+      { name: 'notes', label: 'Notes', type: 'textarea', hint: 'Enter notes here' }
+    ], 'Test', 'OK');
+
+    expect(container.textContent).toContain('Enter notes here');
+  });
+
+  it('should pre-select option when field.value matches option value', async () => {
+    dialog.form([
+      {
+        name: 'color',
+        label: 'Color',
+        type: 'select',
+        value: 'blue',
+        options: [
+          { value: 'red', label: 'Red' },
+          { value: 'blue', label: 'Blue' },
+          { value: 'green', label: 'Green' }
+        ]
+      }
+    ], 'Test', 'OK');
+
+    const select = container.querySelector('[data-field="color"]');
+    expect(select).toBeTruthy();
+    expect(select.value).toBe('blue');
+  });
+
+  it('should render input hint text', async () => {
+    dialog.form([
+      { name: 'name', label: 'Name', type: 'text', hint: 'Enter your name' }
+    ], 'Test', 'OK');
+
+    expect(container.textContent).toContain('Enter your name');
+  });
+
+  it('should remove error class when user types in invalid input', async () => {
+    const promise = dialog.form([
+      { name: 'name', label: 'Name', type: 'text', required: true }
+    ], 'Test', 'OK');
+
+    const input = container.querySelector('[data-field="name"]');
+
+    // Submit with empty value → should add error class
+    const submitBtn = container.querySelector('[data-action="submit"]');
+    submitBtn.click();
+    expect(input.classList.contains('error')).toBe(true);
+
+    // Now type something → error class should be removed
+    input.value = 'Hello';
+    input.dispatchEvent(new Event('input'));
+    expect(input.classList.contains('error')).toBe(false);
+
+    // Clean up: cancel the dialog
+    const cancelBtn = container.querySelector('[data-action="cancel"]');
+    cancelBtn.click();
+    await promise;
+  });
+
+  it('should submit when Enter is pressed in a text input', async () => {
+    const promise = dialog.form([
+      { name: 'name', label: 'Name', type: 'text' }
+    ], 'Test', 'OK');
+
+    const input = container.querySelector('[data-field="name"]');
+    input.value = 'Test value';
+
+    const form = container.querySelector('[data-dialog-form]');
+    const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
+    Object.defineProperty(enterEvent, 'target', { value: input });
+    form.dispatchEvent(enterEvent);
+
+    const result = await promise;
+    expect(result).toBeTruthy();
+    expect(result.name).toBe('Test value');
+  });
+
+  it('should NOT submit when Enter is pressed in a textarea', async () => {
+    const promise = dialog.form([
+      { name: 'notes', label: 'Notes', type: 'textarea' },
+      { name: 'title', label: 'Title', type: 'text', required: true }
+    ], 'Test', 'OK');
+
+    const textarea = container.querySelector('[data-field="notes"]');
+    textarea.value = 'some notes';
+
+    const form = container.querySelector('[data-dialog-form]');
+    const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
+    Object.defineProperty(enterEvent, 'target', { value: textarea });
+    form.dispatchEvent(enterEvent);
+
+    // The dialog should still be open (title required, hasn't been submitted)
+    expect(dialog.isOpen()).toBe(true);
+
+    // Now cancel
+    const cancelBtn = container.querySelector('[data-action="cancel"]');
+    cancelBtn.click();
+    await promise;
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Branch-gap: DialogManager constructor without containerElement arg
+// ---------------------------------------------------------------------------
+
+describe('DialogManager – constructor fallback to getElementById', () => {
+  it('should use document.getElementById("modalContainer") when no arg is given', () => {
+    const el = document.createElement('div');
+    el.id = 'modalContainer';
+    document.body.appendChild(el);
+
+    const dm = new DialogManager(); // no arg → falls back to getElementById
+    expect(dm.container).toBe(el);
+
+    document.body.removeChild(el);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Branch-gap: prompt() – submit with empty value is a no-op
+// ---------------------------------------------------------------------------
+
+describe('DialogManager – prompt() empty-value submit is no-op', () => {
+  let container;
+  let dialog;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    dialog = new DialogManager(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it('should not resolve when empty value is submitted, but resolve after a real value', async () => {
+    const promise = dialog.prompt('Enter something', '', 'Input');
+
+    const input = container.querySelector('[data-input="value"]');
+    const submitBtn = container.querySelector('[data-action="submit"]');
+
+    // Submit with empty value → handleSubmit no-op (dialog stays open)
+    input.value = '';
+    submitBtn.click();
+    expect(dialog.isOpen()).toBe(true); // still open
+
+    // Now provide a real value
+    input.value = 'Hello';
+    submitBtn.click();
+
+    const result = await promise;
+    expect(result).toBe('Hello');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Branch-gap: form() select with plain string options (opt.value is undefined)
+// ---------------------------------------------------------------------------
+
+describe('DialogManager – form() plain string select options', () => {
+  let container;
+  let dialog;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    dialog = new DialogManager(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it('should render options when passed as plain strings', async () => {
+    const promise = dialog.form([
+      {
+        name: 'color',
+        label: 'Pick a color',
+        type: 'select',
+        // opts are plain strings – tests the `opt.value !== undefined ? opt.value : opt` false branch
+        options: ['Red', 'Green', 'Blue']
+      }
+    ], 'Test', 'OK');
+
+    const select = container.querySelector('[data-field="color"]');
+    expect(select).toBeTruthy();
+    expect(select.options.length).toBe(3);
+    // When opt is a plain string, value and label should both be the string
+    expect(select.options[0].value).toBe('Red');
+    expect(select.options[0].text.trim()).toBe('Red');
+
+    // Cancel to clean up
+    container.querySelector('[data-action="cancel"]').click();
+    await promise;
+  });
+
+  it('should render option as selected when opt.selected is true', async () => {
+    const promise = dialog.form([
+      {
+        name: 'color',
+        label: 'Pick a color',
+        type: 'select',
+        options: [
+          { value: 'red',   label: 'Red' },
+          { value: 'green', label: 'Green', selected: true },
+          { value: 'blue',  label: 'Blue' }
+        ]
+      }
+    ], 'Test', 'OK');
+
+    const select = container.querySelector('[data-field="color"]');
+    expect(select.value).toBe('green');
+
+    container.querySelector('[data-action="cancel"]').click();
+    await promise;
+  });
+});

@@ -3,7 +3,7 @@
  * Stage 3: Data Models & Tree Structure
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Topic, ChatEntry, TopicTree } from '../src/lib/tree.js';
 
 describe('Topic Model', () => {
@@ -693,5 +693,250 @@ describe('TopicTree', () => {
       expect(stats.rootTopics).toBe(2);
       expect(stats.maxDepth).toBe(2);
     });
+
+    it('should return zeroed statistics for empty tree', () => {
+      const stats = tree.getStatistics();
+
+      expect(stats.totalTopics).toBe(0);
+      expect(stats.totalChats).toBe(0);
+      expect(stats.rootTopics).toBe(0);
+      expect(stats.maxDepth).toBe(0);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Additional coverage: edge cases and error paths not covered above
+// ---------------------------------------------------------------------------
+
+describe('Topic – touch() updates updatedAt', () => {
+  it('should update updatedAt when touch() is called', () => {
+    const topic = new Topic('Test');
+    const fakeNow = topic.updatedAt + 5000;
+    vi.spyOn(Date, 'now').mockReturnValue(fakeNow);
+    topic.touch();
+    expect(topic.updatedAt).toBe(fakeNow);
+    vi.restoreAllMocks();
+  });
+});
+
+describe('Topic – getDateRangeString() partial dates', () => {
+  it('should return null when only firstChatDate is set (lastChatDate null)', () => {
+    const topic = new Topic('Test');
+    topic.firstChatDate = new Date('2024-03-01').getTime();
+    topic.lastChatDate = null;
+    expect(topic.getDateRangeString()).toBeNull();
+  });
+
+  it('should return null when only lastChatDate is set (firstChatDate null)', () => {
+    const topic = new Topic('Test');
+    topic.firstChatDate = null;
+    topic.lastChatDate = new Date('2024-03-01').getTime();
+    expect(topic.getDateRangeString()).toBeNull();
+  });
+
+  it('should return single month string when first and last are in same month', () => {
+    const topic = new Topic('Test');
+    const d1 = new Date('2024-06-05').getTime();
+    const d2 = new Date('2024-06-28').getTime();
+    topic.updateDateRange(d1);
+    topic.updateDateRange(d2);
+    const str = topic.getDateRangeString();
+    expect(str).toBe('Jun 2024');
+  });
+
+  it('should return range string when first and last are in different months', () => {
+    const topic = new Topic('Test');
+    const d1 = new Date('2024-01-10').getTime();
+    const d2 = new Date('2024-12-25').getTime();
+    topic.updateDateRange(d1);
+    topic.updateDateRange(d2);
+    const str = topic.getDateRangeString();
+    expect(str).toBe('Jan 2024 - Dec 2024');
+  });
+});
+
+describe('ChatEntry – validate() non-string values', () => {
+  it('should throw when title is a number', () => {
+    const chat = new ChatEntry(42, 'content', 'https://chat.openai.com', 'chatgpt');
+    expect(() => chat.validate()).toThrow('valid title');
+  });
+
+  it('should throw when title is null', () => {
+    const chat = new ChatEntry(null, 'content', 'https://chat.openai.com', 'chatgpt');
+    expect(() => chat.validate()).toThrow('valid title');
+  });
+
+  it('should throw when content is a number', () => {
+    const chat = new ChatEntry('Title', 999, 'https://chat.openai.com', 'chatgpt');
+    expect(() => chat.validate()).toThrow('valid content');
+  });
+
+  it('should throw when content is null', () => {
+    const chat = new ChatEntry('Title', null, 'https://chat.openai.com', 'chatgpt');
+    expect(() => chat.validate()).toThrow('valid content');
+  });
+
+  it('should throw when source is unknown', () => {
+    const chat = new ChatEntry('T', 'c', 'https://example.com', 'gpt4');
+    expect(() => chat.validate()).toThrow('valid source');
+  });
+
+  it('should pass validation with correct fields', () => {
+    const chat = new ChatEntry('Title', 'Content here', 'https://claude.ai', 'claude');
+    expect(chat.validate()).toBe(true);
+  });
+});
+
+describe('TopicTree – updateTopicDateRange() error path', () => {
+  let tree;
+  beforeEach(() => { tree = new TopicTree(); });
+
+  it('should throw when topicId does not exist', () => {
+    expect(() => tree.updateTopicDateRange('nonexistent', Date.now()))
+      .toThrow('does not exist');
+  });
+});
+
+describe('TopicTree – getChildren() for non-existent topic', () => {
+  let tree;
+  beforeEach(() => { tree = new TopicTree(); });
+
+  it('should return empty array for non-existent topicId', () => {
+    expect(tree.getChildren('nonexistent')).toEqual([]);
+  });
+});
+
+describe('TopicTree – mergeTopics() date range edge cases', () => {
+  let tree;
+  beforeEach(() => { tree = new TopicTree(); });
+
+  it('should throw when source topic does not exist', () => {
+    const targetId = tree.addTopic('Target');
+    expect(() => tree.mergeTopics('nonexistent', targetId))
+      .toThrow('Both source and target topics must exist');
+  });
+
+  it('should throw when target topic does not exist', () => {
+    const sourceId = tree.addTopic('Source');
+    expect(() => tree.mergeTopics(sourceId, 'nonexistent'))
+      .toThrow('Both source and target topics must exist');
+  });
+
+  it('should keep target dates when source has no dates', () => {
+    const sourceId = tree.addTopic('Source');
+    const targetId = tree.addTopic('Target');
+
+    const targetFirst = new Date('2024-01-01').getTime();
+    const targetLast  = new Date('2024-06-30').getTime();
+    tree.topics[targetId].firstChatDate = targetFirst;
+    tree.topics[targetId].lastChatDate  = targetLast;
+    // source has no dates
+
+    tree.mergeTopics(sourceId, targetId);
+
+    expect(tree.topics[targetId].firstChatDate).toBe(targetFirst);
+    expect(tree.topics[targetId].lastChatDate).toBe(targetLast);
+  });
+
+  it('should adopt source dates when target has no dates', () => {
+    const sourceId = tree.addTopic('Source');
+    const targetId = tree.addTopic('Target');
+
+    const srcFirst = new Date('2024-03-01').getTime();
+    const srcLast  = new Date('2024-09-01').getTime();
+    tree.topics[sourceId].firstChatDate = srcFirst;
+    tree.topics[sourceId].lastChatDate  = srcLast;
+    // target has no dates
+
+    tree.mergeTopics(sourceId, targetId);
+
+    expect(tree.topics[targetId].firstChatDate).toBe(srcFirst);
+    expect(tree.topics[targetId].lastChatDate).toBe(srcLast);
+  });
+});
+
+describe('TopicTree – repairTree() no duplicate root entry', () => {
+  let tree;
+  beforeEach(() => { tree = new TopicTree(); });
+
+  it('should not add orphan twice when it is already in rootTopicIds', () => {
+    const topicId = tree.addTopic('Already Root');
+    // Simulate corruption: entry in rootTopicIds but has a dangling parentId
+    tree.topics[topicId].parentId = 'ghost_parent';
+
+    const count = tree.repairTree();
+
+    expect(count).toBe(1);
+    // Should appear in rootTopicIds exactly once
+    const occurrences = tree.rootTopicIds.filter(id => id === topicId).length;
+    expect(occurrences).toBe(1);
+    expect(tree.topics[topicId].parentId).toBeNull();
+  });
+});
+
+describe('TopicTree – fromObject() minimal/missing fields', () => {
+  it('should handle empty object gracefully', () => {
+    const restored = TopicTree.fromObject({});
+    expect(restored.topics).toEqual({});
+    expect(restored.rootTopicIds).toEqual([]);
+    expect(restored.version).toBe(1);
+  });
+
+  it('should handle object with topics but no rootTopicIds', () => {
+    const restored = TopicTree.fromObject({
+      topics: {
+        't1': { id: 't1', name: 'X', parentId: null, children: [], chatIds: [],
+                createdAt: 0, updatedAt: 0, firstChatDate: null, lastChatDate: null }
+      }
+    });
+    expect(restored.rootTopicIds).toEqual([]);
+    expect(restored.topics['t1']).toBeDefined();
+  });
+});
+
+describe('TopicTree – sortChildren() when parent entry does not exist', () => {
+  let tree;
+  beforeEach(() => { tree = new TopicTree(); });
+
+  it('should not throw when parentId does not exist in topics', () => {
+    // sortChildren null (root) sorts rootTopicIds by name - should be safe
+    // also ensure calling with a missing id causes no crash
+    expect(() => tree.sortChildren('nonexistent')).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Branch-gap: getTopicDateRange with non-existent id
+// ---------------------------------------------------------------------------
+
+describe('TopicTree – getTopicDateRange() non-existent topic', () => {
+  it('should return null when topicId does not exist', () => {
+    const tree = new TopicTree();
+    expect(tree.getTopicDateRange('ghost-id')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Branch-gap: repairTree where orphan is NOT already in rootTopicIds
+// (covers the rootTopicIds.push(orphan.id) branch)
+// ---------------------------------------------------------------------------
+
+describe('TopicTree – repairTree() orphan NOT in rootTopicIds', () => {
+  it('should add orphan to rootTopicIds when it was a child of a deleted parent', () => {
+    const tree = new TopicTree();
+    const parentId = tree.addTopic('Parent');
+    const childId  = tree.addTopic('Child', parentId);
+
+    // Simulate the parent being deleted from storage but child remaining
+    delete tree.topics[parentId];
+    tree.rootTopicIds = tree.rootTopicIds.filter(id => id !== parentId);
+    // childId is now in tree.topics with parentId pointing to a ghost, NOT in rootTopicIds
+
+    const count = tree.repairTree();
+
+    expect(count).toBe(1);
+    expect(tree.rootTopicIds).toContain(childId);
+    expect(tree.topics[childId].parentId).toBeNull();
   });
 });

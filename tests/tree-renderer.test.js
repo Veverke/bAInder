@@ -581,3 +581,92 @@ describe('TreeRenderer', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Branch-gap tests for TreeRenderer
+// ---------------------------------------------------------------------------
+
+describe('TreeRenderer – collapseNode() when node is not expanded (no-op)', () => {
+  let renderer;
+
+  beforeEach(() => {
+    const container2 = document.createElement('div');
+    document.body.appendChild(container2);
+    const t = new TopicTree();
+    renderer = new TreeRenderer(container2, t);
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('should be a no-op when topicId is not in expandedNodes', () => {
+    // collapseNode on a node that was never expanded – the if branch is false
+    expect(() => renderer.collapseNode('non-expanded-id')).not.toThrow();
+    expect(renderer.expandedNodes.has('non-expanded-id')).toBe(false);
+  });
+
+  it('should collapse a node that is expanded', () => {
+    const t = new TopicTree();
+    const parentId = t.addTopic('Parent');
+    t.addTopic('Child', parentId);
+    const c = document.createElement('div');
+    document.body.appendChild(c);
+    const r = new TreeRenderer(c, t);
+    r.expandNode(parentId); // now expanded
+    expect(r.expandedNodes.has(parentId)).toBe(true);
+    r.collapseNode(parentId); // now collapse
+    expect(r.expandedNodes.has(parentId)).toBe(false);
+  });
+});
+
+describe('TreeRenderer – refreshNode() early-return branches', () => {
+  let container3;
+  let tree3;
+  let renderer3;
+
+  beforeEach(() => {
+    container3 = document.createElement('div');
+    document.body.appendChild(container3);
+    tree3 = new TopicTree();
+    renderer3 = new TreeRenderer(container3, tree3);
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('should be a no-op when topicId has no DOM node', () => {
+    // No nodes rendered yet, so querySelector returns null
+    expect(() => renderer3.refreshNode('ghost-id')).not.toThrow();
+  });
+
+  it('should be a no-op when tree is null', () => {
+    const topicId = tree3.addTopic('Test');
+    renderer3.render();
+    // Now set tree to null and call refreshNode
+    renderer3.tree = null;
+    expect(() => renderer3.refreshNode(topicId)).not.toThrow();
+  });
+
+  it('should be a no-op when topic no longer exists in tree', () => {
+    const topicId = tree3.addTopic('Test');
+    renderer3.render();
+    // Delete the topic from the tree but leave the DOM node
+    delete tree3.topics[topicId];
+    expect(() => renderer3.refreshNode(topicId)).not.toThrow();
+  });
+
+  it('should replace the DOM node when topic is valid', () => {
+    const topicId = tree3.addTopic('Test');
+    renderer3.render();
+    const beforeNode = container3.querySelector(`[data-topic-id="${topicId}"]`);
+    expect(beforeNode).toBeTruthy();
+    // Rename topic and refresh
+    tree3.topics[topicId].name = 'Updated';
+    renderer3.refreshNode(topicId);
+    const afterNode = container3.querySelector(`[data-topic-id="${topicId}"]`);
+    expect(afterNode).toBeTruthy();
+    expect(afterNode.textContent).toContain('Updated');
+  });
+});

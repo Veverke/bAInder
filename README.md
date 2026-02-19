@@ -289,6 +289,114 @@ All tree styles are in [src/sidepanel/sidepanel.css](src/sidepanel/sidepanel.css
 - `.search-match` - Search highlighting
 - `.selected` - Selected node style
 
+## Stage 6: Content Script - Chat Detection ✅
+
+Full chat extraction from ChatGPT, Claude, and Gemini with a floating "Save to bAInder" button!
+
+### What's Included
+
+- ✅ **`src/content/chat-extractor.js`** - ES module with all pure extraction logic (fully testable)
+- ✅ **`src/content/content.js`** - Full Chrome content script (IIFE, inlines extractor logic)
+- ✅ **`src/background/chat-save-handler.js`** - ES module with background save/validation logic
+- ✅ **Updated background.js** - Imports handler, strict validation, deduplication
+- ✅ **Updated manifest.json** - Service worker set to `"type": "module"` for ES import support
+
+### Chat Extraction
+
+**Platform Detection:**
+- `detectPlatform(hostname)` → `'chatgpt' | 'claude' | 'gemini' | null`
+- Auto-detects on page load and re-detects on SPA navigation
+
+**Site-Specific Extractors:**
+- **ChatGPT** - `article[data-testid^="conversation-turn"]` with `[data-message-author-role]`
+- **Claude** - `[data-testid="human-turn"]` / `[data-testid="ai-turn"]` with class fallbacks
+- **Gemini** - `.user-query-content` / `.model-response-text` with class fallbacks
+- All extractors order messages by DOM position (correct for SPAs)
+- Multiple fallback selectors per platform for DOM version resilience
+
+**Content Sanitisation:**
+- Strips HTML tags, decodes entities (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&#39;`, `&nbsp;`)
+- Normalises whitespace
+
+**Title Generation (priority):**
+1. First user message (truncated to 80 chars)
+2. URL path segment (e.g. conversation ID)
+3. "Untitled Chat" fallback
+
+### "Save to bAInder" Button
+
+- Floating button injected into every supported AI chat page
+- CSP-safe: no inline event handlers, styles applied via JS
+- Visual feedback states: loading ⏳ → success ✅ / error ❌ / empty ⚠️
+- Auto-resets to default after 2.5 seconds
+- Removed and re-injected on SPA URL changes (MutationObserver + history API hooks)
+
+### SPA Navigation Handling
+
+- `MutationObserver` on `document.body` detects DOM changes
+- `history.pushState` / `history.replaceState` are wrapped to catch programmatic navigation
+- `popstate` event catches browser back/forward
+- Button re-injected on every URL change
+
+### Background Save Handler
+
+- **Validation** - title (required, non-empty), content (required, non-empty), source (must be chatgpt/claude/gemini)
+- **Deduplication** - skips re-save if same URL saved within 5 seconds
+- **Entry structure** - id, title, content, url, source, timestamp, topicId (null until Stage 7), messageCount, messages, metadata
+
+### Message Protocol (Content Script ↔ Background)
+
+| Type | Direction | Purpose |
+|------|-----------|---------|
+| `SAVE_CHAT` | Content → Background | Save extracted chat |
+| `EXTRACT_CHAT` | Background → Content | Trigger chat extraction |
+| `GET_PLATFORM` | Background → Content | Query current platform |
+| `PING` | Background → Content | Health check |
+
+### Testing Stage 6
+
+```bash
+# Run only Stage 6 tests
+npm test -- chat-extractor
+npm test -- chat-save-handler
+
+# Run all tests
+npm run test:run
+```
+
+**Total Test Count: 363 tests passing** across 10 test files:
+- 68 tree tests
+- 40 dialog tests
+- 28 storage tests
+- 18 integration tests
+- 48 tree-renderer tests
+- 8 sidepanel UI tests
+- 7 theme tests
+- 21 context menu tests
+- **80 chat-extractor tests** (Stage 6 - platform detection, extraction, sanitisation, pipeline)
+- **45 chat-save-handler tests** (Stage 6 - validation, deduplication, ID generation, save flow)
+
+**Stage 6 Test Coverage:**
+- ✅ `detectPlatform()` - all platforms, edge cases, null/undefined/case-insensitive
+- ✅ `sanitizeContent()` - HTML stripping, entity decoding, whitespace normalisation
+- ✅ `getTextContent()` - DOM element extraction
+- ✅ `formatMessage()` - role/content normalisation
+- ✅ `generateTitle()` - user message, URL fallback, truncation, edge cases
+- ✅ `extractChatGPT()` - single/multi message, fallback selectors, role mapping
+- ✅ `extractClaude()` - data-testid and class fallbacks
+- ✅ `extractGemini()` - all class variants
+- ✅ `extractChat()` - dispatch, error handling, platform validation
+- ✅ `prepareChatForSave()` - content formatting, metadata, empty conversations
+- ✅ `detectSource()` - all platforms, unknown, null/empty
+- ✅ `generateChatId()` - uniqueness (100 IDs), timestamp component
+- ✅ `validateChatData()` - all invalid combinations, all valid sources
+- ✅ `findDuplicate()` - time window, URL matching, edge cases
+- ✅ `buildChatEntry()` - field mapping, source inference, deduplication
+- ✅ `handleSaveChat()` - save flow, dedup, validation errors, empty storage
+- ✅ End-to-end pipeline: extract → prepare → save for all 3 platforms
+
+---
+
 ## Stage 5: Topic Management UI ✅
 
 Complete topic management with modal dialogs for all CRUD operations!
@@ -400,7 +508,7 @@ Run all tests:
 npm run test:run
 ```
 
-**Total Test Count: 238 tests passing** across 8 test files:
+**Total Test Count: 363 tests passing** across 10 test files:
 - 68 tree tests (including duplicate name prevention)
 - 40 dialog tests
 - 28 storage tests
@@ -409,6 +517,8 @@ npm run test:run
 - 8 sidepanel UI tests (CSP compliance, duplicate IDs, console errors, accessibility)
 - 7 theme tests
 - 21 context menu tests (all right-click operations with REAL event flow)
+- 80 chat-extractor tests (Stage 6 - all 3 platforms, full pipeline)
+- 45 chat-save-handler tests (Stage 6 - validation, dedup, save flow)
 
 **Test Quality Standards:**
 - ✅ All tests verify REAL behavior (not just "element exists")
@@ -651,9 +761,11 @@ bAInder/
 │   └── icons/                       # Extension icons (16, 32, 48, 128)
 ├── src/                             # Source code
 │   ├── background/                  # Background service worker
-│   │   └── background.js
+│   │   ├── background.js             # Service worker entry (ES module)
+│   │   └── chat-save-handler.js      # Testable save/validation logic (Stage 6)
 │   ├── content/                     # Content scripts
-│   │   └── content.js
+│   │   ├── content.js                # Chrome content script (IIFE, all platforms)
+│   │   └── chat-extractor.js         # ES module - extraction logic (Stage 6)
 │   ├── sidepanel/                   # Side panel UI
 │   │   ├── sidepanel.html
 │   │   ├── sidepanel.js
@@ -671,11 +783,10 @@ bAInder/
 
 ## Next Steps
 
-Stages 1-5 Complete! ✅
+Stages 1-6 Complete! ✅
 
 Ready to proceed with:
 
-- **Stage 6:** Content Script - Chat Detection
 - **Stage 7:** Chat Assignment UI
 - **Stage 8:** Search Functionality
 - **Stage 9:** Export & Import
@@ -717,7 +828,7 @@ This is currently in active development following the stage-by-stage approach ou
 
 ## Version
 
-**Current Stage:** Stages 1-5 Complete ✅  
+**Current Stage:** Stages 1-6 Complete ✅  
 **Version:** 1.0.0  
-**Last Updated:** February 18, 2026  
-**Tests Passing:** 192/192
+**Last Updated:** February 19, 2026  
+**Tests Passing:** 363/363

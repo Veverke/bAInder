@@ -418,4 +418,228 @@ describe('StorageUsageTracker', () => {
     const stats = await brokenTracker.getStatistics();
     expect(stats).toBeNull();
   });
+
+  it('should return true when exactly at quota threshold', async () => {
+    // percentUsed == threshold should be considered "approaching"
+    const fixedStorage = {
+      getStorageUsage: () => Promise.resolve({
+        bytesUsed: 8 * 1024 * 1024,   // 8 MB
+        bytesQuota: 10 * 1024 * 1024, // 10 MB  → 80 %
+        percentUsed: 80
+      })
+    };
+    const tracker2 = new StorageUsageTracker(fixedStorage);
+    const approaching = await tracker2.isApproachingQuota(80);
+    expect(approaching).toBe(true);
+  });
+
+  it('should return false when just below quota threshold', async () => {
+    const fixedStorage = {
+      getStorageUsage: () => Promise.resolve({
+        bytesUsed: 7.9 * 1024 * 1024,
+        bytesQuota: 10 * 1024 * 1024,
+        percentUsed: 79
+      })
+    };
+    const tracker2 = new StorageUsageTracker(fixedStorage);
+    const approaching = await tracker2.isApproachingQuota(80);
+    expect(approaching).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ChromeStorageAdapter – deleteTopic (entirely untested previously)
+// ---------------------------------------------------------------------------
+
+describe('ChromeStorageAdapter – deleteTopic', () => {
+  let storage;
+
+  beforeEach(() => {
+    storage = new ChromeStorageAdapter();
+    clearStorageMock();
+  });
+
+  afterEach(() => {
+    clearStorageMock();
+  });
+
+  it('should return false when topicId does not exist', async () => {
+    const tree = { topics: {}, rootTopicIds: [], version: 1 };
+    setStorageMockData({ topicTree: tree });
+
+    const result = await storage.deleteTopic('nonexistent');
+
+    expect(result).toBe(false);
+  });
+
+  it('should delete a root-level topic (deleteChats=false)', async () => {
+    const tree = {
+      topics: {
+        'topic-root': {
+          id: 'topic-root', name: 'Root', parentId: null,
+          children: [], chatIds: ['c1'], createdAt: 0, updatedAt: 0,
+          firstChatDate: null, lastChatDate: null
+        }
+      },
+      rootTopicIds: ['topic-root'],
+      version: 1
+    };
+    setStorageMockData({ topicTree: tree });
+
+    const result = await storage.deleteTopic('topic-root', false);
+
+    expect(result).toBe(true);
+
+    // Verify saveTopicTree was called and the topic is removed
+    const savedTree = global.chrome.storage.local.set.mock.calls
+      .flatMap(c => Object.values(c[0]))
+      .find(v => v && v.topics !== undefined);
+
+    expect(savedTree.topics['topic-root']).toBeUndefined();
+    // Root-level: topic removed from rootTopicIds
+    expect(savedTree.rootTopicIds).not.toContain('topic-root');
+  });
+
+  it('should not delete chats when deleteChats=false', async () => {
+    const tree = {
+      topics: {
+        't1': { id: 't1', name: 'T1', parentId: null, children: [], chatIds: ['c1'],
+                createdAt: 0, updatedAt: 0, firstChatDate: null, lastChatDate: null }
+      },
+      rootTopicIds: ['t1'],
+      version: 1
+    };
+    const chats = { 'c1': { id: 'c1', topicId: 't1', title: 'Chat 1' } };
+    setStorageMockData({ topicTree: tree, chats });
+
+    await storage.deleteTopic('t1', false);
+
+    // chrome.storage.local.set should NOT have been called with a chats object
+    // that has had c1 removed (deleteChats=false means chats untouched for the bulk-delete path)
+    const chatSetCalls = global.chrome.storage.local.set.mock.calls
+      .filter(call => call[0] && call[0].chats !== undefined);
+
+    // No chats-clearing call should have happened (only tree saved, not chats)
+    expect(chatSetCalls.length).toBe(0);
+  });
+
+  it('should delete associated chats when deleteChats=true', async () => {
+    const tree = {
+      topics: {
+        't1': { id: 't1', name: 'T1', parentId: null, children: [], chatIds: ['c1', 'c2'],
+                createdAt: 0, updatedAt: 0, firstChatDate: null, lastChatDate: null }
+      },
+      rootTopicIds: ['t1'],
+      version: 1
+    };
+    const chats = {
+      'c1': { id: 'c1', topicId: 't1', title: 'Chat 1' },
+      'c2': { id: 'c2', topicId: 't1', title: 'Chat 2' },
+      'c3': { id: 'c3', topicId: 'other', title: 'Other chat' }
+    };
+    setStorageMockData({ topicTree: tree, chats });
+
+    const result = await storage.deleteTopic('t1', true);
+
+    expect(result).toBe(true);
+
+    // Find the chats set call
+    const chatSetCall = global.chrome.storage.local.set.mock.calls
+      .find(call => call[0] && call[0].chats !== undefined);
+
+    expect(chatSetCall).toBeTruthy();
+    const savedChats = chatSetCall[0].chats;
+
+    // Chats belonging to 't1' should be gone
+    expect(savedChats['c1']).toBeUndefined();
+    expect(savedChats['c2']).toBeUndefined();
+    // Chats belonging to another topic should remain
+    expect(savedChats['c3']).toBeDefined();
+  });
+
+  it('should remove topic from root when no chats to delete', async () => {
+    const tree = {
+      topics: {
+        'r1': { id: 'r1', name: 'Root', parentId: null, children: [], chatIds: [],
+                createdAt: 0, updatedAt: 0, firstChatDate: null, lastChatDate: null }
+      },
+      rootTopicIds: ['r1', 'other-root'],
+      version: 1
+    };
+    setStorageMockData({ topicTree: tree });
+
+    await storage.deleteTopic('r1');
+
+    const savedTree = global.chrome.storage.local.set.mock.calls
+      .flatMap(c => Object.values(c[0]))
+      .find(v => v && v.topics !== undefined);
+
+    expect(savedTree.rootTopicIds).toEqual(['other-root']);
+    expect(savedTree.topics['r1']).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ChromeStorageAdapter – error propagation paths
+// ---------------------------------------------------------------------------
+
+describe('ChromeStorageAdapter – error propagation', () => {
+  let storage;
+
+  beforeEach(() => {
+    storage = new ChromeStorageAdapter();
+  });
+
+  it('should throw wrapped error when loadTopicTree fails', async () => {
+    global.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      throw new Error('storage gone');
+    });
+
+    await expect(storage.loadTopicTree()).rejects.toThrow('Failed to load topic tree');
+  });
+
+  it('should throw wrapped error when saveTopicTree fails', async () => {
+    global.chrome.storage.local.set.mockImplementation((items, callback) => {
+      throw new Error('quota exceeded');
+    });
+
+    await expect(storage.saveTopicTree({ topics: {}, rootTopicIds: [], version: 1 }))
+      .rejects.toThrow('Failed to save topic tree');
+  });
+
+  it('should throw wrapped error when saveChat fails on set', async () => {
+    clearStorageMock();
+    global.chrome.storage.local.set.mockImplementation((items, callback) => {
+      throw new Error('write error');
+    });
+
+    await expect(storage.saveChat('topic1', {
+      title: 'T', content: 'C', url: 'https://chatgpt.com', source: 'chatgpt'
+    })).rejects.toThrow('Failed to save chat');
+  });
+
+  it('should throw wrapped error when getStorageUsage fails', async () => {
+    global.chrome.storage.local.getBytesInUse.mockImplementation(() => {
+      throw new Error('Permission denied');
+    });
+
+    await expect(storage.getStorageUsage()).rejects.toThrow('Failed to get storage usage');
+  });
+
+  it('should throw wrapped error when clearAll fails', async () => {
+    global.chrome.storage.local.clear.mockImplementation(() => {
+      throw new Error('Permission denied');
+    });
+
+    await expect(storage.clearAll()).rejects.toThrow('Failed to clear storage');
+  });
+
+  it('should handle _updateMetadata error gracefully (no rethrow)', async () => {
+    // _updateMetadata catches its own error and logs it without rethrowing
+    global.chrome.storage.local.set.mockImplementation(() => {
+      throw new Error('metadata write failed');
+    });
+    // Should NOT throw
+    await expect(storage._updateMetadata()).resolves.toBeUndefined();
+  });
 });

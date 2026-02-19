@@ -542,3 +542,232 @@ describe('Sidepanel Integration - Dialog Workflows with Storage', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// TopicDialogs – error path coverage (topic-not-found, no-valid-target, etc.)
+// ---------------------------------------------------------------------------
+
+describe('TopicDialogs – error paths', () => {
+  let container;
+  let dialog;
+  let tree;
+  let topicDialogs;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    container.id = 'modalContainer';
+    document.body.appendChild(container);
+    dialog = new DialogManager(container);
+    tree = new TopicTree();
+    topicDialogs = new TopicDialogs(dialog, tree);
+    StorageService.resetInstance();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    StorageService.resetInstance();
+  });
+
+  // ---- showRenameTopic ----
+
+  it('showRenameTopic: should alert and return null for non-existent topicId', async () => {
+    const promise = topicDialogs.showRenameTopic('ghost-id');
+
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    const modal = container.querySelector('.modal');
+    expect(modal).toBeTruthy();
+    expect(modal.textContent).toContain('Topic not found');
+
+    container.querySelector('[data-action="ok"]').click();
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  it('showRenameTopic: should return null when same name is submitted', async () => {
+    const topicId = tree.addTopic('Same Name');
+
+    const promise = topicDialogs.showRenameTopic(topicId);
+
+    const nameInput = container.querySelector('[data-field="name"]');
+    // keep the pre-filled value (Same Name) unchanged
+    expect(nameInput.value).toBe('Same Name');
+
+    container.querySelector('[data-action="submit"]').click();
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  // ---- showMoveTopic ----
+
+  it('showMoveTopic: should alert and return null for non-existent topicId', async () => {
+    const promise = topicDialogs.showMoveTopic('ghost-id');
+
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    const modal = container.querySelector('.modal');
+    expect(modal).toBeTruthy();
+    expect(modal.textContent).toContain('Topic not found');
+
+    container.querySelector('[data-action="ok"]').click();
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  it('showMoveTopic: should show "Cannot Move" alert when no other locations exist', async () => {
+    // Single topic with no other topics in the tree
+    const onlyTopicId = tree.addTopic('Lonely');
+
+    const promise = topicDialogs.showMoveTopic(onlyTopicId);
+
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    const modal = container.querySelector('.modal');
+    expect(modal).toBeTruthy();
+    expect(modal.textContent).toContain('No other locations');
+
+    container.querySelector('[data-action="ok"]').click();
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  it('showMoveTopic: should return null when same parent is selected', async () => {
+    const parentId = tree.addTopic('Parent');
+    const childId  = tree.addTopic('Child', parentId);
+    // Add another topic so the form is shown (not "no locations" alert)
+    tree.addTopic('Sibling', parentId);
+
+    const promise = topicDialogs.showMoveTopic(childId);
+
+    // Select the same parent (current parentId = parentId)
+    const select = container.querySelector('[data-field="newParentId"]');
+    select.value = parentId;
+    container.querySelector('[data-action="submit"]').click();
+
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  // ---- showDeleteTopic ----
+
+  it('showDeleteTopic: should alert and return null for non-existent topicId', async () => {
+    const promise = topicDialogs.showDeleteTopic('ghost-id');
+
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    const modal = container.querySelector('.modal');
+    expect(modal).toBeTruthy();
+    expect(modal.textContent).toContain('Topic not found');
+
+    container.querySelector('[data-action="ok"]').click();
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  it('showDeleteTopic: should include child/chat counts in confirmation message', async () => {
+    const parentId = tree.addTopic('Parent With Data');
+    tree.addTopic('Child A', parentId);
+    tree.addTopic('Child B', parentId);
+    tree.topics[parentId].chatIds = ['c1', 'c2', 'c3'];
+
+    const promise = topicDialogs.showDeleteTopic(parentId);
+
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    const modal = container.querySelector('.modal');
+    expect(modal).toBeTruthy();
+    // Should mention both children and chats
+    expect(modal.textContent).toContain('2 child topics');
+    expect(modal.textContent).toContain('3 chats');
+
+    // Cancel to resolve the promise
+    container.querySelector('[data-action="cancel"]').click();
+    await promise;
+  });
+
+  // ---- showMergeTopic ----
+
+  it('showMergeTopic: should alert and return null for non-existent source topicId', async () => {
+    const promise = topicDialogs.showMergeTopic('ghost-id');
+
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    const modal = container.querySelector('.modal');
+    expect(modal).toBeTruthy();
+    expect(modal.textContent).toContain('Topic not found');
+
+    container.querySelector('[data-action="ok"]').click();
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  it('showMergeTopic: should alert "Cannot Merge" when no other targets exist', async () => {
+    // Only one root topic – nothing to merge into
+    const onlyTopicId = tree.addTopic('Lonely');
+
+    const promise = topicDialogs.showMergeTopic(onlyTopicId);
+
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    const modal = container.querySelector('.modal');
+    expect(modal).toBeTruthy();
+    expect(modal.textContent).toContain('No other topics');
+
+    container.querySelector('[data-action="ok"]').click();
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  it('showMergeTopic: should return null when user cancels the confirmation dialog', async () => {
+    const sourceId = tree.addTopic('Source');
+    const targetId = tree.addTopic('Target');
+
+    const promise = topicDialogs.showMergeTopic(sourceId);
+
+    // Select target
+    const targetSelect = container.querySelector('[data-field="targetTopicId"]');
+    targetSelect.value = targetId;
+    container.querySelector('[data-action="submit"]').click();
+
+    // Wait for confirmation dialog to appear
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // User cancels the confirmation
+    const cancelBtn = container.querySelector('[data-action="cancel"]');
+    expect(cancelBtn).toBeTruthy();
+    cancelBtn.click();
+
+    const result = await promise;
+    expect(result).toBeNull();
+
+    // Source topic should still exist
+    expect(tree.topics[sourceId]).toBeTruthy();
+  });
+
+  // ---- showAddTopic: unexpected tree error ----
+
+  it('showAddTopic: should show error alert when addTopic throws', async () => {
+    // Force addTopic to throw
+    vi.spyOn(tree, 'addTopic').mockImplementation(() => {
+      throw new Error('Tree is full');
+    });
+
+    const promise = topicDialogs.showAddTopic();
+
+    const nameInput = container.querySelector('[data-field="name"]');
+    nameInput.value = 'Something';
+    container.querySelector('[data-action="submit"]').click();
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    const modal = container.querySelector('.modal');
+    expect(modal).toBeTruthy();
+    expect(modal.textContent).toContain('Tree is full');
+
+    container.querySelector('[data-action="ok"]').click();
+    const result = await promise;
+    expect(result).toBeNull();
+
+    vi.restoreAllMocks();
+  });
+});
