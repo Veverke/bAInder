@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Context Menu Debug</title>
+  <link rel="stylesheet" href="../src/sidepanel/sidepanel.css">
+  <style>
+    body {
+      padding: 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    
+    .debug-info {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      border-left: 3px solid #007acc;
+    }
+    
+    .test-topic {
+      padding: 10px;
+      margin: 10px 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: context-menu;
+    }
+    
+    .test-topic:hover {
+      background: #f0f0f0;
+    }
+    
+    .log {
+      margin-top: 20px;
+      padding: 10px;
+      background: #2d2d2d;
+      color: #d4d4d4;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .log-entry {
+      padding: 2px 0;
+    }
+    
+    .log-entry.error {
+      color: #f48771;
+    }
+    
+    .log-entry.success {
+      color: #89d185;
+    }
+  </style>
+</head>
+<body>
+  <h1>Context Menu Debug Tool</h1>
+  
+  <div class="debug-info">
+    <h3>Instructions:</h3>
+    <ol>
+      <li>Right-click on any test topic below</li>
+      <li>Context menu should appear at cursor position</li>
+      <li>Click any menu item (Rename, Move, Delete, Merge)</li>
+      <li>Check the log below for events and errors</li>
+    </ol>
+  </div>
+
+  <h3>Test Topics (Right-click these):</h3>
+  <div class="test-topic" data-topic-id="1">
+    📁 Work Projects
+  </div>
+  <div class="test-topic" data-topic-id="2">
+    📁 Personal Stuff
+  </div>
+  <div class="test-topic" data-topic-id="3">
+    📁 Research
+  </div>
+
+  <!-- Context Menu (from sidepanel.html) -->
+  <div id="contextMenu" class="context-menu" style="display:none;">
+    <div class="context-menu-header">Topic Menu</div>
+    <div class="context-menu-item" data-action="rename">
+      <span>Rename</span>
+    </div>
+    <div class="context-menu-item" data-action="move">
+      <span>Move to...</span>
+    </div>
+    <div class="context-menu-item" data-action="merge">
+      <span>Merge with...</span>
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item danger" data-action="delete">
+      <span>Delete</span>
+    </div>
+  </div>
+
+  <h3>Event Log:</h3>
+  <div class="log" id="log"></div>
+
+  <script>
+    // Logging utility
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(message);
+    }
+
+    // Context menu state
+    let contextMenuTopic = null;
+    const contextMenu = document.getElementById('contextMenu');
+
+    // Show context menu
+    function showContextMenu(x, y) {
+      contextMenu.style.display = 'flex';
+      contextMenu.style.left = x + 'px';
+      contextMenu.style.top = y + 'px';
+      log('Context menu shown at (' + x + ', ' + y + ')', 'success');
+    }
+
+    // Hide context menu
+    function hideContextMenu() {
+      contextMenu.style.display = 'none';
+      log('Context menu hidden');
+    }
+
+    // Handle context menu on topics
+    document.querySelectorAll('.test-topic').forEach(topic => {
+      topic.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        contextMenuTopic = {
+          id: topic.dataset.topicId,
+          name: topic.textContent.trim()
+        };
+        log('Right-clicked topic: ' + contextMenuTopic.name, 'success');
+        showContextMenu(e.clientX, e.clientY);
+      });
+    });
+
+    // Setup context menu actions
+    const actions = {
+      rename: () => {
+        if (!contextMenuTopic) return;
+        log('RENAME action clicked for: ' + contextMenuTopic.name, 'success');
+        alert('Rename dialog would open here for: ' + contextMenuTopic.name);
+      },
+      move: () => {
+        if (!contextMenuTopic) return;
+        log('MOVE action clicked for: ' + contextMenuTopic.name, 'success');
+        alert('Move dialog would open here for: ' + contextMenuTopic.name);
+      },
+      merge: () => {
+        if (!contextMenuTopic) return;
+        log('MERGE action clicked for: ' + contextMenuTopic.name, 'success');
+        alert('Merge dialog would open here for: ' + contextMenuTopic.name);
+      },
+      delete: () => {
+        if (!contextMenuTopic) return;
+        log('DELETE action clicked for: ' + contextMenuTopic.name, 'success');
+        const confirmed = confirm('Delete topic: ' + contextMenuTopic.name + '?');
+        if (confirmed) {
+          log('User confirmed deletion', 'success');
+        } else {
+          log('User cancelled deletion');
+        }
+      }
+    };
+
+    // Attach click listeners to context menu items
+    contextMenu.querySelectorAll('[data-action]').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = item.dataset.action;
+        log('Context menu item clicked: ' + action);
+        
+        hideContextMenu();
+        
+        if (actions[action]) {
+          try {
+            actions[action]();
+          } catch (error) {
+            log('ERROR executing action: ' + error.message, 'error');
+          }
+        } else {
+          log('WARNING: No handler for action: ' + action, 'error');
+        }
+      });
+    });
+
+    // Click outside to close
+    document.addEventListener('click', (e) => {
+      if (!contextMenu.contains(e.target)) {
+        if (contextMenu.style.display === 'flex') {
+          hideContextMenu();
+        }
+      }
+    });
+
+    // Initial log
+    log('Debug page loaded. Right-click a topic to test context menu.');
+    log('Event listeners attached: ' + contextMenu.querySelectorAll('[data-action]').length + ' actions');
+  </script>
+</body>
+</html>

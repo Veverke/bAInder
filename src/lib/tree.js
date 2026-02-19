@@ -221,6 +221,20 @@ export class TopicTree {
   }
 
   /**
+   * Check if a topic name already exists at the same level
+   */
+  hasDuplicateName(name, parentId, excludeTopicId = null) {
+    const trimmedName = name.trim().toLowerCase();
+    const siblings = parentId ? this.topics[parentId].children : this.rootTopicIds;
+    
+    return siblings.some(topicId => {
+      if (topicId === excludeTopicId) return false;
+      const topic = this.topics[topicId];
+      return topic && topic.name.toLowerCase() === trimmedName;
+    });
+  }
+
+  /**
    * Add a new topic to the tree
    */
   addTopic(name, parentId = null) {
@@ -232,6 +246,11 @@ export class TopicTree {
     // Validate parent exists if specified
     if (parentId && !this.topics[parentId]) {
       throw new Error(`Parent topic ${parentId} does not exist`);
+    }
+
+    // Check for duplicate name at same level
+    if (this.hasDuplicateName(name, parentId)) {
+      throw new Error(`A topic named "${name.trim()}" already exists at this level`);
     }
 
     // Create new topic
@@ -342,6 +361,11 @@ export class TopicTree {
 
     if (!newName || typeof newName !== 'string' || newName.trim().length === 0) {
       throw new Error('Topic name must be a non-empty string');
+    }
+
+    // Check for duplicate name at same level (excluding this topic)
+    if (this.hasDuplicateName(newName, topic.parentId, topicId)) {
+      throw new Error(`A topic named "${newName.trim()}" already exists at this level`);
     }
 
     topic.name = newName.trim();

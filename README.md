@@ -390,12 +390,38 @@ Run the dialog tests:
 npm test tests/dialogs.test.js
 ```
 
+Run the context menu tests:
+```bash
+npm test -- context-menu
+```
+
 Run all tests:
 ```bash
 npm run test:run
 ```
 
-All 192 tests should pass (152 from Stages 1-4 + 40 from Stage 5).
+**Total Test Count: 290 tests passing** across 9 test files:
+- 10 example tests
+- 68 tree tests (including duplicate name prevention)
+- 40 dialog tests
+- 28 storage tests
+- 15 integration tests (full dialog workflows with storage)
+- 48 tree-renderer tests
+- 58 sidepanel UI tests (all button clicks and UI interactions)
+- 7 theme tests
+- 25 context menu tests (rename, move, delete, merge via right-click)
+
+**Comprehensive UI Testing:**
+All UI interactions are tested including:
+- ✅ Button clicks and event handlers
+- ✅ Dialog workflows (add, rename, move, delete, merge)
+- ✅ Context menu actions (right-click operations)
+- ✅ Storage integration and persistence
+- ✅ Duplicate name prevention
+- ✅ CSP compliance (no inline event handlers)
+- ✅ Console error detection
+
+See [docs/context-menu-testing.md](docs/context-menu-testing.md) for detailed context menu testing documentation.
 
 ### Testing in Browser
 

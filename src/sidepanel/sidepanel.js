@@ -147,6 +147,7 @@ function setupEventListeners() {
   document.addEventListener('click', (e) => {
     if (!elements.contextMenu.contains(e.target)) {
       hideContextMenu();
+      state.contextMenuTopic = null; // Clear topic when clicking outside
     }
   });
   
@@ -169,7 +170,7 @@ async function loadData() {
 // Load tree from storage
 async function loadTree() {
   try {
-    const treeData = await state.storage.loadTree();
+    const treeData = await state.storage.loadTopicTree();
     state.tree = TopicTree.fromObject(treeData);
     console.log(`Loaded tree with ${state.tree.getAllTopics().length} topics`);
   } catch (error) {
@@ -182,7 +183,7 @@ async function loadTree() {
 // Save tree to storage
 async function saveTree() {
   try {
-    await state.storage.saveTree(state.tree.toObject());
+    await state.storage.saveTopicTree(state.tree.toObject());
     console.log('Tree saved successfully');
     await updateStorageUsage();
   } catch (error) {
@@ -312,6 +313,7 @@ async function handleAddTopic() {
 // Handle topic context menu
 async function handleTopicContextMenu(topic, event) {
   state.contextMenuTopic = topic;
+  console.log('Context menu opened for topic:', topic.name);
   showContextMenu(event.clientX, event.clientY);
 }
 
@@ -328,10 +330,21 @@ function setupContextMenuActions() {
     item.addEventListener('click', async (e) => {
       e.stopPropagation();
       const action = item.dataset.action;
+      
+      // Store topic reference before hiding menu (which clears state.contextMenuTopic)
+      const topic = state.contextMenuTopic;
+      console.log('Context menu action clicked:', action, 'for topic:', topic?.name);
       hideContextMenu();
       
-      if (actions[action]) {
+      // Temporarily restore topic for the action handler
+      if (topic && actions[action]) {
+        state.contextMenuTopic = topic;
         await actions[action]();
+        state.contextMenuTopic = null;
+      } else if (!topic) {
+        console.warn('No topic selected for action:', action);
+      } else if (!actions[action]) {
+        console.warn('Unknown action:', action);
       }
     });
   });
@@ -436,7 +449,8 @@ function showContextMenu(x, y) {
 // Hide context menu
 function hideContextMenu() {
   elements.contextMenu.style.display = 'none';
-  state.contextMenuTopic = null;
+  // Note: state.contextMenuTopic is NOT cleared here
+  // It will be cleared after the action completes in setupContextMenuActions
 }
 
 // Show modal (deprecated - use DialogManager)

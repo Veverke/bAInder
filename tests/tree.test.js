@@ -219,6 +219,45 @@ describe('TopicTree', () => {
     it('should throw error for non-existent parent', () => {
       expect(() => tree.addTopic('Test', 'nonexistent')).toThrow('Parent topic nonexistent does not exist');
     });
+
+    it('should prevent duplicate names at root level', () => {
+      tree.addTopic('Programming');
+      expect(() => tree.addTopic('Programming')).toThrow('A topic named "Programming" already exists at this level');
+    });
+
+    it('should prevent duplicate names with different casing at root level', () => {
+      tree.addTopic('Programming');
+      expect(() => tree.addTopic('programming')).toThrow('A topic named "programming" already exists at this level');
+      expect(() => tree.addTopic('PROGRAMMING')).toThrow('A topic named "PROGRAMMING" already exists at this level');
+    });
+
+    it('should prevent duplicate names at same child level', () => {
+      const parentId = tree.addTopic('Parent');
+      tree.addTopic('JavaScript', parentId);
+      expect(() => tree.addTopic('JavaScript', parentId)).toThrow('A topic named "JavaScript" already exists at this level');
+    });
+
+    it('should allow same name under different parents', () => {
+      const parent1 = tree.addTopic('Parent 1');
+      const parent2 = tree.addTopic('Parent 2');
+      
+      const child1 = tree.addTopic('JavaScript', parent1);
+      const child2 = tree.addTopic('JavaScript', parent2); // Should be allowed
+      
+      expect(child1).toBeDefined();
+      expect(child2).toBeDefined();
+      expect(child1).not.toBe(child2);
+    });
+
+    it('should allow same name at root and child levels', () => {
+      const rootId = tree.addTopic('JavaScript');
+      const parentId = tree.addTopic('Parent');
+      const childId = tree.addTopic('JavaScript', parentId); // Should be allowed
+      
+      expect(rootId).toBeDefined();
+      expect(childId).toBeDefined();
+      expect(rootId).not.toBe(childId);
+    });
   });
 
   describe('Alphabetical Sorting', () => {
@@ -403,6 +442,48 @@ describe('TopicTree', () => {
       expect(() => {
         tree.renameTopic('nonexistent', 'New Name');
       }).toThrow('Topic nonexistent does not exist');
+    });
+
+    it('should prevent renaming to duplicate name at same level', () => {
+      tree.addTopic('Topic A');
+      const topicBId = tree.addTopic('Topic B');
+      
+      expect(() => {
+        tree.renameTopic(topicBId, 'Topic A');
+      }).toThrow('A topic named "Topic A" already exists at this level');
+    });
+
+    it('should prevent renaming to duplicate name with different casing', () => {
+      tree.addTopic('Programming');
+      const topicId = tree.addTopic('JavaScript');
+      
+      expect(() => {
+        tree.renameTopic(topicId, 'programming');
+      }).toThrow('A topic named "programming" already exists at this level');
+    });
+
+    it('should allow renaming to same name (no change)', () => {
+      const topicId = tree.addTopic('Same Name');
+      
+      // Should not throw error
+      expect(() => {
+        tree.renameTopic(topicId, 'Same Name');
+      }).not.toThrow();
+      
+      expect(tree.topics[topicId].name).toBe('Same Name');
+    });
+
+    it('should allow renaming to duplicate name at different level', () => {
+      tree.addTopic('JavaScript'); // Root level
+      const parentId = tree.addTopic('Parent');
+      const childId = tree.addTopic('TypeScript', parentId);
+      
+      // Renaming child to match root name should be allowed
+      expect(() => {
+        tree.renameTopic(childId, 'JavaScript');
+      }).not.toThrow();
+      
+      expect(tree.topics[childId].name).toBe('JavaScript');
     });
   });
 
