@@ -245,15 +245,6 @@ body {
   margin: 20px 0;
 }
 
-/* ── Plain-text fallback (old saves without contentFormat) ───────────────── */
-
-.reader-content--plain {
-  white-space: pre-wrap;
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  line-height: 1.7;
-}
-
 /* ── State cards (loading / error) ───────────────────────────────────────── */
 
 .state-card {

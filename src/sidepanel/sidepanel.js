@@ -16,6 +16,7 @@ import {
   removeChatFromArray
 } from '../lib/chat-manager.js';
 import { isSpecificChatUrl } from '../lib/url-utils.js';
+import { extractSnippet, highlightTerms, formatBreadcrumb, escapeHtml } from '../lib/search-utils.js';
 
 console.log('bAInder Side Panel loaded');
 
@@ -278,9 +279,6 @@ async function handleChatClick(chat) {
   if (!chat) return;
 
   // Primary path: if this chat has stored content, open the built-in reader.
-  // Works for all platforms and all saves regardless of age — the content is
-  // self-contained in storage.  Old saves (plain-text content) are rendered in
-  // a simple preformatted view; new saves (markdown-v1) get full rendering.
   if (chat.id && chat.content) {
     const readerUrl = chrome.runtime.getURL(
       `src/reader/reader.html?chatId=${encodeURIComponent(chat.id)}`
@@ -368,7 +366,10 @@ function handleSearch(event) {
       state.renderer.expandAll();
       saveExpandedState();
     }
-    // TODO: Full search functionality in Stage 8
+    // Full-text search across all saved chats
+    state.storage.searchChats(query)
+      .then(results => renderSearchResults(results, query))
+      .catch(err => console.error('Search failed:', err));
   } else {
     if (state.renderer) {
       state.renderer.clearHighlight();
@@ -388,13 +389,56 @@ function clearSearch() {
   hideSearchResults();
 }
 
-// Perform search (placeholder for Stage 8)
-function performSearch(query) {
-  console.log('Searching for:', query);
-  // TODO: Implement search functionality in Stage 8
+// Render search results into the panel
+function renderSearchResults(results, query) {
   elements.searchResults.style.display = 'block';
-  elements.resultCount.textContent = '0 results';
-  elements.searchResultsList.innerHTML = '<div style="padding: 16px; color: var(--text-secondary);">Search functionality coming in Stage 8</div>';
+  const n = results.length;
+  elements.resultCount.textContent = n === 1 ? '1 result' : `${n} results`;
+
+  if (n === 0) {
+    elements.searchResultsList.innerHTML =
+      `<div class="result-empty">No results found for "${escapeHtml(query)}"</div>`;
+    return;
+  }
+
+  elements.searchResultsList.innerHTML = results.map(buildResultCard.bind(null, query)).join('');
+
+  // Wire click + keyboard handlers
+  elements.searchResultsList.querySelectorAll('.result-card').forEach((card, i) => {
+    const open = () => handleChatClick(results[i]);
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  });
+}
+
+// Build a single result card HTML string
+function buildResultCard(query, chat) {
+  const LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Copilot' };
+  const KNOWN_SOURCES = Object.keys(LABELS);
+  const source      = chat.source || 'unknown';
+  const badgeCls    = KNOWN_SOURCES.includes(source) ? `badge badge--${source}` : 'badge badge--unknown';
+  const sourceText  = LABELS[source] || (source.charAt(0).toUpperCase() + source.slice(1));
+  const title       = chat.title || 'Untitled Chat';
+  const snippet     = extractSnippet(chat.content || '', query);
+  const path        = (chat.topicId && state.tree) ? state.tree.getTopicPath(chat.topicId) : [];
+  const breadcrumb  = formatBreadcrumb(path);
+
+  const titleHtml   = highlightTerms(title, query);
+  const snippetHtml = snippet ? highlightTerms(snippet, query) : '';
+  const snippetEl   = snippetHtml
+    ? `<p class="result-snippet">${snippetHtml}</p>`
+    : '';
+
+  return (
+    `<article class="result-card" role="button" tabindex="0" aria-label="${escapeHtml(title)}">
+      <div class="result-header">
+        <span class="result-title">${titleHtml}</span>
+        <span class="${badgeCls}">${escapeHtml(sourceText)}</span>
+      </div>
+      ${snippetEl}
+      <div class="result-breadcrumb">${escapeHtml(breadcrumb)}</div>
+    </article>`
+  );
 }
 
 // Hide search results

@@ -336,17 +336,6 @@ describe('renderChat', () => {
     expect(inner).toContain('Hello');
   });
 
-  it('renders plain text for old saves without contentFormat', () => {
-    const legacy = makeChat({
-      content:  '[USER]\nHello\n\n---\n\n[ASSISTANT]\nHi',
-      metadata: {}
-    });
-    renderChat(legacy);
-    const el = document.getElementById('reader-content');
-    expect(el.classList.contains('reader-content--plain')).toBe(true);
-    expect(el.textContent).toContain('[USER]');
-  });
-
   it('sets excerpt badge class when isExcerpt is true in metadata', () => {
     const excerpt = makeChat({
       content:  '---\ntitle: "Excerpt"\nsource: chatgpt\nexcerpt: true\ncontentFormat: markdown-v1\n---\n\n# Excerpt\n\nSome text',

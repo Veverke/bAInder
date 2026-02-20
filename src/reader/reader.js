@@ -269,8 +269,7 @@ export function showError(message) {
 export function renderChat(chat) {
   const content = chat.content || '';
   const meta    = chat.metadata || {};
-  const isMarkdown = meta.contentFormat === 'markdown-v1';
-  const fm      = isMarkdown ? parseFrontmatter(content) : {};
+  const fm      = parseFrontmatter(content);
 
   // ── Header ────────────────────────────────────────────────────────────────
   const isExcerpt = Boolean(meta.isExcerpt || fm.excerpt);
@@ -305,14 +304,7 @@ export function renderChat(chat) {
   // ── Content ──────────────────────────────────────────────────────────────
   const contentEl = document.getElementById('reader-content');
 
-  if (isMarkdown) {
-    contentEl.innerHTML = renderMarkdown(content);
-  } else {
-    // Legacy plain-text format — display as-is
-    contentEl.classList.add('reader-content--plain');
-    contentEl.textContent = content;
-  }
-
+  contentEl.innerHTML = renderMarkdown(content);
   contentEl.hidden = false;
 
   // Hide loading state
