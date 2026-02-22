@@ -75,7 +75,7 @@ export function badgeClass(source, isExcerpt) {
 
 /**
  * Apply inline markdown formatting to a text segment.
- * Handles: **bold**, *italic*, _italic_, `inline code`.
+ * Handles: **bold**, *italic*, _italic_, `inline code`, ![alt](src) images.
  * Input text must already be HTML-escaped.
  * @param {string} escaped  HTML-escaped text
  * @returns {string}  HTML with inline elements applied
@@ -87,6 +87,18 @@ export function applyInline(escaped) {
   let s = escaped.replace(/`([^`]+)`/g, (_, code) => {
     codeMap.push(`<code>${code}</code>`);
     return `\x00${codeMap.length - 1}\x00`;
+  });
+
+  // Inline images ![alt](src) — must come before link handling
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) => {
+    // src has already been through escapeHtml so & is already &amp; — keep it
+    return `<img class="chat-image" src="${src}" alt="${alt}" loading="lazy">`;
+  });
+
+  // Inline links [text](url)
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
+    // href has already been through escapeHtml so & is already &amp; — keep it
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
   });
 
   // Bold **text** and italic *text* / _text_
@@ -154,8 +166,40 @@ export function renderMarkdown(markdown) {
   while (i < lines.length) {
     const raw  = lines[i];
     const line = raw; // keep original for whitespace checks
-
-    // ── Fenced code block ──────────────────────────────────────────────────
+    // ── Microsoft Designer generated-image card ──────────────────────────
+    {
+      const designerMatch = line.match(/^\[Microsoft Designer generated image\]\(([^)]+)\)$/);
+      if (designerMatch) {
+        flushPara(paraBuf); paraBuf = '';
+        flushList();
+        const designerSrc    = designerMatch[1];
+        const designerSrcEsc = designerSrc.replace(/&/g, '&amp;');
+        htmlParts.push(
+          `<div class="designer-card">` +
+            `<div class="designer-card__icon">🎨</div>` +
+            `<div class="designer-card__body">` +
+              `<div class="designer-card__title">AI Generated Image</div>` +
+              `<div class="designer-card__note">Session-bound · embedded preview unavailable</div>` +
+            `</div>` +
+            `<a class="designer-card__link" href="${designerSrcEsc}" target="_blank" rel="noopener noreferrer">` +
+              `Open in Designer &#8599;` +
+            `</a>` +
+          `</div>`
+        );
+        i++;
+        continue;
+      }
+    }
+    // ── Standalone image line  ![alt](src) ─────────────────────────────
+    if (/^!\[/.test(line)) {
+      flushPara(paraBuf); paraBuf = '';
+      flushList();
+      // applyInline handles the ![alt](src) → <img> conversion
+      htmlParts.push(`<p>${applyInline(escapeHtml(line))}</p>`);
+      i++;
+      continue;
+    }
+    // ── Fenced code block ──────────────────────────────────────────
     if (/^```/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
@@ -167,9 +211,24 @@ export function renderMarkdown(markdown) {
         i++;
       }
       // i now points at closing ``` (or past end)
-      const codeHtml = escapeHtml(codeLines.join('\n'));
-      const langAttr = lang ? ` class="language-${escapeHtml(lang)}"` : '';
-      htmlParts.push(`<pre><code${langAttr}>${codeHtml}</code></pre>`);
+      const codeText = codeLines.join('\n');
+      const codeHtml = escapeHtml(codeText);
+      const langAttr  = lang ? ` class="language-${escapeHtml(lang)}"` : '';
+      const langLabel = lang
+        ? `<span class="code-block__lang">${escapeHtml(lang)}</span>`
+        : `<span class="code-block__lang"></span>`;
+      htmlParts.push(
+        `<div class="code-block">` +
+          `<div class="code-block__header">` +
+            langLabel +
+            `<button class="code-block__copy" aria-label="Copy code">` +
+              `<svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M7.09 3c.2-.58.76-1 1.41-1h3c.65 0 1.2.42 1.41 1h1.59c.83 0 1.5.67 1.5 1.5v12c0 .83-.67 1.5-1.5 1.5h-9A1.5 1.5 0 0 1 4 16.5v-12C4 3.67 4.67 3 5.5 3h1.59ZM8.5 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3Z"/></svg>` +
+              `<span class="code-block__copy-label">Copy</span>` +
+            `</button>` +
+          `</div>` +
+          `<pre class="code-block__pre"><code${langAttr}>${codeHtml}</code></pre>` +
+        `</div>`
+      );
       i++;
       continue;
     }
@@ -298,6 +357,24 @@ export function renderChat(chat) {
 
   contentEl.innerHTML = renderMarkdown(content);
   contentEl.hidden = false;
+
+  // ── Copy-code button wiring ─────────────────────────────────────────
+  // Use event delegation on the content container so no per-button listeners.
+  contentEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.code-block__copy');
+    if (!btn) return;
+    // Read raw text from the <code> element — textContent auto-decodes HTML entities.
+    const code = btn.closest('.code-block')?.querySelector('.code-block__pre code')?.textContent || '';
+    const label = btn.querySelector('.code-block__copy-label');
+    navigator.clipboard.writeText(code).then(() => {
+      btn.classList.add('code-block__copy--copied');
+      if (label) label.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('code-block__copy--copied');
+        if (label) label.textContent = 'Copy';
+      }, 2000);
+    }).catch(() => {});
+  });
 }
 
 /**

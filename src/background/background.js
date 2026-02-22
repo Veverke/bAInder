@@ -146,6 +146,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Message received:', message.type, message);
   
   switch (message.type) {
+    case 'CAPTURE_DESIGNER_IMAGE': {
+      // Screenshot the visible tab, crop to the Designer iframe rect, return data URL.
+      // This is the only reliable way to capture the cross-origin WebGL canvas.
+      const { iframeid, rect, dpr } = message;
+      const tabId = sender && sender.tab && sender.tab.id;
+      if (!tabId || !rect) { sendResponse({ success: false }); break; }
+      (async () => {
+        try {
+          const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
+          // Decode and crop using OffscreenCanvas
+          const img = await createImageBitmap(await (await fetch(dataUrl)).blob());
+          const x = Math.round(rect.left * dpr);
+          const y = Math.round(rect.top  * dpr);
+          const w = Math.round(rect.width  * dpr);
+          const h = Math.round(rect.height * dpr);
+          // Clamp to image bounds
+          const cx = Math.max(0, x);
+          const cy = Math.max(0, y);
+          const cw = Math.min(w, img.width  - cx);
+          const ch = Math.min(h, img.height - cy);
+          if (cw <= 0 || ch <= 0) { sendResponse({ success: false }); return; }
+          const canvas = new OffscreenCanvas(cw, ch);
+          canvas.getContext('2d').drawImage(img, cx, cy, cw, ch, 0, 0, cw, ch);
+          const blob = await canvas.convertToBlob({ type: 'image/png' });
+          const reader = new FileReader();
+          reader.onloadend = () => sendResponse({ dataUrl: reader.result });
+          reader.readAsDataURL(blob);
+        } catch (err) {
+          console.warn('[bAInder] CAPTURE_DESIGNER_IMAGE failed:', err.message);
+          sendResponse({ success: false, error: err.message });
+        }
+      })();
+      return true; // keep channel open for async response
+    }
+
     case 'STORE_EXCERPT_CACHE':
       // Rich markdown pushed proactively by content script on right-click.
       // Store both in-memory (fast path) and session storage (SW restart path).

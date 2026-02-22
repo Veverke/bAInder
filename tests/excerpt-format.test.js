@@ -319,3 +319,168 @@ describe('Excerpt save pipeline — formatting preserved end-to-end', () => {
     expect(allOnOneLine).toBe(false);
   });
 });
+
+// ── Image extraction ───────────────────────────────────────────────────
+
+describe('htmlToMarkdown() — image extraction', () => {
+  it('emits markdown image for https:// src', () => {
+    const el = wrap('<img src="https://example.com/cat.png" alt="A cat">');
+    const md = htmlToMarkdown(el);
+    expect(md).toContain('![A cat](https://example.com/cat.png)');
+  });
+
+  it('emits markdown image for data: src', () => {
+    const el = wrap('<img src="data:image/png;base64,abc123" alt="">');
+    const md = htmlToMarkdown(el);
+    expect(md).toContain('![](data:image/png;base64,abc123)');
+  });
+
+  it('skips blob: src images', () => {
+    const el = wrap('<img src="blob:https://chatgpt.com/abc-123" alt="upload">');
+    expect(htmlToMarkdown(el)).toBe('');
+  });
+
+  it('skips images with empty src', () => {
+    const el = wrap('<img src="" alt="nothing">');
+    expect(htmlToMarkdown(el)).toBe('');
+  });
+
+  it('image surrounded by text is preserved alongside text', () => {
+    const el = wrap('<div>See this:</div><img src="https://example.com/img.png" alt="result"><div>And done.</div>');
+    const md = htmlToMarkdown(el);
+    expect(md).toContain('See this:');
+    expect(md).toContain('![result](https://example.com/img.png)');
+    expect(md).toContain('And done.');
+  });
+
+  // Microsoft Designer iframes
+  it('emits designer link for Microsoft Designer iframe (by aria-label)', () => {
+    const el = wrap('<iframe aria-label="Microsoft Designer" src="https://designer.svc.cloud.microsoft/chat-image-creator?clientName=CWC"></iframe>');
+    const md = htmlToMarkdown(el);
+    expect(md).toContain('[Microsoft Designer generated image]');
+    expect(md).toContain('https://designer.svc.cloud.microsoft/chat-image-creator');
+  });
+
+  it('emits designer link for Microsoft Designer iframe (by name)', () => {
+    const el = wrap('<iframe name="Microsoft Designer" src="https://designer.svc.cloud.microsoft/chat-image-creator?clientName=CWC"></iframe>');
+    const md = htmlToMarkdown(el);
+    expect(md).toContain('[Microsoft Designer generated image]');
+  });
+
+  it('extracts image URL from Designer iframe query params if present', () => {
+    const imgUrl = 'https://cdn.example.com/generated/icon.png';
+    const src = `https://designer.svc.cloud.microsoft/chat-image-creator?clientName=CWC&imageUrl=${encodeURIComponent(imgUrl)}`;
+    const el = wrap(`<iframe aria-label="Microsoft Designer" src="${src}"></iframe>`);
+    const md = htmlToMarkdown(el);
+    expect(md).toContain(`![Generated image](${imgUrl})`);
+  });
+
+  it('emits placeholder for Designer iframe with no src', () => {
+    const el = wrap('<iframe aria-label="Microsoft Designer"></iframe>');
+    const md = htmlToMarkdown(el);
+    expect(md).toContain('[Microsoft Designer generated image]');
+  });
+
+  it('ignores non-Designer iframes', () => {
+    const el = wrap('<iframe src="https://www.youtube.com/embed/abc" title="YouTube video"></iframe>');
+    // Should return empty string (no meaningful text content)
+    expect(htmlToMarkdown(el)).toBe('');
+  });
+});
+
+
+describe('htmlToMarkdown() — M365 Copilot Fluent UI code block', () => {
+  // Build a minimal replica of the Fluent UI code block DOM structure.
+  function makeFluentCodeBlock(lang, codeLines) {
+    const outer = document.createElement('div');
+    outer.innerHTML = `
+      <div role="group" aria-label="Code Preview" tabindex="0">
+        <div class="scriptor-component-code-block">
+          <div class="toolbar">
+            <div aria-hidden="true"></div>
+            <button aria-label="Copy code">Copy</button>
+            <button aria-label="Go to line">Go</button>
+          </div>
+          <div class="lang-label">${lang}</div>
+          ${codeLines.map(l => `<div class="code-line">${l}</div>`).join('\n')}
+        </div>
+      </div>`;
+    return outer;
+  }
+
+  it('wraps code in a fenced block with the correct language', () => {
+    const el = makeFluentCodeBlock('JavaScript', [
+      '/* c8 ignore next */',
+      'const fallback = computeFallback();',
+    ]);
+    const md = htmlToMarkdown(el);
+    expect(md).toContain('```javascript');
+    expect(md).toContain('/* c8 ignore next */');
+    expect(md).toContain('const fallback = computeFallback();');
+    expect(md).toContain('```');
+  });
+
+  it('does not include language label text as a prose line', () => {
+    const el = makeFluentCodeBlock('JavaScript', ['const x = 1;']);
+    const md = htmlToMarkdown(el);
+    // "JavaScript" must not appear as a standalone prose line outside the fence
+    const lines = md.split('\n');
+    const jsOutsideFence = lines.filter(l => l.trim() === 'JavaScript');
+    expect(jsOutsideFence).toHaveLength(0);
+  });
+
+  it('strips Copy/Go-to-line button text from the code content', () => {
+    const el = makeFluentCodeBlock('TypeScript', ['const y: number = 2;']);
+    const md = htmlToMarkdown(el);
+    expect(md).not.toContain('Copy');
+    expect(md).not.toContain('Go');
+  });
+
+  it('handles multi-line c8 ignore block correctly', () => {
+    const el = makeFluentCodeBlock('JavaScript', [
+      '/* c8 ignore next */',
+      'const fallback = computeFallback();',
+      '/* c8 ignore start */',
+      '// lots of code',
+      'doSomethingImpossibleToTest();',
+      '/* c8 ignore stop */',
+    ]);
+    const md = htmlToMarkdown(el);
+    expect(md).toContain('```javascript');
+    expect(md).toContain('/* c8 ignore next */');
+    expect(md).toContain('/* c8 ignore start */');
+    expect(md).toContain('doSomethingImpossibleToTest();');
+    expect(md).toContain('/* c8 ignore stop */');
+    // All code lines must be inside the fence, not scattered as prose
+    const fenceStart = md.indexOf('```javascript\n');
+    const fenceEnd   = md.indexOf('\n```', fenceStart + 1);
+    expect(fenceStart).toBeGreaterThanOrEqual(0);
+    expect(fenceEnd).toBeGreaterThan(fenceStart);
+    const fenced = md.slice(fenceStart, fenceEnd);
+    expect(fenced).toContain('doSomethingImpossibleToTest();');
+  });
+
+  it('detected via aria-label="Code Preview" on the container', () => {
+    const outer = document.createElement('div');
+    outer.innerHTML = `
+      <div role="group" aria-label="Code Preview">
+        <span>Python</span>
+        <span>def hello():</span>
+        <span>  print("hi")</span>
+      </div>`;
+    const md = htmlToMarkdown(outer);
+    expect(md).toContain('```python');
+    expect(md).toContain('def hello():');
+  });
+
+  it('full pipeline: M365 code block excerpt saves with fences intact', () => {
+    const el = makeFluentCodeBlock('JavaScript', [
+      '/* c8 ignore next */',
+      'const fallback = computeFallback();',
+    ]);
+    const richMarkdown = htmlToMarkdown(el);
+    const payload = buildExcerptPayload('c8 ignore fallback example', 'https://m365.cloud.microsoft/', richMarkdown);
+    expect(payload.content).toContain('```javascript');
+    expect(payload.content).toContain('const fallback = computeFallback();');
+  });
+});

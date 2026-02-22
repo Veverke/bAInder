@@ -18,6 +18,94 @@
   if (window.__bAInderInjected) return;
   window.__bAInderInjected = true;
 
+  // ─── Microsoft Designer postMessage interceptor ───────────────────────────
+  // Designer (cross-origin iframe) sends postMessages to M365 when image
+  // generation completes.  We screenshot the tab on ImageGenerated and crop
+  // to the iframe rect so the image survives as a real <img> when chat is saved.
+  window.__bAInderDesignerImages = window.__bAInderDesignerImages || {};
+
+  /**
+   * Scroll a Designer iframe into the center of the viewport, wait for the
+   * browser to repaint, capture a screenshot, crop to the iframe bounds, then
+   * restore the original scroll position.  Returns a Promise that resolves
+   * with the data URL (or null on failure).
+   */
+  async function captureDesignerIframe(iframeid, iframe) {
+    if (!chrome?.runtime?.sendMessage) return null;
+    if (!iframe || iframe.offsetWidth < 10) return null;
+
+    // Remember where we were so we can scroll back afterwards
+    const scrollEl  = document.scrollingElement || document.documentElement;
+    const savedTop  = scrollEl.scrollTop;
+    const savedLeft = scrollEl.scrollLeft;
+
+    // Scroll the iframe to the center of the viewport instantly
+    iframe.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
+
+    // Wait two animation frames: one for the scroll to apply, one for the
+    // browser to composite the WebGL frame at its new on-screen position
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const rect = iframe.getBoundingClientRect();
+    if (rect.width < 10 || rect.height < 10) {
+      scrollEl.scrollTo({ top: savedTop, left: savedLeft, behavior: 'instant' });
+      return null;
+    }
+
+    return new Promise(resolve => {
+      try {
+        chrome.runtime.sendMessage({
+          type: 'CAPTURE_DESIGNER_IMAGE',
+          iframeid,
+          rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+          dpr:  window.devicePixelRatio || 1
+        }, (response) => {
+          // Restore scroll position regardless of outcome
+          scrollEl.scrollTo({ top: savedTop, left: savedLeft, behavior: 'instant' });
+          if (chrome.runtime?.lastError || !response?.dataUrl) { resolve(null); return; }
+          window.__bAInderDesignerImages[iframeid] = response.dataUrl;
+          console.log('[bAInder] Captured Designer image for', iframeid,
+            '(' + Math.round(rect.width) + 'x' + Math.round(rect.height) + ')');
+          resolve(response.dataUrl);
+        });
+      } catch (_) {
+        scrollEl.scrollTo({ top: savedTop, left: savedLeft, behavior: 'instant' });
+        resolve(null);
+      }
+    });
+  }
+
+  window.addEventListener('message', function bAInderDesignerMsg(e) {
+    if (!e.origin || !e.origin.includes('designer.svc.cloud.microsoft')) return;
+    let data;
+    try { data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (_) { return; }
+    if (!data || typeof data !== 'object') return;
+
+    // Designer sends this once the image has finished rendering in its WebGL canvas.
+    if (data.type === 'designer_telemetry_event' &&
+        data.data && data.data.eventName === 'ImageGenerated' &&
+        data.data.success) {
+      const iframeid = data.iframeid;
+      if (!iframeid) return;
+
+      // Find the iframe by matching the iframeid in its src URL
+      const iframes = document.querySelectorAll(
+        'iframe[name="Microsoft Designer"], iframe[aria-label="Microsoft Designer"]'
+      );
+      let targetIframe = null;
+      for (const iframe of iframes) {
+        try {
+          const u = new URL(iframe.src);
+          if (u.searchParams.get('iframeid') === iframeid) { targetIframe = iframe; break; }
+        } catch (_) {}
+      }
+      if (!targetIframe) return;
+
+      // Scroll into view so the iframe is on-screen for the screenshot
+      captureDesignerIframe(iframeid, targetIframe);
+    }
+  });
+
   // ─── Inlined extraction helpers (mirrors chat-extractor.js) ───────────────
 
   function detectPlatform(hostname) {
@@ -52,7 +140,40 @@
       if (node.nodeType !== 1) return '';
       if (node.getAttribute && node.getAttribute('aria-hidden') === 'true') return '';
       const tag = node.tagName.toLowerCase();
-      if (['script','style','svg','noscript','button','template','img'].includes(tag)) return '';
+      if (['script','style','svg','noscript','button','template'].includes(tag)) return '';
+
+      // ── M365 Copilot / Fluent UI code block ─────────────────────────────
+      // These are rendered without <pre>/<code> — detected by ARIA label or
+      // the well-known scriptor class.  Extract raw text, strip language
+      // label from first line, return a fenced code block.
+      {
+        const ariaLabel = node.getAttribute('aria-label') || '';
+        const nodeClass = typeof node.className === 'string' ? node.className : '';
+        if (ariaLabel === 'Code Preview' || nodeClass.includes('scriptor-component-code-block')) {
+          const SKIP = new Set(['button','script','style','svg','path','noscript','template','img']);
+        const BLOCK = new Set(['div','p','li','tr','section','article','header','footer','pre']);
+        const KNOWN_LANG = /^(javascript|typescript|python|java|c#|csharp|c\+\+|cpp|ruby|go|rust|css|scss|html|xml|json|bash|shell|sh|sql|php|swift|kotlin|scala|r|matlab|yaml|toml|markdown)$/i;
+        const extractRaw = n => {
+          if (n.nodeType === 3) return n.textContent || '';
+          if (n.nodeType !== 1) return '';
+          if (SKIP.has(n.tagName.toLowerCase())) return '';
+          if (n.getAttribute && n.getAttribute('aria-hidden') === 'true') return '';
+          const t = BLOCK.has(n.tagName.toLowerCase());
+          const inner = Array.from(n.childNodes).map(extractRaw).join('');
+          return t ? inner + '\n' : inner;
+          };
+          const raw = extractRaw(node).replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n').trim();
+          const lines = raw.split('\n');
+          let lang = '', start = 0;
+          if (lines.length > 0 && KNOWN_LANG.test(lines[0].trim())) {
+            lang = lines[0].trim().toLowerCase().replace('c#', 'csharp').replace('c++', 'cpp');
+            start = 1;
+          }
+          const code = lines.slice(start).join('\n').trim();
+          return code ? `\n\`\`\`${lang}\n${code}\n\`\`\`\n` : '';
+        }
+      }
+
       const inner = Array.from(node.childNodes).map(walk).join('');
       switch (tag) {
         case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6': {
@@ -107,11 +228,56 @@
           const text = inner.trim();
           return href && text ? `[${text}](${href})` : text;
         }
+        case 'img': {
+          const src = node.getAttribute('src') || '';
+          // Keep data: and https:// images; skip blob: (session-only) and empty.
+          if (!src || src.startsWith('blob:')) return '';
+          const alt = (node.getAttribute('alt') || '').trim().replace(/\n/g, ' ');
+          return `\n![${alt}](${src})\n`;
+        }
+        case 'iframe': {
+          // Microsoft Designer generated-image embeds (M365 Copilot)
+          const ariaLbl = node.getAttribute('aria-label') || '';
+          const iframeName = node.getAttribute('name') || '';
+          if (ariaLbl === 'Microsoft Designer' || iframeName === 'Microsoft Designer') {
+            const iSrc = node.getAttribute('src') || '';
+            if (iSrc) {
+              // If we captured a real image URL via postMessage, use that.
+              try {
+                const u = new URL(iSrc);
+                const cachedId = u.searchParams.get('iframeid') || u.searchParams.get('correlationId');
+                if (cachedId && window.__bAInderDesignerImages && window.__bAInderDesignerImages[cachedId]) {
+    return `\n![AI Generated Image](${window.__bAInderDesignerImages[cachedId]})\n`;
+                }
+                // Fallback: try to find an image URL embedded in query params
+                for (const [k, v] of u.searchParams) {
+                  if (/image|asset|media|url/i.test(k) && /^https?:\/\//.test(v)) {
+                    return `\n![Generated image](${v})\n`;
+                  }
+                }
+              } catch (_) {}
+              return `\n[Microsoft Designer generated image](${iSrc})\n`;
+            }
+            return '\n[Microsoft Designer generated image]\n';
+          }
+          return inner;
+        }
         case 'div': case 'section': case 'article': case 'aside': case 'main': case 'header': case 'footer': {
+          // If this div's only meaningful child is a <pre>, pass straight through
+          // so we don't double-wrap or lose the code block.
+          const significantChildren = Array.from(node.children)
+            .filter(c => !['button','script','style','svg','template'].includes(c.tagName.toLowerCase()));
+          if (significantChildren.length === 1 && significantChildren[0].tagName.toLowerCase() === 'pre') {
+            return walk(significantChildren[0]);
+          }
           // Skip code-block decoration elements (language label bars, copy-code toolbars).
+          // A sibling has a <pre> directly OR nested inside it.
           if (node.parentElement) {
             const siblingHasPre = Array.from(node.parentElement.children)
-              .some(c => c !== node && c.tagName.toLowerCase() === 'pre');
+              .some(c => c !== node && (
+                c.tagName.toLowerCase() === 'pre' ||
+                c.querySelector('pre')
+              ));
             if (siblingHasPre && !node.querySelector('pre, code')) return '';
           }
           // Treat as block: wrap in newlines so lines don't concatenate.
@@ -469,6 +635,32 @@
     setButtonState(btn, 'loading');
 
     try {
+      // ── On-demand Designer image pre-capture ────────────────────────────────
+      // Capture any Designer iframes not yet in the cache before extracting the
+      // full chat. Each capture scrolls the iframe into view first so the
+      // screenshot is correct regardless of the current scroll position.
+      const designerIframes = document.querySelectorAll(
+        'iframe[name="Microsoft Designer"], iframe[aria-label="Microsoft Designer"]'
+      );
+      const capturePromises = [];
+      for (const iframe of designerIframes) {
+        try {
+          const u = new URL(iframe.src);
+          const iframeid = u.searchParams.get('iframeid') || u.searchParams.get('correlationId');
+          if (!iframeid) continue;
+          if (window.__bAInderDesignerImages?.[iframeid]) continue; // already cached
+          console.log('[bAInder] On-demand capture for Designer iframe (save)', iframeid);
+          capturePromises.push(captureDesignerIframe(iframeid, iframe));
+        } catch (_) {}
+      }
+      if (capturePromises.length > 0) {
+        // Wait up to 8 s (scroll + repaint + round-trip per image); continue regardless
+        await Promise.race([
+          Promise.all(capturePromises),
+          new Promise(r => setTimeout(r, 8000))
+        ]);
+      }
+
       const chatData    = extractChat(platform, document);
       if (chatData.messageCount === 0) {
         setButtonState(btn, 'empty');
@@ -495,7 +687,7 @@
   // On right-click we immediately push the rich markdown to the background script
   // so it's already cached there when the context menu item fires — no round-trip
   // timing issues, and works regardless of which frame received the event.
-  document.addEventListener('contextmenu', () => {
+  document.addEventListener('contextmenu', async () => {
     try {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
@@ -505,13 +697,62 @@
       const fragment = sel.getRangeAt(0).cloneContents();
       const wrapper  = document.createElement('div');
       wrapper.appendChild(fragment);
-      console.log('[bAInder DEBUG] contextmenu: captured HTML =', wrapper.innerHTML.slice(0, 500));
+      // Log the wrapper element itself so it can be expanded in DevTools
+      console.log('[bAInder DEBUG] contextmenu: captured DOM =', wrapper);
+      console.log('[bAInder DEBUG] contextmenu: captured HTML (full) =', wrapper.innerHTML);
+      const preEls  = wrapper.querySelectorAll('pre');
+      const codeEls = wrapper.querySelectorAll('code');
+      console.log('[bAInder DEBUG] contextmenu: pre count =', preEls.length, 'code count =', codeEls.length);
+      preEls.forEach((p, i)  => console.log(`[bAInder DEBUG]   pre[${i}] outerHTML =`, p.outerHTML.slice(0, 300)));
+      codeEls.forEach((c, i) => console.log(`[bAInder DEBUG]   code[${i}] parent.tag =`, c.parentElement?.tagName, 'class =', c.className, 'text =', c.textContent.slice(0, 100)));
+
+      // ── On-demand Designer image capture ──────────────────────────────────
+      // ImageGenerated telemetry may not have fired yet (images still rendering).
+      // Proactively screenshot any uncached Designer iframes in the selection.
+      // Each capture scrolls the iframe into view first so the screenshot is
+      // correct regardless of the user's current scroll position.
+      const designerIframesInSelection = wrapper.querySelectorAll(
+        'iframe[name="Microsoft Designer"], iframe[aria-label="Microsoft Designer"]'
+      );
+      const capturePromises = [];
+      for (const clonedIframe of designerIframesInSelection) {
+        try {
+          // clonedIframe is a detached clone — resolve the iframeid then find
+          // the live DOM iframe so we can scroll it and get a real bounding rect
+          const iSrc = clonedIframe.getAttribute('src') || '';
+          const u = new URL(iSrc.replace(/&amp;/g, '&'));
+          const iframeid = u.searchParams.get('iframeid') || u.searchParams.get('correlationId');
+          if (!iframeid) continue;
+          if (window.__bAInderDesignerImages?.[iframeid]) continue; // already cached
+          const liveIframe = document.querySelector(`iframe[src*="iframeid=${iframeid}"]`);
+          if (!liveIframe) continue;
+          console.log('[bAInder] On-demand capture for Designer iframe (contextmenu)', iframeid);
+          capturePromises.push(captureDesignerIframe(iframeid, liveIframe));
+        } catch (_) {}
+      }
+      if (capturePromises.length > 0) {
+        // Wait up to 5 s per image (scroll + repaint + round-trip); continue regardless
+        await Promise.race([
+          Promise.all(capturePromises),
+          new Promise(r => setTimeout(r, 5000))
+        ]);
+      }
+
       const markdown = stripRoleLabels(htmlToMarkdown(wrapper)).trim();
-      console.log('[bAInder DEBUG] contextmenu: htmlToMarkdown output =', JSON.stringify(markdown.slice(0, 500)));
+      console.log('[bAInder DEBUG] contextmenu: htmlToMarkdown output =', JSON.stringify(markdown.slice(0, 1000)));
+
       if (!markdown) {
         console.log('[bAInder DEBUG] contextmenu: markdown empty, not caching');
         return;
       }
+
+      // Guard: chrome.runtime becomes undefined when the extension context is
+      // invalidated (e.g. after a reload). The page must be refreshed to reconnect.
+      if (!chrome?.runtime?.sendMessage) {
+        console.warn('[bAInder DEBUG] contextmenu: chrome.runtime unavailable — reload the page to reconnect the extension');
+        return;
+      }
+
       chrome.runtime.sendMessage({
         type: 'STORE_EXCERPT_CACHE',
         data: { markdown }
@@ -531,6 +772,10 @@
    */
   function sendMessage(msg) {
     return new Promise((resolve, reject) => {
+      if (!chrome?.runtime?.sendMessage) {
+        reject(new Error('Extension context lost — please reload the page'));
+        return;
+      }
       try {
         chrome.runtime.sendMessage(msg, (response) => {
           if (chrome.runtime.lastError) {

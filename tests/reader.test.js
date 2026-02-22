@@ -147,6 +147,44 @@ describe('applyInline', () => {
   it('handles empty string', () => {
     expect(applyInline('')).toBe('');
   });
+
+  it('converts ![alt](https://url) to <img>', () => {
+    const result = applyInline('![A cat](https://example.com/cat.png)');
+    expect(result).toContain('<img');
+    expect(result).toContain('src="https://example.com/cat.png"');
+    expect(result).toContain('alt="A cat"');
+    expect(result).toContain('class="chat-image"');
+  });
+
+  it('converts data: image URL to <img>', () => {
+    const result = applyInline('![](data:image/png;base64,abc123)');
+    expect(result).toContain('<img');
+    expect(result).toContain('src="data:image/png;base64,abc123"');
+  });
+
+  it('keeps &amp; encoded in image src URL (valid HTML attribute)', () => {
+    const result = applyInline('![x](https://example.com/img?a=1&amp;b=2)');
+    expect(result).toContain('src="https://example.com/img?a=1&amp;b=2"');
+  });
+
+  it('converts [text](url) to an anchor tag', () => {
+    const result = applyInline('[Open link](https://example.com)');
+    expect(result).toContain('<a ');
+    expect(result).toContain('href="https://example.com"');
+    expect(result).toContain('target="_blank"');
+    expect(result).toContain('>Open link</a>');
+  });
+
+  it('keeps &amp; encoded in link href (valid HTML attribute)', () => {
+    const result = applyInline('[x](https://example.com?a=1&amp;b=2)');
+    expect(result).toContain('href="https://example.com?a=1&amp;b=2"');
+  });
+
+  it('handles links alongside bold text', () => {
+    const result = applyInline('See **[docs](https://example.com)** here');
+    expect(result).toContain('<strong>');
+    expect(result).toContain('<a ');
+  });
 });
 
 // ─── renderMarkdown ───────────────────────────────────────────────────────────
@@ -181,12 +219,18 @@ describe('renderMarkdown', () => {
     expect(renderMarkdown('---')).toContain('<hr>');
   });
 
-  it('renders fenced code block as <pre><code>', () => {
+  it('renders fenced code block as a code-block widget with header and copy button', () => {
     const md = '```js\nconst x = 1;\n```';
     const html = renderMarkdown(md);
-    expect(html).toContain('<pre>');
+    expect(html).toContain('class="code-block"');
+    expect(html).toContain('code-block__header');
+    expect(html).toContain('code-block__copy');
+    expect(html).toContain('code-block__pre');
     expect(html).toContain('<code');
     expect(html).toContain('const x = 1;');
+    // Language label shown in header
+    expect(html).toContain('code-block__lang');
+    expect(html).toContain('js');
   });
 
   it('does not double-escape HTML inside code blocks', () => {
@@ -198,6 +242,42 @@ describe('renderMarkdown', () => {
   it('renders blockquote > as <blockquote>', () => {
     expect(renderMarkdown('> A quote')).toContain('<blockquote>');
     expect(renderMarkdown('> A quote')).toContain('A quote');
+  });
+
+  it('renders standalone ![alt](url) as an <img>', () => {
+    const html = renderMarkdown('![A cat](https://example.com/cat.png)');
+    expect(html).toContain('<img');
+    expect(html).toContain('src="https://example.com/cat.png"');
+    expect(html).toContain('alt="A cat"');
+  });
+
+  it('renders [text](url) link inside paragraph', () => {
+    const html = renderMarkdown('Click [here](https://example.com) for more');
+    expect(html).toContain('<a ');
+    expect(html).toContain('href="https://example.com"');
+    expect(html).toContain('>here</a>');
+  });
+
+  it('renders Microsoft Designer as a card (not iframe)', () => {
+    const src = 'https://designer.svc.cloud.microsoft/chat-image-creator?clientName=CWC&iframeid=abc123';
+    const html = renderMarkdown(`[Microsoft Designer generated image](${src})`);
+    expect(html).toContain('class="designer-card"');
+    expect(html).not.toContain('<iframe');
+    expect(html).toContain('AI Generated Image');
+    expect(html).toContain('designer-card__note');
+    // & in URL must be HTML-escaped to &amp; in the attribute
+    expect(html).toContain('href="https://designer.svc.cloud.microsoft/chat-image-creator?clientName=CWC&amp;iframeid=abc123"');
+    expect(html).toContain('Open in Designer');
+  });
+
+  it('Designer card does not clobber surrounding text', () => {
+    const src = 'https://designer.svc.cloud.microsoft/chat-image-creator?clientName=CWC';
+    const md = `Here you go!\n\n[Microsoft Designer generated image](${src})\n\nLet me know!`;
+    const html = renderMarkdown(md);
+    expect(html).toContain('<p>Here you go!</p>');
+    expect(html).toContain('designer-card');
+    expect(html).not.toContain('<iframe');
+    expect(html).toContain('<p>Let me know!</p>');
   });
 
   it('renders - list items as <ul>', () => {

@@ -88,7 +88,37 @@ export function htmlToMarkdown(el) {
     if (node.getAttribute('aria-hidden') === 'true') return '';
 
     const tag = node.tagName.toLowerCase();
-    if (['script', 'style', 'svg', 'noscript', 'button', 'template', 'img'].includes(tag)) return '';
+    if (['script', 'style', 'svg', 'noscript', 'button', 'template'].includes(tag)) return '';
+
+    // ── M365 Copilot / Fluent UI code block ──────────────────────────────────
+    // Rendered without <pre>/<code> — detected by ARIA label or scriptor class.
+    {
+      const ariaLabel = node.getAttribute('aria-label') || '';
+      const nodeClass = typeof node.className === 'string' ? node.className : '';
+      if (ariaLabel === 'Code Preview' || nodeClass.includes('scriptor-component-code-block')) {
+        const SKIP = new Set(['button','script','style','svg','path','noscript','template','img']);
+        const BLOCK = new Set(['div','p','li','tr','section','article','header','footer','pre']);
+        const KNOWN_LANG = /^(javascript|typescript|python|java|c#|csharp|c\+\+|cpp|ruby|go|rust|css|scss|html|xml|json|bash|shell|sh|sql|php|swift|kotlin|scala|r|matlab|yaml|toml|markdown)$/i;
+        const extractRaw = n => {
+          if (n.nodeType === 3) return n.textContent || '';
+          if (n.nodeType !== 1) return '';
+          if (SKIP.has(n.tagName.toLowerCase())) return '';
+          if (n.getAttribute && n.getAttribute('aria-hidden') === 'true') return '';
+          const t = BLOCK.has(n.tagName.toLowerCase());
+          const inner = Array.from(n.childNodes).map(extractRaw).join('');
+          return t ? inner + '\n' : inner;
+        };
+        const raw = extractRaw(node).replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n').trim();
+        const lines = raw.split('\n');
+        let lang = '', start = 0;
+        if (lines.length > 0 && KNOWN_LANG.test(lines[0].trim())) {
+          lang = lines[0].trim().toLowerCase().replace('c#', 'csharp').replace('c++', 'cpp');
+          start = 1;
+        }
+        const code = lines.slice(start).join('\n').trim();
+        return code ? `\n\`\`\`${lang}\n${code}\n\`\`\`\n` : '';
+      }
+    }
 
     // Build inner content first (needed by most cases)
     const inner = Array.from(node.childNodes).map(walk).join('');
@@ -174,10 +204,44 @@ export function htmlToMarkdown(el) {
         const href = node.getAttribute('href');
         const text = inner.trim();
         return href && text ? `[${text}](${href})` : text;
+      }      // ── Image ─────────────────────────────────────────────────
+      case 'img': {
+        const src = node.getAttribute('src') || '';
+        // Keep data: and https:// images; skip blob: (session-only) and empty.
+        if (!src || src.startsWith('blob:')) return '';
+        const alt = (node.getAttribute('alt') || '').trim().replace(/\n/g, ' ');
+        return `\n![${alt}](${src})\n`;
       }
-
+      // ── Microsoft Designer iframe (M365 Copilot generated images) ─────────
+      case 'iframe': {
+        const ariaLbl = node.getAttribute('aria-label') || '';
+        const iframeName = node.getAttribute('name') || '';
+        if (ariaLbl === 'Microsoft Designer' || iframeName === 'Microsoft Designer') {
+          const iSrc = node.getAttribute('src') || '';
+          if (iSrc) {
+            try {
+              const u = new URL(iSrc);
+              for (const [k, v] of u.searchParams) {
+                if (/image|asset|media|url/i.test(k) && /^https?:\/\//.test(v)) {
+                  return `\n![Generated image](${v})\n`;
+                }
+              }
+            } catch (_) {}
+            return `\n[Microsoft Designer generated image](${iSrc})\n`;
+          }
+          return '\n[Microsoft Designer generated image]\n';
+        }
+        return inner;
+      }
       // ── Everything else (div, span, section, article, …) ─────────────────
       case 'div': case 'section': case 'article': case 'aside': case 'main': case 'header': case 'footer': {
+        // If this div's only meaningful child is a <pre>, pass straight through
+        // so the code block isn't lost inside a wrapper div.
+        const significantChildren = Array.from(node.children)
+          .filter(c => !['button','script','style','svg','template'].includes(c.tagName.toLowerCase()));
+        if (significantChildren.length === 1 && significantChildren[0].tagName.toLowerCase() === 'pre') {
+          return walk(significantChildren[0]);
+        }
         // Skip code-block decoration elements (language label bars, copy-code toolbars).
         // Heuristic: a <div> whose parent also has a <pre> sibling, but which
         // itself has no <pre>/<code> descendants, is header/toolbar chrome.
