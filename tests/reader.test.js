@@ -29,12 +29,8 @@ function setupDom() {
         </div>
         <h1 id="reader-title" class="reader-title"></h1>
       </div>
-      <div class="reader-header__actions">
-        <a id="btn-original" hidden></a>
-      </div>
     </header>
     <main id="reader-content" class="reader-content" hidden></main>
-    <div id="state-loading" class="state-card"></div>
     <div id="state-error"   class="state-card" hidden>
       <p id="error-message"></p>
     </div>
@@ -254,11 +250,6 @@ describe('renderMarkdown', () => {
 describe('showError', () => {
   beforeEach(setupDom);
 
-  it('hides the loading state', () => {
-    showError('oops');
-    expect(document.getElementById('state-loading').hidden).toBe(true);
-  });
-
   it('shows the error state', () => {
     showError('Something went wrong');
     expect(document.getElementById('state-error').hidden).toBe(false);
@@ -287,11 +278,6 @@ describe('renderChat', () => {
     ...overrides,
   });
 
-  it('hides the loading state after render', () => {
-    renderChat(makeChat());
-    expect(document.getElementById('state-loading').hidden).toBe(true);
-  });
-
   it('shows the reader header', () => {
     renderChat(makeChat());
     expect(document.getElementById('reader-header').hidden).toBe(false);
@@ -315,18 +301,6 @@ describe('renderChat', () => {
   it('sets source badge class to badge--claude', () => {
     renderChat(makeChat());
     expect(document.getElementById('meta-source').className).toContain('badge--claude');
-  });
-
-  it('shows the original link when URL is present', () => {
-    renderChat(makeChat());
-    const btn = document.getElementById('btn-original');
-    expect(btn.hidden).toBe(false);
-    expect(btn.href).toContain('claude.ai');
-  });
-
-  it('hides the original link when URL is empty', () => {
-    renderChat(makeChat({ url: '', content: makeChat().content.replace('url: https://claude.ai/chat/abc\n', '') }));
-    expect(document.getElementById('btn-original').hidden).toBe(true);
   });
 
   it('renders markdown content as HTML for markdown-v1 format', () => {
@@ -369,7 +343,7 @@ describe('init', () => {
     expect(document.getElementById('error-message').textContent).toContain('not found');
   });
 
-  it('renders the chat when chatId is found', async () => {
+  it('renders the chat when chatId is found (object-map / legacy format)', async () => {
     vi.stubGlobal('location', { search: '?chatId=chat-001' });
     const chat = {
       id:        'chat-001',
@@ -384,6 +358,53 @@ describe('init', () => {
     await init({ get: vi.fn().mockResolvedValue({ chats: { 'chat-001': chat } }) });
     expect(document.getElementById('reader-header').hidden).toBe(false);
     expect(document.getElementById('reader-title').textContent).toBe('Found Chat');
+  });
+
+  it('renders the chat when chatId is found (array format — primary)', async () => {
+    vi.stubGlobal('location', { search: '?chatId=chat-001' });
+    const chat = {
+      id:        'chat-001',
+      title:     'Found Chat Array',
+      source:    'copilot',
+      url:       'https://copilot.microsoft.com/chats/abc',
+      timestamp: 1_740_000_000_000,
+      messageCount: 2,
+      content:   '---\ntitle: "Found Chat Array"\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Found Chat Array\n\nSome content\n',
+      metadata:  { contentFormat: 'markdown-v1' },
+    };
+    // Storage stores chats as an array (as produced by chat-save-handler.js)
+    await init({ get: vi.fn().mockResolvedValue({ chats: [chat] }) });
+    expect(document.getElementById('reader-header').hidden).toBe(false);
+    expect(document.getElementById('reader-title').textContent).toBe('Found Chat Array');
+  });
+
+  // ── Post-render state guard ───────────────────────────────────────────────
+  it('header and content are shown, error is hidden, after successful render', async () => {
+    vi.stubGlobal('location', { search: '?chatId=chat-001' });
+    const chat = {
+      id: 'chat-001', title: 'Render Test', source: 'copilot',
+      url: 'https://copilot.microsoft.com/chats/x', timestamp: 1_740_000_000_000,
+      messageCount: 1,
+      content: '---\ntitle: "Render Test"\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Render Test\n',
+      metadata: { contentFormat: 'markdown-v1' },
+    };
+    await init({ get: vi.fn().mockResolvedValue({ chats: [chat] }) });
+    expect(document.getElementById('state-error').hidden).toBe(true);
+    expect(document.getElementById('reader-header').hidden).toBe(false);
+  });
+
+  it('error state is shown and header remains hidden when chat not found', async () => {
+    vi.stubGlobal('location', { search: '?chatId=missing' });
+    await init({ get: vi.fn().mockResolvedValue({ chats: [] }) });
+    expect(document.getElementById('state-error').hidden).toBe(false);
+    expect(document.getElementById('reader-header').hidden).toBe(true);
+  });
+
+  it('shows error when chatId not in array', async () => {
+    vi.stubGlobal('location', { search: '?chatId=missing-id' });
+    await init({ get: vi.fn().mockResolvedValue({ chats: [{ id: 'other-id', title: 'X' }] }) });
+    expect(document.getElementById('state-error').hidden).toBe(false);
+    expect(document.getElementById('error-message').textContent).toContain('not found');
   });
 
   it('shows error when storage throws', async () => {

@@ -44,15 +44,106 @@
     return sanitizeContent(el.innerHTML || el.textContent || '');
   }
 
+  // Convert a DOM element to Markdown, preserving headings, lists, code, bold/italic.
+  function htmlToMarkdown(el) {
+    if (!el) return '';
+    function walk(node) {
+      if (node.nodeType === 3) return (node.textContent || '').replace(/\u00a0/g, ' ');
+      if (node.nodeType !== 1) return '';
+      if (node.getAttribute && node.getAttribute('aria-hidden') === 'true') return '';
+      const tag = node.tagName.toLowerCase();
+      if (['script','style','svg','noscript','button','template','img'].includes(tag)) return '';
+      const inner = Array.from(node.childNodes).map(walk).join('');
+      switch (tag) {
+        case 'h1': return `\n# ${inner.trim()}\n`;
+        case 'h2': return `\n## ${inner.trim()}\n`;
+        case 'h3': return `\n### ${inner.trim()}\n`;
+        case 'h4': return `\n#### ${inner.trim()}\n`;
+        case 'h5': return `\n##### ${inner.trim()}\n`;
+        case 'h6': return `\n###### ${inner.trim()}\n`;
+        case 'strong': case 'b': { const t = inner.trim(); return t ? `**${t}**` : ''; }
+        case 'em':     case 'i': { const t = inner.trim(); return t ? `*${t}*` : ''; }
+        case 'code': {
+          if (node.parentElement && node.parentElement.tagName.toLowerCase() === 'pre') return node.textContent || '';
+          // Multi-line standalone <code> (no <pre> wrapper) → fenced block
+          const rawText = node.textContent || '';
+          if (rawText.includes('\n')) {
+            const lang = ((node.className || '').match(/language-(\S+)/) || [])[1] || '';
+            return '\n```' + lang + '\n' + rawText.trimEnd() + '\n```\n';
+          }
+          const t = inner.trim(); return t ? '`' + t + '`' : '';
+        }
+        case 'pre': {
+          const codeEl = node.querySelector('code');
+          const langFromCode   = codeEl ? ((codeEl.className || '').match(/language-(\S+)/) || [])[1] || '' : '';
+          const parentClass    = node.parentElement ? (node.parentElement.className || '') : '';
+          const langFromParent = (parentClass.match(/(?:highlight-source|language)[- ](\w+)/i) || [])[1] || '';
+          const lang = langFromCode || langFromParent;
+          const code = (codeEl ? codeEl.textContent : node.textContent) || '';
+          return '\n```' + lang + '\n' + code.trimEnd() + '\n```\n';
+        }
+        case 'ul': {
+          const items = Array.from(node.childNodes)
+            .filter(n => n.nodeType === 1 && n.tagName.toLowerCase() === 'li')
+            .map(li => `- ${walk(li).trim()}`).join('\n');
+          return items ? `\n${items}\n` : '';
+        }
+        case 'ol': {
+          const lis = Array.from(node.childNodes).filter(n => n.nodeType === 1 && n.tagName.toLowerCase() === 'li');
+          const items = lis.map((li, i) => `${i + 1}. ${walk(li).trim()}`).join('\n');
+          return items ? `\n${items}\n` : '';
+        }
+        case 'li': return inner;
+        case 'p':  { const t = inner.trim(); return t ? `\n${t}\n` : ''; }
+        case 'br': return '\n';
+        case 'hr': return '\n---\n';
+        case 'blockquote': {
+          const t = inner.trim().split('\n').map(l => `> ${l}`).join('\n');
+          return `\n${t}\n`;
+        }
+        case 'a': {
+          const href = node.getAttribute('href');
+          const text = inner.trim();
+          return href && text ? `[${text}](${href})` : text;
+        }
+        default: return inner;
+      }
+    }
+    return walk(el).replace(/\n{3,}/g, '\n\n').trim();
+  }
+
   function formatMessage(role, content) {
     return { role: role || 'unknown', content: (content || '').trim() };
   }
 
   function generateTitle(messages, url) {
+    // Strategy 1: first Markdown heading (h1–h3) from the assistant's first response.
+    const firstAssistant = messages.find(m => m.role === 'assistant');
+    if (firstAssistant && firstAssistant.content) {
+      const hm = firstAssistant.content.match(/^#{1,3}\s+(.+)$/m);
+      if (hm) {
+        const heading = hm[1].trim();
+        if (heading.length >= 4 && heading.length <= 120) return heading;
+      }
+    }
+    // Strategy 2: first complete sentence from the user's first message.
     const firstUser = messages.find(m => m.role === 'user');
     if (firstUser && firstUser.content) {
-      const text = firstUser.content.trim();
-      if (text.length > 0) return text.length > 80 ? text.slice(0, 77) + '...' : text;
+      const firstLine = firstUser.content
+        .split('\n')
+        .map(l => l
+          .replace(/^#{1,6}\s+/, '')
+          .replace(/\*\*(.+?)\*\*/g, '$1')
+          .replace(/\*(.+?)\*/g, '$1')
+          .replace(/`([^`]*)`/g, '$1')
+          .trim()
+        )
+        .find(l => l.length > 0) || '';
+      if (firstLine) {
+        const sentenceMatch = firstLine.match(/^(.+?[.?!])\s/);
+        if (sentenceMatch && sentenceMatch[1].length >= 8) return sentenceMatch[1].trim();
+        return firstLine;
+      }
     }
     if (url) {
       try {
@@ -78,13 +169,13 @@
         turn.querySelector('[class*="prose"]') ||
         turn.querySelector('[class*="whitespace-pre"]') ||
         roleEl;
-      const content = getTextContent(contentEl);
+      const content = htmlToMarkdown(contentEl);
       if (content) messages.push(formatMessage(role, content));
     });
     if (messages.length === 0) {
       doc.querySelectorAll('[data-message-author-role]').forEach(el => {
         const role = el.getAttribute('data-message-author-role') === 'user' ? 'user' : 'assistant';
-        const content = getTextContent(el);
+        const content = htmlToMarkdown(el);
         if (content) messages.push(formatMessage(role, content));
       });
     }
@@ -100,7 +191,7 @@
       ...aiTurns.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
     allTurns.forEach(({ el, role }) => {
-      const content = getTextContent(el);
+      const content = htmlToMarkdown(el);
       if (content) messages.push(formatMessage(role, content));
     });
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
@@ -115,7 +206,7 @@
       ...modelEls.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
     allEls.forEach(({ el, role }) => {
-      const content = getTextContent(el);
+      const content = htmlToMarkdown(el);
       if (content) messages.push(formatMessage(role, content));
     });
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
@@ -123,6 +214,14 @@
 
   function extractCopilot(doc) {
     const messages = [];
+
+    // Scope to the main conversation area so sidebar history items
+    // (which can share the same class patterns) are not included.
+    const chatScope =
+      doc.querySelector('main') ||
+      doc.querySelector('[role="main"]') ||
+      doc.querySelector('[class*="conversation"][class*="container"]') ||
+      doc;
 
     // Selectors that cover both copilot.microsoft.com and m365.cloud.microsoft.
     // If none match, the console.warn below will print a DOM sample so we can
@@ -144,10 +243,10 @@
 
     const dedup = (els) => [...new Set(els)];
     const userEls    = dedup(userSelectors.flatMap(sel => {
-      try { return Array.from(doc.querySelectorAll(sel)); } catch (_) { return []; }
+      try { return Array.from(chatScope.querySelectorAll(sel)); } catch (_) { return []; }
     }));
     const copilotEls = dedup(assistantSelectors.flatMap(sel => {
-      try { return Array.from(doc.querySelectorAll(sel)); } catch (_) { return []; }
+      try { return Array.from(chatScope.querySelectorAll(sel)); } catch (_) { return []; }
     }));
 
     console.log(`bAInder: extractCopilot found ${userEls.length} user, ${copilotEls.length} assistant elements`);
@@ -168,7 +267,7 @@
       ...copilotEls.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
     allEls.forEach(({ el, role }) => {
-      let content = getTextContent(el);
+      let content = htmlToMarkdown(el);
       if (role === 'user') content = stripCopilotLabel(content);
       if (content) messages.push(formatMessage(role, content));
     });

@@ -255,7 +255,6 @@ export function renderMarkdown(markdown) {
  * @param {string} message
  */
 export function showError(message) {
-  document.getElementById('state-loading').hidden = true;
   const el = document.getElementById('state-error');
   el.hidden = false;
   document.getElementById('error-message').textContent = message;
@@ -277,7 +276,6 @@ export function renderChat(chat) {
   const title     = fm.title  || chat.title  || 'Untitled Chat';
   const date      = fm.date   || (chat.timestamp ? new Date(chat.timestamp).toISOString() : '');
   const count     = typeof fm.messageCount === 'number' ? fm.messageCount : (chat.messageCount || 0);
-  const url       = fm.url || chat.url || '';
 
   document.title = `${title} — bAInder`;
 
@@ -285,7 +283,6 @@ export function renderChat(chat) {
   const dateEl   = document.getElementById('meta-date');
   const countEl  = document.getElementById('meta-count');
   const titleEl  = document.getElementById('reader-title');
-  const origBtn  = document.getElementById('btn-original');
   const header   = document.getElementById('reader-header');
 
   srcEl.className   = badgeClass(source, isExcerpt);
@@ -294,11 +291,6 @@ export function renderChat(chat) {
   countEl.textContent = count > 0 ? `${count} messages` : '';
   titleEl.textContent = title;
 
-  if (url) {
-    origBtn.href   = url;
-    origBtn.hidden = false;
-  }
-
   header.hidden = false;
 
   // ── Content ──────────────────────────────────────────────────────────────
@@ -306,9 +298,6 @@ export function renderChat(chat) {
 
   contentEl.innerHTML = renderMarkdown(content);
   contentEl.hidden = false;
-
-  // Hide loading state
-  document.getElementById('state-loading').hidden = true;
 }
 
 /**
@@ -326,8 +315,14 @@ export async function init(storage) {
     }
 
     const result = await storage.get(['chats']);
-    const chats  = result.chats || {};
-    const chat   = chats[chatId] || null;
+    const chatsRaw = result.chats;
+    // chats may be stored as an array (primary format) or object map (legacy)
+    let chat = null;
+    if (Array.isArray(chatsRaw)) {
+      chat = chatsRaw.find(c => c.id === chatId) || null;
+    } else if (chatsRaw && typeof chatsRaw === 'object') {
+      chat = chatsRaw[chatId] || null;
+    }
 
     if (!chat) {
       showError(`Conversation not found (id: ${chatId}). It may have been deleted.`);
@@ -341,9 +336,9 @@ export async function init(storage) {
 }
 
 // ── Auto-run when loaded as a browser extension page ──────────────────────────
-// Only run when the actual reader DOM (state-loading element) is present.
+// Only run when the actual reader DOM (reader-content element) is present.
 // This guard prevents accidental execution when reader.js is imported in tests.
 /* c8 ignore next 3 */
-if (typeof chrome !== 'undefined' && chrome.storage && document.getElementById('state-loading')) {
+if (typeof chrome !== 'undefined' && chrome.storage && document.getElementById('reader-content')) {
   init(chrome.storage.local);
 }

@@ -10,6 +10,7 @@ import {
   detectPlatform,
   sanitizeContent,
   getTextContent,
+  htmlToMarkdown,
   formatMessage,
   generateTitle,
   extractChatGPT,
@@ -227,6 +228,174 @@ describe('getTextContent()', () => {
   });
 });
 
+// ─── htmlToMarkdown ───────────────────────────────────────────────────────────
+
+describe('htmlToMarkdown()', () => {
+  function el(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div;
+  }
+
+  it('returns empty string for null', () => {
+    expect(htmlToMarkdown(null)).toBe('');
+  });
+
+  it('returns plain text unchanged', () => {
+    expect(htmlToMarkdown(el('Hello world'))).toBe('Hello world');
+  });
+
+  it('converts <strong> to **bold**', () => {
+    expect(htmlToMarkdown(el('<strong>bold</strong>'))).toBe('**bold**');
+  });
+
+  it('converts <b> to **bold**', () => {
+    expect(htmlToMarkdown(el('<b>bold</b>'))).toBe('**bold**');
+  });
+
+  it('converts <em> to *italic*', () => {
+    expect(htmlToMarkdown(el('<em>italic</em>'))).toBe('*italic*');
+  });
+
+  it('converts <i> to *italic*', () => {
+    expect(htmlToMarkdown(el('<i>italic</i>'))).toBe('*italic*');
+  });
+
+  it('converts inline <code> to backtick-code', () => {
+    expect(htmlToMarkdown(el('<code>x = 1</code>'))).toBe('`x = 1`');
+  });
+
+  it('converts <pre><code> to fenced code block', () => {
+    const result = htmlToMarkdown(el('<pre><code>console.log(1)</code></pre>'));
+    expect(result).toBe('```\nconsole.log(1)\n```');
+  });
+
+  it('preserves language class in fenced code block', () => {
+    const result = htmlToMarkdown(el('<pre><code class="language-python">print(1)</code></pre>'));
+    expect(result).toBe('```python\nprint(1)\n```');
+  });
+
+  it('converts <h1> to # heading', () => {
+    expect(htmlToMarkdown(el('<h1>Title</h1>'))).toBe('# Title');
+  });
+
+  it('converts <h2> to ## heading', () => {
+    expect(htmlToMarkdown(el('<h2>Sub</h2>'))).toBe('## Sub');
+  });
+
+  it('converts <h3> to ### heading', () => {
+    expect(htmlToMarkdown(el('<h3>Sub</h3>'))).toBe('### Sub');
+  });
+
+  it('converts <ul><li> to unordered list', () => {
+    const result = htmlToMarkdown(el('<ul><li>One</li><li>Two</li></ul>'));
+    expect(result).toBe('- One\n- Two');
+  });
+
+  it('converts <ol><li> to ordered list', () => {
+    const result = htmlToMarkdown(el('<ol><li>First</li><li>Second</li></ol>'));
+    expect(result).toBe('1. First\n2. Second');
+  });
+
+  it('converts <blockquote> to > quote lines', () => {
+    const result = htmlToMarkdown(el('<blockquote>Note this</blockquote>'));
+    expect(result).toBe('> Note this');
+  });
+
+  it('converts <a href> to [text](url)', () => {
+    const result = htmlToMarkdown(el('<a href="https://example.com">Example</a>'));
+    expect(result).toBe('[Example](https://example.com)');
+  });
+
+  it('uses link text only when href is absent', () => {
+    const result = htmlToMarkdown(el('<a>just text</a>'));
+    expect(result).toBe('just text');
+  });
+
+  it('skips aria-hidden elements', () => {
+    const result = htmlToMarkdown(el('<span aria-hidden="true">hidden</span>visible'));
+    expect(result).toBe('visible');
+  });
+
+  it('skips <svg>, <button>, <script> elements', () => {
+    const result = htmlToMarkdown(el('<svg>icon</svg><button>click</button><script>bad</script>text'));
+    expect(result).toBe('text');
+  });
+
+  it('collapses 3+ consecutive newlines to 2', () => {
+    const result = htmlToMarkdown(el('<p>A</p><p>B</p><p>C</p>'));
+    expect(result).not.toMatch(/\n{3,}/);
+  });
+
+  it('handles mixed rich content: bold inside list item', () => {
+    const result = htmlToMarkdown(el('<ul><li><strong>Key</strong>: value</li></ul>'));
+    expect(result).toContain('**Key**');
+    expect(result).toContain('- ');
+  });
+
+  it('handles a realistic assistant response with heading, list, and code', () => {
+    const html = [
+      '<h2>Steps</h2>',
+      '<ol><li>Install Node</li><li>Run <code>npm install</code></li></ol>',
+      '<pre><code class="language-bash">npm start</code></pre>',
+    ].join('');
+    const result = htmlToMarkdown(el(html));
+    expect(result).toContain('## Steps');
+    expect(result).toContain('1. Install Node');
+    expect(result).toContain('`npm install`');
+    expect(result).toContain('```bash');
+    expect(result).toContain('npm start');
+  });
+
+  // ── Code block improvements ────────────────────────────────────────────
+
+  it('renders multi-line <code> without <pre> as a fenced code block', () => {
+    // Some AI renderers omit the <pre> wrapper
+    const codeEl = document.createElement('code');
+    codeEl.textContent = 'def hello():\n    print("world")';
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(codeEl);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('```');
+    expect(result).toContain('def hello():');
+    expect(result).toContain('print("world")');
+  });
+
+  it('detects language from <code class="language-python"> inside standalone code', () => {
+    const codeEl = document.createElement('code');
+    codeEl.className = 'language-python';
+    codeEl.textContent = 'def hello():\n    pass';
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(codeEl);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('```python');
+  });
+
+  it('detects language from parent <div class="highlight-source-python"><pre>', () => {
+    // GitHub-style syntax-highlighted code blocks
+    const container = document.createElement('div');
+    container.className = 'highlight-source-python';
+    const pre = document.createElement('pre');
+    pre.textContent = 'def hello():\n    pass';
+    container.appendChild(pre);
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(container);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('```python');
+  });
+
+  it('<pre> without <code> child still produces a fenced code block', () => {
+    // Some renderers put code directly in <pre> with <span> syntax highlighting
+    const pre = document.createElement('pre');
+    pre.innerHTML = '<span class="hljs-keyword">const</span> x = <span class="hljs-number">1</span>;';
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(pre);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('```');
+    expect(result).toContain('const x = 1;');
+  });
+});
+
 // ─── formatMessage ────────────────────────────────────────────────────────────
 
 describe('formatMessage()', () => {
@@ -251,7 +420,7 @@ describe('formatMessage()', () => {
 // ─── generateTitle ────────────────────────────────────────────────────────────
 
 describe('generateTitle()', () => {
-  it('uses the first user message as the title', () => {
+  it('uses the first user message as the title when assistant has no heading', () => {
     const messages = [
       { role: 'assistant', content: 'Hi there!' },
       { role: 'user',      content: 'What is the capital of France?' }
@@ -259,14 +428,14 @@ describe('generateTitle()', () => {
     expect(generateTitle(messages, '')).toBe('What is the capital of France?');
   });
 
-  it('truncates long first user messages to 80 chars', () => {
-    const long = 'A'.repeat(100);
+  it('does NOT truncate long first user messages (regression: was 80 chars)', () => {
+    const long = 'A'.repeat(200);
     const title = generateTitle([{ role: 'user', content: long }], '');
-    expect(title).toHaveLength(80);
-    expect(title.endsWith('...')).toBe(true);
+    expect(title).toBe(long);   // full content returned — no truncation
+    expect(title.endsWith('...')).toBe(false);
   });
 
-  it('exactly-80-char message is NOT truncated', () => {
+  it('exactly-80-char message is not truncated', () => {
     const exact = 'A'.repeat(80);
     const title = generateTitle([{ role: 'user', content: exact }], '');
     expect(title).toBe(exact);
@@ -289,6 +458,227 @@ describe('generateTitle()', () => {
     // Segment 'c' is skipped; no other segments
     const title = generateTitle([], 'https://chat.openai.com/c');
     expect(title).toBe('Untitled Chat');
+  });
+
+  // ── New behaviour: content is stored as markdown after htmlToMarkdown ────
+
+  it('strips ** bold markers from user content when building the title', () => {
+    const title = generateTitle([{ role: 'user', content: '**Hello** world' }], '');
+    expect(title).toBe('Hello world');
+    expect(title).not.toContain('**');
+  });
+
+  it('strips # heading markers from user content when building the title', () => {
+    const title = generateTitle([{ role: 'user', content: '## My Question' }], '');
+    expect(title).toBe('My Question');
+    expect(title).not.toContain('#');
+  });
+
+  it('strips inline `code` markers from user content', () => {
+    const title = generateTitle([{ role: 'user', content: 'Use `npm install` to start' }], '');
+    expect(title).toBe('Use npm install to start');
+  });
+
+  it('uses first non-empty line from multi-line user content', () => {
+    const multiLine = '\nFirst line\nSecond line\nThird line';
+    expect(generateTitle([{ role: 'user', content: multiLine }], '')).toBe('First line');
+  });
+
+  it('skips blank lines and code fences to find first real text', () => {
+    const content = '\n\n```javascript\nconst x = 1;\n```\n\nActual question here';
+    // First non-empty non-code-fence line is the ``` fence itself — we want whatever comes through
+    // The important thing: title is not empty
+    const title = generateTitle([{ role: 'user', content: content }], '');
+    expect(title.length).toBeGreaterThan(0);
+  });
+
+  // ── Strategy 1: assistant heading ────────────────────────────────────────────
+
+  it('prefers assistant h1 heading over user message', () => {
+    const messages = [
+      { role: 'user',      content: 'How do closures work in JS?' },
+      { role: 'assistant', content: '# JavaScript Closures\nA closure is a function...' },
+    ];
+    expect(generateTitle(messages, '')).toBe('JavaScript Closures');
+  });
+
+  it('prefers assistant h2 heading over user message', () => {
+    const messages = [
+      { role: 'user',      content: 'How do I centre a div?' },
+      { role: 'assistant', content: '## Centering a Div with Flexbox\nUse flex...' },
+    ];
+    expect(generateTitle(messages, '')).toBe('Centering a Div with Flexbox');
+  });
+
+  it('falls through to user message when assistant has no heading', () => {
+    const messages = [
+      { role: 'assistant', content: 'Sure, here is my answer.' },
+      { role: 'user',      content: 'Explain recursion' },
+    ];
+    expect(generateTitle(messages, '')).toBe('Explain recursion');
+  });
+
+  it('skips assistant heading shorter than 4 chars', () => {
+    const messages = [
+      { role: 'assistant', content: '# Hi\nSome content here.' },
+      { role: 'user',      content: 'Say hi to me' },
+    ];
+    // 'Hi' is only 2 chars — falls back to user message
+    expect(generateTitle(messages, '')).toBe('Say hi to me');
+  });
+
+  // ── Strategy 2: first complete sentence ────────────────────────────────
+
+  it('extracts first complete sentence when followed by more text', () => {
+    const messages = [{ role: 'user', content: 'How do I sort an array? I tried various methods.' }];
+    expect(generateTitle(messages, '')).toBe('How do I sort an array?');
+  });
+
+  it('returns full first line when there is no sentence terminator', () => {
+    const messages = [{ role: 'user', content: 'Explain the difference between let and const' }];
+    expect(generateTitle(messages, '')).toBe('Explain the difference between let and const');
+  });
+});
+
+// ─── htmlToMarkdown — extractor integration (rich formatting preserved) ──────
+
+describe('extractors — rich formatting preserved via htmlToMarkdown', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('extractChatGPT: preserves bold, inline code, and list from assistant HTML', () => {
+    // Build a ChatGPT-style DOM where the .markdown div has rich HTML
+    const div = document.createElement('div');
+    const article = document.createElement('article');
+    article.setAttribute('data-testid', 'conversation-turn-0');
+    const roleEl = document.createElement('div');
+    roleEl.setAttribute('data-message-author-role', 'assistant');
+    const contentEl = document.createElement('div');
+    contentEl.className = 'markdown';
+    contentEl.innerHTML = '<p>Use <strong>flexbox</strong>:</p><ul><li>Set <code>display: flex</code></li><li>Add <code>gap</code></li></ul>';
+    roleEl.appendChild(contentEl);
+    article.appendChild(roleEl);
+    div.appendChild(article);
+    document.body.appendChild(div);
+
+    const result = extractChatGPT(document);
+    const content = result.messages[0].content;
+    expect(content).toContain('**flexbox**');
+    expect(content).toContain('`display: flex`');
+    expect(content).toContain('- ');
+  });
+
+  it('extractCopilot: preserves heading, code block, and bold from assistant HTML', () => {
+    document.body.innerHTML = '';
+    const wrapper = document.createElement('div');
+    const userEl = document.createElement('div');
+    userEl.setAttribute('data-testid', 'user-message');
+    userEl.textContent = 'How do I centre a div?';
+
+    const assistantEl = document.createElement('div');
+    assistantEl.setAttribute('data-testid', 'copilot-message');
+    assistantEl.innerHTML = [
+      '<h2>Answer</h2>',
+      '<p>Use <strong>flexbox</strong> on the parent.</p>',
+      '<pre><code class="language-css">.parent { display: flex; }</code></pre>',
+    ].join('');
+
+    wrapper.appendChild(userEl);
+    wrapper.appendChild(assistantEl);
+    document.body.appendChild(wrapper);
+
+    const result = extractCopilot(document);
+    const assistantMsg = result.messages.find(m => m.role === 'assistant');
+    expect(assistantMsg).toBeDefined();
+    expect(assistantMsg.content).toContain('## Answer');
+    expect(assistantMsg.content).toContain('**flexbox**');
+    expect(assistantMsg.content).toContain('```css');
+    expect(assistantMsg.content).toContain('.parent { display: flex; }');
+  });
+
+  it('prepareChatForSave: markdown content contains preserved formatting', () => {
+    document.body.innerHTML = '';
+    const wrapper = document.createElement('div');
+    const userEl = document.createElement('div');
+    userEl.setAttribute('data-testid', 'user-message');
+    userEl.textContent = 'Explain lists';
+    const assistantEl = document.createElement('div');
+    assistantEl.setAttribute('data-testid', 'copilot-message');
+    assistantEl.innerHTML = '<ul><li><strong>ul</strong>: unordered</li><li><strong>ol</strong>: ordered</li></ul>';
+    wrapper.appendChild(userEl);
+    wrapper.appendChild(assistantEl);
+    document.body.appendChild(wrapper);
+
+    const extracted = extractCopilot(document);
+    const savePayload = prepareChatForSave({
+      platform: 'copilot',
+      url: 'https://copilot.microsoft.com/chats/test',
+      title: extracted.title,
+      messages: extracted.messages,
+      messageCount: extracted.messageCount,
+      extractedAt: Date.now(),
+    });
+    // The saved content Markdown should contain the bold items
+    expect(savePayload.content).toContain('**ul**');
+    expect(savePayload.content).toContain('**ol**');
+    expect(savePayload.content).toContain('- ');
+  });
+
+  // ── Sidebar scoping: extractCopilot only reads from the main area ─────────
+
+  it('extractCopilot: ignores user elements outside <main> when <main> is present', () => {
+    document.body.innerHTML = '';
+
+    // Sidebar element OUTSIDE main – should be ignored
+    const sidebar = document.createElement('aside');
+    const sidebarMsg = document.createElement('div');
+    sidebarMsg.setAttribute('data-testid', 'user-message');
+    sidebarMsg.textContent = 'Sidebar history summary — should NOT appear';
+    sidebar.appendChild(sidebarMsg);
+    document.body.appendChild(sidebar);
+
+    // Main conversation area
+    const main = document.createElement('main');
+    const userEl = document.createElement('div');
+    userEl.setAttribute('data-testid', 'user-message');
+    userEl.textContent = 'Real user prompt';
+    const assistantEl = document.createElement('div');
+    assistantEl.setAttribute('data-testid', 'copilot-message');
+    assistantEl.textContent = 'Real copilot response';
+    main.appendChild(userEl);
+    main.appendChild(assistantEl);
+    document.body.appendChild(main);
+
+    const result = extractCopilot(document);
+    const allContent = result.messages.map(m => m.content).join(' ');
+    expect(allContent).toContain('Real user prompt');
+    expect(allContent).not.toContain('Sidebar history summary');
+    expect(result.messageCount).toBe(2);
+  });
+
+  it('extractCopilot: title comes from actual first user message, not sidebar', () => {
+    document.body.innerHTML = '';
+
+    const sidebar = document.createElement('aside');
+    const sidebarTitle = document.createElement('div');
+    sidebarTitle.setAttribute('data-testid', 'user-message');
+    sidebarTitle.textContent = 'Summarised sidebar title';
+    sidebar.appendChild(sidebarTitle);
+    document.body.appendChild(sidebar);
+
+    const main = document.createElement('main');
+    const userEl = document.createElement('div');
+    userEl.setAttribute('data-testid', 'user-message');
+    userEl.textContent = 'My full original prompt text';
+    const assistantEl = document.createElement('div');
+    assistantEl.setAttribute('data-testid', 'copilot-message');
+    assistantEl.textContent = 'Answer';
+    main.appendChild(userEl);
+    main.appendChild(assistantEl);
+    document.body.appendChild(main);
+
+    const result = extractCopilot(document);
+    expect(result.title).toBe('My full original prompt text');
+    expect(result.title).not.toContain('Summarised');
   });
 });
 

@@ -37,6 +37,9 @@
 
 /* ── Reset / Base ─────────────────────────────────────────────────────────── */
 
+/* Ensure [hidden] always wins over component display rules (e.g. .state-card uses flex) */
+[hidden] { display: none !important; }
+
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
@@ -115,30 +118,6 @@ body {
   .badge--gemini   { background: #1e3a8a; color: #93c5fd; }
   .badge--copilot  { background: #2e1065; color: #c4b5fd; }
   .badge--excerpt  { background: #422006; color: #fde68a; }
-}
-
-/* ── Button ──────────────────────────────────────────────────────────────── */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  border: none;
-}
-.btn--outline {
-  border: 1px solid var(--border-primary);
-  color: var(--text-secondary);
-  background: transparent;
-}
-.btn--outline:hover {
-  background: var(--bg-code);
-  color: var(--text-primary);
 }
 
 /* ── Main content ────────────────────────────────────────────────────────── */
@@ -263,13 +242,3 @@ body {
 .state-card__icon { font-size: 2.5rem; }
 .state-card__message { font-weight: 500; color: var(--text-primary); }
 
-/* Spinner */
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border-primary);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
