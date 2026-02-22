@@ -399,13 +399,8 @@ export class TreeRenderer {
       const _hideOverlay = () => {
         if (_overlay) { _overlay.remove(); _overlay = null; }
       };
-      tagsEl.addEventListener('mouseenter', (e) => {
+      content.addEventListener('mouseenter', () => {
         _showOverlay(content.getBoundingClientRect());
-      });
-      tagsEl.addEventListener('mouseleave', (e) => {
-        // Keep open if moving to the overlay itself (pointer-events: none,
-        // so this path is safe — overlay never captures leave events)
-        _hideOverlay();
       });
       content.addEventListener('mouseleave', _hideOverlay);
     }
