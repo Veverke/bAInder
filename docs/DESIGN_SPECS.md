@@ -458,11 +458,27 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
 - Maintain topic organization integrity during operations
 - Preserve chat metadata (date, source, URL)
 
+##### 1.3.1 Saved Chat Display Format
+Conversation turns are stored as Markdown and rendered in the reader page. Each turn is visually
+distinguished by an inline emoji prefix rather than verbose `**User** / **Assistant**` headers:
+- 🙋 *(person raising hand)* — prepended to the **first line** of every **user** message
+- 🤖 *(robot face)* — prepended to the **first non-empty line** of every **assistant** message only; the rest of the assistant's response is rendered as-is, since it is implicitly continuation content
+
+A horizontal rule (`---`) separates consecutive turns for visual clarity.
+
 #### 1.4 Search Functionality
 - Full-text search across all chat contents
 - Results display with topic context (breadcrumb path)
 - Click result to navigate to specific chat in tree
 - Search within specific topic branches (optional filter)
+- **Tag-based search** — search query matches against chat tags in addition to title/content
+
+#### 1.5 Chat Tagging
+- Users can attach one or more free-text **tags** to any saved chat (e.g. `react`, `performance`, `debugging`)
+- Tags are entered as a comma-separated list in the assign/edit chat dialog
+- Tags are stored as a `string[]` on the `ChatEntry` object and persisted in `chrome.storage.local`
+- Tags are rendered as small coloured chips on the chat item in the tree view
+- Search matches against both content/title and tags; tag matches are highlighted in result cards
 
 #### 1.5 Content Actions (Context Menu)
 - Right-click context menu on topics/chats
@@ -479,7 +495,12 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
 #### 1.6 UI/UX
 - **Side panel** interface (persistent alongside browser)
 - **Timespan indicators** displaying date ranges for each topic to provide temporal context
-- Drag & drop for reorganizing topics/chats
+- **Drag & drop** for reorganizing topics and chats:
+  - Any **topic** can be dragged onto another topic (becomes a child) or onto the root area (becomes a root topic)
+  - Any **chat item** can be dragged onto a topic node to re-assign it
+  - A translucent drop-target highlight appears on valid drop targets during a drag operation
+  - After a successful drop the tree is re-rendered and changes are persisted
+- **Delete topic** removes the topic, **all descendant topics**, and **all chats** belonging to those topics from storage; this applies equally to root-level topics
 - Visual feedback for operations
 - Storage usage indicator
 - Responsive design
@@ -622,6 +643,7 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
     url: string,
     source: 'chatgpt' | 'claude' | 'gemini',
     timestamp: timestamp,
+    tags: string[],   // user-assigned tags, e.g. ['react', 'performance']
     metadata: object
   }
   ```
@@ -700,8 +722,11 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
   - Delete topic (with confirmation)
   - Merge with... (with topic picker)
 - Add drag & drop support:
-  - Drag topic to reorder or move to another parent
-  - Visual drop indicators
+  - Topics: `draggable="true"` on topic nodes; drop onto another topic node or root to re-parent
+  - Chats: drag a chat item and drop onto a topic node to reassign it
+  - Visual drop-target highlight (CSS class `drop-target`) on valid targets
+  - `onTopicDrop(draggedTopicId, targetTopicId|null)` callback → `tree.moveTopic` + persist
+  - `onChatDrop(chatId, targetTopicId)` callback → `moveChatToTopic` + persist
   - Update tree after drop
 - Wire up all operations to TopicTree and StorageService
 - Add undo/redo support (optional but recommended)
@@ -839,10 +864,11 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
   - Topic breadcrumb path for each result
   - Highlight matching terms
 - Implement `SearchIndex` class:
-  - Index chat content on save
+  - Index chat content and **tags** on save
   - Simple text-based search (MVP)
   - Return results with relevance scoring
   - Include topic path in results
+  - Tag matches surface in result cards alongside snippet highlights
 - Add search filters (optional):
   - Filter by date range
   - Filter by source (ChatGPT, Claude, etc.)

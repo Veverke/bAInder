@@ -93,24 +93,36 @@ export function buildChatEntry(chatData, tabUrl) {
  * Build a save payload from a text selection (context menu excerpt save).
  * The returned object is compatible with validateChatData / handleSaveChat.
  *
- * @param {string} selectionText  The user-selected text
+ * @param {string} selectionText  The user-selected text (plain text fallback)
  * @param {string} pageUrl        URL of the page where the selection was made
+ * @param {string|null} richMarkdown  Rich markdown extracted via content script (preferred)
  * @returns {Object}  chatData payload ready for handleSaveChat
  * @throws {Error} if selection is empty
  */
-export function buildExcerptPayload(selectionText, pageUrl) {
+export function buildExcerptPayload(selectionText, pageUrl, richMarkdown = null) {
   if (!selectionText || !selectionText.trim()) {
     throw new Error('Selection is empty');
   }
   const text   = selectionText.trim();
-  const title  = text.split('\n')[0].slice(0, 80).trim() || 'Excerpt';
+  // Derive a clean title from whichever body we're using.
+  // Pick the first non-empty non-heading line, then trim to a sentence or
+  // word boundary so it doesn't cut mid-word.
+  const bodyForTitle = richMarkdown
+    ? richMarkdown.split('\n').find(l => l.trim() && !/^#{1,6} /.test(l.trim())) || text.split('\n')[0]
+    : text.split('\n')[0];
+  const rawTitle = bodyForTitle.replace(/^#+\s*/, '').replace(/\*\*/g, '').trim();
+  // Cap at 80 characters but break at a word boundary; append ellipsis if cut
+  const title = rawTitle.length <= 80
+    ? (rawTitle || 'Excerpt')
+    : ((rawTitle.slice(0, 79).replace(/\s\S*$/, '') || rawTitle.slice(0, 79)) + '\u2026');
   const source = detectSource(pageUrl || '');
+  const body   = richMarkdown || text;   // prefer rich markdown when available
   const content = messagesToMarkdown([], {
     title,
     source,
     url:       pageUrl || '',
     isExcerpt: true,
-    body:      text,
+    body,
   });
   return {
     title,

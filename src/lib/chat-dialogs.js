@@ -51,6 +51,13 @@ export class ChatDialogs {
           required:    true
         },
         {
+          name:        'tags',
+          label:       'Tags',
+          type:        'text',
+          value:       (chatEntry.tags || []).join(', '),
+          placeholder: 'e.g. react, performance, debugging'
+        },
+        {
           name:     'topicId',
           label:    'Assign to Topic',
           type:     'select',
@@ -63,7 +70,42 @@ export class ChatDialogs {
     );
 
     if (!result) return null;
-    return { topicId: result.topicId, title: result.title.trim() };
+    const tags = (result.tags || '')
+      .split(',')
+      .map(t => t.trim().toLowerCase())
+      .filter(t => t.length > 0);
+    return { topicId: result.topicId, title: result.title.trim(), tags };
+  }
+
+  /**
+   * Show dialog to edit only the tags of a chat.
+   *
+   * @param {Object} chat
+   * @returns {Promise<{tags: string[]}|null>}
+   */
+  async showEditTags(chat) {
+    if (!chat) throw new Error('Chat is required');
+
+    const result = await this.dialog.form(
+      [
+        {
+          name:        'tags',
+          label:       'Tags',
+          type:        'text',
+          value:       (chat.tags || []).join(', '),
+          placeholder: 'e.g. react, performance, debugging'
+        }
+      ],
+      `Edit Tags: "${chat.title.length > 40 ? chat.title.slice(0, 37) + '...' : chat.title}"`,
+      'Save Tags'
+    );
+
+    if (!result) return null;
+    const tags = (result.tags || '')
+      .split(',')
+      .map(t => t.trim().toLowerCase())
+      .filter(t => t.length > 0);
+    return { tags };
   }
 
   /**
@@ -84,15 +126,28 @@ export class ChatDialogs {
           value:       chat.title,
           placeholder: 'Enter a new title',
           required:    true
+        },
+        {
+          name:        'tags',
+          label:       'Tags',
+          type:        'text',
+          value:       (chat.tags || []).join(', '),
+          placeholder: 'e.g. react, performance, debugging'
         }
       ],
-      'Rename Chat',
-      'Rename'
+      'Edit Chat',
+      'Save'
     );
 
     if (!result) return null;
-    if (result.title.trim() === chat.title.trim()) return null;
-    return { title: result.title.trim() };
+    const newTitle = result.title.trim();
+    const tags = (result.tags || '')
+      .split(',')
+      .map(t => t.trim().toLowerCase())
+      .filter(t => t.length > 0);
+    if (newTitle === chat.title.trim() &&
+        JSON.stringify(tags) === JSON.stringify(chat.tags || [])) return null;
+    return { title: newTitle, tags };
   }
 
   /**

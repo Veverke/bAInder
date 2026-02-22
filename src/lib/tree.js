@@ -125,6 +125,7 @@ export class ChatEntry {
     this.url = url;
     this.source = source;
     this.timestamp = timestamp || Date.now();
+    this.tags = [];
     this.metadata = {};
   }
 
@@ -149,6 +150,7 @@ export class ChatEntry {
       url: this.url,
       source: this.source,
       timestamp: this.timestamp,
+      tags: this.tags || [],
       metadata: this.metadata
     };
   }

@@ -29,49 +29,11 @@ export class IStorageService {
   }
 
   /**
-   * Save a chat entry to a specific topic
-   * @param {string} topicId - The topic ID to save the chat under
-   * @param {Object} chatData - The chat entry data
-   * @returns {Promise<string>} The chat ID
-   */
-  async saveChat(topicId, chatData) {
-    throw new Error('Method not implemented');
-  }
-
-  /**
-   * Load a specific chat by ID
-   * @param {string} chatId - The chat ID to load
-   * @returns {Promise<Object|null>} The chat entry or null if not found
-   */
-  async loadChat(chatId) {
-    throw new Error('Method not implemented');
-  }
-
-  /**
    * Search chats by query string
    * @param {string} query - The search query
    * @returns {Promise<Array>} Array of matching chat entries
    */
   async searchChats(query) {
-    throw new Error('Method not implemented');
-  }
-
-  /**
-   * Delete a chat entry
-   * @param {string} chatId - The chat ID to delete
-   * @returns {Promise<boolean>} Success status
-   */
-  async deleteChat(chatId) {
-    throw new Error('Method not implemented');
-  }
-
-  /**
-   * Delete a topic and optionally its chats
-   * @param {string} topicId - The topic ID to delete
-   * @param {boolean} deleteChats - Whether to delete associated chats
-   * @returns {Promise<boolean>} Success status
-   */
-  async deleteTopic(topicId, deleteChats = false) {
     throw new Error('Method not implemented');
   }
 
@@ -140,164 +102,42 @@ export class ChromeStorageAdapter extends IStorageService {
   }
 
   /**
-   * Save a chat entry
-   */
-  async saveChat(topicId, chatData) {
-    try {
-      // Generate ID if not provided
-      const chatId = chatData.id || this._generateId('chat');
-      
-      // Validate required fields
-      this._validateChatData(chatData);
-      
-      // Load existing chats
-      const result = await chrome.storage.local.get(this.KEYS.CHATS);
-      const chats = result[this.KEYS.CHATS] || {};
-      
-      // Add topic ID and ensure proper structure
-      const chat = {
-        ...chatData,
-        id: chatId,
-        topicId: topicId,
-        savedAt: Date.now()
-      };
-      
-      // Save chat
-      chats[chatId] = chat;
-      await chrome.storage.local.set({
-        [this.KEYS.CHATS]: chats
-      });
-      
-      await this._updateMetadata();
-      return chatId;
-    } catch (error) {
-      console.error('Error saving chat:', error);
-      throw new Error(`Failed to save chat: ${error.message}`);
-    }
-  }
-
-  /**
-   * Load a specific chat
-   */
-  async loadChat(chatId) {
-    try {
-      const result = await chrome.storage.local.get(this.KEYS.CHATS);
-      const chats = result[this.KEYS.CHATS] || {};
-      return chats[chatId] || null;
-    } catch (error) {
-      console.error('Error loading chat:', error);
-      throw new Error(`Failed to load chat: ${error.message}`);
-    }
-  }
-
-  /**
    * Search chats by query
    */
   async searchChats(query) {
     try {
       const result = await chrome.storage.local.get(this.KEYS.CHATS);
-      const chats = result[this.KEYS.CHATS] || {};
-      
+      const chats = result[this.KEYS.CHATS] || [];
+
       const lowerQuery = query.toLowerCase();
       const matches = [];
-      
-      for (const chatId in chats) {
-        const chat = chats[chatId];
-        const searchText = `${chat.title} ${chat.content}`.toLowerCase();
-        
+
+      for (const chat of chats) {
+        if (!chat) continue;
+        // Build searchable text: title + content + tags
+        const tagText = (chat.tags || []).join(' ');
+        const searchText = `${chat.title || ''} ${chat.content || ''} ${tagText}`.toLowerCase();
+
         if (searchText.includes(lowerQuery)) {
           matches.push(chat);
         }
       }
-      
-      // Sort by relevance (title matches first, then by timestamp)
+
+      // Sort by relevance (title/tag matches first, then by timestamp)
       return matches.sort((a, b) => {
-        const aTitle = a.title.toLowerCase().includes(lowerQuery);
-        const bTitle = b.title.toLowerCase().includes(lowerQuery);
-        
-        if (aTitle && !bTitle) return -1;
-        if (!aTitle && bTitle) return 1;
+        const aTitle = (a.title || '').toLowerCase().includes(lowerQuery);
+        const bTitle = (b.title || '').toLowerCase().includes(lowerQuery);
+        const aTag   = (a.tags || []).some(t => t.toLowerCase().includes(lowerQuery));
+        const bTag   = (b.tags || []).some(t => t.toLowerCase().includes(lowerQuery));
+        const aTop = aTitle || aTag;
+        const bTop = bTitle || bTag;
+        if (aTop && !bTop) return -1;
+        if (!aTop && bTop) return  1;
         return (b.timestamp || 0) - (a.timestamp || 0);
       });
     } catch (error) {
       console.error('Error searching chats:', error);
       throw new Error(`Failed to search chats: ${error.message}`);
-    }
-  }
-
-  /**
-   * Delete a chat entry
-   */
-  async deleteChat(chatId) {
-    try {
-      const result = await chrome.storage.local.get(this.KEYS.CHATS);
-      const chats = result[this.KEYS.CHATS] || {};
-      
-      if (!chats[chatId]) {
-        return false;
-      }
-      
-      delete chats[chatId];
-      await chrome.storage.local.set({
-        [this.KEYS.CHATS]: chats
-      });
-      
-      await this._updateMetadata();
-      return true;
-    } catch (error) {
-      console.error('Error deleting chat:', error);
-      throw new Error(`Failed to delete chat: ${error.message}`);
-    }
-  }
-
-  /**
-   * Delete a topic and optionally its chats
-   */
-  async deleteTopic(topicId, deleteChats = false) {
-    try {
-      // Load topic tree
-      const tree = await this.loadTopicTree();
-      
-      if (!tree.topics[topicId]) {
-        return false;
-      }
-      
-      // Get chat IDs if we need to delete them
-      if (deleteChats) {
-        const result = await chrome.storage.local.get(this.KEYS.CHATS);
-        const chats = result[this.KEYS.CHATS] || {};
-        
-        // Delete all chats in this topic
-        for (const chatId in chats) {
-          if (chats[chatId].topicId === topicId) {
-            delete chats[chatId];
-          }
-        }
-        
-        await chrome.storage.local.set({
-          [this.KEYS.CHATS]: chats
-        });
-      }
-      
-      // Remove topic from tree
-      delete tree.topics[topicId];
-      
-      // Remove from parent's children or root
-      const topic = tree.topics[topicId];
-      if (topic && topic.parentId) {
-        const parent = tree.topics[topic.parentId];
-        if (parent) {
-          parent.children = parent.children.filter(id => id !== topicId);
-        }
-      } else {
-        tree.rootTopicIds = tree.rootTopicIds.filter(id => id !== topicId);
-      }
-      
-      await this.saveTopicTree(tree);
-      return true;
-    } catch (error) {
-      console.error('Error deleting topic:', error);
-      throw new Error(`Failed to delete topic: ${error.message}`);
     }
   }
 
@@ -312,14 +152,14 @@ export class ChromeStorageAdapter extends IStorageService {
       // Get counts
       const tree = await this.loadTopicTree();
       const result = await chrome.storage.local.get(this.KEYS.CHATS);
-      const chats = result[this.KEYS.CHATS] || {};
+      const chats = result[this.KEYS.CHATS] || [];
       
       return {
         bytesUsed: bytesInUse,
         bytesQuota: quota,
         percentUsed: (bytesInUse / quota) * 100,
         topicCount: Object.keys(tree.topics || {}).length,
-        chatCount: Object.keys(chats).length
+        chatCount: chats.length
       };
     } catch (error) {
       console.error('Error getting storage usage:', error);
@@ -357,27 +197,6 @@ export class ChromeStorageAdapter extends IStorageService {
     }
   }
 
-  /**
-   * Private: Generate a unique ID
-   */
-  _generateId(prefix = 'item') {
-    return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  /**
-   * Private: Validate chat data structure
-   */
-  _validateChatData(chatData) {
-    if (!chatData.title || typeof chatData.title !== 'string') {
-      throw new Error('Chat must have a title (string)');
-    }
-    if (!chatData.content || typeof chatData.content !== 'string') {
-      throw new Error('Chat must have content (string)');
-    }
-    if (!chatData.source || !['chatgpt', 'claude', 'gemini'].includes(chatData.source)) {
-      throw new Error('Chat must have a valid source (chatgpt, claude, or gemini)');
-    }
-  }
 }
 
 /**

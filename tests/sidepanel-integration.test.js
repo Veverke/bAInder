@@ -485,9 +485,6 @@ describe('Sidepanel Integration - Dialog Workflows with Storage', () => {
       // Verify storage has correct methods
       expect(typeof storage.saveTopicTree).toBe('function');
       expect(typeof storage.loadTopicTree).toBe('function');
-      expect(typeof storage.saveChat).toBe('function');
-      expect(typeof storage.loadChat).toBe('function');
-      expect(typeof storage.deleteChat).toBe('function');
       expect(typeof storage.searchChats).toBe('function');
       expect(typeof storage.getStorageUsage).toBe('function');
       expect(typeof storage.clearAll).toBe('function');

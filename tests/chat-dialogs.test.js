@@ -393,3 +393,76 @@ describe('ChatDialogs – _buildTopicOptions', () => {
     expect(chatDialogs._buildTopicOptions()).toHaveLength(2);
   });
 });
+
+// ─── showEditTags ─────────────────────────────────────────────────────────────
+
+describe('ChatDialogs – showEditTags', () => {
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('throws when chat is missing', async () => {
+    const { chatDialogs } = setup();
+    await expect(chatDialogs.showEditTags(null)).rejects.toThrow('Chat is required');
+    await expect(chatDialogs.showEditTags(undefined)).rejects.toThrow('Chat is required');
+  });
+
+  it('returns null when cancelled', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ title: 'My Chat', tags: ['react'] });
+    const promise = chatDialogs.showEditTags(chat);
+
+    document.querySelector('[data-action="cancel"]').click();
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  it('returns { tags } when new tags are submitted', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ title: 'My Chat', tags: [] });
+    const promise = chatDialogs.showEditTags(chat);
+
+    const tagsInput = document.querySelector('[data-field="tags"]');
+    tagsInput.value = 'typescript, performance, debug';
+    document.querySelector('[data-action="submit"]').click();
+
+    const result = await promise;
+    expect(result).not.toBeNull();
+    expect(result.tags).toEqual(['typescript', 'performance', 'debug']);
+  });
+
+  it('pre-fills tags input with current chat tags', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ title: 'Tagged Chat', tags: ['react', 'css'] });
+    const promise = chatDialogs.showEditTags(chat);
+
+    const tagsInput = document.querySelector('[data-field="tags"]');
+    expect(tagsInput.value).toBe('react, css');
+
+    document.querySelector('[data-action="cancel"]').click();
+    await promise;
+  });
+
+  it('normalises tags to lowercase and trims whitespace', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ title: 'Chat', tags: [] });
+    const promise = chatDialogs.showEditTags(chat);
+
+    document.querySelector('[data-field="tags"]').value = '  React ,  CSS  ,  TypeScript  ';
+    document.querySelector('[data-action="submit"]').click();
+
+    const result = await promise;
+    expect(result.tags).toEqual(['react', 'css', 'typescript']);
+  });
+
+  it('returns empty array when tags field is cleared', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ title: 'Chat', tags: ['old-tag'] });
+    const promise = chatDialogs.showEditTags(chat);
+
+    document.querySelector('[data-field="tags"]').value = '';
+    document.querySelector('[data-action="submit"]').click();
+
+    const result = await promise;
+    expect(result).not.toBeNull();
+    expect(result.tags).toEqual([]);
+  });
+});

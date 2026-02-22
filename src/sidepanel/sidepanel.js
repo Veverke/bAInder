@@ -15,8 +15,8 @@ import {
   updateChatInArray,
   removeChatFromArray
 } from '../lib/chat-manager.js';
-import { isSpecificChatUrl } from '../lib/url-utils.js';
 import { extractSnippet, highlightTerms, formatBreadcrumb, escapeHtml } from '../lib/search-utils.js';
+import { getTagColor } from '../lib/tree-renderer.js';
 
 console.log('bAInder Side Panel loaded');
 
@@ -243,6 +243,10 @@ function initTreeRenderer() {
   state.renderer.setChatData(state.chats);
   state.renderer.onChatClick = handleChatClick;
   state.renderer.onChatContextMenu = handleChatContextMenu;
+
+  // Set up drag-and-drop handlers
+  state.renderer.onTopicDrop = handleTopicDrop;
+  state.renderer.onChatDrop  = handleChatDrop;
   
   // Load expanded state from localStorage (UI preference)
   const savedExpanded = localStorage.getItem('expandedNodes');
@@ -274,41 +278,14 @@ function handleTopicClick(topic) {
   saveExpandedState();
 }
 
-// Handle chat click — open content in the built-in reader, with URL-based fallback for legacy saves
+// Handle chat click — open saved content in the built-in reader
 async function handleChatClick(chat) {
-  if (!chat) return;
+  if (!chat || !chat.id || !chat.content) return;
 
-  // Primary path: if this chat has stored content, open the built-in reader.
-  if (chat.id && chat.content) {
-    const readerUrl = chrome.runtime.getURL(
-      `src/reader/reader.html?chatId=${encodeURIComponent(chat.id)}`
-    );
-    chrome.tabs.create({ url: readerUrl });
-    return;
-  }
-
-  // Fallback: legacy save with a URL but no stored content — try to navigate
-  // the browser to the original conversation.
-  if (!chat.url) return;
-
-  // Other platforms: focus the existing tab if already open, otherwise create.
-  if (isSpecificChatUrl(chat.url)) {
-    let existing = [];
-    try {
-      existing = await chrome.tabs.query({ url: chat.url });
-    } catch (_) {}
-
-    if (existing.length > 0) {
-      try {
-        await chrome.tabs.update(existing[0].id, { active: true });
-        if (chrome.windows) await chrome.windows.update(existing[0].windowId, { focused: true });
-      } catch (_) {}
-      showNotification('Chat is already open in a tab', 'info');
-      return;
-    }
-  }
-
-  chrome.tabs.create({ url: chat.url });
+  const readerUrl = chrome.runtime.getURL(
+    `src/reader/reader.html?chatId=${encodeURIComponent(chat.id)}`
+  );
+  chrome.tabs.create({ url: readerUrl });
 }
 
 
@@ -333,6 +310,9 @@ async function handleChatSaved(chatEntry) {
   const updatedChat = assignChatToTopic(chatEntry, result.topicId, state.tree);
   if (result.title && result.title !== chatEntry.title) {
     updatedChat.title = result.title;
+  }
+  if (result.tags !== undefined) {
+    updatedChat.tags = result.tags;
   }
   state.chats = updateChatInArray(chatEntry.id, updatedChat, state.chats);
   await chrome.storage.local.set({ chats: state.chats });
@@ -422,11 +402,20 @@ function buildResultCard(query, chat) {
   const snippet     = extractSnippet(chat.content || '', query);
   const path        = (chat.topicId && state.tree) ? state.tree.getTopicPath(chat.topicId) : [];
   const breadcrumb  = formatBreadcrumb(path);
+  const tags        = chat.tags || [];
 
   const titleHtml   = highlightTerms(title, query);
   const snippetHtml = snippet ? highlightTerms(snippet, query) : '';
   const snippetEl   = snippetHtml
     ? `<p class="result-snippet">${snippetHtml}</p>`
+    : '';
+
+  const tagsHtml = tags.length > 0
+    ? `<div class="result-tags">${tags.map(t => {
+        const isMatch = t.toLowerCase().includes(query.toLowerCase());
+        const style = isMatch ? '' : ` style="--tag-hue:${getTagColor(t)}"`;
+        return `<span class="result-tag-chip${isMatch ? ' result-tag-chip--match' : ''}"${style}>${escapeHtml(t)}</span>`;
+      }).join('')}</div>`
     : '';
 
   return (
@@ -436,6 +425,7 @@ function buildResultCard(query, chat) {
         <span class="${badgeCls}">${escapeHtml(sourceText)}</span>
       </div>
       ${snippetEl}
+      ${tagsHtml}
       <div class="result-breadcrumb">${escapeHtml(breadcrumb)}</div>
     </article>`
   );
@@ -511,10 +501,11 @@ function setupChatContextMenuActions() {
   if (!elements.chatContextMenu) return;
 
   const actions = {
-    open:   handleOpenChatAction,
-    rename: handleRenameChatAction,
-    move:   handleMoveChatAction,
-    delete: handleDeleteChatAction
+    open:        handleOpenChatAction,
+    rename:      handleRenameChatAction,
+    'edit-tags': handleEditTagsAction,
+    move:        handleMoveChatAction,
+    delete:      handleDeleteChatAction
   };
 
   elements.chatContextMenu.querySelectorAll('[data-chat-action]').forEach(item => {
@@ -551,7 +542,21 @@ async function handleRenameChatAction() {
   const result = await state.chatDialogs.showRenameChat(state.contextMenuChat);
   if (!result) return;
 
-  state.chats = updateChatInArray(state.contextMenuChat.id, { title: result.title }, state.chats);
+  const updates = { title: result.title };
+  if (result.tags !== undefined) updates.tags = result.tags;
+  state.chats = updateChatInArray(state.contextMenuChat.id, updates, state.chats);
+  await chrome.storage.local.set({ chats: state.chats });
+  state.renderer.setChatData(state.chats);
+  renderTreeView();
+}
+
+// Handle "Edit Tags" chat action
+async function handleEditTagsAction() {
+  if (!state.contextMenuChat) return;
+  const result = await state.chatDialogs.showEditTags(state.contextMenuChat);
+  if (!result) return;
+
+  state.chats = updateChatInArray(state.contextMenuChat.id, { tags: result.tags }, state.chats);
   await chrome.storage.local.set({ chats: state.chats });
   state.renderer.setChatData(state.chats);
   renderTreeView();
@@ -625,19 +630,43 @@ async function handleMoveTopic() {
 // Handle delete topic
 async function handleDeleteTopic() {
   if (!state.contextMenuTopic) return;
-  
+
+  // Collect all descendant chat IDs BEFORE the tree mutation so we can
+  // clean them from state.chats and persistent storage.
+  const chatIdsToDelete = collectDescendantChatIds(state.contextMenuTopic.id);
+
   const result = await state.topicDialogs.showDeleteTopic(state.contextMenuTopic.id);
-  
+
   if (result) {
     console.log('Topic deleted:', result.name);
+
+    // Remove all affected chats from the in-memory list and persist
+    if (chatIdsToDelete.length > 0) {
+      const deleteSet = new Set(chatIdsToDelete);
+      state.chats = state.chats.filter(c => !deleteSet.has(c.id));
+      await chrome.storage.local.set({ chats: state.chats });
+      state.renderer.setChatData(state.chats);
+      console.log(`Removed ${chatIdsToDelete.length} chat(s) belonging to deleted topic tree`);
+    }
+
     await saveTree();
     renderTreeView();
-    
-    // TODO: Handle chat deletion (Stage 6)
-    if (result.deletedChatCount > 0) {
-      console.log(`Note: ${result.deletedChatCount} chats were unassigned`);
-    }
   }
+}
+
+/**
+ * Recursively collect all chat IDs from a topic and its descendants.
+ * @param {string} topicId
+ * @returns {string[]}
+ */
+function collectDescendantChatIds(topicId) {
+  const topic = state.tree && state.tree.topics[topicId];
+  if (!topic) return [];
+  const ids = [...(topic.chatIds || [])];
+  for (const childId of (topic.children || [])) {
+    ids.push(...collectDescendantChatIds(childId));
+  }
+  return ids;
 }
 
 // Handle merge topic
@@ -664,6 +693,55 @@ function handleSettings() {
   // TODO: Implement settings in Stage 10
   showNotification('Settings coming in Stage 10');
 }
+
+// ── Drag-and-drop handlers ───────────────────────────────────────────────────
+
+/**
+ * Called by TreeRenderer when a topic is dropped onto another topic or root.
+ * @param {string} draggedTopicId
+ * @param {string|null} targetTopicId  null = move to root
+ */
+async function handleTopicDrop(draggedTopicId, targetTopicId) {
+  if (!state.tree) return;
+  const dragged = state.tree.topics[draggedTopicId];
+  if (!dragged) return;
+
+  // No-op if already at the target parent
+  if (dragged.parentId === targetTopicId) return;
+
+  try {
+    state.tree.moveTopic(draggedTopicId, targetTopicId);
+    await saveTree();
+    renderTreeView();
+    state.renderer.expandToTopic(draggedTopicId);
+    saveExpandedState();
+    showNotification(`Moved "${dragged.name}"`, 'success');
+  } catch (err) {
+    showNotification(err.message, 'error');
+  }
+}
+
+/**
+ * Called by TreeRenderer when a chat item is dropped onto a topic node.
+ * @param {string} chatId
+ * @param {string} targetTopicId
+ */
+async function handleChatDrop(chatId, targetTopicId) {
+  const chat = state.chats.find(c => c.id === chatId);
+  if (!chat) return;
+  if (chat.topicId === targetTopicId) return; // already there
+
+  const movedChat = moveChatToTopic(chat, targetTopicId, state.tree);
+  state.chats = updateChatInArray(chatId, movedChat, state.chats);
+  await chrome.storage.local.set({ chats: state.chats });
+  await saveTree();
+  state.renderer.setChatData(state.chats);
+  renderTreeView();
+  state.renderer.expandToTopic(targetTopicId);
+  saveExpandedState();
+  showNotification(`Moved "${chat.title}"`, 'success');
+}
+
 
 // Show chat context menu
 function showChatContextMenu(x, y) {
@@ -797,6 +875,5 @@ window.bAInder = {
   saveTree,
   renderTreeView,
   showNotification,
-  saveExpandedState,
-  isSpecificChatUrl
+  saveExpandedState
 };

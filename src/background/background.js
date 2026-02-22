@@ -6,6 +6,12 @@ import { handleSaveChat as _handleSaveChat, detectSource, buildExcerptPayload } 
 
 console.log('bAInder Background Service Worker initialized');
 
+// Cache for rich excerpt markdown pushed proactively by content script on right-click.
+// Stored in chrome.storage.session so it survives service worker restarts between
+// the contextmenu event and the context menu click handler.
+// An in-memory mirror is kept for the fast (non-restart) path.
+let _excerptCache = null;
+
 // ─── Context Menu ────────────────────────────────────────────────────────────
 
 const SUPPORTED_URL_PATTERNS = [
@@ -31,7 +37,46 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== 'save-excerpt') return;
   try {
     const pageUrl = info.pageUrl || '';
-    const payload = buildExcerptPayload(info.selectionText, pageUrl);
+    console.log('[bAInder DEBUG] onClicked: menuItemId=save-excerpt, selectionText=', JSON.stringify((info.selectionText || '').slice(0, 200)));
+
+    // Prefer the rich markdown pushed proactively by the content script on
+    // right-click (STORE_EXCERPT_CACHE).  Fall back to a live EXTRACT_EXCERPT
+    // request (works when the page selection is still intact), then finally to
+    // the plain selectionText provided by the Chrome API.
+    //
+    // The in-memory _excerptCache works when the service worker stayed alive.
+    // chrome.storage.session covers the case where the SW was killed and
+    // restarted between the contextmenu event and the menu-item click.
+    let richMarkdown = _excerptCache?.markdown || null;
+    console.log('[bAInder DEBUG] onClicked: _excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
+    _excerptCache = null; // consume in-memory copy
+
+    if (!richMarkdown) {
+      try {
+        const stored = await chrome.storage.session.get('excerptCache');
+        richMarkdown = stored?.excerptCache?.markdown || null;
+        console.log('[bAInder DEBUG] onClicked: session storage excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
+      } catch (e) {
+        console.warn('[bAInder DEBUG] onClicked: session storage get failed =', e?.message);
+      }
+    }
+    // Always clear session storage after consuming (one-shot)
+    chrome.storage.session.remove('excerptCache').catch(() => {});
+
+    if (!richMarkdown) {
+      console.log('[bAInder DEBUG] onClicked: no cache, trying EXTRACT_EXCERPT fallback');
+      try {
+        const resp = await chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_EXCERPT' });
+        console.log('[bAInder DEBUG] onClicked: EXTRACT_EXCERPT resp =', resp?.success, typeof resp?.data?.markdown, (resp?.data?.markdown || '').slice(0, 200));
+        if (resp?.success && resp.data?.markdown) richMarkdown = resp.data.markdown;
+      } catch (e) {
+        console.warn('[bAInder DEBUG] onClicked: EXTRACT_EXCERPT failed =', e?.message);
+      }
+    }
+
+    console.log('[bAInder DEBUG] onClicked: final richMarkdown =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 500)) : null);
+    const payload = buildExcerptPayload(info.selectionText, pageUrl, richMarkdown);
+    console.log('[bAInder DEBUG] onClicked: payload.content =', JSON.stringify(payload.content.slice(0, 500)));
     const entry = await handleSaveChat(payload, { tab });
     chrome.runtime.sendMessage({ type: 'CHAT_SAVED', data: entry }).catch(() => {});
   } catch (err) {
@@ -101,6 +146,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Message received:', message.type, message);
   
   switch (message.type) {
+    case 'STORE_EXCERPT_CACHE':
+      // Rich markdown pushed proactively by content script on right-click.
+      // Store both in-memory (fast path) and session storage (SW restart path).
+      _excerptCache = message.data || null;
+      console.log('[bAInder DEBUG] STORE_EXCERPT_CACHE received, markdown =', _excerptCache ? JSON.stringify(_excerptCache.markdown?.slice(0, 200)) : null);
+      chrome.storage.session.set({ excerptCache: _excerptCache })
+        .then(() => console.log('[bAInder DEBUG] STORE_EXCERPT_CACHE: session storage write OK'))
+        .catch(e => console.warn('[bAInder DEBUG] STORE_EXCERPT_CACHE: session storage write failed =', e?.message));
+      sendResponse({ success: true });
+      break;
+
     case 'SAVE_CHAT':
       handleSaveChat(message.data, sender)
         .then(result => {

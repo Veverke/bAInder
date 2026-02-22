@@ -35,6 +35,26 @@ global.chrome = {
         }
         return Promise.resolve(0);
       })
+    },
+    session: {
+      get: vi.fn((keys, callback) => {
+        if (callback) {
+          callback({});
+        }
+        return Promise.resolve({});
+      }),
+      set: vi.fn((items, callback) => {
+        if (callback) {
+          callback();
+        }
+        return Promise.resolve();
+      }),
+      remove: vi.fn((keys, callback) => {
+        if (callback) {
+          callback();
+        }
+        return Promise.resolve();
+      })
     }
   },
 

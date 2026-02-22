@@ -238,8 +238,9 @@ describe('renderMarkdown', () => {
       { title: 'Maths', source: 'chatgpt', url: 'https://chat.openai.com/c/1', timestamp: 1_740_000_000_000 }
     );
     const html = renderMarkdown(md);
-    expect(html).toContain('<strong>User</strong>');
-    expect(html).toContain('<strong>Assistant</strong>');
+    // Emoji prefixes (🙋 / 🤖) are now used instead of **User** / **Assistant** bold headers
+    expect(html).toContain('🙋');
+    expect(html).toContain('🤖');
     expect(html).toContain('What is 2+2?');
     expect(html).toContain('It is 4.');
   });
@@ -273,7 +274,7 @@ describe('renderChat', () => {
     url:       'https://claude.ai/chat/abc',
     timestamp: 1_740_000_000_000,
     messageCount: 2,
-    content:   '---\ntitle: "Test Chat"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n**User**\n\nHello\n\n---\n\n**Assistant**\n\nHi there!\n',
+    content:   '---\ntitle: "Test Chat"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n',
     metadata:  { contentFormat: 'markdown-v1' },
     ...overrides,
   });
@@ -306,8 +307,11 @@ describe('renderChat', () => {
   it('renders markdown content as HTML for markdown-v1 format', () => {
     renderChat(makeChat());
     const inner = document.getElementById('reader-content').innerHTML;
-    expect(inner).toContain('<strong>User</strong>');
+    // Emoji prefixes are used instead of **User** / **Assistant** bold headers
+    expect(inner).toContain('🙋');
+    expect(inner).toContain('🤖');
     expect(inner).toContain('Hello');
+    expect(inner).not.toContain('<strong>User</strong>');
   });
 
   it('sets excerpt badge class when isExcerpt is true in metadata', () => {
@@ -338,29 +342,12 @@ describe('init', () => {
 
   it('shows error when chatId not found in storage', async () => {
     vi.stubGlobal('location', { search: '?chatId=missing-id' });
-    await init({ get: vi.fn().mockResolvedValue({ chats: {} }) });
+    await init({ get: vi.fn().mockResolvedValue({ chats: [] }) });
     expect(document.getElementById('state-error').hidden).toBe(false);
     expect(document.getElementById('error-message').textContent).toContain('not found');
   });
 
-  it('renders the chat when chatId is found (object-map / legacy format)', async () => {
-    vi.stubGlobal('location', { search: '?chatId=chat-001' });
-    const chat = {
-      id:        'chat-001',
-      title:     'Found Chat',
-      source:    'gemini',
-      url:       'https://gemini.google.com/app/abc',
-      timestamp: 1_740_000_000_000,
-      messageCount: 1,
-      content:   '---\ntitle: "Found Chat"\nsource: gemini\ncontentFormat: markdown-v1\n---\n\n# Found Chat\n\n**User**\n\nHello\n',
-      metadata:  { contentFormat: 'markdown-v1' },
-    };
-    await init({ get: vi.fn().mockResolvedValue({ chats: { 'chat-001': chat } }) });
-    expect(document.getElementById('reader-header').hidden).toBe(false);
-    expect(document.getElementById('reader-title').textContent).toBe('Found Chat');
-  });
-
-  it('renders the chat when chatId is found (array format — primary)', async () => {
+  it('renders the chat when chatId is found', async () => {
     vi.stubGlobal('location', { search: '?chatId=chat-001' });
     const chat = {
       id:        'chat-001',
@@ -372,7 +359,6 @@ describe('init', () => {
       content:   '---\ntitle: "Found Chat Array"\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Found Chat Array\n\nSome content\n',
       metadata:  { contentFormat: 'markdown-v1' },
     };
-    // Storage stores chats as an array (as produced by chat-save-handler.js)
     await init({ get: vi.fn().mockResolvedValue({ chats: [chat] }) });
     expect(document.getElementById('reader-header').hidden).toBe(false);
     expect(document.getElementById('reader-title').textContent).toBe('Found Chat Array');

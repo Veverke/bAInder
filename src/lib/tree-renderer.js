@@ -9,6 +9,18 @@
  * - Keyboard navigation support
  */
 
+/**
+ * Deterministic HSL hue (0-359) from a tag string via djb2 hash.
+ * Same tag always yields the same hue across all renders.
+ * @param {string} tag
+ * @returns {number} hue in [0, 359]
+ */
+export function getTagColor(tag) {
+  let h = 5381;
+  for (let i = 0; i < tag.length; i++) h = (Math.imul(33, h) ^ tag.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
 export class TreeRenderer {
   constructor(container, topicTree = null) {
     this.container = container;
@@ -22,6 +34,16 @@ export class TreeRenderer {
     this.onTopicContextMenu = null;
     this.onChatClick = null;        // Stage 7
     this.onChatContextMenu = null;  // Stage 7
+
+    // Drag-and-drop callbacks
+    // onTopicDrop(draggedTopicId, targetTopicId | null)
+    //   targetTopicId === null means "drop to root level"
+    this.onTopicDrop = null;
+    // onChatDrop(chatId, targetTopicId)
+    this.onChatDrop = null;
+
+    // Internal drag state
+    this._drag = null; // { type: 'topic'|'chat', id: string }
   }
 
   /**
@@ -67,7 +89,29 @@ export class TreeRenderer {
       const li = this.renderNode(topic, 0);
       ul.appendChild(li);
     });
-    
+
+    // Root-level drop zone: dropping here re-parents a topic to root
+    ul.addEventListener('dragover', (e) => {
+      if (!this._drag || this._drag.type !== 'topic') return;
+      // Only accept if the direct target is the ul itself (not a child)
+      if (e.target !== ul) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      ul.classList.add('drop-target');
+    });
+    ul.addEventListener('dragleave', (e) => {
+      if (!ul.contains(e.relatedTarget)) ul.classList.remove('drop-target');
+    });
+    ul.addEventListener('drop', (e) => {
+      if (e.target !== ul) return;
+      ul.classList.remove('drop-target');
+      if (!this._drag || this._drag.type !== 'topic') return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.onTopicDrop) this.onTopicDrop(this._drag.id, null); // null = root
+      this._drag = null;
+    });
+
     this.container.appendChild(ul);
     
     // Update empty state visibility
@@ -169,6 +213,19 @@ export class TreeRenderer {
 
     nodeContent.appendChild(label);
 
+    // ── ⋮ more-actions button (visible on hover) ──────────────────────────
+    const topicMoreBtn = document.createElement('button');
+    topicMoreBtn.className = 'tree-more-btn';
+    topicMoreBtn.setAttribute('aria-label', 'More actions');
+    topicMoreBtn.textContent = '⋮';
+    topicMoreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.onTopicContextMenu) {
+        this.onTopicContextMenu(topic, e);
+      }
+    });
+    nodeContent.appendChild(topicMoreBtn);
+
     // Click handler for selection
     nodeContent.addEventListener('click', () => {
       this.selectNode(topic.id);
@@ -183,6 +240,49 @@ export class TreeRenderer {
       if (this.onTopicContextMenu) {
         this.onTopicContextMenu(topic, e);
       }
+    });
+
+    // ── Drag source (topic) ───────────────────────────────────────────────
+    nodeContent.draggable = true;
+    nodeContent.addEventListener('dragstart', (e) => {
+      this._drag = { type: 'topic', id: topic.id };
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', topic.id);
+      // Slight delay so the drag image captures the element before opacity changes
+      setTimeout(() => nodeContent.classList.add('dragging'), 0);
+    });
+    nodeContent.addEventListener('dragend', () => {
+      nodeContent.classList.remove('dragging');
+      this._drag = null;
+      // Remove any leftover drop-target highlights
+      this.container.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+    });
+
+    // ── Drop target (topic) ───────────────────────────────────────────────
+    nodeContent.addEventListener('dragover', (e) => {
+      if (!this._drag) return;
+      // Prevent dropping a topic onto itself
+      if (this._drag.type === 'topic' && this._drag.id === topic.id) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      nodeContent.classList.add('drop-target');
+    });
+    nodeContent.addEventListener('dragleave', (e) => {
+      if (!nodeContent.contains(e.relatedTarget)) {
+        nodeContent.classList.remove('drop-target');
+      }
+    });
+    nodeContent.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      nodeContent.classList.remove('drop-target');
+      if (!this._drag) return;
+      if (this._drag.type === 'topic' && this._drag.id !== topic.id) {
+        if (this.onTopicDrop) this.onTopicDrop(this._drag.id, topic.id);
+      } else if (this._drag.type === 'chat') {
+        if (this.onChatDrop) this.onChatDrop(this._drag.id, topic.id);
+      }
+      this._drag = null;
     });
 
     li.appendChild(nodeContent);
@@ -260,7 +360,68 @@ export class TreeRenderer {
       label.appendChild(dateBadge);
     }
 
+    // Tag chips
+    const tags = chat.tags || [];
+    if (tags.length > 0) {
+      const tagsEl = document.createElement('span');
+      tagsEl.className = 'tree-chat-tags';
+      tags.forEach(tag => {
+        const chip = document.createElement('span');
+        chip.className = 'tree-tag-chip';
+        chip.style.setProperty('--tag-hue', getTagColor(tag));
+        chip.textContent = tag;
+        tagsEl.appendChild(chip);
+      });
+      label.appendChild(tagsEl);
+
+      // ── Tag hover overlay ──────────────────────────────────────────────
+      // Shows a floating card with coloured pills separated by " | " when
+      // the user hovers over the tags area (or anywhere on the row).
+      let _overlay = null;
+      const _showOverlay = (anchorRect) => {
+        if (_overlay) return;
+        _overlay = document.createElement('div');
+        _overlay.className = 'tree-tag-hover-overlay';
+        tags.forEach((tag) => {
+          const pill = document.createElement('span');
+          pill.className = 'tree-tag-chip tree-tag-chip--overlay';
+          pill.style.setProperty('--tag-hue', getTagColor(tag));
+          pill.textContent = tag;
+          _overlay.appendChild(pill);
+        });
+        document.body.appendChild(_overlay);
+        // Position below the row, left-aligned
+        const left = Math.min(anchorRect.left, window.innerWidth - 240);
+        const top  = anchorRect.bottom + 4;
+        _overlay.style.left = `${left}px`;
+        _overlay.style.top  = `${top}px`;
+      };
+      const _hideOverlay = () => {
+        if (_overlay) { _overlay.remove(); _overlay = null; }
+      };
+      tagsEl.addEventListener('mouseenter', (e) => {
+        _showOverlay(content.getBoundingClientRect());
+      });
+      tagsEl.addEventListener('mouseleave', (e) => {
+        // Keep open if moving to the overlay itself (pointer-events: none,
+        // so this path is safe — overlay never captures leave events)
+        _hideOverlay();
+      });
+      content.addEventListener('mouseleave', _hideOverlay);
+    }
+
     content.appendChild(label);
+
+    // ── ⋮ more-actions button (visible on hover) ──────────────────────────
+    const chatMoreBtn = document.createElement('button');
+    chatMoreBtn.className = 'tree-more-btn';
+    chatMoreBtn.setAttribute('aria-label', 'More actions');
+    chatMoreBtn.textContent = '⋮';
+    chatMoreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.onChatContextMenu) this.onChatContextMenu(chat, e);
+    });
+    content.appendChild(chatMoreBtn);
 
     // Click → open original chat URL
     content.addEventListener('click', () => {
@@ -271,6 +432,20 @@ export class TreeRenderer {
     content.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       if (this.onChatContextMenu) this.onChatContextMenu(chat, e);
+    });
+
+    // ── Drag source (chat item) ───────────────────────────────────────────
+    content.draggable = true;
+    content.addEventListener('dragstart', (e) => {
+      this._drag = { type: 'chat', id: chat.id };
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', chat.id);
+      setTimeout(() => content.classList.add('dragging'), 0);
+    });
+    content.addEventListener('dragend', () => {
+      content.classList.remove('dragging');
+      this._drag = null;
+      this.container.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
     });
 
     li.appendChild(content);

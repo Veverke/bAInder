@@ -315,14 +315,8 @@ export async function init(storage) {
     }
 
     const result = await storage.get(['chats']);
-    const chatsRaw = result.chats;
-    // chats may be stored as an array (primary format) or object map (legacy)
-    let chat = null;
-    if (Array.isArray(chatsRaw)) {
-      chat = chatsRaw.find(c => c.id === chatId) || null;
-    } else if (chatsRaw && typeof chatsRaw === 'object') {
-      chat = chatsRaw[chatId] || null;
-    }
+    const chats = result.chats || [];
+    const chat = chats.find(c => c.id === chatId) || null;
 
     if (!chat) {
       showError(`Conversation not found (id: ${chatId}). It may have been deleted.`);

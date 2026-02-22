@@ -559,6 +559,35 @@ mark.search-highlight {
 .badge--copilot { background: #f5f0ff; color: #5b21b6; }
 .badge--unknown { background: var(--bg-tertiary); color: var(--text-secondary); }
 
+/* Tag chips inside result cards */
+.result-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 2px;
+}
+
+.result-tag-chip {
+  font-size: 0.6875rem;
+  padding: 2px 7px;
+  background: hsl(var(--tag-hue, 199), 60%, 88%);
+  color: hsl(var(--tag-hue, 199), 65%, 22%);
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .result-tag-chip {
+  background: hsl(var(--tag-hue, 199), 45%, 24%);
+  color: hsl(var(--tag-hue, 199), 70%, 80%);
+}
+
+.result-tag-chip--match {
+  background: #fef08a;
+  color: #713f12;
+  font-weight: 700;
+}
+
 [data-theme="dark"] .badge--chatgpt { background: #14532d; color: #86efac; }
 [data-theme="dark"] .badge--claude  { background: #451a03; color: #fed7aa; }
 [data-theme="dark"] .badge--gemini  { background: #1e3a8a; color: #93c5fd; }
@@ -1120,6 +1149,113 @@ button:focus-visible {
 
 .tree-node.selected > .tree-node-content .tree-chat-count {
   background: var(--primary-dark);
+}
+
+/* Tag chips on chat items in tree */
+.tree-chat-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.tree-tag-chip {
+  font-size: 0.625rem;
+  padding: 1px 5px;
+  background: hsl(var(--tag-hue, 199), 60%, 88%);
+  color: hsl(var(--tag-hue, 199), 65%, 22%);
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+[data-theme="dark"] .tree-tag-chip {
+  background: hsl(var(--tag-hue, 199), 45%, 24%);
+  color: hsl(var(--tag-hue, 199), 70%, 80%);
+}
+
+.tree-tag-chip--overlay {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+}
+
+/* Hover overlay card showing all tags as coloured pills + "|" separators */
+.tree-tag-hover-overlay {
+  position: fixed;
+  z-index: 9999;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  pointer-events: none;
+  animation: contextMenuAppear 0.1s ease;
+}
+
+/* More-actions (⋮) button on tree nodes — hidden until row is hovered */
+.tree-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+  pointer-events: none;
+}
+
+.tree-node-content:hover .tree-more-btn,
+.tree-node-content:focus-within .tree-more-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tree-more-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.tree-more-btn:active {
+  background: var(--border-primary);
+}
+
+/* Drag-and-drop visual states */
+.tree-node-content.dragging {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.tree-chat-item.dragging {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.tree-node-content.drop-target {
+  background: var(--primary-faint, #eff6ff);
+  outline: 2px dashed var(--primary);
+  border-radius: var(--radius-sm);
+}
+
+ul.tree-root.drop-target {
+  outline: 2px dashed var(--primary);
+  border-radius: var(--radius-sm);
+  background: var(--primary-faint, #eff6ff);
 }
 
 /* Children container */

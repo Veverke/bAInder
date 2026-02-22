@@ -18,11 +18,7 @@ describe('IStorageService Interface', () => {
     
     await expect(service.saveTopicTree({})).rejects.toThrow('Method not implemented');
     await expect(service.loadTopicTree()).rejects.toThrow('Method not implemented');
-    await expect(service.saveChat('topic1', {})).rejects.toThrow('Method not implemented');
-    await expect(service.loadChat('chat1')).rejects.toThrow('Method not implemented');
     await expect(service.searchChats('query')).rejects.toThrow('Method not implemented');
-    await expect(service.deleteChat('chat1')).rejects.toThrow('Method not implemented');
-    await expect(service.deleteTopic('topic1')).rejects.toThrow('Method not implemented');
     await expect(service.getStorageUsage()).rejects.toThrow('Method not implemented');
     await expect(service.clearAll()).rejects.toThrow('Method not implemented');
   });
@@ -102,134 +98,38 @@ describe('ChromeStorageAdapter', () => {
     });
   });
 
-  describe('Chat Operations', () => {
-    it('should save a chat with valid data', async () => {
-      const chatData = {
-        title: 'Test Chat',
-        content: 'This is a test chat conversation',
-        url: 'https://chat.openai.com/c/123',
-        source: 'chatgpt',
-        timestamp: Date.now()
-      };
-
-      const chatId = await storage.saveChat('topic1', chatData);
-      
-      expect(chatId).toBeDefined();
-      expect(typeof chatId).toBe('string');
-      expect(chatId).toMatch(/^chat_/);
-    });
-
-    it('should load a saved chat', async () => {
-      const chatData = {
-        title: 'Test Chat',
-        content: 'This is a test chat conversation',
-        url: 'https://chat.openai.com/c/123',
-        source: 'chatgpt',
-        timestamp: Date.now()
-      };
-
-      const chatId = await storage.saveChat('topic1', chatData);
-      
-      // Mock the storage with the chat
-      setStorageMockData({
-        chats: {
-          [chatId]: {
-            ...chatData,
-            id: chatId,
-            topicId: 'topic1',
-            savedAt: Date.now()
-          }
-        }
-      });
-      
-      const loaded = await storage.loadChat(chatId);
-      
-      expect(loaded).toBeDefined();
-      expect(loaded.title).toBe('Test Chat');
-      expect(loaded.source).toBe('chatgpt');
-      expect(loaded.topicId).toBe('topic1');
-    });
-
-    it('should return null for non-existent chat', async () => {
-      const loaded = await storage.loadChat('nonexistent');
-      expect(loaded).toBeNull();
-    });
-
-    it('should validate chat data on save', async () => {
-      // Missing title
-      await expect(
-        storage.saveChat('topic1', { content: 'test', source: 'chatgpt' })
-      ).rejects.toThrow('Chat must have a title');
-
-      // Missing content
-      await expect(
-        storage.saveChat('topic1', { title: 'test', source: 'chatgpt' })
-      ).rejects.toThrow('Chat must have content');
-
-      // Invalid source
-      await expect(
-        storage.saveChat('topic1', { 
-          title: 'test', 
-          content: 'test', 
-          source: 'invalid' 
-        })
-      ).rejects.toThrow('Chat must have a valid source');
-    });
-
-    it('should delete a chat', async () => {
-      const chatId = 'chat_123';
-      
-      setStorageMockData({
-        chats: {
-          [chatId]: {
-            id: chatId,
-            title: 'Test',
-            content: 'Content',
-            source: 'chatgpt',
-            topicId: 'topic1'
-          }
-        }
-      });
-
-      const result = await storage.deleteChat(chatId);
-      expect(result).toBe(true);
-    });
-
-    it('should return false when deleting non-existent chat', async () => {
-      const result = await storage.deleteChat('nonexistent');
-      expect(result).toBe(false);
-    });
-  });
-
   describe('Search Operations', () => {
     beforeEach(() => {
       setStorageMockData({
-        chats: {
-          'chat1': {
+        chats: [
+          {
             id: 'chat1',
             title: 'JavaScript Tutorial',
             content: 'Learn JavaScript basics including variables and functions',
             source: 'chatgpt',
             topicId: 'topic1',
-            timestamp: 1000000
+            timestamp: 1000000,
+            tags: []
           },
-          'chat2': {
+          {
             id: 'chat2',
             title: 'Python Guide',
             content: 'Python programming with examples',
             source: 'claude',
             topicId: 'topic2',
-            timestamp: 2000000
+            timestamp: 2000000,
+            tags: []
           },
-          'chat3': {
+          {
             id: 'chat3',
             title: 'Web Development',
             content: 'JavaScript frameworks and libraries for web development',
             source: 'gemini',
             topicId: 'topic1',
-            timestamp: 3000000
+            timestamp: 3000000,
+            tags: []
           }
-        }
+        ]
       });
     });
 
@@ -280,9 +180,7 @@ describe('ChromeStorageAdapter', () => {
           rootTopicIds: ['topic1'],
           version: 1
         },
-        chats: {
-          'chat1': { id: 'chat1', title: 'Test Chat' }
-        }
+        chats: [{ id: 'chat1', title: 'Test Chat' }]
       });
 
       const usage = await storage.getStorageUsage();
@@ -306,16 +204,6 @@ describe('ChromeStorageAdapter', () => {
     });
   });
 
-  describe('ID Generation', () => {
-    it('should generate unique IDs', () => {
-      const id1 = storage._generateId('test');
-      const id2 = storage._generateId('test');
-      
-      expect(id1).not.toBe(id2);
-      expect(id1).toMatch(/^test_/);
-      expect(id2).toMatch(/^test_/);
-    });
-  });
 });
 
 describe('StorageService Factory', () => {
@@ -375,7 +263,7 @@ describe('StorageUsageTracker', () => {
         rootTopicIds: ['topic1'],
         version: 1
       },
-      chats: {}
+      chats: []
     });
   });
 
@@ -448,138 +336,6 @@ describe('StorageUsageTracker', () => {
 });
 
 // ---------------------------------------------------------------------------
-// ChromeStorageAdapter – deleteTopic (entirely untested previously)
-// ---------------------------------------------------------------------------
-
-describe('ChromeStorageAdapter – deleteTopic', () => {
-  let storage;
-
-  beforeEach(() => {
-    storage = new ChromeStorageAdapter();
-    clearStorageMock();
-  });
-
-  afterEach(() => {
-    clearStorageMock();
-  });
-
-  it('should return false when topicId does not exist', async () => {
-    const tree = { topics: {}, rootTopicIds: [], version: 1 };
-    setStorageMockData({ topicTree: tree });
-
-    const result = await storage.deleteTopic('nonexistent');
-
-    expect(result).toBe(false);
-  });
-
-  it('should delete a root-level topic (deleteChats=false)', async () => {
-    const tree = {
-      topics: {
-        'topic-root': {
-          id: 'topic-root', name: 'Root', parentId: null,
-          children: [], chatIds: ['c1'], createdAt: 0, updatedAt: 0,
-          firstChatDate: null, lastChatDate: null
-        }
-      },
-      rootTopicIds: ['topic-root'],
-      version: 1
-    };
-    setStorageMockData({ topicTree: tree });
-
-    const result = await storage.deleteTopic('topic-root', false);
-
-    expect(result).toBe(true);
-
-    // Verify saveTopicTree was called and the topic is removed
-    const savedTree = global.chrome.storage.local.set.mock.calls
-      .flatMap(c => Object.values(c[0]))
-      .find(v => v && v.topics !== undefined);
-
-    expect(savedTree.topics['topic-root']).toBeUndefined();
-    // Root-level: topic removed from rootTopicIds
-    expect(savedTree.rootTopicIds).not.toContain('topic-root');
-  });
-
-  it('should not delete chats when deleteChats=false', async () => {
-    const tree = {
-      topics: {
-        't1': { id: 't1', name: 'T1', parentId: null, children: [], chatIds: ['c1'],
-                createdAt: 0, updatedAt: 0, firstChatDate: null, lastChatDate: null }
-      },
-      rootTopicIds: ['t1'],
-      version: 1
-    };
-    const chats = { 'c1': { id: 'c1', topicId: 't1', title: 'Chat 1' } };
-    setStorageMockData({ topicTree: tree, chats });
-
-    await storage.deleteTopic('t1', false);
-
-    // chrome.storage.local.set should NOT have been called with a chats object
-    // that has had c1 removed (deleteChats=false means chats untouched for the bulk-delete path)
-    const chatSetCalls = global.chrome.storage.local.set.mock.calls
-      .filter(call => call[0] && call[0].chats !== undefined);
-
-    // No chats-clearing call should have happened (only tree saved, not chats)
-    expect(chatSetCalls.length).toBe(0);
-  });
-
-  it('should delete associated chats when deleteChats=true', async () => {
-    const tree = {
-      topics: {
-        't1': { id: 't1', name: 'T1', parentId: null, children: [], chatIds: ['c1', 'c2'],
-                createdAt: 0, updatedAt: 0, firstChatDate: null, lastChatDate: null }
-      },
-      rootTopicIds: ['t1'],
-      version: 1
-    };
-    const chats = {
-      'c1': { id: 'c1', topicId: 't1', title: 'Chat 1' },
-      'c2': { id: 'c2', topicId: 't1', title: 'Chat 2' },
-      'c3': { id: 'c3', topicId: 'other', title: 'Other chat' }
-    };
-    setStorageMockData({ topicTree: tree, chats });
-
-    const result = await storage.deleteTopic('t1', true);
-
-    expect(result).toBe(true);
-
-    // Find the chats set call
-    const chatSetCall = global.chrome.storage.local.set.mock.calls
-      .find(call => call[0] && call[0].chats !== undefined);
-
-    expect(chatSetCall).toBeTruthy();
-    const savedChats = chatSetCall[0].chats;
-
-    // Chats belonging to 't1' should be gone
-    expect(savedChats['c1']).toBeUndefined();
-    expect(savedChats['c2']).toBeUndefined();
-    // Chats belonging to another topic should remain
-    expect(savedChats['c3']).toBeDefined();
-  });
-
-  it('should remove topic from root when no chats to delete', async () => {
-    const tree = {
-      topics: {
-        'r1': { id: 'r1', name: 'Root', parentId: null, children: [], chatIds: [],
-                createdAt: 0, updatedAt: 0, firstChatDate: null, lastChatDate: null }
-      },
-      rootTopicIds: ['r1', 'other-root'],
-      version: 1
-    };
-    setStorageMockData({ topicTree: tree });
-
-    await storage.deleteTopic('r1');
-
-    const savedTree = global.chrome.storage.local.set.mock.calls
-      .flatMap(c => Object.values(c[0]))
-      .find(v => v && v.topics !== undefined);
-
-    expect(savedTree.rootTopicIds).toEqual(['other-root']);
-    expect(savedTree.topics['r1']).toBeUndefined();
-  });
-});
-
-// ---------------------------------------------------------------------------
 // ChromeStorageAdapter – error propagation paths
 // ---------------------------------------------------------------------------
 
@@ -607,16 +363,6 @@ describe('ChromeStorageAdapter – error propagation', () => {
       .rejects.toThrow('Failed to save topic tree');
   });
 
-  it('should throw wrapped error when saveChat fails on set', async () => {
-    clearStorageMock();
-    global.chrome.storage.local.set.mockImplementation((items, callback) => {
-      throw new Error('write error');
-    });
-
-    await expect(storage.saveChat('topic1', {
-      title: 'T', content: 'C', url: 'https://chatgpt.com', source: 'chatgpt'
-    })).rejects.toThrow('Failed to save chat');
-  });
 
   it('should throw wrapped error when getStorageUsage fails', async () => {
     global.chrome.storage.local.getBytesInUse.mockImplementation(() => {

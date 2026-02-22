@@ -55,12 +55,13 @@
       if (['script','style','svg','noscript','button','template','img'].includes(tag)) return '';
       const inner = Array.from(node.childNodes).map(walk).join('');
       switch (tag) {
-        case 'h1': return `\n# ${inner.trim()}\n`;
-        case 'h2': return `\n## ${inner.trim()}\n`;
-        case 'h3': return `\n### ${inner.trim()}\n`;
-        case 'h4': return `\n#### ${inner.trim()}\n`;
-        case 'h5': return `\n##### ${inner.trim()}\n`;
-        case 'h6': return `\n###### ${inner.trim()}\n`;
+        case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6': {
+          const t = inner.trim();
+          // Skip Copilot/M365 role-label headings ("You said:", "Copilot said:") — UI chrome.
+          if (/^(you said|i said|copilot said|copilot):?\s*$/i.test(t)) return '';
+          const level = parseInt(tag[1], 10);
+          return `\n${'#'.repeat(level)} ${t}\n`;
+        }
         case 'strong': case 'b': { const t = inner.trim(); return t ? `**${t}**` : ''; }
         case 'em':     case 'i': { const t = inner.trim(); return t ? `*${t}*` : ''; }
         case 'code': {
@@ -106,7 +107,26 @@
           const text = inner.trim();
           return href && text ? `[${text}](${href})` : text;
         }
-        default: return inner;
+        case 'div': case 'section': case 'article': case 'aside': case 'main': case 'header': case 'footer': {
+          // Skip code-block decoration elements (language label bars, copy-code toolbars).
+          if (node.parentElement) {
+            const siblingHasPre = Array.from(node.parentElement.children)
+              .some(c => c !== node && c.tagName.toLowerCase() === 'pre');
+            if (siblingHasPre && !node.querySelector('pre, code')) return '';
+          }
+          // Treat as block: wrap in newlines so lines don't concatenate.
+          const bt = inner.trim();
+          return bt ? `\n${bt}\n` : '';
+        }
+        default: {
+          // Inline elements (span, etc.) — skip code-block toolbar spans.
+          if (tag === 'span' && node.parentElement) {
+            const siblingHasPre = Array.from(node.parentElement.children)
+              .some(c => c !== node && c.tagName.toLowerCase() === 'pre');
+            if (siblingHasPre && !node.querySelector('pre, code')) return '';
+          }
+          return inner;
+        }
       }
     }
     return walk(el).replace(/\n{3,}/g, '\n\n').trim();
@@ -117,16 +137,8 @@
   }
 
   function generateTitle(messages, url) {
-    // Strategy 1: first Markdown heading (h1–h3) from the assistant's first response.
-    const firstAssistant = messages.find(m => m.role === 'assistant');
-    if (firstAssistant && firstAssistant.content) {
-      const hm = firstAssistant.content.match(/^#{1,3}\s+(.+)$/m);
-      if (hm) {
-        const heading = hm[1].trim();
-        if (heading.length >= 4 && heading.length <= 120) return heading;
-      }
-    }
-    // Strategy 2: first complete sentence from the user's first message.
+    // Strategy 1: first complete sentence from the user's first message.
+    const ROLE_LABEL_RE = /^(you said|i said|copilot said|copilot):?\s*$/i;
     const firstUser = messages.find(m => m.role === 'user');
     if (firstUser && firstUser.content) {
       const firstLine = firstUser.content
@@ -138,7 +150,8 @@
           .replace(/`([^`]*)`/g, '$1')
           .trim()
         )
-        .find(l => l.length > 0) || '';
+        .filter(l => l.length > 0 && !ROLE_LABEL_RE.test(l))
+        [0] || '';
       if (firstLine) {
         const sentenceMatch = firstLine.match(/^(.+?[.?!])\s/);
         if (sentenceMatch && sentenceMatch[1].length >= 8) return sentenceMatch[1].trim();
@@ -212,20 +225,32 @@
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
   }
 
+  // Strips Copilot UI role-label lines ("You said:", "Copilot said:") from markdown.
+  // Defined at IIFE scope so it is available in the contextmenu handler and
+  // EXTRACT_EXCERPT message handler, not just inside extractCopilot.
+  const LABEL_RE = /^#{0,6}\s*(you said|i said|copilot said|copilot):?\s*$/i;
+  function stripRoleLabels(content) {
+    return content.split('\n').filter(line => !LABEL_RE.test(line.trim())).join('\n').replace(/^\s+/, '');
+  }
+
   function extractCopilot(doc) {
     const messages = [];
 
-    // Scope to the main conversation area so sidebar history items
-    // (which can share the same class patterns) are not included.
+    // Scope to the main conversation area so sidebar history items are excluded.
     const chatScope =
       doc.querySelector('main') ||
       doc.querySelector('[role="main"]') ||
       doc.querySelector('[class*="conversation"][class*="container"]') ||
       doc;
 
-    // Selectors that cover both copilot.microsoft.com and m365.cloud.microsoft.
-    // If none match, the console.warn below will print a DOM sample so we can
-    // identify the right selectors for the production build.
+    // Helper: true when an element lives inside a history side-panel / nav drawer.
+    const inHistoryPanel = el =>
+      !!el.closest('aside, [role="complementary"], [role="navigation"], [class*="history"], [class*="sidebar"]');
+
+    // Helper: keep only outermost elements (remove descendants of other matches).
+    const removeDescendants = els =>
+      els.filter(el => !els.some(other => other !== el && other.contains(el)));
+
     const userSelectors = [
       '[data-testid="user-message"]',
       '.UserMessage', '[class*="UserMessage"]', '[class*="user-message"]',
@@ -241,34 +266,29 @@
       '[aria-label*="Copilot said"]', '[aria-label*="Copilot:"]',
     ];
 
-    const dedup = (els) => [...new Set(els)];
-    const userEls    = dedup(userSelectors.flatMap(sel => {
+    const dedup = els => [...new Set(els)];
+    const rawUserEls = dedup(userSelectors.flatMap(sel => {
       try { return Array.from(chatScope.querySelectorAll(sel)); } catch (_) { return []; }
-    }));
-    const copilotEls = dedup(assistantSelectors.flatMap(sel => {
+    })).filter(el => !inHistoryPanel(el));
+    const rawCopilotEls = dedup(assistantSelectors.flatMap(sel => {
       try { return Array.from(chatScope.querySelectorAll(sel)); } catch (_) { return []; }
-    }));
+    })).filter(el => !inHistoryPanel(el));
+
+    const userEls    = removeDescendants(rawUserEls);
+    const copilotEls = removeDescendants(rawCopilotEls);
 
     console.log(`bAInder: extractCopilot found ${userEls.length} user, ${copilotEls.length} assistant elements`);
     if (userEls.length === 0 && copilotEls.length === 0) {
-      // Log a DOM sample so we can identify the correct selectors
-      console.warn('bAInder: no messages found. Inspect page DOM. Body classes:', doc.body && doc.body.className);
-      const chatArea = doc.querySelector('[class*="chat"], [class*="Chat"], [class*="conversation"], main');
-      if (chatArea) console.warn('bAInder: chat area innerHTML sample:', chatArea.innerHTML.slice(0, 800));
+      console.warn('bAInder: no messages found. Body classes:', doc.body && doc.body.className);
     }
-
-    // M365 Copilot prepends "You said: " to user message elements as a label.
-    // Strip it so titles and content match what the sidebar displays.
-    const stripCopilotLabel = (text) =>
-      text.replace(/^you said:\s*/i, '').replace(/^i said:\s*/i, '').trim();
 
     const allEls = [
       ...userEls.map(el => ({ el, role: 'user' })),
       ...copilotEls.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+
     allEls.forEach(({ el, role }) => {
-      let content = htmlToMarkdown(el);
-      if (role === 'user') content = stripCopilotLabel(content);
+      const content = stripRoleLabels(htmlToMarkdown(el));
       if (content) messages.push(formatMessage(role, content));
     });
     return { title: generateTitle(messages, doc.location?.href || ''), messages, messageCount: messages.length };
@@ -300,8 +320,20 @@
 
     // Inline markdown-v1 formatter (mirrors markdown-serialiser.js, no import needed)
     function escYaml(v) { return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
-    function roleLabel(r) { return r === 'user' ? 'User' : r === 'assistant' ? 'Assistant' : r.charAt(0).toUpperCase() + r.slice(1); }
     function toISO(ts) { try { return new Date(ts).toISOString(); } catch (_) { return ''; } }
+    // Prepend role emoji to first non-empty line (🙋 user, 🤖 assistant).
+    // Non-standard roles keep a **Label** heading.
+    function fmtTurn(content, role) {
+      if (role === 'user' || role === 'assistant') {
+        const emoji = role === 'user' ? '🙋 ' : '🤖 ';
+        const ls = content.split('\n');
+        const fi = ls.findIndex(l => l.trim() !== '');
+        if (fi !== -1) ls[fi] = emoji + ls[fi];
+        return ls.join('\n');
+      }
+      const cap = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Unknown';
+      return `**${cap}**\n\n${content}`;
+    }
 
     const title = chatData.title || 'Untitled Chat';
     const ts = chatData.extractedAt ? toISO(chatData.extractedAt) : '';
@@ -312,7 +344,7 @@
 
     const body = (chatData.messages || []).map((m, i) => {
       const sep = i > 0 ? '\n---\n\n' : '';
-      return `${sep}**${roleLabel(m.role)}**\n\n${m.content || ''}`;
+      return sep + fmtTurn(m.content || '', m.role);
     }).join('\n\n');
 
     const content = headerLines.join('\n') + '\n\n# ' + title + (body ? '\n\n' + body : '');
@@ -458,6 +490,38 @@
     }
   }
 
+  // ─── Selection pre-capture for excerpt saves ───────────────────────────────
+  // Chrome clears the page selection by the time a context menu item is clicked.
+  // On right-click we immediately push the rich markdown to the background script
+  // so it's already cached there when the context menu item fires — no round-trip
+  // timing issues, and works regardless of which frame received the event.
+  document.addEventListener('contextmenu', () => {
+    try {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+        console.log('[bAInder DEBUG] contextmenu: no selection, skipping cache push');
+        return;
+      }
+      const fragment = sel.getRangeAt(0).cloneContents();
+      const wrapper  = document.createElement('div');
+      wrapper.appendChild(fragment);
+      console.log('[bAInder DEBUG] contextmenu: captured HTML =', wrapper.innerHTML.slice(0, 500));
+      const markdown = stripRoleLabels(htmlToMarkdown(wrapper)).trim();
+      console.log('[bAInder DEBUG] contextmenu: htmlToMarkdown output =', JSON.stringify(markdown.slice(0, 500)));
+      if (!markdown) {
+        console.log('[bAInder DEBUG] contextmenu: markdown empty, not caching');
+        return;
+      }
+      chrome.runtime.sendMessage({
+        type: 'STORE_EXCERPT_CACHE',
+        data: { markdown }
+      }).then(r => console.log('[bAInder DEBUG] STORE_EXCERPT_CACHE response =', r))
+        .catch(e => console.warn('[bAInder DEBUG] STORE_EXCERPT_CACHE send failed =', e?.message));
+    } catch (err) {
+      console.error('[bAInder DEBUG] contextmenu error:', err);
+    }
+  });
+
   // ─── Chrome Messaging ──────────────────────────────────────────────────────
 
   /**
@@ -497,6 +561,26 @@
         try {
           const chatData = extractChat(platform, document);
           sendResponse({ success: true, data: prepareChatForSave(chatData) });
+        } catch (err) {
+          sendResponse({ success: false, error: err.message });
+        }
+        break;
+      }
+
+      case 'EXTRACT_EXCERPT': {
+        // Legacy fallback: attempt to get the current selection if the background
+        // cache wasn't populated via STORE_EXCERPT_CACHE.
+        try {
+          const sel = window.getSelection();
+          if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+            const fragment = sel.getRangeAt(0).cloneContents();
+            const wrapper  = document.createElement('div');
+            wrapper.appendChild(fragment);
+            const markdown = stripRoleLabels(htmlToMarkdown(wrapper)).trim();
+            sendResponse({ success: !!markdown, data: { markdown } });
+          } else {
+            sendResponse({ success: false, error: 'No selection' });
+          }
         } catch (err) {
           sendResponse({ success: false, error: err.message });
         }

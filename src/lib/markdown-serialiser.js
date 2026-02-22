@@ -13,23 +13,27 @@
  *   url: https://…
  *   date: 2026-02-20T10:30:00.000Z
  *   messageCount: 12
+ *   contentFormat: markdown-v1
  *   ---
  *
  *   # Title
  *
- *   **User**
- *
- *   First user message …
+ *   🙋 First user message …
  *
  *   ---
  *
- *   **Assistant**
- *
- *   First assistant response …
+ *   🤖 First line of assistant response …
+ *   remaining lines of the assistant response …
  *
  *   ---
  *
  *   … (repeating)
+ *
+ * Notes:
+ *   - 🙋 (user raising hand) is prepended to the first non-empty line of every user turn.
+ *   - 🤖 (robot face) is prepended to the first non-empty line of every assistant turn only;
+ *     subsequent lines are rendered as-is (implicitly continuation content).
+ *   - Non-standard roles (system, tool, etc.) keep a **Label** heading instead.
  */
 
 /**
@@ -112,8 +116,12 @@ export function messagesToMarkdown(messages, meta = {}) {
   lines.push('');
 
   // ── Title heading ────────────────────────────────────────────────────────
-  lines.push(`# ${title}`);
-  lines.push('');
+  // Omit the # heading for excerpts — the body already starts with the excerpt
+  // text so adding the title as a heading would just duplicate the first line.
+  if (!isExcerpt) {
+    lines.push(`# ${title}`);
+    lines.push('');
+  }
 
   // ── Conversation body ────────────────────────────────────────────────────
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -126,12 +134,38 @@ export function messagesToMarkdown(messages, meta = {}) {
   }
 
   messages.forEach((msg, idx) => {
-    const label   = formatRoleLabel(msg.role);
     const content = (msg.content || '').trim();
+    const isUser   = msg.role === 'user';
+    const isAssist = msg.role === 'assistant';
 
-    lines.push(`**${label}**`);
-    lines.push('');
-    lines.push(content);
+    let body = content;
+    if (isUser || isAssist) {
+      // Prepend the role emoji to the first non-empty line only.
+      // 🙋 = user (raising hand), 🤖 = assistant (robot).
+      // The rest of the content is implicitly continuation and needs no label.
+      const bodyLines = content.split('\n');
+      const fi = bodyLines.findIndex(l => l.trim() !== '');
+      if (fi !== -1) {
+        const emoji = isUser ? '🙋 ' : '🤖 ';
+        if (/^#{1,6} /.test(bodyLines[fi])) {
+          // First content line is a Markdown heading — prepending the emoji
+          // inline would produce e.g. "🤖 ## Heading" which keeps the `##`
+          // visible as literal text in some renderers.  Insert the emoji as its
+          // own line immediately before the heading so the heading renders
+          // correctly.
+          bodyLines.splice(fi, 0, emoji.trimEnd());
+        } else {
+          bodyLines[fi] = `${emoji}${bodyLines[fi]}`;
+        }
+      }
+      body = bodyLines.join('\n');
+    } else {
+      // Non-standard role (system, tool, etc.) — keep a labelled heading.
+      const label = formatRoleLabel(msg.role);
+      body = `**${label}**\n\n${content}`;
+    }
+
+    lines.push(body);
 
     // Divider between turns, but not after the last one
     if (idx < messages.length - 1) {

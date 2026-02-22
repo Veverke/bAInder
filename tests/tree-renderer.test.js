@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TreeRenderer } from '../src/lib/tree-renderer.js';
+import { TreeRenderer, getTagColor } from '../src/lib/tree-renderer.js';
 import { TopicTree, Topic } from '../src/lib/tree.js';
 
 describe('TreeRenderer', () => {
@@ -921,6 +921,72 @@ describe('TreeRenderer – Stage 7 chat items', () => {
       const content = container.querySelector('.tree-chat-item .tree-node-content');
       const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
       expect(() => content.dispatchEvent(event)).not.toThrow();
+    });
+  });
+});
+
+// ─── getTagColor ─────────────────────────────────────────────────────────────
+
+describe('getTagColor()', () => {
+  it('returns a number in [0, 359]', () => {
+    const h = getTagColor('react');
+    expect(typeof h).toBe('number');
+    expect(h).toBeGreaterThanOrEqual(0);
+    expect(h).toBeLessThan(360);
+  });
+
+  it('is deterministic — same tag always yields same hue', () => {
+    expect(getTagColor('performance')).toBe(getTagColor('performance'));
+    expect(getTagColor('debug')).toBe(getTagColor('debug'));
+  });
+
+  it('produces different hues for different tags', () => {
+    const hues = ['react', 'debug', 'performance', 'typescript', 'css'].map(getTagColor);
+    const unique = new Set(hues);
+    // At least some should differ (all 5 the same would be extremely unlikely)
+    expect(unique.size).toBeGreaterThan(1);
+  });
+
+  it('handles empty string without throwing', () => {
+    expect(() => getTagColor('')).not.toThrow();
+  });
+
+  it('handles single-char tags', () => {
+    const h = getTagColor('a');
+    expect(h).toBeGreaterThanOrEqual(0);
+    expect(h).toBeLessThan(360);
+  });
+
+  describe('chip rendering', () => {
+    let c2;
+    let tr;
+    let t2;
+
+    beforeEach(() => {
+      c2 = document.createElement('div');
+      document.body.appendChild(c2);
+      const emptyState = document.createElement('div');
+      emptyState.id = 'emptyState';
+      document.body.appendChild(emptyState);
+      t2 = new TopicTree();
+    });
+
+    afterEach(() => { document.body.innerHTML = ''; });
+
+    it('applies --tag-hue CSS custom property to rendered tag chips', () => {
+      const topicId = t2.addTopic('Colors');
+      tr = new TreeRenderer(c2, t2);
+      const chat = { id: 'c-color', title: 'Colored Chat', topicId, tags: ['react', 'css'], timestamp: Date.now() };
+      tr.setChatData([chat]);
+      tr.expandNode(topicId);
+      tr.render();
+
+      const chips = c2.querySelectorAll('.tree-tag-chip');
+      expect(chips.length).toBeGreaterThanOrEqual(2);
+      chips.forEach(chip => {
+        const hue = chip.style.getPropertyValue('--tag-hue');
+        expect(hue).not.toBe('');
+      });
     });
   });
 });

@@ -503,4 +503,34 @@ describe('buildExcerptPayload()', () => {
     const p = buildExcerptPayload('Some selected text', 'https://chat.openai.com/c/abc');
     expect(() => validateChatData(p)).not.toThrow();
   });
+
+  // ── richMarkdown parameter ─────────────────────────────────────────────────
+
+  it('uses richMarkdown as body when provided', () => {
+    const rich = '## Answer\n\nHere is the **formatted** response.\n\n```js\nconsole.log("hi");\n```';
+    const p = buildExcerptPayload('plain text fallback', 'https://chat.openai.com/', rich);
+    expect(p.content).toContain('formatted');
+    expect(p.content).toContain('console.log');
+    // plain text should NOT be used as body when rich is provided
+    expect(p.content).not.toContain('plain text fallback');
+  });
+
+  it('falls back to plain selectionText body when richMarkdown is null', () => {
+    const p = buildExcerptPayload('plain text fallback', 'https://chat.openai.com/', null);
+    expect(p.content).toContain('plain text fallback');
+  });
+
+  it('derives title from richMarkdown first non-heading line', () => {
+    const rich = '## Section Heading\n\nThis is the actual content that matters.';
+    const p = buildExcerptPayload('ignore me', 'https://chat.openai.com/', rich);
+    // Title should come from first non-heading non-empty line, not the selection
+    expect(p.title).toBe('This is the actual content that matters.');
+  });
+
+  it('still validates correctly when rich markdown is provided', () => {
+    const rich = '**Bold text** and some code `var x = 1`';
+    const p = buildExcerptPayload('plain', 'https://copilot.microsoft.com/', rich);
+    expect(() => validateChatData(p)).not.toThrow();
+    expect(p.metadata.isExcerpt).toBe(true);
+  });
 });

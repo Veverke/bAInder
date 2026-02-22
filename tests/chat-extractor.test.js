@@ -394,6 +394,71 @@ describe('htmlToMarkdown()', () => {
     expect(result).toContain('```');
     expect(result).toContain('const x = 1;');
   });
+
+  // ── Copilot role-label heading skipping ───────────────────────────────
+
+  it('skips h5 headings with text "You said:" (Copilot role label)', () => {
+    const result = htmlToMarkdown(el('<h5>You said:</h5><p>My question</p>'));
+    expect(result).not.toContain('You said:');
+    expect(result).not.toContain('#####');
+    expect(result).toContain('My question');
+  });
+
+  it('skips role-label headings case-insensitively ("YOU SAID:")', () => {
+    const result = htmlToMarkdown(el('<h5>YOU SAID:</h5>actual content'));
+    expect(result).toBe('actual content');
+  });
+
+  it('skips h5 with text "Copilot said:"', () => {
+    const result = htmlToMarkdown(el('<h5>Copilot said:</h5>'));
+    expect(result).toBe('');
+  });
+
+  it('skips "I said:" role-label headings', () => {
+    const result = htmlToMarkdown(el('<h2>I said:</h2><p>real content</p>'));
+    expect(result).not.toContain('I said:');
+    expect(result).toContain('real content');
+  });
+
+  it('does NOT skip a real content heading like "Key Concepts"', () => {
+    expect(htmlToMarkdown(el('<h2>Key Concepts</h2>'))).toBe('## Key Concepts');
+  });
+
+  // ── Code-block header (language label) skipping ────────────────────────
+
+  it('skips a language-label div that is a sibling of <pre>', () => {
+    const container = document.createElement('div');
+    const langDiv = document.createElement('div');
+    langDiv.textContent = 'JavaScript';
+    const pre = document.createElement('pre');
+    const code = document.createElement('code');
+    code.textContent = 'const x = 1;';
+    pre.appendChild(code);
+    container.appendChild(langDiv);
+    container.appendChild(pre);
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(container);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('```');
+    expect(result).toContain('const x = 1;');
+    expect(result).not.toMatch(/^JavaScript$/m);
+  });
+
+  it('does NOT skip a <div> sibling of <pre> that itself contains <code>', () => {
+    const container = document.createElement('div');
+    const contentDiv = document.createElement('div');
+    const inlineCode = document.createElement('code');
+    inlineCode.textContent = 'npm install';
+    contentDiv.appendChild(inlineCode);
+    const pre = document.createElement('pre');
+    pre.textContent = 'npm run build';
+    container.appendChild(contentDiv);
+    container.appendChild(pre);
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(container);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('npm install');
+  });
 });
 
 // ─── formatMessage ────────────────────────────────────────────────────────────
@@ -492,22 +557,22 @@ describe('generateTitle()', () => {
     expect(title.length).toBeGreaterThan(0);
   });
 
-  // ── Strategy 1: assistant heading ────────────────────────────────────────────
+  // ── Strategy 1: user message (assistant headings no longer used for title) ────
 
-  it('prefers assistant h1 heading over user message', () => {
+  it('uses user message even when assistant has h1 heading', () => {
     const messages = [
       { role: 'user',      content: 'How do closures work in JS?' },
       { role: 'assistant', content: '# JavaScript Closures\nA closure is a function...' },
     ];
-    expect(generateTitle(messages, '')).toBe('JavaScript Closures');
+    expect(generateTitle(messages, '')).toBe('How do closures work in JS?');
   });
 
-  it('prefers assistant h2 heading over user message', () => {
+  it('uses user message even when assistant has h2 heading', () => {
     const messages = [
       { role: 'user',      content: 'How do I centre a div?' },
       { role: 'assistant', content: '## Centering a Div with Flexbox\nUse flex...' },
     ];
-    expect(generateTitle(messages, '')).toBe('Centering a Div with Flexbox');
+    expect(generateTitle(messages, '')).toBe('How do I centre a div?');
   });
 
   it('falls through to user message when assistant has no heading', () => {
@@ -537,6 +602,28 @@ describe('generateTitle()', () => {
   it('returns full first line when there is no sentence terminator', () => {
     const messages = [{ role: 'user', content: 'Explain the difference between let and const' }];
     expect(generateTitle(messages, '')).toBe('Explain the difference between let and const');
+  });
+
+  // ── Copilot role-label skipping in title ───────────────────────────────
+
+  it('skips "You said:" Copilot label and uses the actual question as title', () => {
+    const messages = [{ role: 'user', content: '##### You said:\nMy actual question' }];
+    const title = generateTitle(messages, '');
+    expect(title).toBe('My actual question');
+    expect(title).not.toContain('You said');
+  });
+
+  it('skips "I said:" and uses subsequent line as title', () => {
+    const messages = [{ role: 'user', content: 'I said:\nReal prompt here' }];
+    const title = generateTitle(messages, '');
+    expect(title).toBe('Real prompt here');
+    expect(title).not.toContain('I said');
+  });
+
+  it('skips Copilot label even without colon ("Copilot")', () => {
+    const messages = [{ role: 'user', content: '## Copilot\nThis is the content' }];
+    const title = generateTitle(messages, '');
+    expect(title).toBe('This is the content');
   });
 });
 
@@ -1011,6 +1098,79 @@ describe('extractCopilot()', () => {
     const result = extractCopilot(document);
     expect(result.messages.some(m => m.content === 'Fallback assistant')).toBe(true);
   });
+
+  // ── Role-label stripping ──────────────────────────────────────────────────
+
+  it('strips "You said:" h5 injected by Copilot from user message content', () => {
+    document.body.innerHTML = '';
+    const userEl = document.createElement('div');
+    userEl.setAttribute('data-testid', 'user-message');
+    userEl.innerHTML = '<h5>You said:</h5><p>How do closures work?</p>';
+    document.body.appendChild(userEl);
+    const result = extractCopilot(document);
+    expect(result.messages[0].content).toBe('How do closures work?');
+    expect(result.messages[0].content).not.toContain('You said');
+  });
+
+  it('strips "Copilot said:" h5 from assistant message content', () => {
+    document.body.innerHTML = '';
+    const assistEl = document.createElement('div');
+    assistEl.setAttribute('data-testid', 'copilot-message');
+    assistEl.innerHTML = '<h5>Copilot said:</h5><p>A closure captures its surrounding scope.</p>';
+    document.body.appendChild(assistEl);
+    const result = extractCopilot(document);
+    expect(result.messages[0].content).toBe('A closure captures its surrounding scope.');
+    expect(result.messages[0].content).not.toContain('Copilot said');
+  });
+
+  it('title uses the real question, not the Copilot label', () => {
+    document.body.innerHTML = '';
+    const userEl = document.createElement('div');
+    userEl.setAttribute('data-testid', 'user-message');
+    userEl.innerHTML = '<h5>You said:</h5><p>Can I tell if arguments were passed to a JS function?</p>';
+    document.body.appendChild(userEl);
+    const result = extractCopilot(document);
+    expect(result.title).not.toContain('You said');
+    expect(result.title).toContain('arguments');
+  });
+
+  // ── Ancestor deduplication ───────────────────────────────────────────
+
+  it('does not create duplicate messages when outer and inner element both match', () => {
+    document.body.innerHTML = '';
+    const outer = document.createElement('div');
+    outer.setAttribute('data-testid', 'user-message');
+    const inner = document.createElement('div');
+    inner.className = 'UserMessage';
+    inner.textContent = 'One message not duplicated';
+    outer.appendChild(inner);
+    document.body.appendChild(outer);
+    const result = extractCopilot(document);
+    const userMsgs = result.messages.filter(m => m.role === 'user');
+    expect(userMsgs).toHaveLength(1);
+  });
+
+  // ── History sidebar exclusion ──────────────────────────────────────────
+
+  it('ignores user elements inside <aside> (history sidebar)', () => {
+    document.body.innerHTML = '';
+    const aside = document.createElement('aside');
+    const historyItem = document.createElement('div');
+    historyItem.setAttribute('data-testid', 'user-message');
+    historyItem.textContent = 'Old history chat title';
+    aside.appendChild(historyItem);
+    document.body.appendChild(aside);
+
+    const realMsg = document.createElement('div');
+    realMsg.setAttribute('data-testid', 'user-message');
+    realMsg.textContent = 'Current real prompt';
+    document.body.appendChild(realMsg);
+
+    const result = extractCopilot(document);
+    const allContent = result.messages.map(m => m.content).join(' ');
+    expect(allContent).toContain('Current real prompt');
+    expect(allContent).not.toContain('Old history chat title');
+  });
 });
 
 // ─── extractChat (dispatch) ───────────────────────────────────────────────────
@@ -1114,7 +1274,7 @@ describe('prepareChatForSave()', () => {
     expect(result.metadata.extractedAt).toBe(1234567890);
   });
 
-  it('generates content as markdown with bold role labels', () => {
+  it('generates content as markdown with emoji role prefixes', () => {
     const chatData = {
       platform:     'claude',
       url:          '',
@@ -1127,10 +1287,10 @@ describe('prepareChatForSave()', () => {
       extractedAt:  0
     };
     const result = prepareChatForSave(chatData);
-    expect(result.content).toContain('**User**');
-    expect(result.content).toContain('**Assistant**');
-    expect(result.content).toContain('Hi');
-    expect(result.content).toContain('Hello');
+    expect(result.content).toContain('🙋 Hi');
+    expect(result.content).toContain('🤖 Hello');
+    expect(result.content).not.toContain('**User**');
+    expect(result.content).not.toContain('**Assistant**');
   });
 
   it('includes YAML frontmatter separator in content', () => {
@@ -1186,8 +1346,8 @@ describe('Full extraction pipeline', () => {
     expect(saveReady.title).toBe('Explain recursion');
     expect(saveReady.source).toBe('chatgpt');
     expect(saveReady.messageCount).toBe(4);
-    expect(saveReady.content).toContain('**User**');
-    expect(saveReady.content).toContain('**Assistant**');
+    expect(saveReady.content).toContain('🙋');
+    expect(saveReady.content).toContain('🤖');
     expect(saveReady.content).toContain('Explain recursion');
   });
 
@@ -1230,8 +1390,8 @@ describe('Full extraction pipeline', () => {
     expect(saveReady.title).toBe('How do I reverse a string in Python?');
     expect(saveReady.source).toBe('copilot');
     expect(saveReady.messageCount).toBe(4);
-    expect(saveReady.content).toContain('**User**');
-    expect(saveReady.content).toContain('**Assistant**');
+    expect(saveReady.content).toContain('🙋');
+    expect(saveReady.content).toContain('🤖');
     expect(saveReady.content).toContain('How do I reverse a string in Python?');
   });
 

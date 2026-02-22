@@ -160,10 +160,52 @@ describe('messagesToMarkdown', () => {
     expect(md).toContain('\n# Test Chat\n');
   });
 
-  it('renders bold role labels', () => {
+  it('prepends 🙋 emoji to first non-empty line of user message', () => {
     const md = messagesToMarkdown(twoMessages, minimalMeta);
-    expect(md).toContain('**User**');
-    expect(md).toContain('**Assistant**');
+    expect(md).toContain('🙋 Hello, world?');
+    expect(md).not.toContain('**User**');
+  });
+
+  it('prepends 🤖 emoji to first non-empty line of assistant message', () => {
+    const md = messagesToMarkdown(twoMessages, minimalMeta);
+    expect(md).toContain('🤖 Hi there!');
+    expect(md).not.toContain('**Assistant**');
+  });
+
+  it('does not add 🤖 to subsequent lines of multi-line assistant message', () => {
+    const msgs = [{ role: 'assistant', content: 'Line one\nLine two\nLine three' }];
+    const md = messagesToMarkdown(msgs, minimalMeta);
+    expect(md).toContain('🤖 Line one');
+    expect(md).not.toContain('🤖 Line two');
+    expect(md).not.toContain('🤖 Line three');
+  });
+
+  it('skips leading blank lines when prepending emoji', () => {
+    const msgs = [{ role: 'user', content: '\n\nActual content' }];
+    const md = messagesToMarkdown(msgs, minimalMeta);
+    expect(md).toContain('🙋 Actual content');
+  });
+
+  it('puts emoji on its own line when content starts with a markdown heading', () => {
+    // If the first non-empty line is a heading (## Foo), prepending "🤖 ## Foo"
+    // keeps the `##` literal.  The emoji must appear on a separate line.
+    const msgs = [{ role: 'assistant', content: '## Overview\nSome text here.' }];
+    const md = messagesToMarkdown(msgs, minimalMeta);
+    expect(md).toContain('🤖\n## Overview');
+    expect(md).not.toContain('🤖 ## Overview');
+  });
+
+  it('puts emoji on its own line for h5 headings (no ##### artefact)', () => {
+    const msgs = [{ role: 'assistant', content: '##### Details\nBody text.' }];
+    const md = messagesToMarkdown(msgs, minimalMeta);
+    expect(md).toContain('🤖\n##### Details');
+    expect(md).not.toContain('🤖 ##### Details');
+  });
+
+  it('still prepends emoji inline when content starts with plain text', () => {
+    const msgs = [{ role: 'user', content: 'How does flex work?' }];
+    const md = messagesToMarkdown(msgs, minimalMeta);
+    expect(md).toContain('🙋 How does flex work?');
   });
 
   it('renders message content', () => {
@@ -196,8 +238,10 @@ describe('messagesToMarkdown', () => {
   it('handles empty messages array gracefully', () => {
     const md = messagesToMarkdown([], minimalMeta);
     expect(md).toContain('# Test Chat');
-    // No role labels
+    // No role labels or emoji prefixes
     expect(md).not.toContain('**User**');
+    expect(md).not.toContain('🙋');
+    expect(md).not.toContain('🤖');
   });
 
   it('handles null messages gracefully', () => {
@@ -236,22 +280,28 @@ describe('messagesToMarkdown', () => {
     expect(md).toContain('**System**');
   });
 
-  it('handles messages with empty content', () => {
+  it('handles messages with empty content without throwing', () => {
+    // Empty content has no non-empty first line so no emoji prefix is added,
+    // but the function should not throw and the output is still valid markdown.
     const md = messagesToMarkdown([{ role: 'user', content: '' }], minimalMeta);
-    expect(md).toContain('**User**');
-    // Should not throw or omit the turn
+    expect(md).toContain('# Test Chat');
+    expect(md).not.toContain('**User**');
+    // No emoji since there is no non-empty line to prepend to
+    expect(md).not.toContain('🙋');
   });
 
   it('renders body text below the title when messages is empty', () => {
     const md = messagesToMarkdown([], { ...minimalMeta, body: 'Selected excerpt text' });
     expect(md).toContain('Selected excerpt text');
     expect(md).not.toContain('**User**');
+    expect(md).not.toContain('🙋');
   });
 
   it('does not render body when messages array is non-empty', () => {
     const md = messagesToMarkdown(twoMessages, { ...minimalMeta, body: 'ignored body' });
-    // body should be ignored when there are real messages
-    expect(md).toContain('**User**');
+    // body should be ignored when there are real messages; emoji prefix used instead
+    expect(md).toContain('🙋 Hello, world?');
+    expect(md).not.toContain('**User**');
   });
 });
 

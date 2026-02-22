@@ -95,12 +95,14 @@ export function htmlToMarkdown(el) {
 
     switch (tag) {
       // ── Headings ─────────────────────────────────────────────────────────
-      case 'h1': return `\n# ${inner.trim()}\n`;
-      case 'h2': return `\n## ${inner.trim()}\n`;
-      case 'h3': return `\n### ${inner.trim()}\n`;
-      case 'h4': return `\n#### ${inner.trim()}\n`;
-      case 'h5': return `\n##### ${inner.trim()}\n`;
-      case 'h6': return `\n###### ${inner.trim()}\n`;
+      // Skip headings that are purely Copilot/M365 role labels ("You said:", "Copilot said:").
+      // These are UI chrome injected into the message DOM element, not actual content.
+      case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6': {
+        const t = inner.trim();
+        if (/^(you said|i said|copilot said|copilot):?\s*$/i.test(t)) return '';
+        const level = parseInt(tag[1], 10);
+        return `\n${'#'.repeat(level)} ${t}\n`;
+      }
 
       // ── Inline formatting ─────────────────────────────────────────────────
       case 'strong': case 'b': {
@@ -175,7 +177,28 @@ export function htmlToMarkdown(el) {
       }
 
       // ── Everything else (div, span, section, article, …) ─────────────────
-      default: return inner;
+      case 'div': case 'section': case 'article': case 'aside': case 'main': case 'header': case 'footer': {
+        // Skip code-block decoration elements (language label bars, copy-code toolbars).
+        // Heuristic: a <div> whose parent also has a <pre> sibling, but which
+        // itself has no <pre>/<code> descendants, is header/toolbar chrome.
+        if (node.parentElement) {
+          const siblingHasPre = Array.from(node.parentElement.children)
+            .some(c => c !== node && c.tagName.toLowerCase() === 'pre');
+          if (siblingHasPre && !node.querySelector('pre, code')) return '';
+        }
+        // Treat as block: wrap in newlines so lines don't concatenate.
+        const bt = inner.trim();
+        return bt ? `\n${bt}\n` : '';
+      }
+      default: {
+        // Inline elements (span, etc.) — skip code-block toolbar spans.
+        if (tag === 'span' && node.parentElement) {
+          const siblingHasPre = Array.from(node.parentElement.children)
+            .some(c => c !== node && c.tagName.toLowerCase() === 'pre');
+          if (siblingHasPre && !node.querySelector('pre, code')) return '';
+        }
+        return inner;
+      }
     }
   }
 
@@ -193,21 +216,12 @@ export function htmlToMarkdown(el) {
  * @returns {string}
  */
 export function generateTitle(messages, url) {
-  // Strategy 1: first Markdown heading (h1–h3) from the assistant's first response.
-  // Assistants often open their answer with a descriptive heading — a great title source.
-  const firstAssistant = messages.find(m => m.role === 'assistant');
-  if (firstAssistant && firstAssistant.content) {
-    const hm = firstAssistant.content.match(/^#{1,3}\s+(.+)$/m);
-    if (hm) {
-      const heading = hm[1].trim();
-      if (heading.length >= 4 && heading.length <= 120) return heading;
-    }
-  }
-
-  // Strategy 2: first complete sentence (ending with . ? !) from the user's first message.
+  // Strategy 1: first complete sentence (ending with . ? !) from the user's first message.
   // Strip markdown artefacts since content is stored as markdown after htmlToMarkdown.
   const firstUser = messages.find(m => m.role === 'user');
   if (firstUser && firstUser.content) {
+    // Role labels (e.g. "You said:") that survive extraction are meaningless as titles.
+    const ROLE_LABEL_RE = /^(you said|i said|copilot said|copilot):?\s*$/i;
     const firstLine = firstUser.content
       .split('\n')
       .map(l => l
@@ -217,7 +231,8 @@ export function generateTitle(messages, url) {
         .replace(/`([^`]*)`/g, '$1')        // strip inline code
         .trim()
       )
-      .find(l => l.length > 0) || '';
+      .filter(l => l.length > 0 && !ROLE_LABEL_RE.test(l))
+      [0] || '';
     if (firstLine) {
       // Try to extract the first complete sentence
       const sentenceMatch = firstLine.match(/^(.+?[.?!])\s/);
@@ -394,6 +409,35 @@ export function extractGemini(doc) {
   return { title, messages, messageCount: messages.length };
 }
 
+// ─── Copilot Extraction Helpers ─────────────────────────────────────────────────────
+
+/**
+ * Remove elements that are descendants of another element in the same list.
+ * Prevents nested DOM nodes (all matching a selector) from producing duplicate turns.
+ * @param {Element[]} els
+ * @returns {Element[]}
+ */
+function removeDescendants(els) {
+  return els.filter(el => !els.some(other => other !== el && other.contains(el)));
+}
+
+/**
+ * Strip Copilot UI role-label lines from extracted markdown content.
+ * Copilot injects headings such as “You said:” and “Copilot said:” into message
+ * DOM elements as visual chrome.  After htmlToMarkdown they appear as
+ * “##### You said:” (or plain “You said:”) and must be removed before storing.
+ * @param {string} content
+ * @returns {string}
+ */
+function stripRoleLabels(content) {
+  const LABEL_RE = /^#{0,6}\s*(you said|i said|copilot said|copilot):?\s*$/i;
+  return content
+    .split('\n')
+    .filter(line => !LABEL_RE.test(line.trim()))
+    .join('\n')
+    .replace(/^\s+/, '');
+}
+
 /**
  * Extract messages from a GitHub Copilot conversation page.
  *
@@ -419,17 +463,27 @@ export function extractCopilot(doc) {
     doc.querySelector('[class*="conversation"][class*="container"]') ||
     doc;
 
-  const userEls = Array.from(
+  // Predicate: true when an element is inside a history side-panel / nav drawer.
+  // On Copilot these are typically <aside> or [role="complementary"] elements.
+  const inHistoryPanel = el =>
+    !!el.closest('aside, [role="complementary"], [role="navigation"], [class*="history"], [class*="sidebar"]');
+
+  const rawUserEls = Array.from(
     chatScope.querySelectorAll(
       '[data-testid="user-message"], .UserMessage, [class*="UserMessage"], [class*="user-message"]'
     )
-  );
-  const copilotEls = Array.from(
+  ).filter(el => !inHistoryPanel(el));
+
+  const rawCopilotEls = Array.from(
     chatScope.querySelectorAll(
       '[data-testid="copilot-message"], [data-testid="assistant-message"], ' +
       '[class*="CopilotMessage"], [class*="AssistantMessage"], [class*="copilot-message"]'
     )
-  );
+  ).filter(el => !inHistoryPanel(el));
+
+  // Keep only the outermost matched element when nested elements all match a selector.
+  const userEls    = removeDescendants(rawUserEls);
+  const copilotEls = removeDescendants(rawCopilotEls);
 
   const allEls = [
     ...userEls.map(el => ({ el, role: 'user' })),
@@ -440,7 +494,8 @@ export function extractCopilot(doc) {
   });
 
   allEls.forEach(({ el, role }) => {
-    const content = htmlToMarkdown(el);
+    // Strip any Copilot UI role-label headings (“You said:”, “Copilot said:”).
+    const content = stripRoleLabels(htmlToMarkdown(el));
     if (content) messages.push(formatMessage(role, content));
   });
 
