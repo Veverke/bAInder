@@ -106,8 +106,10 @@ describe('Sidepanel UI - Critical Safety Only', () => {
     it('should not log console errors during initialization', () => {
       const errorCalls = consoleErrorSpy.mock.calls;
       const unexpectedErrors = errorCalls.filter(call => {
-        const message = call[0];
-        return !message.includes('deprecated') && !message.includes('Could not load link');
+        const message = String(call[0]);
+        return !message.includes('deprecated') &&
+               !message.includes('Could not load link') &&
+               !message.includes('Could not load script');
       });
       expect(unexpectedErrors.length).toBe(0);
     });

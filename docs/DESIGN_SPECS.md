@@ -1427,5 +1427,346 @@ This stage requires significant architectural changes:
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: February 18, 2026*
+## Final Checklist: Before Going Live
+
+A pre-release checklist to ensure the extension is production-ready before publishing to the Chrome Web Store.
+
+### 1. Cross-Platform Testing
+
+All development was done and tested against **Microsoft Copilot** (`copilot.microsoft.com`). Before release, thoroughly test on all other mainstream AI chat platforms:
+
+| Platform | URL | Status |
+|---|---|---|
+| ChatGPT | `chatgpt.com` | ⬜ Not tested |
+| Gemini | `gemini.google.com` | ⬜ Not tested |
+| Claude | `claude.ai` | ⬜ Not tested |
+| Microsoft Copilot | `copilot.microsoft.com` | ✅ Primary dev platform |
+| Perplexity | `perplexity.ai` | ⬜ Not tested |
+| Meta AI | `meta.ai` | ⬜ Not tested |
+
+For each platform, verify:
+- Chat title extraction works correctly
+- Chat content/body extraction is accurate
+- Save-to-bAInder flow completes without errors
+- Exported markdown renders the conversation faithfully
+
+### 2. Full-Page vs. Sidebar / Embedded Contexts
+
+Development was done using the **full-page** experience (`copilot.microsoft.com`). Validate the extension also works in embedded/sidebar contexts, which may use different DOM structures or iframe boundaries:
+
+| Context | Example | Status |
+|---|---|---|
+| Copilot full page | `copilot.microsoft.com` | ✅ Tested |
+| Copilot sidebar (Edge) | Edge sidebar panel | ⬜ Not tested |
+| ChatGPT full page | `chatgpt.com` | ⬜ Not tested |
+| Gemini in Google Search | Inline AI answers | ⬜ Not tested |
+
+Key things to check in sidebar/embedded mode:
+- Content script injection fires correctly (check `manifest.json` `matches` patterns)
+- DOM selectors are not broken by the narrower viewport or different layout
+- Context menu appears and functions as expected
+- Side panel opens without conflict with the host page's own panels
+
+### 3. Logging & Debug Cleanup
+
+Before release, audit all logging:
+
+- [ ] Remove or gate all `console.log` debug statements behind a log-level flag
+- [ ] Implement a simple logging utility that respects a `DEBUG` / `INFO` / `WARN` / `ERROR` level (can be a `const LOG_LEVEL` in a shared config)
+- [ ] Ensure no sensitive data (chat content, user identifiers) is ever written to the console in production mode
+- [ ] Verify the browser DevTools console is clean during normal use on all tested platforms
+
+Suggested minimal logger pattern:
+```js
+// src/lib/logger.js
+const LOG_LEVEL = 'WARN'; // Change to 'DEBUG' during development
+const LEVELS = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
+export const logger = {
+  debug: (...a) => LEVELS[LOG_LEVEL] <= 0 && console.debug('[bAInder]', ...a),
+  info:  (...a) => LEVELS[LOG_LEVEL] <= 1 && console.info('[bAInder]', ...a),
+  warn:  (...a) => LEVELS[LOG_LEVEL] <= 2 && console.warn('[bAInder]', ...a),
+  error: (...a) => LEVELS[LOG_LEVEL] <= 3 && console.error('[bAInder]', ...a),
+};
+```
+
+### 4. Competitive Landscape
+
+*Research conducted February 23, 2026. Install counts and ratings are from Chrome Web Store listings at that date.*
+
+#### Comparison Table
+
+| Extension | Platforms | Auto-capture | Hierarchical folders | Export formats | Search | Open Source | ~Users | Rating |
+|---|---|:---:|:---:|---|:---:|:---:|---:|---:|
+| **bAInder** *(this ext.)* | Copilot, ChatGPT, Gemini, Claude | ✅ on save | ✅ Unlimited depth | MD + ZIP | ✅ Full-text | ✅ MIT | — | — |
+| [ChatHub](https://chromewebstore.google.com/detail/chathub-use-chatgpt-bing/iaakpnchhognanibcahlpcplchdfmgma) | 10+ AI models | Partial (own UI) | ❌ | MD, JSON | ✅ | ✅ GPL-3.0 | 200 K | 4.7 ★ |
+| [Superpower ChatGPT](https://chromewebstore.google.com/detail/superpower-chatgpt/amhmeenmapldpjdedekalnfifgnpfnkc) | ChatGPT only | ❌ | ✅ Folders + colour | PDF, MD, TXT, JSON | ✅ | ❌ Freemium | 100 K | 4.5 ★ |
+| [ChatGPT Exporter](https://chromewebstore.google.com/detail/chatgpt-exporter-chatgpt/ilmdofdhpnhffldihboadndccenlnfll) | ChatGPT only | ❌ | ❌ | PDF, MD, TXT, JSON, CSV | ❌ | ❌ Freemium | 100 K | 4.8 ★ |
+| [AI Exporter (saveai.net)](https://chromewebstore.google.com/detail/ai-exporter-save-chatgpt/kagjkiiecagemklhmhkabbalfpbianbe) | 10+ AI models | ❌ | ❌ | PDF, PNG, MD, JSON, TXT | ❌ | ❌ Free | 40 K | 4.7 ★ |
+| [AI Chat Exporter (Claude)](https://chromewebstore.google.com/detail/ai-chat-exporter-save-cla/elhmfakncmnghlnabnolalcjkdpfjnin) | Claude only | ❌ | ❌ | PDF, MD, TXT, CSV, JSON | ❌ | ❌ Freemium | 30 K | 4.8 ★ |
+| [AI Chat Exporter (Gemini)](https://chromewebstore.google.com/detail/ai-chat-exporter-gemini-t/jfepajhaapfonhhfjmamediilplchakk) | Gemini only | ❌ | ❌ | PDF, MD, TXT, CSV, JSON | ❌ | ❌ Freemium | 30 K | 4.7 ★ |
+| [Chat Memo](https://chromewebstore.google.com/detail/chat-memo-auto-save-ai-ch/memnnheiikbfdcobfkghhfihnegkfici) | ChatGPT, Gemini, Claude, Kimi | ✅ Passive | ❌ | Export (format unclear) | ✅ | Partial | 9 K | 4.7 ★ |
+| [Save my Chatbot](https://chromewebstore.google.com/detail/save-my-chatbot-ai-conver/agklnagmfeooogcppjccdnoallkhgkod) | ChatGPT, Claude, Perplexity, Phind | ❌ | ❌ | MD only | ❌ | ❌ Free | 10 K | 4.3 ★ |
+| [ConvoSnap](https://chromewebstore.google.com/detail/convosnap-exporter-save-a/hlhlaappdmhaigmfcjpobpmimoimagkg) | ChatGPT, Gemini, Grok, DeepSeek | ❌ | ❌ | PDF, MD, JSON, CSV, IMG | ❌ | ❌ Freemium | 1 K | 4.3 ★ |
+| [chatgpt-exporter (pionxzh)](https://greasyfork.org/scripts/456055-chatgpt-exporter) | ChatGPT only | ❌ | ❌ | TXT, HTML, MD, PNG, JSON, ZIP | ❌ | ✅ MIT | — (script) | — |
+
+#### Key Observations
+
+**Where bAInder stands out:**
+
+- It is the **only extension that combines** multi-platform support + hierarchical folder organisation + full-text search + ZIP export in a single tool. Every competitor sacrifices at least one of these dimensions.
+- **Superpower ChatGPT** is the closest organisational rival, but it is locked to ChatGPT only.
+- **ChatHub** has the broadest platform reach but is primarily a side-by-side chat launcher with no real folder management or ZIP export.
+- **Chat Memo** is the only other tool with auto-capture, but lacks any organisation layer.
+- The open-source landscape is thin: only ChatHub (GPL-3.0, 10.5 K ⭐) and the pionxzh userscript (MIT, 2.2 K ⭐) have public code. bAInder joins them as a rare fully open-source entry in this space.
+
+**Gaps to consider addressing before launch:**
+
+- **PDF export** — offered by four competitors; notably absent from bAInder. Even a basic PDF print option would match the market baseline.
+- **Passive/auto-save** — only Chat Memo offers this. Adding optional background capture would be a meaningful differentiator.
+- **Notion / Google Docs integration** — small but growing audience expects this; offered by AI Exporter and ConvoSnap respectively.
+- **Bulk operations** — the pionxzh script can batch-export all conversations at once; no GUI extension does this today.
+
+### 5. Browser Portability
+
+The extension is currently built and tested as a **Chrome extension only** (`manifest_version: 3`). Before going live, port it to at least Edge, and plan for broader browser support:
+
+#### Priority order
+
+| Browser | Engine | Distribution | Priority | Notes |
+|---|---|---|:---:|---|
+| **Google Chrome** | Chromium | Chrome Web Store | ✅ Done | Primary target |
+| **Microsoft Edge** | Chromium | Edge Add-ons store | 🔴 High | Same Chromium engine — MV3 extensions are nearly source-compatible; submit the same package with minor manifest adjustments |
+| **Brave** | Chromium | Chrome Web Store | 🟡 Medium | Installs directly from CWS; minimal extra work (test ad-blocker / Shields interaction) |
+| **Opera / Opera GX** | Chromium | Opera Add-ons store | 🟡 Medium | CWS-compatible; separate store listing needed |
+| **Firefox** | Gecko | Firefox Add-ons (AMO) | 🟠 Low (v2) | Requires `manifest_version: 2` shim or MV3 polyfill; `chrome.*` → `browser.*` namespace; Side Panel API not yet available |
+| **Safari** | WebKit | Mac App Store | 🔴 Low | Requires `xcrun safari-web-extension-converter`; separate macOS/iOS App Store submission; significant additional cost and effort |
+
+#### Edge porting checklist (start here)
+
+- [ ] In `manifest.json`, add `"minimum_edge_version"` if you want to gate on a specific Edge build
+- [ ] Test all content scripts on `copilot.microsoft.com` inside Edge (Copilot is an Edge-first product — this is especially important)
+- [ ] Verify the Side Panel API (`chrome.sidePanel`) works in Edge — Edge supports it from version 114+
+- [ ] Confirm `chrome.storage`, context menus, and background service worker behave identically
+- [ ] Create a separate Edge Add-ons store developer account and submit the package
+- [ ] Update `README.md` and store listing copy to mention Edge support
+
+#### Firefox notes (future)
+
+Firefox supports MV3 since Firefox 109 but with gaps (e.g. `chrome.sidePanel` is not available, `declarativeNetRequest` differs). Use the [`webextension-polyfill`](https://github.com/mozilla/webextension-polyfill) library and wrap the Side Panel in a fallback (browser action popup). Treat as a post-v1 milestone.
+
+### 6. Feature Suggestions & Future Roadmap
+
+Open questions and ideas to consider for v1.x and beyond:
+
+- [ ] **Bulk operations** — select multiple chats and move/delete/export them together
+- [ ] **Tag system** — free-form tags as an alternative/complement to the folder tree
+- [ ] **Chat re-import** — import a previously exported ZIP back into bAInder (round-trip fidelity)
+- [ ] **Cloud sync** — optional backup to Google Drive or OneDrive via OAuth
+- [ ] **Keyboard shortcuts** — power-user navigation without mouse (open panel, search, save)
+- [ ] **Reader view themes** — dark/light/sepia modes for the built-in reader
+- [ ] **Inline annotations** — allow users to highlight and annotate passages within a saved chat
+- [ ] **Duplicate detection** — warn when saving a chat that already exists in the tree
+- [ ] **Auto-save on navigate** — offer to save a chat automatically when the user leaves the page
+- [ ] **Statistics dashboard** — number of saved chats, storage used, most active platforms, etc.
+
+> **Feedback welcome:** If you have additional suggestions, open an issue or discussion on the repository.
+
+---
+
+## Appendix A — UI Enhancement Roadmap (Pre-launch)
+
+Generated: February 23, 2026. Grouped by implementation scope and priority.
+
+### A.1 High-Impact / Quick Wins
+
+**1. Web Font — Inter (bundled woff2)** ✅ *Implemented*  
+Replaced the `system-ui` stack with [Inter](https://rsms.me/inter/) (weights 400–700, latin subset, ~95 KB total). Woff2 files are bundled under `src/fonts/` to comply with Chrome extension CSP (no external CDN). `font-display: swap` prevents invisible-text flash.
+
+**2. Source-color left-border + badge chips on chat tree rows**  
+Each saved chat row in the tree should display a 3px colored left-border and a compact badge chip using the same source-color system already established in `reader.css` (ChatGPT = green, Claude = orange, Gemini = blue, Copilot = purple). Makes the list scannable at a glance without opening anything.
+
+**3. Header gradient / brand identity**  
+The header is currently a flat `--bg-elevated` rectangle. Adding a subtle directional gradient with a primary-color tinted origin (light: indigo-tinted white; dark: deep navy) plus a 3px `var(--primary)` top-border accent gives instant brand identity. Pure CSS, no HTML changes.
+
+**4. Topic folders as cards**  
+Wrap each topic in a card (`border-radius`, `box-shadow`, `--bg-secondary` background). Creates clear visual grouping especially when the tree is expanded. Requires changes to `tree-renderer.js` (add wrapper element) and `sidepanel.css` (card styles).
+
+---
+
+### A.2 Medium-Impact / Polish
+
+**5. Micro-animations (Group A — sidepanel.css only)**  
+Three independent CSS-only improvements:
+- Smooth tree expand/collapse via `max-height` transition instead of instant toggle
+- Toast slides in from below with `translateY` + spring-eased `cubic-bezier`; colored left-border per type variant (info/success/error)
+- Context menu fades in with `scale(0.95) → scale(1)` + `opacity`, with `transform-origin` anchored to cursor corner
+
+**6. Empty state illustration**  
+Replace the current generic binder SVG with a more on-brand illustration. Could be a simple animated-pulse placeholder or a custom SVG featuring an open notebook with AI logos. HTML + CSS change only.
+
+**7. Loading skeleton**  
+Show 3–4 shimmer skeleton rows (animated `--bg-tertiary` gradient) between page load and tree population, instead of an empty flash. Requires a small JS change to insert/remove skeleton markup around the tree render call.
+
+---
+
+### A.3 Reader-Specific
+
+**8. Message bubbles in reader**  
+User messages: right-aligned bubble with `--primary-light` tinted background. Assistant messages: left-aligned card with subtle left-border. Makes transcripts feel like a real chat log rather than raw `<div>` blocks. Changes in `reader.css` only.
+
+**9. Sticky "Jump to top" + scroll progress bar**  
+For long conversations: a thin `var(--primary)` progress bar at the very top of the reader viewport (scroll-driven), plus a `↑` floating button that appears after 300px of scroll. `reader.js` + `reader.css`.
+
+---
+
+### A.4 Optional / Lower Priority
+
+**10. Settings slide-in panel**  
+Replace the centered modal for settings with a `translateX` slide-in sidebar panel. Better UX inside a narrow sidepanel. Touches `sidepanel.js` + `sidepanel.css`.
+
+**11. Keyboard shortcut hints**  
+Subtle `⌘K`, `↩` hints inside the search bar placeholder and primary dialog buttons — signals production quality. HTML + CSS change only.
+
+---
+
+### A.5 Recommended Implementation Order
+
+| Wave | Items | Files touched |
+|---|---|---|
+| 1 (parallel) | Header gradient, Toast animation, Context menu animation | `sidepanel.css` only |
+| 1 (parallel) | Message bubbles, Jump-to-top | `reader.css`, `reader.js` |
+| 1 (parallel) | Empty state illustration | `sidepanel.html`, `sidepanel.css` |
+| 2 | Source-color badges on chat rows | `tree-renderer.js`, `sidepanel.css` |
+| 3 | Topic folder cards | `tree-renderer.js`, `sidepanel.css` |
+| 4 | Loading skeleton, Settings slide-in | `sidepanel.js`, `sidepanel.css` |
+
+---
+
+## Appendix B — UI Enhancement Roadmap: Round 2
+
+Generated: February 23, 2026. All 11 Round 1 items are complete. Round 2 builds on that foundation.
+
+---
+
+### B.1 Parallel Execution Map
+
+Round 2 enhancements split into **three independent tracks** that can be developed simultaneously with zero file conflicts between tracks. Within each track, items must be staged (shared files).
+
+| Track | Items | Files (exclusive to this track) | Can run in parallel with |
+|---|---|---|---|
+| **F — Reader** | T3, R1, R3, R2 | `reader.html`, `reader.css`, `reader.js` | G and H |
+| **G — Tree** | A2, A3, A6, U3, U2, U6 | `tree-renderer.js` (+ sidepanel.css additions) | F |
+| **H — Sidepanel Core** | T1, T2, A1, A4, A5, U1, U4, U5 | `sidepanel.html`, `sidepanel.js`, `sidepanel.css` | F |
+
+> **Note:** Track G's items add new CSS rules to `sidepanel.css` and Track H edits existing ones — both are append-safe in practice but should be staged sequentially within a single agent turn.
+
+**Recommended execution:** Run Track F alongside Track G+H. Within G+H, complete all `tree-renderer.js` changes before merging sidepanel.css additions.
+
+---
+
+### B.2 Theme & Color
+
+**T1 — Accent theme presets (Indigo / Rose / Teal / Amber)**  
+Add a `--accent-hue` CSS variable and four preset swatches to the settings panel. Clicking a swatch writes `accent: "indigo"` to `chrome.storage.local` and swaps the `data-accent` attribute on `<html>`, regenerating `--primary` and related variables. No structural JS change beyond what the settings panel already wires.  
+*Files:* `sidepanel.css`, `sidepanel.js`
+
+**T2 — OLED pitch-black dark variant**  
+Add `[data-theme="oled"]` CSS block alongside the existing `[data-theme="dark"]` block where all `--bg-*` vars collapse to pure `#000000` and borders become `#1a1a1a`. Expose it as a third option in the settings theme `<select>`.  
+*Files:* `sidepanel.css` (depends on T1 for the settings wiring)
+
+**T3 — Per-source reader background tint**  
+Read the `source` field off the loaded chat object in `reader.js` and set `data-source` on `<body>`. Add four `[data-source]` CSS blocks that apply a very soft (3–5 % opacity) tinted `background-color` so the reader page subtly reflects which platform the chat came from.  
+*Files:* `reader.css`, `reader.js`
+
+---
+
+### B.3 Micro-interactions
+
+**A1 — Node "pop" animation on save**  
+After a chat is saved and the tree re-renders, find the newly inserted `<li>` and briefly add a `.tree-node--pop` class (`scale 1 → 1.04 → 1`, 250 ms spring). Gives instant confirmation that the save succeeded.  
+*Files:* `sidepanel.js` (add class after render), `sidepanel.css` (`@keyframes` + class)
+
+**A2 — Custom drag ghost pill**  
+Override the browser's default drag image in `dragstart` with a compact pill showing the chat title and source color. Uses `DataTransfer.setDragImage()` with an off-screen element.  
+*Files:* `tree-renderer.js` only — fully isolated
+
+**A3 — Staggered tree-entry animation**  
+When nodes are rendered, add a CSS custom property `--node-index` to each `<li>` and a `@keyframes nodeEntry` (fade-in + translateY(-6px) → 0). Each node's `animation-delay` is `calc(var(--node-index) * 30ms)`.  
+*Files:* `tree-renderer.js` (set `--node-index`), `sidepanel.css` (keyframes + class)
+
+**A4 — Search result count badge morph**  
+The search field currently shows no feedback on result count. Add a small badge pill next to the input that animates between count values using `tabular-nums` and a `scale` micro-transition.  
+*Files:* `sidepanel.css` (badge + transition), `sidepanel.html` (badge element), `sidepanel.js` (count update)
+
+**A5 — Typing indicator shimmer in search**  
+While the user is typing in the search field (debounce window), replace the static placeholder with a subtle animated underline shimmer so the UI feels responsive before results appear.  
+*Files:* `sidepanel.css` (shimmer keyframe + `:focus` state)
+
+**A6 — Chat-open ripple**  
+Clicking a chat row emits a circular ripple using a pseudo-element `::after` with `scale(0) → scale(2)` + `opacity(0.15 → 0)` on a `--source-color` tinted background.  
+*Files:* `tree-renderer.js` (inject ripple element on click), `sidepanel.css` (ripple styles)
+
+---
+
+### B.4 UX Features
+
+**U1 — Collapsible sidebar sections**  
+Add `<details>`/`<summary>` wrappers (or JS-driven toggle buttons) around the Search and Tree sections so users can collapse one to give more room to the other.  
+*Files:* `sidepanel.html` (structure), `sidepanel.js` (persist collapse state), `sidepanel.css` (chevron animation)
+
+**U2 — Pinned / starred topics**  
+A star icon on each topic card header. Clicking sets `topic.pinned = true` in storage. Pinned topics always appear before unpinned ones in the tree regardless of alphabetical order, with a subtle `★` prefix.  
+*Files:* `tree-renderer.js` (star element + sort), `sidepanel.js` (storage write), `sidepanel.css` (star icon styles)
+
+**U3 — Chat-count histogram sparkline in topic cards**  
+Each topic card footer shows a micro bar chart (SVG, max 6 bars) representing the number of chats saved per week over the last 6 weeks. Derived from `chat.savedAt` timestamps — no new data needed.  
+*Files:* `tree-renderer.js` (SVG generation), `sidepanel.css` (sparkline styles)
+
+**U4 — "Recently saved" horizontal rail**  
+A horizontally scrollable chip rail above the tree listing the 5 most recently saved chats regardless of topic. Clicking a chip opens that chat's reader directly. Fades out when the tree has fewer than 3 chats total.  
+*Files:* `sidepanel.html` (rail container), `sidepanel.js` (populate rail), `sidepanel.css` (horizontal scroll + chip styles)
+
+**U5 — Empty search state illustration**  
+When a search query returns zero results, show a small inline illustration + "No chats match '…'" message instead of a blank list. Complements the existing empty-tree state.  
+*Files:* `sidepanel.html` (illustration markup), `sidepanel.css` (styles; reuses empty-state design tokens), `sidepanel.js` (show/hide logic)
+
+**U6 — Keyboard tree navigation**  
+`↑`/`↓` arrow keys move focus between chat rows; `Enter` opens the focused chat; `Space` toggles a topic open/close. Requires `tabIndex` management on `<li>` elements.  
+*Files:* `sidepanel.js` (keydown handler), `tree-renderer.js` (`tabIndex` on items)
+
+---
+
+### B.5 Reader Round 2
+
+**R1 — Print / PDF stylesheet**  
+A `@media print` block that hides the progress bar, jump-to-top button, and header chrome; forces black-on-white text; and removes all box-shadow/border-radius decorations. Zero JS required.  
+*Files:* `reader.html` (`<link rel="stylesheet" media="print"` or inline), `reader.css`
+
+**R2 — Highlight & annotate** *(high effort)*  
+User can select text in the reader, press a floating toolbar button, and save a highlight with optional note to `chrome.storage.local`. Highlights are re-applied on re-open using stored character offsets. Requires a new `annotations.js` module.  
+*Files:* `reader.js`, `reader.css`, new `src/lib/annotations.js`
+
+**R3 — Reading time estimate in reader header**  
+Count words in the rendered content and display "~X min read" in the reader header area. Standard 200 wpm estimate. Updates after `renderChat()` completes.  
+*Files:* `reader.js` (word count), `reader.css` (badge style)
+
+---
+
+### B.6 Recommended Implementation Waves
+
+| Wave | Track | Items | Can run in parallel with |
+|---|---|---|---|
+| Wave 1 | F | R1, R3 | Wave 1 G, Wave 1 H |
+| Wave 1 | G | A2, A3 | Wave 1 F, Wave 1 H |
+| Wave 1 | H | T1, A4, A5 | Wave 1 F, Wave 1 G |
+| Wave 2 | F | T3 | Wave 2 G, Wave 2 H |
+| Wave 2 | G | A6, U3 | Wave 2 F, Wave 2 H |
+| Wave 2 | H | T2, A1, U5 | Wave 2 F, Wave 2 G |
+| Wave 3 | F | R2 (high effort) | Wave 3 G, Wave 3 H |
+| Wave 3 | G | U2, U6 | Wave 3 F, Wave 3 H |
+| Wave 3 | H | U1, U4 | Wave 3 F, Wave 3 G |
+
+---
+
+*Document Version: 1.1*  
+*Last Updated: February 23, 2026*

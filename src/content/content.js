@@ -608,11 +608,12 @@
     if (!btn) return;
     const errorText = detail ? `❌ ${String(detail).slice(0, 28)}` : '❌ Error';
     const states = {
-      loading: { text: '⏳ Saving...',       bg: '#6366f1', disabled: true  },
-      success: { text: '✅ Saved!',           bg: '#16a34a', disabled: true  },
-      error:   { text: errorText,              bg: '#dc2626', disabled: false },
-      empty:   { text: '⚠️ No chat yet',     bg: '#d97706', disabled: false },
-      default: { text: '💾 Save to bAInder', bg: '#4f46e5', disabled: false }
+      loading:      { text: '⏳ Saving...',          bg: '#6366f1', disabled: true  },
+      success:      { text: '✅ Saved!',              bg: '#16a34a', disabled: true  },
+      error:        { text: errorText,                bg: '#dc2626', disabled: false },
+      empty:        { text: '⚠️ No chat yet',        bg: '#d97706', disabled: false },
+      'ctx-lost':   { text: '⚠️ Reload page',        bg: '#b45309', disabled: true  },
+      default:      { text: '💾 Save to bAInder',    bg: '#4f46e5', disabled: false }
     };
     const st = states[s] || states.default;
     btn.textContent      = st.text;
@@ -622,6 +623,7 @@
     if (s === 'success' || s === 'error' || s === 'empty') {
       setTimeout(() => setButtonState(btn, 'default'), 3500);
     }
+    // 'ctx-lost' intentionally does NOT auto-reset — the page must be reloaded.
   }
 
   /**
@@ -677,8 +679,13 @@
         throw new Error((response && response.error) || 'Unknown error');
       }
     } catch (err) {
-      setButtonState(btn, 'error', err.message);
-      console.error('bAInder: Failed to save chat', err);
+      if (/context (lost|invalidated)/i.test(err.message)) {
+        setButtonState(btn, 'ctx-lost');
+        console.warn('bAInder: Extension context invalidated — page must be reloaded', err);
+      } else {
+        setButtonState(btn, 'error', err.message);
+        console.error('bAInder: Failed to save chat', err);
+      }
     }
   }
 
@@ -746,10 +753,10 @@
         return;
       }
 
-      // Guard: chrome.runtime becomes undefined when the extension context is
+      // Guard: chrome.runtime.id becomes undefined when the extension context is
       // invalidated (e.g. after a reload). The page must be refreshed to reconnect.
-      if (!chrome?.runtime?.sendMessage) {
-        console.warn('[bAInder DEBUG] contextmenu: chrome.runtime unavailable — reload the page to reconnect the extension');
+      if (!chrome?.runtime?.id) {
+        console.warn('[bAInder DEBUG] contextmenu: extension context invalidated — reload the page to reconnect');
         return;
       }
 
@@ -772,8 +779,11 @@
    */
   function sendMessage(msg) {
     return new Promise((resolve, reject) => {
-      if (!chrome?.runtime?.sendMessage) {
-        reject(new Error('Extension context lost — please reload the page'));
+      // chrome.runtime.id becomes undefined when the extension context is
+      // invalidated (e.g. after an extension reload/update). This is the
+      // canonical Chrome check — more reliable than testing sendMessage itself.
+      if (!chrome?.runtime?.id) {
+        reject(new Error('Extension context invalidated — please reload the page'));
         return;
       }
       try {

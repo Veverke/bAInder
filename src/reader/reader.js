@@ -6,8 +6,40 @@
  */
 
 import { parseFrontmatter } from '../lib/markdown-serialiser.js';
+import {
+  loadAnnotations, saveAnnotation, deleteAnnotation,
+  serializeRange,  applyAnnotations,
+} from '../lib/annotations.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Count words in raw markdown text (strips frontmatter and code blocks).
+ * @param {string} text
+ * @returns {number}
+ */
+export function countWords(text) {
+  if (!text) return 0;
+  const stripped = text
+    .replace(/^---[\s\S]*?---\n/, '')          // frontmatter
+    .replace(/```[\s\S]*?```/g, '')            // fenced code blocks
+    .replace(/`[^`]+`/g, '')                  // inline code
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')     // images
+    .replace(/\[[^\]]*\]\([^)]*\)/g, '')      // links
+    .replace(/[#*_~>|\-]/g, '')               // markdown symbols
+    .trim();
+  if (!stripped) return 0;
+  return stripped.split(/\s+/).filter(w => w.length > 0).length;
+}
+
+/**
+ * Estimate reading time in minutes at 200 wpm (minimum 1 min).
+ * @param {number} wordCount
+ * @returns {number}
+ */
+export function estimateReadTime(wordCount) {
+  return Math.max(1, Math.round(wordCount / 200));
+}
 
 /**
  * Format an ISO date string to a human-readable locale string.
@@ -307,6 +339,225 @@ export function renderMarkdown(markdown) {
   return htmlParts.join('\n');
 }
 
+// ─── Post-render DOM processing ───────────────────────────────────────────────
+
+/**
+ * Walk the flat rendered-markdown children of `contentEl` and group them into
+ * role-aware `.chat-turn--user` / `.chat-turn--assistant` wrapper divs.
+ *
+ * The reader's markdown format produces a flat sequence of:
+ *   <h3>User</h3>, <p>…</p>, <hr>, <h3>Assistant</h3>, <p>…</p>, <hr>, …
+ *
+ * This function turns that into:
+ *   <div class="chat-turn chat-turn--user">…</div>
+ *   <div class="chat-turn chat-turn--assistant">…</div>
+ *
+ * If no recognised role headings are found the DOM is left unchanged.
+ * @param {Element} contentEl
+ */
+export function wrapChatTurns(contentEl) {
+  const USER_ROLES      = new Set(['user', 'you', 'human']);
+  const ASSISTANT_ROLES = new Set(['assistant', 'chatgpt', 'claude', 'gemini', 'copilot']);
+
+  // Quick guard: skip if no role h3s present (e.g. plain excerpts)
+  const hasRoles = Array.from(contentEl.querySelectorAll('h3')).some(h => {
+    const t = h.textContent.trim().toLowerCase();
+    return USER_ROLES.has(t) || ASSISTANT_ROLES.has(t);
+  });
+  if (!hasRoles) return;
+
+  // Collect top-level child nodes, splitting at <hr> boundaries
+  const groups = [];
+  let current = [];
+  for (const node of Array.from(contentEl.childNodes)) {
+    if (node.nodeName === 'HR') {
+      if (current.length) groups.push(current);
+      current = [];
+    } else {
+      current.push(node);
+    }
+  }
+  if (current.length) groups.push(current);
+
+  contentEl.innerHTML = '';
+
+  for (const group of groups) {
+    // Drop whitespace-only text nodes
+    const nodes = group.filter(
+      n => !(n.nodeType === 3 /* TEXT_NODE */ && n.textContent.trim() === '')
+    );
+    if (!nodes.length) continue;
+
+    const first = nodes[0];
+    if (first.nodeType === 1 /* ELEMENT_NODE */ && first.tagName === 'H3') {
+      const roleKey = first.textContent.trim().toLowerCase();
+      const isUser      = USER_ROLES.has(roleKey);
+      const isAssistant = ASSISTANT_ROLES.has(roleKey);
+
+      if (isUser || isAssistant) {
+        const turn = document.createElement('div');
+        turn.className = `chat-turn ${isUser ? 'chat-turn--user' : 'chat-turn--assistant'}`;
+
+        const roleDiv = document.createElement('div');
+        roleDiv.className = 'chat-turn__role';
+        roleDiv.textContent = first.textContent.trim();
+
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'chat-turn__body';
+        for (const n of nodes.slice(1)) bodyDiv.appendChild(n);
+
+        turn.appendChild(roleDiv);
+        turn.appendChild(bodyDiv);
+        contentEl.appendChild(turn);
+        continue;
+      }
+    }
+
+    // Non-role group — append nodes directly (preserves leading meta content)
+    for (const n of nodes) contentEl.appendChild(n);
+  }
+}
+
+/**
+ * Set up the text-selection annotation toolbar (R2).
+ * Safe no-op when annotation elements are absent (e.g. unit tests).
+ * @param {string} chatId
+ * @param {object} storage  — chrome.storage.local-like API
+ */
+export async function setupAnnotations(chatId, storage) {
+  if (!chatId || !storage) return;
+  const toolbar   = document.getElementById('annotation-toolbar');
+  const contentEl = document.getElementById('reader-content');
+  if (!toolbar || !contentEl) return;
+
+  let selectedColor = '#fef08a';
+  let pendingRange  = null;
+
+  // ── Re-apply stored annotations ──────────────────────────────────────────
+  try {
+    const existing = await loadAnnotations(chatId, storage);
+    applyAnnotations(contentEl, existing);
+  } catch (_) {}
+
+  // ── Colour swatch selection ───────────────────────────────────────────────
+  toolbar.querySelectorAll('.ann-color-btn').forEach(btn => {
+    if (btn.dataset.color === selectedColor) btn.classList.add('selected');
+    btn.addEventListener('click', () => {
+      toolbar.querySelectorAll('.ann-color-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedColor = btn.dataset.color;
+    });
+  });
+
+  // ── Show toolbar on text selection ───────────────────────────────────────
+  document.addEventListener('mouseup', (e) => {
+    // Clicks inside the toolbar should not dismiss it
+    if (toolbar.contains(e.target)) return;
+
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) {
+      toolbar.hidden = true;
+      pendingRange   = null;
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    if (!contentEl.contains(range.commonAncestorContainer)) {
+      toolbar.hidden = true;
+      return;
+    }
+    const serialized = serializeRange(range, contentEl);
+    if (!serialized) return;
+
+    pendingRange = serialized;
+
+    // Position toolbar below the selection
+    const rect        = range.getBoundingClientRect();
+    toolbar.style.top  = `${rect.bottom + window.scrollY + 8}px`;
+    toolbar.style.left = `${Math.max(8, rect.left  + window.scrollX)}px`;
+    toolbar.hidden     = false;
+  });
+
+  // ── Cancel button ─────────────────────────────────────────────────────────
+  const cancelBtn = document.getElementById('annotation-cancel');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      toolbar.hidden = true;
+      pendingRange   = null;
+      window.getSelection()?.removeAllRanges();
+    });
+  }
+
+  // ── Save / highlight button ───────────────────────────────────────────────
+  const saveBtn   = document.getElementById('annotation-save');
+  const noteInput = document.getElementById('annotation-note');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      if (!pendingRange) return;
+      const ann = {
+        id:    `ann-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        ...pendingRange,
+        color: selectedColor,
+        note:  noteInput?.value.trim() || '',
+      };
+      try {
+        await saveAnnotation(chatId, ann, storage);
+        applyAnnotations(contentEl, [ann]);
+      } catch (_) {}
+      toolbar.hidden = true;
+      pendingRange   = null;
+      window.getSelection()?.removeAllRanges();
+      if (noteInput) noteInput.value = '';
+    });
+  }
+
+  // ── Click existing annotation to delete ──────────────────────────────────
+  contentEl.addEventListener('click', async (e) => {
+    const mark  = e.target.closest('.annotation-highlight');
+    if (!mark) return;
+    const annId = mark.dataset.annotationId;
+    if (!annId) return;
+
+    /* c8 ignore next */
+    if (!window.confirm('Delete this annotation?')) return;
+
+    try { await deleteAnnotation(chatId, annId, storage); } catch (_) {}
+    // Unwrap: replace <mark> with its children
+    const parent = mark.parentNode;
+    while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+    parent.removeChild(mark);
+  });
+}
+
+/**
+ * Wire up the scroll-progress bar and jump-to-top button.
+ * Safe to call in environments where the elements don't exist (tests).
+ */
+export function setupScrollFeatures() {
+  const progressEl = document.getElementById('scroll-progress');
+  const jumpBtn    = document.getElementById('jump-top');
+  if (!progressEl && !jumpBtn) return;
+
+  function onScroll() {
+    const scrollTop  = window.scrollY || document.documentElement.scrollTop;
+    const docHeight  = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+
+    if (progressEl && docHeight > 0) {
+      progressEl.style.width = `${(scrollTop / docHeight) * 100}%`;
+    }
+    if (jumpBtn) {
+      jumpBtn.classList.toggle('jump-top--visible', scrollTop > 300);
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  if (jumpBtn) {
+    jumpBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+}
+
 // ─── Page initialisation ──────────────────────────────────────────────────────
 
 /**
@@ -350,12 +601,28 @@ export function renderChat(chat) {
   countEl.textContent = count > 0 ? `${count} messages` : '';
   titleEl.textContent = title;
 
+  // ── Reading time (R3) ──────────────────────────────────────────────────────
+  const readTimeEl = document.getElementById('meta-reading-time');
+  if (readTimeEl) {
+    const words = countWords(content);
+    const mins  = estimateReadTime(words);
+    readTimeEl.textContent = `${mins} min read`;
+    readTimeEl.hidden = false;
+  }
+
+  // ── Per-source body tint (T3) ──────────────────────────────────────────────
+  const knownSources = ['chatgpt', 'claude', 'gemini', 'copilot'];
+  if (knownSources.includes(source)) {
+    document.body.setAttribute('data-source', source);
+  }
+
   header.hidden = false;
 
   // ── Content ──────────────────────────────────────────────────────────────
   const contentEl = document.getElementById('reader-content');
 
   contentEl.innerHTML = renderMarkdown(content);
+  wrapChatTurns(contentEl);
   contentEl.hidden = false;
 
   // ── Copy-code button wiring ─────────────────────────────────────────
@@ -401,6 +668,8 @@ export async function init(storage) {
     }
 
     renderChat(chat);
+    setupScrollFeatures();
+    setupAnnotations(chatId, storage);
   } catch (err) {
     showError(`Failed to load conversation: ${err.message}`);
   }

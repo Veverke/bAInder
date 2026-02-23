@@ -17,6 +17,8 @@ import {
 } from '../lib/chat-manager.js';
 import { extractSnippet, highlightTerms, formatBreadcrumb, escapeHtml } from '../lib/search-utils.js';
 import { getTagColor } from '../lib/tree-renderer.js';
+import { ExportDialog } from '../lib/export-dialog.js';
+import { ImportDialog } from '../lib/import-dialog.js';
 
 console.log('bAInder Side Panel loaded');
 
@@ -29,6 +31,7 @@ const elements = {
   searchResults: document.getElementById('searchResults'),
   searchResultsList: document.getElementById('searchResultsList'),
   addTopicBtn: document.getElementById('addTopicBtn'),
+  importBtn: document.getElementById('importBtn'),
   settingsBtn: document.getElementById('settingsBtn'),
   themeToggle: document.getElementById('themeToggle'),
   contextMenu: document.getElementById('contextMenu'),
@@ -52,7 +55,9 @@ const state = {
   contextMenuChat: null, // Currently selected chat for context menu
   searchQuery: '',
   theme: 'light', // 'light', 'dark', or 'auto'
-  _toastTimer: null // setTimeout handle for auto-dismissing toast
+  _toastTimer: null, // setTimeout handle for auto-dismissing toast
+  exportDialog: null, // ExportDialog instance (Stage 9)
+  importDialog: null  // ImportDialog instance (Stage 9)
 };
 
 // Initialize the application
@@ -82,6 +87,10 @@ async function init() {
 
   // Initialize chat dialogs (needs tree instance)
   state.chatDialogs = new ChatDialogs(state.dialog, state.tree);
+
+  // Initialize export/import dialogs (Stage 9)
+  state.exportDialog = new ExportDialog(state.dialog);
+  state.importDialog = new ImportDialog(state.dialog);
   
   // Initialize tree renderer
   initTreeRenderer();
@@ -159,6 +168,11 @@ function setupEventListeners() {
     createFirstTopicBtn.addEventListener('click', handleAddTopic);
   }
   
+  // Import button (Stage 9)
+  if (elements.importBtn) {
+    elements.importBtn.addEventListener('click', handleImport);
+  }
+
   // Settings button
   elements.settingsBtn.addEventListener('click', handleSettings);
   
@@ -180,7 +194,36 @@ function setupEventListeners() {
   // Context menu action handlers
   setupContextMenuActions();
   setupChatContextMenuActions();
-  
+
+  // Tree keyboard navigation: ↑/↓ move focus, Enter clicks, Space toggles (U6)
+  if (elements.treeView) {
+    elements.treeView.addEventListener('keydown', (e) => {
+      if (!['ArrowUp', 'ArrowDown', 'Enter', ' '].includes(e.key)) return;
+      const focusable = [...elements.treeView.querySelectorAll('.tree-node-content[tabindex="0"]')];
+      if (!focusable.length) return;
+      const current = document.activeElement?.closest('.tree-node-content');
+      const idx     = current ? focusable.indexOf(current) : -1;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        (focusable[idx + 1] ?? focusable[0]).focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        (idx > 0 ? focusable[idx - 1] : focusable[focusable.length - 1]).focus();
+      } else if (e.key === 'Enter' && current) {
+        e.preventDefault();
+        current.click();
+      } else if (e.key === ' ' && current) {
+        e.preventDefault();
+        const li = current.closest('.tree-node[data-topic-id]');
+        if (li?.dataset.topicId) {
+          state.renderer?.toggleNode(li.dataset.topicId);
+          saveExpandedState();
+        }
+      }
+    });
+  }
+
   // Modal container - close when clicking backdrop
   elements.modalContainer.addEventListener('click', (e) => {
     if (e.target === elements.modalContainer) {
@@ -234,7 +277,10 @@ async function saveTree() {
 // Initialize tree renderer
 function initTreeRenderer() {
   state.renderer = new TreeRenderer(elements.treeView, state.tree);
-  
+
+  // Show skeleton while data settles
+  showTreeSkeleton();
+
   // Set up topic event handlers
   state.renderer.onTopicClick = handleTopicClick;
   state.renderer.onTopicContextMenu = handleTopicContextMenu;
@@ -247,7 +293,10 @@ function initTreeRenderer() {
   // Set up drag-and-drop handlers
   state.renderer.onTopicDrop = handleTopicDrop;
   state.renderer.onChatDrop  = handleChatDrop;
-  
+
+  // Set up pin/star handler (U2)
+  state.renderer.onTopicPin = handleTopicPin;
+
   // Load expanded state from localStorage (UI preference)
   const savedExpanded = localStorage.getItem('expandedNodes');
   if (savedExpanded) {
@@ -260,6 +309,7 @@ function initTreeRenderer() {
   
   // Render the tree
   state.renderer.render();
+  removeTreeSkeleton();
   state.renderer.updateTopicCount();
 }
 
@@ -470,6 +520,7 @@ function setupContextMenuActions() {
     rename: handleRenameTopic,
     move: handleMoveTopic,
     merge: handleMergeTopic,
+    export: handleExportTopic,
     delete: handleDeleteTopic
   };
   
@@ -688,10 +739,110 @@ async function handleMergeTopic() {
 }
 
 // Handle settings button
+// Handle export topic context menu action (Stage 9)
+async function handleExportTopic() {
+  const topic = state.contextMenuTopic;
+  if (!topic) return;
+  try {
+    await state.exportDialog.showExportTopic(topic, state.tree, state.chats);
+  } catch (err) {
+    console.error('Export failed:', err);
+    await state.dialog.alert(err.message || 'Export failed', 'Export Error');
+  }
+}
+
+// Handle import from ZIP (Stage 9)
+async function handleImport() {
+  try {
+    await state.importDialog.showImportDialog(
+      state.tree,
+      state.chats,
+      async (updatedTopics, updatedRootTopics, updatedChats, summary) => {
+        // Rebuild a proper TopicTree instance from the imported data
+        state.tree  = TopicTree.fromObject({ topics: updatedTopics, rootTopics: updatedRootTopics });
+        state.chats = updatedChats;
+
+        // Update dialog instances with new tree reference
+        state.topicDialogs.tree = state.tree;
+        state.chatDialogs.tree  = state.tree;
+
+        // Persist to storage
+        await saveTree();
+        await chrome.storage.local.set({ chats: state.chats });
+
+        // Refresh UI
+        state.renderer.setTree(state.tree);
+        state.renderer.setChatData(state.chats);
+        renderTreeView();
+        updateStorageUsage();
+
+        const msg = `Imported ${summary.chatsImported} chat(s) into ${summary.topicsCreated + summary.topicsMerged} topic(s).`;
+        showNotification(msg, 'success');
+      }
+    );
+  } catch (err) {
+    console.error('Import failed:', err);
+    await state.dialog.alert(err.message || 'Import failed', 'Import Error');
+  }
+}
+
 function handleSettings() {
-  console.log('Settings clicked');
-  // TODO: Implement settings in Stage 10
-  showNotification('Settings coming in Stage 10');
+  openSettingsPanel();
+}
+
+function openSettingsPanel() {
+  const panel = document.getElementById('settingsPanel');
+  if (!panel) return;
+  // Sync theme selector to current state
+  const sel = document.getElementById('settingsThemeSelect');
+  if (sel) sel.value = state.theme;
+  panel.classList.add('settings-panel--open');
+  panel.setAttribute('aria-hidden', 'false');
+
+  // Backdrop click closes panel
+  const backdrop = panel.querySelector('.settings-panel__backdrop');
+  backdrop?.addEventListener('click', closeSettingsPanel, { once: true });
+
+  // Close button
+  document.getElementById('settingsPanelClose')
+    ?.addEventListener('click', closeSettingsPanel, { once: true });
+
+  // Theme select live-change
+  document.getElementById('settingsThemeSelect')
+    ?.addEventListener('change', (e) => {
+      applyTheme(e.target.value);
+      chrome.storage.local.set({ theme: e.target.value }).catch(() => {});
+    });
+}
+
+function closeSettingsPanel() {
+  const panel = document.getElementById('settingsPanel');
+  if (!panel) return;
+  panel.classList.remove('settings-panel--open');
+  panel.setAttribute('aria-hidden', 'true');
+}
+
+// ── Tree skeleton helpers ───────────────────────────────────────────────
+
+function showTreeSkeleton() {
+  if (!elements.treeView) return;
+  const frag = document.createDocumentFragment();
+  const widths = ['72%', '58%', '85%', '63%'];
+  widths.forEach((w, i) => {
+    const row = document.createElement('div');
+    row.className = 'skeleton-row';
+    row.setAttribute('aria-hidden', 'true');
+    row.innerHTML = `
+      <span class="skeleton-icon"></span>
+      <span class="skeleton-text" style="width:${w}; animation-delay:${i * 80}ms"></span>
+    `;
+    frag.appendChild(row);
+  });
+  elements.treeView.appendChild(frag);
+}
+
+function removeTreeSkeleton() {
+  elements.treeView?.querySelectorAll('.skeleton-row').forEach(el => el.remove());
 }
 
 // ── Drag-and-drop handlers ───────────────────────────────────────────────────
@@ -740,6 +891,21 @@ async function handleChatDrop(chatId, targetTopicId) {
   state.renderer.expandToTopic(targetTopicId);
   saveExpandedState();
   showNotification(`Moved "${chat.title}"`, 'success');
+}
+
+/**
+ * Toggle the pinned status of a topic (U2).
+ * @param {string} topicId
+ * @param {boolean} pinned
+ */
+async function handleTopicPin(topicId, pinned) {
+  if (!state.tree) return;
+  const topic = state.tree.topics[topicId];
+  if (!topic) return;
+  topic.pinned = pinned;
+  await saveTree();
+  renderTreeView();
+  showNotification(pinned ? `\uD83D\uDCCC "${topic.name}" pinned` : `"${topic.name}" unpinned`, 'success');
 }
 
 

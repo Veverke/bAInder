@@ -66,12 +66,74 @@
         <div id="treeView" class="tree-view">
           <!-- Welcome message when empty -->
           <div id="emptyState" class="empty-state">
-            <svg class="empty-icon" width="80" height="80" viewBox="0 0 80 80" fill="none">
-              <path d="M20 15H60C62.2091 15 64 16.7909 64 19V61C64 63.2091 62.2091 65 60 65H20C17.7909 65 16 63.2091 16 61V19C16 16.7909 17.7909 15 20 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16 25H64M26 35H54M26 45H54M26 55H44" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <!-- On-brand illustration: open notebook + 4 AI platform orbs -->
+            <svg class="empty-illustration" width="120" height="96" viewBox="0 0 120 96" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+              <!-- Ground shadow -->
+              <ellipse cx="60" cy="89" rx="30" ry="3.5" fill="currentColor" opacity="0.08"/>
+
+              <!-- Open book — left page -->
+              <path d="M60 17 L16 26 L16 75 L60 67 Z" fill="var(--bg-elevated)" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <!-- Ruled lines, left page -->
+              <line x1="24" y1="37" x2="53" y2="35" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.22"/>
+              <line x1="24" y1="44" x2="53" y2="42" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.22"/>
+              <line x1="24" y1="51" x2="53" y2="49" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.22"/>
+              <line x1="24" y1="58" x2="44" y2="56" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.22"/>
+
+              <!-- Open book — right page -->
+              <path d="M60 17 L104 26 L104 75 L60 67 Z" fill="var(--bg-secondary)" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <!-- Ruled lines, right page -->
+              <line x1="67" y1="37" x2="96" y2="35" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.22"/>
+              <line x1="67" y1="44" x2="96" y2="42" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.22"/>
+              <line x1="67" y1="51" x2="96" y2="49" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.22"/>
+              <line x1="67" y1="58" x2="86" y2="56" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.22"/>
+
+              <!-- Spine -->
+              <line x1="60" y1="17" x2="60" y2="67" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              <!-- Bottom open-book curve -->
+              <path d="M16 75 Q60 80 104 75" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.5"/>
+
+              <!-- Binder rings along spine -->
+              <circle cx="60" cy="26" r="2.8" stroke="currentColor" stroke-width="1.4" fill="var(--bg-tertiary)"/>
+              <circle cx="60" cy="38" r="2.8" stroke="currentColor" stroke-width="1.4" fill="var(--bg-tertiary)"/>
+              <circle cx="60" cy="50" r="2.8" stroke="currentColor" stroke-width="1.4" fill="var(--bg-tertiary)"/>
+              <circle cx="60" cy="62" r="2.8" stroke="currentColor" stroke-width="1.4" fill="var(--bg-tertiary)"/>
+
+              <!-- ── Platform orbs (staggered pulse) ──────────────────────── -->
+              <!-- ChatGPT — top-left -->
+              <g class="empty-orb" style="animation-delay: 0s">
+                <circle cx="13" cy="11" r="11" fill="#10b981"/>
+                <!-- chat-lines icon -->
+                <line x1="8.5" y1="9" x2="17.5" y2="9" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+                <line x1="8.5" y1="12" x2="17.5" y2="12" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+                <line x1="8.5" y1="15" x2="14" y2="15" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+              </g>
+
+              <!-- Claude — top-right -->
+              <g class="empty-orb" style="animation-delay: 0.45s">
+                <circle cx="107" cy="12" r="11" fill="#f59e0b"/>
+                <!-- leaf / wave icon -->
+                <path d="M102 14 Q105 8 112 9 Q112 15 107 16 Q104 16 102 14 Z" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="107" y1="16" x2="107" y2="19" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              </g>
+
+              <!-- Gemini — bottom-right -->
+              <g class="empty-orb" style="animation-delay: 0.9s">
+                <circle cx="110" cy="83" r="10" fill="#3b82f6"/>
+                <!-- 4-point star -->
+                <path d="M110 76 L111.2 81.8 L117 83 L111.2 84.2 L110 90 L108.8 84.2 L103 83 L108.8 81.8 Z" fill="white"/>
+              </g>
+
+              <!-- Copilot — bottom-left -->
+              <g class="empty-orb" style="animation-delay: 1.35s">
+                <circle cx="12" cy="84" r="10" fill="#8b5cf6"/>
+                <!-- diamond -->
+                <path d="M12 78 L17 84 L12 90 L7 84 Z" fill="none" stroke="white" stroke-width="1.6" stroke-linejoin="round"/>
+                <circle cx="12" cy="84" r="1.5" fill="white"/>
+              </g>
             </svg>
-            <h3>No topics yet</h3>
-            <p>Start organizing your AI chats by creating your first topic.</p>
+
+            <h3>Your AI conversations, organised</h3>
+            <p>Create a topic to start filing chats from ChatGPT, Claude, Gemini, and Copilot.</p>
             <button class="btn-secondary" id="createFirstTopicBtn">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -110,12 +172,19 @@
         </svg>
         <span id="storageUsage">Loading...</span>
       </div>
-      <button id="settingsBtn" class="btn-icon" title="Settings">
+      <div class="footer-actions">
+        <button id="importBtn" class="btn-icon" title="Import from ZIP">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 3V11M8 11L5 8M8 11L11 8M3 13H13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button id="settingsBtn" class="btn-icon" title="Settings">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M8 10C9.10457 10 10 9.10457 10 8C10 6.89543 9.10457 6 8 6C6.89543 6 6 6.89543 6 8C6 9.10457 6.89543 10 8 10Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M13 10C12.9 10.3 13 10.6 13.2 10.9L13.3 11C13.4 11.2 13.5 11.4 13.5 11.6C13.5 11.8 13.4 12 13.3 12.2C13.1 12.6 12.7 12.9 12.2 12.9C12 12.9 11.8 12.8 11.6 12.7L11.5 12.6C11.2 12.4 10.9 12.3 10.6 12.4C10.3 12.5 10.1 12.7 10 13V13.2C10 13.6 9.8 14 9.5 14.2C9.3 14.4 9.2 14.5 8.9 14.5C8.6 14.5 8.4 14.4 8.2 14.2C7.8 13.9 7.5 13.5 7.5 13V12.9C7.4 12.6 7.2 12.4 6.9 12.3H6.8C6.5 12.2 6.2 12.3 5.9 12.5L5.8 12.6C5.6 12.7 5.4 12.8 5.2 12.8C5 12.8 4.8 12.7 4.6 12.6C4.2 12.3 3.9 11.9 3.9 11.4C3.9 11.2 4 11 4.1 10.8L4.2 10.7C4.4 10.4 4.5 10.1 4.4 9.8C4.3 9.5 4.1 9.3 3.8 9.2H3.6C3.2 9.2 2.8 9 2.6 8.7C2.4 8.5 2.3 8.2 2.3 7.9C2.3 7.6 2.4 7.4 2.6 7.2C2.9 6.8 3.3 6.5 3.8 6.5H3.9C4.2 6.4 4.4 6.2 4.5 5.9V5.8C4.6 5.5 4.5 5.2 4.3 4.9L4.2 4.8C4.1 4.6 4 4.4 4 4.2C4 4 4.1 3.8 4.2 3.6C4.5 3.2 4.9 2.9 5.4 2.9C5.6 2.9 5.8 3 6 3.1L6.1 3.2C6.4 3.4 6.7 3.5 7 3.4C7.3 3.3 7.5 3.1 7.6 2.8V2.6C7.6 2.2 7.8 1.8 8.1 1.6C8.3 1.4 8.6 1.3 8.9 1.3C9.2 1.3 9.4 1.4 9.6 1.6C10 1.9 10.3 2.3 10.3 2.8V2.9C10.4 3.2 10.6 3.4 10.9 3.5C11.2 3.6 11.5 3.5 11.8 3.3L11.9 3.2C12.1 3.1 12.3 3 12.5 3C12.7 3 12.9 3.1 13.1 3.2C13.5 3.5 13.8 3.9 13.8 4.4C13.8 4.6 13.7 4.8 13.6 5L13.5 5.1C13.3 5.4 13.2 5.7 13.3 6C13.4 6.3 13.6 6.5 13.9 6.6H14.1C14.5 6.6 14.9 6.8 15.1 7.1C15.3 7.3 15.4 7.6 15.4 7.9C15.4 8.2 15.3 8.4 15.1 8.6C14.8 9 14.4 9.3 13.9 9.3H13.8C13.5 9.4 13.3 9.6 13.2 9.9V10H13Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      </button>
+        </button>
+      </div>
     </footer>
   </div>
 
@@ -201,6 +270,63 @@
     <!-- Modals will be dynamically inserted here -->
   </div>
 
+  <!-- Settings slide-in panel -->
+  <div id="settingsPanel" class="settings-panel" aria-hidden="true">
+    <div class="settings-panel__backdrop"></div>
+    <aside class="settings-panel__drawer" role="complementary" aria-label="Settings">
+      <header class="settings-panel__header">
+        <h2>Settings</h2>
+        <button id="settingsPanelClose" class="btn-icon" aria-label="Close settings">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 2L14 14M2 14L14 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </header>
+
+      <div class="settings-panel__body">
+
+        <!-- Theme -->
+        <section class="settings-section">
+          <h3 class="settings-section__title">Appearance</h3>
+          <div class="settings-row">
+            <div class="settings-row__label">
+              <span>Theme</span>
+              <span class="settings-row__hint">Controls the colour scheme</span>
+            </div>
+            <select id="settingsThemeSelect" class="form-select settings-select">
+              <option value="light">☀️ Light</option>
+              <option value="dark">🌙 Dark</option>
+              <option value="auto">🌓 Auto (system)</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- About -->
+        <section class="settings-section">
+          <h3 class="settings-section__title">About</h3>
+          <div class="settings-about">
+            <span class="logo" style="font-size:2rem;">📖</span>
+            <div>
+              <p class="settings-about__name">bAInder</p>
+              <p class="settings-about__version">Version 1.0.0</p>
+              <p class="settings-about__tagline">Your AI conversations, organised.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Stage 10 placeholder -->
+        <section class="settings-section">
+          <h3 class="settings-section__title">Advanced <span class="badge badge--coming">Stage 10</span></h3>
+          <p class="settings-coming-soon">Additional preferences (default export format, auto-save behaviour, storage quota alerts) will appear here in Stage 10.</p>
+        </section>
+
+      </div>
+    </aside>
+  </div>
+
+  <!-- JSZip loaded as a classic script so its UMD global (window.JSZip) is
+       available to the ES-module dialogs via globalThis.JSZip -->
+  <script src="../lib/vendor/jszip.min.js"></script>
   <script type="module" src="sidepanel.js"></script>
 </body>
 </html>

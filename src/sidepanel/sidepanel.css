@@ -1,5 +1,35 @@
 /* bAInder Side Panel Styles - Modern Theme System */
 
+/* ── Inter font (bundled woff2, latin subset) ─────────────────────────────── */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/inter-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/inter-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/inter-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/inter-latin-700-normal.woff2') format('woff2');
+}
+
 :root {
   /* Spacing Scale */
   --space-xs: 4px;
@@ -28,6 +58,10 @@
   --primary-hover: #4f46e5;
   --primary-light: #e0e7ff;
   --primary-dark: #3730a3;
+
+  /* Header */
+  --header-bg: linear-gradient(135deg, #eef0ff 0%, #ffffff 55%);
+  --header-accent: var(--primary);
   
   /* Backgrounds */
   --bg-primary: #ffffff;
@@ -77,6 +111,10 @@
   --primary-hover: #a5b4fc;
   --primary-light: #312e81;
   --primary-dark: #c7d2fe;
+
+  /* Header */
+  --header-bg: linear-gradient(135deg, #1a1c35 0%, #0f172a 55%);
+  --header-accent: var(--primary);
   
   /* Backgrounds */
   --bg-primary: #0f172a;
@@ -133,7 +171,7 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5;
   color: var(--text-primary);
@@ -158,9 +196,11 @@ svg {
 
 /* Header Styles */
 .header {
-  background: var(--bg-elevated);
+  background: var(--header-bg);
+  border-top: 3px solid var(--header-accent);
   border-bottom: 1px solid var(--border-primary);
   padding: var(--space-lg);
+  padding-top: calc(var(--space-lg) - 3px); /* compensate for top border */
   flex-shrink: 0;
   backdrop-filter: blur(8px);
   box-shadow: var(--shadow-sm);
@@ -427,20 +467,32 @@ svg {
   color: var(--text-secondary);
 }
 
-.empty-icon {
+.empty-illustration {
   color: var(--text-tertiary);
-  opacity: 0.4;
   margin-bottom: var(--space-xl);
-  animation: float 3s ease-in-out infinite;
+  animation: float 3.5s ease-in-out infinite;
+  overflow: visible;
+}
+
+.empty-orb {
+  animation: orb-pulse 3s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 @keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%       { transform: scale(1.14); opacity: 0.85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-illustration,
+  .empty-orb { animation: none; }
 }
 
 .empty-state h3 {
@@ -604,13 +656,14 @@ mark.search-highlight {
   min-width: 200px;
   z-index: 1000;
   backdrop-filter: blur(12px);
-  animation: contextMenuAppear var(--transition-fast);
+  transform-origin: top left;
+  animation: contextMenuAppear 140ms cubic-bezier(0.2, 0, 0.13, 1.5);
 }
 
 @keyframes contextMenuAppear {
   from {
     opacity: 0;
-    transform: scale(0.95) translateY(-4px);
+    transform: scale(0.92) translateY(-4px);
   }
   to {
     opacity: 1;
@@ -690,6 +743,214 @@ mark.search-highlight {
 
 .storage-info svg {
   color: var(--text-tertiary);
+}
+
+/* ── Tree skeleton loader ────────────────────────────────────────────────── */
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  min-height: 36px;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-icon,
+.skeleton-text {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-hover)    50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.skeleton-text {
+  height: 13px;
+  flex-shrink: 0;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-icon,
+  .skeleton-text { animation: none; }
+}
+
+/* ── Settings slide-in panel ───────────────────────────────────────────── */
+.settings-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  pointer-events: none;
+}
+
+.settings-panel__backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay);
+  opacity: 0;
+  transition: opacity var(--transition-slow);
+}
+
+.settings-panel__drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(320px, 100%);
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform var(--transition-slow);
+  overflow: hidden;
+}
+
+/* Open state */
+.settings-panel--open {
+  pointer-events: auto;
+}
+
+.settings-panel--open .settings-panel__backdrop {
+  opacity: 1;
+}
+
+.settings-panel--open .settings-panel__drawer {
+  transform: translateX(0);
+}
+
+/* Drawer header */
+.settings-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.settings-panel__header h2 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* Drawer scrollable body */
+.settings-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* Section */
+.settings-section__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+  margin: 0 0 var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Settings row (label + control) */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+}
+
+.settings-row__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.settings-row__hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.settings-select {
+  width: 130px;
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  padding: var(--space-sm) var(--space-md);
+}
+
+/* About block */
+.settings-about {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0;
+}
+
+.settings-about__name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+
+.settings-about__version {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+  margin: 0 0 2px;
+}
+
+.settings-about__tagline {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.badge--coming {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  vertical-align: middle;
+}
+
+.settings-coming-soon {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
 }
 
 /* Modal Container */
@@ -995,12 +1256,52 @@ button:focus-visible {
 .tree-root {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-sm);
 }
 
 .tree-node {
   position: relative;
   user-select: none;
+}
+
+/* ── Topic folder card (root-level topics only) ──────────────────────────── */
+.tree-node--card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tree-node--card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-secondary);
+}
+
+/* When the card has no expanded children (leaf or collapsed), round all corners */
+.tree-node--card > .tree-node-content {
+  border-radius: var(--radius-lg);
+}
+
+/* When expanded (children present below), only round the top */
+.tree-node--card:has(> .tree-children) > .tree-node-content {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.tree-node--card > .tree-node-content:hover {
+  background: var(--bg-hover);
+}
+
+.tree-node--card.selected > .tree-node-content {
+  background: var(--primary-light);
+}
+
+.tree-node--card > .tree-children {
+  border-top: 1px solid var(--border-primary);
+  margin-top: 0;
+  padding: var(--space-xs) 0;
+  background: var(--bg-primary);
 }
 
 .tree-node-content {
@@ -1036,9 +1337,43 @@ button:focus-visible {
 /* Search highlighting */
 .tree-node.search-match > .tree-node-content {
   background: var(--warning-bg);
-  border-left: 3px solid var(--warning);
-  padding-left: calc(var(--space-md) - 3px);
+  box-shadow: inset 3px 0 0 0 var(--warning);
 }
+
+/* ── Source-color left-border accent on chat rows ────────────────────────── */
+.tree-chat-item[data-source="chatgpt"] > .tree-node-content  { box-shadow: inset 3px 0 0 0 #10b981; }
+.tree-chat-item[data-source="claude"]  > .tree-node-content  { box-shadow: inset 3px 0 0 0 #f59e0b; }
+.tree-chat-item[data-source="gemini"]  > .tree-node-content  { box-shadow: inset 3px 0 0 0 #3b82f6; }
+.tree-chat-item[data-source="copilot"] > .tree-node-content  { box-shadow: inset 3px 0 0 0 #8b5cf6; }
+.tree-chat-item[data-source="unknown"] > .tree-node-content  { box-shadow: inset 3px 0 0 0 var(--border-secondary); }
+
+/* ── Source badge chips on chat rows ─────────────────────────────────────── */
+.tree-source-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+
+/* Light theme source chip colours */
+.tree-source-chip--chatgpt  { background: #dcfce7; color: #15803d; }
+.tree-source-chip--claude   { background: #fef3c7; color: #92400e; }
+.tree-source-chip--gemini   { background: #dbeafe; color: #1e40af; }
+.tree-source-chip--copilot  { background: #ede9fe; color: #5b21b6; }
+.tree-source-chip--unknown  { background: var(--bg-tertiary); color: var(--text-tertiary); }
+
+/* Dark theme overrides */
+[data-theme="dark"] .tree-source-chip--chatgpt  { background: #14532d; color: #86efac; }
+[data-theme="dark"] .tree-source-chip--claude   { background: #451a03; color: #fcd34d; }
+[data-theme="dark"] .tree-source-chip--gemini   { background: #1e3a8a; color: #93c5fd; }
+[data-theme="dark"] .tree-source-chip--copilot  { background: #2e1065; color: #c4b5fd; }
 
 /* Expand/collapse button */
 .tree-expand-btn {
@@ -1367,10 +1702,11 @@ ul.tree-root.drop-target {
     transition-duration: 0.01ms !important;
   }
   
-  .empty-icon {
+  .empty-illustration,
+  .empty-orb {
     animation: none;
   }
-  
+
   .tree-children {
     animation: none;
   }
@@ -1381,23 +1717,25 @@ ul.tree-root.drop-target {
   position: fixed;
   bottom: 56px; /* just above the footer */
   left: 50%;
-  transform: translateX(-50%) translateY(6px);
+  transform: translateX(-50%) translateY(12px);
   background: var(--text-primary);
   color: var(--text-inverse);
-  padding: 8px 16px;
+  padding: 9px 14px 9px 12px;
   border-radius: var(--radius-md);
+  border-left: 3px solid rgba(255, 255, 255, 0.35);
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
   max-width: calc(100% - 32px);
   overflow: hidden;
   text-overflow: ellipsis;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.15);
   opacity: 0;
   pointer-events: none;
   z-index: 9999;
   transition:
-    opacity var(--transition-base),
-    transform var(--transition-base);
+    opacity 220ms cubic-bezier(0.2, 0, 0.13, 1.4),
+    transform 220ms cubic-bezier(0.2, 0, 0.13, 1.4);
 }
 
 .toast--visible {
@@ -1405,9 +1743,9 @@ ul.tree-root.drop-target {
   transform: translateX(-50%) translateY(0);
 }
 
-.toast--info    { background: var(--text-secondary); }
-.toast--success { background: #16a34a; }
-.toast--error   { background: #dc2626; }
+.toast--info    { background: var(--text-secondary);  border-left-color: var(--info); }
+.toast--success { background: #15803d;                 border-left-color: #4ade80; }
+.toast--error   { background: #b91c1c;                 border-left-color: #fca5a5; }
 
 .toast--loading {
   background: var(--text-secondary);
@@ -1430,3 +1768,134 @@ ul.tree-root.drop-target {
   animation: spin 0.6s linear infinite;
   pointer-events: none;
 }
+
+/* ── A2: Custom drag ghost pill ─────────────────────────────────────────── */
+
+.tree-drag-ghost {
+  position: fixed;
+  top: -1000px;
+  left: 0;
+  padding: 5px 12px;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-sans);
+  pointer-events: none;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 9999;
+}
+
+
+/* ── A3: Staggered tree node entry ───────────────────────────────────────── */
+
+@keyframes nodeEntry {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tree-root > .tree-node {
+  animation: nodeEntry 240ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: calc(var(--node-index, 0) * 30ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-root > .tree-node { animation: none; }
+}
+
+
+/* ── A6: Chat row click ripple ───────────────────────────────────────────── */
+
+/* Clip ripple to the content row bounds */
+.tree-node-content { overflow: hidden; }
+
+.tree-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--primary);
+  opacity: 0.15;
+  transform: scale(0);
+  animation: treeRipple 500ms cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
+@keyframes treeRipple {
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-ripple { display: none; }
+}
+
+
+/* ── U2: Star / pin button on topic cards ────────────────────────────────── */
+
+.tree-star-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast), color var(--transition-fast), transform 120ms ease;
+}
+
+.tree-node-content:hover .tree-star-btn,
+.tree-node-content:focus-within .tree-star-btn {
+  opacity: 1;
+}
+
+.tree-star-btn:hover { color: var(--warning); transform: scale(1.2); }
+.tree-star-btn:active { transform: scale(0.9); }
+
+/* Pinned star is always visible */
+.tree-star-btn--active {
+  opacity: 1 !important;
+  color: var(--warning);
+}
+
+/* Pinned topic card gets a subtle left accent */
+.tree-node--card:has(.tree-star-btn--active) > .tree-node-content {
+  border-left: 3px solid var(--warning);
+}
+
+
+/* ── U3: Chat histogram sparkline ────────────────────────────────────────── */
+
+.tree-sparkline {
+  flex-shrink: 0;
+  display: block;
+  opacity: 0.5;
+  fill: var(--primary);
+  transition: opacity var(--transition-fast);
+  align-self: center;
+}
+
+.tree-node-content:hover .tree-sparkline { opacity: 0.85; }
+
+[data-theme="dark"] .tree-sparkline { fill: var(--primary); opacity: 0.65; }
+[data-theme="dark"] .tree-node-content:hover .tree-sparkline { opacity: 1; }

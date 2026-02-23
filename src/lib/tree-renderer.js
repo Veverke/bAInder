@@ -34,6 +34,7 @@ export class TreeRenderer {
     this.onTopicContextMenu = null;
     this.onChatClick = null;        // Stage 7
     this.onChatContextMenu = null;  // Stage 7
+    this.onTopicPin = null;         // U2 (Round 2) — (topicId, pinned) => void
 
     // Drag-and-drop callbacks
     // onTopicDrop(draggedTopicId, targetTopicId | null)
@@ -44,6 +45,9 @@ export class TreeRenderer {
 
     // Internal drag state
     this._drag = null; // { type: 'topic'|'chat', id: string }
+
+    // A3: stagger counter — incremented per node/chat <li> during each render()
+    this._nodeIndex = 0;
   }
 
   /**
@@ -84,7 +88,11 @@ export class TreeRenderer {
     const ul = document.createElement('ul');
     ul.className = 'tree-root';
     ul.setAttribute('role', 'tree');
-    
+
+    // U2: pinned topics float to top; A3: reset stagger counter each render
+    rootTopics.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+    this._nodeIndex = 0;
+
     rootTopics.forEach(topic => {
       const li = this.renderNode(topic, 0);
       ul.appendChild(li);
@@ -137,11 +145,12 @@ export class TreeRenderer {
    */
   renderNode(topic, level) {
     const li = document.createElement('li');
-    li.className = 'tree-node';
+    li.className = level === 0 ? 'tree-node tree-node--card' : 'tree-node';
     li.setAttribute('role', 'treeitem');
     li.setAttribute('aria-level', level + 1);
     li.dataset.topicId = topic.id;
-    
+    li.style.setProperty('--node-index', this._nodeIndex++); // A3 stagger
+
     const hasChildren = topic.children.length > 0 ||
       this.chats.some(c => c.topicId === topic.id);
     const isExpanded = this.expandedNodes.has(topic.id);
@@ -159,7 +168,8 @@ export class TreeRenderer {
     const nodeContent = document.createElement('div');
     nodeContent.className = 'tree-node-content';
     nodeContent.style.paddingLeft = `${level * 20}px`;
-    
+    nodeContent.tabIndex = 0; // U6 keyboard navigation
+
     // Expand/collapse button
     if (hasChildren) {
       const expandBtn = document.createElement('button');
@@ -213,6 +223,25 @@ export class TreeRenderer {
 
     nodeContent.appendChild(label);
 
+    // ── Sparkline — weekly activity for last 6 weeks (U3) ─────────────────
+    if (level === 0 && topic.chatIds.length > 0) {
+      nodeContent.appendChild(this._buildSparklineEl(topic.id));
+    }
+
+    // ── Star / pin button (level-0 topics only, U2) ───────────────────────
+    if (level === 0) {
+      const starBtn = document.createElement('button');
+      starBtn.className = `tree-star-btn${topic.pinned ? ' tree-star-btn--active' : ''}`;
+      starBtn.setAttribute('aria-label', topic.pinned ? 'Unpin topic' : 'Pin topic');
+      starBtn.setAttribute('title',       topic.pinned ? 'Unpin'        : 'Pin to top');
+      starBtn.textContent = '\u2605'; // ★
+      starBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.onTopicPin) this.onTopicPin(topic.id, !topic.pinned);
+      });
+      nodeContent.appendChild(starBtn);
+    }
+
     // ── ⋮ more-actions button (visible on hover) ──────────────────────────
     const topicMoreBtn = document.createElement('button');
     topicMoreBtn.className = 'tree-more-btn';
@@ -248,6 +277,13 @@ export class TreeRenderer {
       this._drag = { type: 'topic', id: topic.id };
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', topic.id);
+      // Custom drag ghost pill (A2)
+      const ghost = document.createElement('div');
+      ghost.className = 'tree-drag-ghost';
+      ghost.textContent = `\uD83D\uDCC1 ${topic.name}`;
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 0, 14);
+      requestAnimationFrame(() => ghost.remove());
       // Slight delay so the drag image captures the element before opacity changes
       setTimeout(() => nodeContent.classList.add('dragging'), 0);
     });
@@ -325,10 +361,16 @@ export class TreeRenderer {
     li.className = 'tree-node tree-chat-item';
     li.setAttribute('role', 'treeitem');
     li.setAttribute('data-chat-id', chat.id);
+    li.style.setProperty('--node-index', this._nodeIndex++); // A3 stagger
+
+    // Source attribute drives the CSS left-border accent colour
+    const source = chat.source || 'unknown';
+    li.setAttribute('data-source', source);
 
     const content = document.createElement('div');
     content.className = 'tree-node-content';
     content.style.paddingLeft = `${level * 20}px`;
+    content.tabIndex = 0; // U6 keyboard navigation
 
     // Spacer (no expand button – chats are leaf items)
     const spacer = document.createElement('span');
@@ -344,6 +386,15 @@ export class TreeRenderer {
     // Label
     const label = document.createElement('span');
     label.className = 'tree-label';
+
+    // Source badge chip
+    if (!chat.metadata?.isExcerpt) {
+      const SOURCE_LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Copilot' };
+      const sourceChip = document.createElement('span');
+      sourceChip.className = `tree-source-chip tree-source-chip--${source}`;
+      sourceChip.textContent = SOURCE_LABELS[source] || source;
+      label.appendChild(sourceChip);
+    }
 
     const labelText = document.createElement('span');
     labelText.className = 'tree-label-text';
@@ -418,8 +469,15 @@ export class TreeRenderer {
     });
     content.appendChild(chatMoreBtn);
 
-    // Click → open original chat URL
-    content.addEventListener('click', () => {
+    // Click → open original chat URL + ripple effect (A6)
+    content.addEventListener('click', (e) => {
+      const ripple = document.createElement('span');
+      ripple.className = 'tree-ripple';
+      const rect  = content.getBoundingClientRect();
+      const size  = Math.max(rect.width, rect.height);
+      ripple.style.cssText = `width:${size}px;height:${size}px;top:${e.clientY - rect.top - size / 2}px;left:${e.clientX - rect.left - size / 2}px`;
+      content.appendChild(ripple);
+      ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
       if (this.onChatClick) this.onChatClick(chat);
     });
 
@@ -435,6 +493,13 @@ export class TreeRenderer {
       this._drag = { type: 'chat', id: chat.id };
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', chat.id);
+      // Custom drag ghost pill (A2)
+      const ghost = document.createElement('div');
+      ghost.className = 'tree-drag-ghost';
+      ghost.textContent = `\uD83D\uDCAC ${chat.title || 'Untitled Chat'}`;
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 0, 14);
+      requestAnimationFrame(() => ghost.remove());
       setTimeout(() => content.classList.add('dragging'), 0);
     });
     content.addEventListener('dragend', () => {
@@ -624,5 +689,51 @@ export class TreeRenderer {
     allNodes.forEach(node => {
       node.classList.remove('search-match');
     });
+  }
+
+  /**
+   * Build a sparkline SVG element showing how many chats were saved per week
+   * over the last 6 weeks (U3).
+   * @param {string} topicId
+   * @returns {SVGElement}
+   */
+  _buildSparklineEl(topicId) {
+    const WEEKS   = 6;
+    const BAR_W   = 6;
+    const GAP     = 2;
+    const HEIGHT  = 16;
+    const now     = Date.now();
+    const weekMs  = 7 * 24 * 60 * 60 * 1000;
+    const counts  = new Array(WEEKS).fill(0);
+
+    this.chats
+      .filter(c => c.topicId === topicId && c.timestamp)
+      .forEach(c => {
+        const age = Math.floor((now - new Date(c.timestamp).getTime()) / weekMs);
+        if (age >= 0 && age < WEEKS) counts[WEEKS - 1 - age]++;
+      });
+
+    const max   = Math.max(...counts, 1);
+    const WIDTH = WEEKS * (BAR_W + GAP) - GAP;
+    const ns    = 'http://www.w3.org/2000/svg';
+    const svg   = document.createElementNS(ns, 'svg');
+    svg.setAttribute('class',   'tree-sparkline');
+    svg.setAttribute('width',   WIDTH);
+    svg.setAttribute('height',  HEIGHT);
+    svg.setAttribute('viewBox', `0 0 ${WIDTH} ${HEIGHT}`);
+    svg.setAttribute('aria-hidden', 'true');
+
+    counts.forEach((count, i) => {
+      const h = Math.max(Math.round((count / max) * HEIGHT), 2);
+      const rect = document.createElementNS(ns, 'rect');
+      rect.setAttribute('x',      i * (BAR_W + GAP));
+      rect.setAttribute('y',      HEIGHT - h);
+      rect.setAttribute('width',  BAR_W);
+      rect.setAttribute('height', h);
+      rect.setAttribute('rx',     '1');
+      svg.appendChild(rect);
+    });
+
+    return svg;
   }
 }

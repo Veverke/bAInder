@@ -7,13 +7,17 @@
   <link rel="stylesheet" href="reader.css" />
 </head>
 <body>
+  <!-- Scroll progress bar (fixed, top of viewport) -->
+  <div id="scroll-progress" aria-hidden="true"></div>
+
   <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
   <header id="reader-header" class="reader-header" hidden>
     <div class="reader-header__inner">
       <div class="reader-header__meta">
-        <span id="meta-source"   class="badge badge--source"></span>
-        <span id="meta-date"     class="meta-date"></span>
-        <span id="meta-count"    class="meta-count"></span>
+        <span id="meta-source"        class="badge badge--source"></span>
+        <span id="meta-date"          class="meta-date"></span>
+        <span id="meta-count"         class="meta-count"></span>
+        <span id="meta-reading-time"  class="meta-reading-time" hidden></span>
       </div>
       <h1 id="reader-title" class="reader-title"></h1>
     </div>
@@ -25,6 +29,31 @@
   <div id="state-error" class="state-card" hidden>
     <p class="state-card__icon">⚠️</p>
     <p id="error-message" class="state-card__message">Could not load this conversation.</p>
+  </div>
+
+  <!-- Jump-to-top FAB -->
+  <button id="jump-top" aria-label="Jump to top" title="Back to top">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M8 12V4M4 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <!-- Annotation toolbar (R2) -->
+  <div id="annotation-toolbar" class="annotation-toolbar" hidden role="dialog" aria-label="Highlight selected text">
+    <div class="annotation-toolbar__colors">
+      <button class="ann-color-btn" data-color="#fef08a" style="--c:#fef08a" aria-label="Yellow highlight" title="Yellow"></button>
+      <button class="ann-color-btn" data-color="#bbf7d0" style="--c:#bbf7d0" aria-label="Green highlight"  title="Green"></button>
+      <button class="ann-color-btn" data-color="#bfdbfe" style="--c:#bfdbfe" aria-label="Blue highlight"   title="Blue"></button>
+      <button class="ann-color-btn" data-color="#fecaca" style="--c:#fecaca" aria-label="Red highlight"    title="Red"></button>
+      <button class="ann-color-btn" data-color="#e9d5ff" style="--c:#e9d5ff" aria-label="Purple highlight" title="Purple"></button>
+    </div>
+    <div class="annotation-toolbar__note">
+      <input type="text" id="annotation-note" placeholder="Add a note… (optional)" maxlength="200" />
+    </div>
+    <div class="annotation-toolbar__actions">
+      <button id="annotation-save"   class="btn-ann btn-ann--save">Highlight</button>
+      <button id="annotation-cancel" class="btn-ann btn-ann--cancel">✕</button>
+    </div>
   </div>
 
   <script src="reader.js" type="module"></script>

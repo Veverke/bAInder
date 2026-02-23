@@ -1,5 +1,35 @@
 /* ── bAInder Reader — reader.css ───────────────────────────────────────────── */
 
+/* ── Inter font (bundled woff2, latin subset) ─────────────────────────────── */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/inter-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/inter-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/inter-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/inter-latin-700-normal.woff2') format('woff2');
+}
+
 :root {
   --bg-primary:      #ffffff;
   --bg-secondary:    #f8f9fa;
@@ -10,13 +40,14 @@
   --border-primary:  #e5e7eb;
   --primary:         #2563eb;
   --primary-hover:   #1d4ed8;
+  --primary-light:   #dbeafe;
   --hr-color:        #d1d5db;
 
   --radius-sm:   4px;
   --radius-md:   8px;
   --radius-full: 9999px;
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace;
 
   --content-max-width: 720px;
@@ -31,6 +62,7 @@
     --text-primary:   #f0f0f0;
     --text-secondary: #9ca3af;
     --border-primary: #374151;
+    --primary-light:  #1e3a5f;
     --hr-color:       #374151;
   }
 }
@@ -130,14 +162,19 @@ body {
 
 /* ── Rendered markdown elements ──────────────────────────────────────────── */
 
+/* Base turn wrapper */
 .chat-turn {
-  margin-bottom: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-turn__role {
+  font-size: 0.72rem;
   font-weight: 700;
-  font-size: 0.875rem;
-  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 5px;
   color: var(--text-secondary);
 }
 
@@ -145,10 +182,92 @@ body {
   color: var(--text-primary);
 }
 
+/* ── User bubble (right-aligned) ──────────────────────────────────────────── */
+.chat-turn--user {
+  align-items: flex-end;
+}
+
+.chat-turn--user .chat-turn__role {
+  color: var(--primary);
+}
+
+.chat-turn--user .chat-turn__body {
+  background: var(--primary-light);
+  border-radius: 18px 18px 4px 18px;
+  padding: 12px 16px;
+  max-width: 88%;
+}
+
+/* ── Assistant card (left-aligned with accent border) ─────────────────────── */
+.chat-turn--assistant .chat-turn__role {
+  color: var(--text-secondary);
+}
+
+.chat-turn--assistant .chat-turn__body {
+  background: var(--bg-secondary);
+  border-left: 3px solid var(--primary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 12px 16px;
+}
+
 .chat-divider {
   border: none;
   border-top: 1px solid var(--hr-color);
   margin: 20px 0;
+}
+
+/* ── Scroll progress bar ──────────────────────────────────────────────────── */
+#scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: var(--primary);
+  z-index: 200;
+  transition: width 80ms linear;
+  border-radius: 0 2px 2px 0;
+  pointer-events: none;
+}
+
+/* ── Jump-to-top FAB ──────────────────────────────────────────────────────── */
+#jump-top {
+  position: fixed;
+  bottom: 28px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 200ms ease, transform 200ms ease, background 150ms ease;
+  pointer-events: none;
+  z-index: 100;
+}
+
+#jump-top.jump-top--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+#jump-top:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+#jump-top svg {
+  stroke: currentColor;
+  fill: none;
+  flex-shrink: 0;
 }
 
 /* Paragraph */
@@ -342,3 +461,210 @@ body {
 .state-card__icon { font-size: 2.5rem; }
 .state-card__message { font-weight: 500; color: var(--text-primary); }
 
+
+/* ── Reading-time badge (R3) ─────────────────────────────────────────────── */
+
+.meta-reading-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.meta-reading-time::before {
+  content: '·';
+  margin-right: 6px;
+}
+
+
+/* ── Per-source body tint (T3) ───────────────────────────────────────────── */
+
+body[data-source="chatgpt"] { background-color: color-mix(in srgb, #16a34a 4%, var(--bg-primary)); }
+body[data-source="claude"]  { background-color: color-mix(in srgb, #d97706 5%, var(--bg-primary)); }
+body[data-source="gemini"]  { background-color: color-mix(in srgb, #2563eb 4%, var(--bg-primary)); }
+body[data-source="copilot"] { background-color: color-mix(in srgb, #7c3aed 4%, var(--bg-primary)); }
+
+/* Fallback for browsers without color-mix (e.g. older Chromium) */
+@supports not (background: color-mix(in srgb, red, blue)) {
+  body[data-source="chatgpt"] { background-color: #f0fdf4; }
+  body[data-source="claude"]  { background-color: #fff7ed; }
+  body[data-source="gemini"]  { background-color: #eff6ff; }
+  body[data-source="copilot"] { background-color: #f5f3ff; }
+
+  @media (prefers-color-scheme: dark) {
+    body[data-source="chatgpt"] { background-color: #052e16; }
+    body[data-source="claude"]  { background-color: #1c0a00; }
+    body[data-source="gemini"]  { background-color: #0c1a3a; }
+    body[data-source="copilot"] { background-color: #1a0a2e; }
+  }
+}
+
+
+/* ── Annotation highlights (R2) ──────────────────────────────────────────── */
+
+.annotation-highlight {
+  background-color: var(--ann-color, #fef08a);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: filter 150ms ease;
+}
+
+.annotation-highlight:hover {
+  filter: brightness(0.9);
+}
+
+/* Hover tooltip for annotations with a note */
+.annotation-highlight[title]:hover::after {
+  content: attr(title);
+  position: fixed;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 400;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Annotation toolbar */
+.annotation-toolbar {
+  position: fixed;
+  z-index: 300;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.annotation-toolbar[hidden] { display: none !important; }
+
+.annotation-toolbar__colors {
+  display: flex;
+  gap: 6px;
+}
+
+.ann-color-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--c);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.ann-color-btn:hover    { transform: scale(1.2); }
+.ann-color-btn.selected { border-color: var(--primary); transform: scale(1.1); }
+
+.annotation-toolbar__note input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.annotation-toolbar__note input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.annotation-toolbar__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-ann {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.btn-ann--save             { background: var(--primary); color: #fff; }
+.btn-ann--save:hover       { background: var(--primary-hover); }
+
+.btn-ann--cancel           { background: var(--bg-primary); border: 1px solid var(--border-primary); color: var(--text-secondary); }
+.btn-ann--cancel:hover     { background: var(--bg-code); }
+
+
+/* ── Print / PDF (R1) ────────────────────────────────────────────────────── */
+
+@media print {
+  /* Hide interactive chrome */
+  #scroll-progress,
+  #jump-top,
+  .reader-header,
+  .annotation-toolbar { display: none !important; }
+
+  body {
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* Reset per-source tints */
+  body[data-source] { background-color: #fff !important; }
+
+  .reader-content {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  /* Flatten bubble / card styles */
+  .chat-turn { break-inside: avoid; page-break-inside: avoid; }
+  .chat-turn--user { align-items: flex-start !important; }
+
+  .chat-turn__body {
+    background: none !important;
+    border: none !important;
+    border-left: 2pt solid #999 !important;
+    border-radius: 0 !important;
+    padding: 4pt 8pt !important;
+    max-width: 100% !important;
+  }
+
+  .chat-turn--user .chat-turn__body { border-left-color: #333 !important; }
+
+  .chat-turn__role {
+    font-weight: 700;
+    color: #555 !important;
+  }
+
+  /* Remove shadows */
+  * { box-shadow: none !important; }
+
+  /* Code blocks */
+  .code-block { border: 1px solid #ccc; break-inside: avoid; }
+  .code-block__header { display: none; }
+  .code-block__pre { padding: 8pt; font-size: 9pt; }
+
+  /* Page-break control */
+  h1, h2, h3 { break-after: avoid; page-break-after: avoid; }
+
+  /* Typography */
+  .reader-title { font-size: 16pt; margin-bottom: 4pt; }
+  .meta-date, .meta-count, .meta-reading-time { font-size: 9pt; color: #666 !important; }
+  .meta-reading-time[hidden] { display: inline !important; }
+}
