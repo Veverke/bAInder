@@ -19,7 +19,59 @@ import { extractSnippet, highlightTerms, formatBreadcrumb, escapeHtml } from '..
 import { getTagColor } from '../lib/tree-renderer.js';
 import { ExportDialog } from '../lib/export-dialog.js';
 import { ImportDialog } from '../lib/import-dialog.js';
-import { loadThemeFile, validateTheme, applyCustomTheme } from '../lib/theme-sdk.js';
+import { loadThemeFile, validateTheme, applyCustomTheme, mergeWithDefaults } from '../lib/theme-sdk.js';
+
+/**
+ * bAInder's complete baseline variable map.
+ * When a custom theme is loaded, mergeWithDefaults() uses these values for any
+ * variable the theme file doesn't define — so new variables added to bAInder's
+ * CSS always have a sensible fallback even with older theme files.
+ *
+ * Values mirror the built-in "light" theme.  Update here whenever a new
+ * CSS custom property is introduced in bAInder's stylesheets.
+ */
+const BINDER_VARIABLE_DEFAULTS = {
+  '--primary':          '#6366f1',
+  '--primary-hover':    '#4f46e5',
+  '--primary-light':    '#e0e7ff',
+  '--primary-dark':     '#3730a3',
+  '--header-bg':        'linear-gradient(135deg, #eef0ff 0%, #ffffff 55%)',
+  '--header-accent':    '#6366f1',
+  '--bg-primary':       '#ffffff',
+  '--bg-secondary':     '#f8fafc',
+  '--bg-tertiary':      '#f1f5f9',
+  '--bg-elevated':      '#ffffff',
+  '--bg-hover':         '#f1f5f9',
+  '--bg-active':        '#e2e8f0',
+  '--border-primary':   '#e2e8f0',
+  '--border-secondary': '#cbd5e1',
+  '--border-focus':     '#6366f1',
+  '--text-primary':     '#0f172a',
+  '--text-secondary':   '#475569',
+  '--text-tertiary':    '#94a3b8',
+  '--text-inverse':     '#ffffff',
+  '--success':          '#10b981',
+  '--success-bg':       '#d1fae5',
+  '--warning':          '#f59e0b',
+  '--warning-bg':       '#fef3c7',
+  '--danger':           '#ef4444',
+  '--danger-bg':        '#fee2e2',
+  '--info':             '#3b82f6',
+  '--info-bg':          '#dbeafe',
+  '--shadow-sm':        '0 1px 2px 0 rgba(0,0,0,0.05)',
+  '--shadow-md':        '0 4px 6px -1px rgba(0,0,0,0.1)',
+  '--shadow-lg':        '0 10px 15px -3px rgba(0,0,0,0.1)',
+  '--shadow-xl':        '0 20px 25px -5px rgba(0,0,0,0.1)',
+  '--overlay':          'rgba(15,23,42,0.5)',
+  '--overlay-light':    'rgba(15,23,42,0.1)',
+  '--font-sans':        "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+  '--radius-xs':        '2px',
+  '--radius-sm':        '4px',
+  '--radius-md':        '6px',
+  '--radius-lg':        '8px',
+  '--radius-xl':        '12px',
+  '--radius-full':      '9999px',
+};
 
 console.log('bAInder Side Panel loaded');
 
@@ -129,7 +181,7 @@ async function initTheme() {
     const savedTheme = result.theme || 'light';
 
     if (savedTheme === 'custom' && result.customTheme) {
-      applyCustomTheme(result.customTheme);
+      applyCustomTheme(mergeWithDefaults(result.customTheme, BINDER_VARIABLE_DEFAULTS));
       state.theme = 'custom';
     } else {
       state.theme = savedTheme;
@@ -150,7 +202,7 @@ async function handleLoadTheme(file) {
       await state.dialog.alert(error, 'Invalid Theme File');
       return;
     }
-    applyCustomTheme(json);
+    applyCustomTheme(mergeWithDefaults(json, BINDER_VARIABLE_DEFAULTS));
     state.theme = 'custom';
     await chrome.storage.local.set({ theme: 'custom', customTheme: json });
 

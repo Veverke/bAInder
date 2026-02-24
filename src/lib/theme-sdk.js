@@ -56,6 +56,30 @@ export function validateTheme(json) {
 }
 
 /**
+ * Merge a loaded theme's variables on top of a consumer-supplied defaults map.
+ * This ensures that when a theme file omits a variable (e.g. an older theme
+ * predating a new capability), the consuming extension's own default value is
+ * used instead of leaving the variable unset.
+ *
+ * Pattern:
+ *   const merged = mergeWithDefaults(loadedTheme, MY_EXTENSION_DEFAULTS);
+ *   applyCustomTheme(merged, element);
+ *
+ * @param {object} theme     A validated theme object (has .variables).
+ * @param {object} defaults  A plain { '--var': 'value', … } map of fallback values.
+ * @returns {object}         A new theme object whose variables = defaults ∪ theme.variables.
+ */
+export function mergeWithDefaults(theme, defaults = {}) {
+  if (!theme || typeof theme.variables !== 'object') {
+    throw new Error('mergeWithDefaults: theme must be a valid theme object with a variables map.');
+  }
+  return {
+    ...theme,
+    variables: { ...defaults, ...theme.variables },
+  };
+}
+
+/**
  * Apply a validated theme object by injecting its CSS custom properties as
  * inline styles on the target element (defaults to <html>).
  *
