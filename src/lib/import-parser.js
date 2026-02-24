@@ -418,7 +418,7 @@ export function buildImportPlan(zipEntries, existingTree, strategy) {
   }
 
   const { topicFolders = new Map(), chatFiles = [] } = zipEntries;
-  const safeStrategy = strategy || 'merge';
+  const safeStrategy = strategy === 'new-root' ? 'create_root' : (strategy || 'merge');
 
   // Build a lookup: topic name path → existing topic id
   // Only used for 'merge' strategy.
@@ -427,7 +427,7 @@ export function buildImportPlan(zipEntries, existingTree, strategy) {
   if (safeStrategy === 'merge' && existingTree && existingTree.topics) {
     // Build name-path → id map for every existing topic
     const topics = existingTree.topics;
-    const rootTopicIds = existingTree.rootTopics || [];
+    const rootTopicIds = existingTree.rootTopicIds || [];
 
     /**
      * Recursively walk topic tree and record name paths.
@@ -615,8 +615,8 @@ export function executeImport(plan, tree, chats) {
     };
   }
 
-  const updatedRootTopics = tree && Array.isArray(tree.rootTopics)
-    ? [...tree.rootTopics]
+  const updatedRootTopics = tree && Array.isArray(tree.rootTopicIds)
+    ? [...tree.rootTopicIds]
     : [];
 
   const updatedChats = Array.isArray(chats) ? [...chats] : [];

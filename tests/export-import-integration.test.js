@@ -158,7 +158,7 @@ const mockTopic = {
 };
 const mockTree = {
   topics: { 'topic-1': mockTopic },
-  rootTopics: ['topic-1'],
+  rootTopicIds: ['topic-1'],
 };
 const mockChat = {
   id: 'chat-1',

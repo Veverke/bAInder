@@ -372,6 +372,11 @@ svg {
   background: var(--bg-active);
 }
 
+.btn-icon--danger:hover {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
 /* Theme Toggle Styles */
 #themeToggle .theme-icon {
   font-size: 1.125rem;
@@ -2157,15 +2162,11 @@ ul.tree-root.drop-target {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  overflow-x: auto;
+  overflow: hidden;
   padding: var(--space-sm) 0;
   margin-bottom: var(--space-md);
-  scrollbar-width: none;   /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
   flex-shrink: 0;
 }
-
-.recent-rail::-webkit-scrollbar { display: none; }
 
 .recent-rail__label {
   font-size: 0.7rem;

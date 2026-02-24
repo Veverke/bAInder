@@ -32,12 +32,15 @@ const elements = {
   searchResultsList: document.getElementById('searchResultsList'),
   addTopicBtn: document.getElementById('addTopicBtn'),
   importBtn: document.getElementById('importBtn'),
+  clearAllBtn: document.getElementById('clearAllBtn'),
   settingsBtn: document.getElementById('settingsBtn'),
   themeToggle: document.getElementById('themeToggle'),
   contextMenu: document.getElementById('contextMenu'),
   chatContextMenu: document.getElementById('chatContextMenu'),
   modalContainer: document.getElementById('modalContainer'),
   itemCount: document.getElementById('itemCount'),
+  expandAllBtn: document.getElementById('expandAllBtn'),
+  collapseAllBtn: document.getElementById('collapseAllBtn'),
   resultCount: document.getElementById('resultCount'),
   storageUsage: document.getElementById('storageUsage')
 };
@@ -228,6 +231,16 @@ function setupEventListeners() {
   
   // Add topic button
   elements.addTopicBtn.addEventListener('click', handleAddTopic);
+
+  // Expand / Collapse all buttons
+  elements.expandAllBtn.addEventListener('click', () => {
+    state.renderer?.expandAll();
+    saveExpandedState();
+  });
+  elements.collapseAllBtn.addEventListener('click', () => {
+    state.renderer?.collapseAll();
+    saveExpandedState();
+  });
   
   // Create first topic button (in empty state)
   const createFirstTopicBtn = document.getElementById('createFirstTopicBtn');
@@ -238,6 +251,11 @@ function setupEventListeners() {
   // Import button (Stage 9)
   if (elements.importBtn) {
     elements.importBtn.addEventListener('click', handleImport);
+  }
+
+  // Clear all button
+  if (elements.clearAllBtn) {
+    elements.clearAllBtn.addEventListener('click', handleClearAll);
   }
 
   // Settings button
@@ -335,27 +353,57 @@ async function loadChats() {
 function updateRecentRail() {
   const rail = document.getElementById('recentRail');
   if (!rail) return;
+
   const sorted = [...state.chats]
     .filter(c => c.savedAt || c.timestamp)
     .sort((a, b) => ((b.savedAt || b.timestamp) || 0) - ((a.savedAt || a.timestamp) || 0))
-    .slice(0, 5);
+    .slice(0, 8); // fetch up to 8 candidates; we'll trim to what actually fits
+
   if (sorted.length < 3) {
     rail.style.display = 'none';
     return;
   }
-  const chips = sorted.map(c => {
-    const src = c.source || 'unknown';
-    const title = (c.title || 'Untitled').substring(0, 30);
-    return `<button class="recent-chip" data-chat-id="${c.id}" title="${escapeHtml(c.title || 'Untitled')}">
-      <span class="recent-chip__dot recent-chip__dot--${src}"></span>
-      <span class="recent-chip__title">${escapeHtml(title)}</span>
-    </button>`;
-  }).join('');
-  rail.innerHTML = '<span class="recent-rail__label">Recent</span>' + chips;
+
+  // Build DOM from scratch
+  rail.innerHTML = '';
   rail.style.display = 'flex';
-  rail.querySelectorAll('.recent-chip').forEach((chip, i) => {
-    chip.addEventListener('click', () => handleChatClick(sorted[i]));
-  });
+
+  const label = document.createElement('span');
+  label.className = 'recent-rail__label';
+  label.textContent = 'Recent';
+  rail.appendChild(label);
+
+  // Add chips one by one; stop as soon as one causes overflow (preserves order)
+  for (const c of sorted) {
+    const src = c.source || 'unknown';
+
+    const chip = document.createElement('button');
+    chip.className = 'recent-chip';
+    chip.title = c.title || 'Untitled';
+
+    const dot = document.createElement('span');
+    dot.className = `recent-chip__dot recent-chip__dot--${src}`;
+
+    const titleEl = document.createElement('span');
+    titleEl.className = 'recent-chip__title';
+    titleEl.textContent = c.title || 'Untitled';
+
+    chip.appendChild(dot);
+    chip.appendChild(titleEl);
+    chip.addEventListener('click', () => handleChatClick(c));
+    rail.appendChild(chip);
+
+    // If this chip pushed content beyond the visible width, remove it and stop
+    if (rail.scrollWidth > rail.clientWidth) {
+      rail.removeChild(chip);
+      break;
+    }
+  }
+
+  // If only the label fits (no chips), hide the rail entirely
+  if (rail.children.length <= 1) {
+    rail.style.display = 'none';
+  }
 }
 
 // Load tree from storage
@@ -912,7 +960,7 @@ async function handleImport() {
       state.chats,
       async (updatedTopics, updatedRootTopics, updatedChats, summary) => {
         // Rebuild a proper TopicTree instance from the imported data
-        state.tree  = TopicTree.fromObject({ topics: updatedTopics, rootTopics: updatedRootTopics });
+        state.tree  = TopicTree.fromObject({ topics: updatedTopics, rootTopicIds: updatedRootTopics });
         state.chats = updatedChats;
 
         // Update dialog instances with new tree reference
@@ -941,6 +989,37 @@ async function handleImport() {
 
 function handleSettings() {
   openSettingsPanel();
+}
+
+// Clear all saved chats and topics
+async function handleClearAll() {
+  const confirmed = await state.dialog.confirm(
+    'This will permanently delete all saved chats and topics. This cannot be undone.',
+    'Clear All Saved Chats'
+  );
+  if (!confirmed) return;
+
+  try {
+    state.tree  = new TopicTree();
+    state.chats = [];
+
+    // Clear tree and chats in storage concurrently, then read usage once both are done
+    await Promise.all([
+      state.storage.saveTopicTree(state.tree.toObject()),
+      chrome.storage.local.set({ chats: state.chats }),
+    ]);
+
+    state.renderer.setTree(state.tree);
+    state.renderer.setChatData(state.chats);
+    renderTreeView();
+    updateRecentRail();
+    await updateStorageUsage();
+
+    showNotification('All saved chats cleared.', 'success');
+  } catch (err) {
+    console.error('Clear all failed:', err);
+    await state.dialog.alert(err.message || 'Failed to clear data', 'Error');
+  }
 }
 
 function openSettingsPanel() {

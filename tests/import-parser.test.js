@@ -108,7 +108,7 @@ const EXISTING_TREE = {
       lastChatDate: 1700000000000,
     },
   },
-  rootTopics: ['topic-work'],
+  rootTopicIds: ['topic-work'],
 };
 
 const EXISTING_CHATS = [
