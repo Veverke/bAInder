@@ -54,7 +54,9 @@ const state = {
   contextMenuTopic: null, // Currently selected topic for context menu
   contextMenuChat: null, // Currently selected chat for context menu
   searchQuery: '',
-  theme: 'light', // 'light', 'dark', or 'auto'
+  theme: 'light', // 'light', 'dark', 'oled', 'auto', or radical theme name
+  skin: '',        // '' | 'sharp' | 'rounded' | 'outlined' | 'elevated'
+  accent: '',      // '' | 'rose' | 'teal' | 'amber'
   _toastTimer: null, // setTimeout handle for auto-dismissing toast
   exportDialog: null, // ExportDialog instance (Stage 9)
   importDialog: null  // ImportDialog instance (Stage 9)
@@ -72,7 +74,13 @@ async function init() {
   
   // Initialize theme
   await initTheme();
-  
+
+  // Initialize control skin
+  await initSkin();
+
+  // Initialize accent colour
+  await initAccent();
+
   // Set up event listeners
   setupEventListeners();
   
@@ -81,7 +89,10 @@ async function init() {
 
   // Load chats from storage
   await loadChats();
-  
+
+  // Populate recently-saved rail (U4)
+  updateRecentRail();
+
   // Initialize topic dialogs (needs tree instance)
   state.topicDialogs = new TopicDialogs(state.dialog, state.tree);
 
@@ -117,16 +128,28 @@ async function initTheme() {
 function applyTheme(theme) {
   const html = document.documentElement;
   const themeIcon = elements.themeToggle?.querySelector('.theme-icon');
-  
+
+  // OLED: dark theme vars + black-surface override attribute
+  if (theme === 'oled') {
+    html.setAttribute('data-theme', 'dark');
+    html.setAttribute('data-oled', '');
+  } else {
+    html.removeAttribute('data-oled');
+  }
+
   if (theme === 'auto') {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
     if (themeIcon) themeIcon.textContent = '🌓';
-  } else {
+  } else if (theme !== 'oled') {
     html.setAttribute('data-theme', theme);
-    if (themeIcon) themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    const themeIcons = { dark: '☀️', oled: '🕶️', terminal: '🖥️', retro: '🕹️', glass: '🪟', neon: '💡' };
+    if (themeIcon) themeIcon.textContent = themeIcons[theme] ?? '🌙';
+  } else {
+    // oled branch — data-theme already set to 'dark' above
+    if (themeIcon) themeIcon.textContent = '🕶️';
   }
-  
+
   state.theme = theme;
 }
 
@@ -144,6 +167,50 @@ async function toggleTheme() {
   } catch (error) {
     console.error('Error saving theme:', error);
   }
+}
+
+// ── Control skin ────────────────────────────────────────────────────────────
+
+async function initSkin() {
+  try {
+    const result = await chrome.storage.local.get('skin');
+    state.skin = result.skin || '';
+    applySkin(state.skin);
+  } catch (_) {
+    applySkin('');
+  }
+}
+
+function applySkin(skin) {
+  const html = document.documentElement;
+  if (skin) {
+    html.setAttribute('data-skin', skin);
+  } else {
+    html.removeAttribute('data-skin');
+  }
+  state.skin = skin;
+}
+
+// ── Accent colour ────────────────────────────────────────────────────────────
+
+async function initAccent() {
+  try {
+    const result = await chrome.storage.local.get('accent');
+    state.accent = result.accent || '';
+    applyAccent(state.accent);
+  } catch (_) {
+    applyAccent('');
+  }
+}
+
+function applyAccent(accent) {
+  const html = document.documentElement;
+  if (accent) {
+    html.setAttribute('data-accent', accent);
+  } else {
+    html.removeAttribute('data-accent');
+  }
+  state.accent = accent;
 }
 
 // Listen for system theme changes when in auto mode
@@ -230,6 +297,21 @@ function setupEventListeners() {
       closeModal();
     }
   });
+
+  // U1 — TOC section collapse toggle
+  const tocBtn = document.getElementById('tocCollapseBtn');
+  if (tocBtn) {
+    const tocSection = tocBtn.closest('.toc-section');
+    if (localStorage.getItem('toc-collapsed') === '1' && tocSection) {
+      tocSection.classList.add('section--collapsed');
+      tocBtn.setAttribute('aria-expanded', 'false');
+    }
+    tocBtn.addEventListener('click', () => {
+      const nowCollapsed = tocSection.classList.toggle('section--collapsed');
+      tocBtn.setAttribute('aria-expanded', String(!nowCollapsed));
+      localStorage.setItem('toc-collapsed', nowCollapsed ? '1' : '0');
+    });
+  }
 }
 
 // Load data from storage
@@ -247,6 +329,33 @@ async function loadChats() {
     console.error('Error loading chats:', error);
     state.chats = [];
   }
+}
+
+// U4 — populate the “Recently saved” horizontal chip rail
+function updateRecentRail() {
+  const rail = document.getElementById('recentRail');
+  if (!rail) return;
+  const sorted = [...state.chats]
+    .filter(c => c.savedAt || c.timestamp)
+    .sort((a, b) => ((b.savedAt || b.timestamp) || 0) - ((a.savedAt || a.timestamp) || 0))
+    .slice(0, 5);
+  if (sorted.length < 3) {
+    rail.style.display = 'none';
+    return;
+  }
+  const chips = sorted.map(c => {
+    const src = c.source || 'unknown';
+    const title = (c.title || 'Untitled').substring(0, 30);
+    return `<button class="recent-chip" data-chat-id="${c.id}" title="${escapeHtml(c.title || 'Untitled')}">
+      <span class="recent-chip__dot recent-chip__dot--${src}"></span>
+      <span class="recent-chip__title">${escapeHtml(title)}</span>
+    </button>`;
+  }).join('');
+  rail.innerHTML = '<span class="recent-rail__label">Recent</span>' + chips;
+  rail.style.display = 'flex';
+  rail.querySelectorAll('.recent-chip').forEach((chip, i) => {
+    chip.addEventListener('click', () => handleChatClick(sorted[i]));
+  });
 }
 
 // Load tree from storage
@@ -370,6 +479,18 @@ async function handleChatSaved(chatEntry) {
   state.renderer.setChatData(state.chats);
   renderTreeView();
   state.renderer.expandToTopic(result.topicId);
+
+  // A1 — flash pop on the newly added chat node
+  requestAnimationFrame(() => {
+    const li = elements.treeView?.querySelector(`li[data-chat-id="${updatedChat.id}"]`);
+    if (li) {
+      li.classList.add('tree-node--pop');
+      li.addEventListener('animationend', () => li.classList.remove('tree-node--pop'), { once: true });
+    }
+  });
+
+  // U4 — refresh the recent rail
+  updateRecentRail();
 }
 
 // Render the tree view
@@ -384,10 +505,18 @@ function renderTreeView() {
 function handleSearch(event) {
   const query = event.target.value.trim();
   state.searchQuery = query;
-  
+
   // Show/hide clear button
   elements.clearSearchBtn.style.display = query ? 'block' : 'none';
-  
+
+  // A5 — show shimmer while keystrokes are in-flight
+  const searchContainer = elements.searchInput?.closest('.search-container');
+  if (query) {
+    searchContainer?.classList.add('is-typing');
+  } else {
+    searchContainer?.classList.remove('is-typing');
+  }
+
   if (query) {
     // Highlight matching topics in tree
     if (state.renderer) {
@@ -398,8 +527,14 @@ function handleSearch(event) {
     }
     // Full-text search across all saved chats
     state.storage.searchChats(query)
-      .then(results => renderSearchResults(results, query))
-      .catch(err => console.error('Search failed:', err));
+      .then(results => {
+        searchContainer?.classList.remove('is-typing');
+        renderSearchResults(results, query);
+      })
+      .catch(err => {
+        searchContainer?.classList.remove('is-typing');
+        console.error('Search failed:', err);
+      });
   } else {
     if (state.renderer) {
       state.renderer.clearHighlight();
@@ -425,9 +560,27 @@ function renderSearchResults(results, query) {
   const n = results.length;
   elements.resultCount.textContent = n === 1 ? '1 result' : `${n} results`;
 
+  // A4 — badge morph animation on count change
+  elements.resultCount.classList.remove('badge--morphing');
+  void elements.resultCount.offsetWidth; // force reflow to re-trigger animation
+  elements.resultCount.classList.add('badge--morphing');
+  elements.resultCount.addEventListener('animationend',
+    () => elements.resultCount.classList.remove('badge--morphing'), { once: true });
+
   if (n === 0) {
-    elements.searchResultsList.innerHTML =
-      `<div class="result-empty">No results found for "${escapeHtml(query)}"</div>`;
+    // U5 — illustrated empty state
+    elements.searchResultsList.innerHTML = `
+      <div class="result-empty-state">
+        <svg class="result-empty-state__icon" width="52" height="52" viewBox="0 0 52 52" fill="none" aria-hidden="true">
+          <circle cx="23" cy="23" r="14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M33.5 33.5L44 44" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M19 23h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+          <path d="M23 19v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+          <circle cx="23" cy="23" r="5" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2.5 2.5" opacity="0.35"/>
+        </svg>
+        <p class="result-empty-state__title">No matches found</p>
+        <p class="result-empty-state__sub">Nothing matched <strong>&ldquo;${escapeHtml(query)}&rdquo;</strong>.<br>Try a shorter or different term.</p>
+      </div>`;
     return;
   }
 
@@ -813,6 +966,29 @@ function openSettingsPanel() {
       applyTheme(e.target.value);
       chrome.storage.local.set({ theme: e.target.value }).catch(() => {});
     });
+
+  // Skin select — sync value then wire change
+  const skinSel = document.getElementById('settingsSkinSelect');
+  if (skinSel) {
+    skinSel.value = state.skin;
+    skinSel.addEventListener('change', (e) => {
+      applySkin(e.target.value);
+      chrome.storage.local.set({ skin: e.target.value }).catch(() => {});
+    });
+  }
+
+  // Accent swatch buttons — mark active and wire click
+  const swatches = document.querySelectorAll('#accentSwatches .accent-swatch');
+  swatches.forEach(swatch => {
+    if (swatch.dataset.accent === state.accent) swatch.classList.add('is-active');
+    swatch.addEventListener('click', () => {
+      swatches.forEach(s => s.classList.remove('is-active'));
+      swatch.classList.add('is-active');
+      const val = swatch.dataset.accent;
+      applyAccent(val);
+      chrome.storage.local.set({ accent: val }).catch(() => {});
+    });
+  });
 }
 
 function closeSettingsPanel() {

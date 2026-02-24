@@ -1,0 +1,682 @@
+/* ── bAInder Radical Themes ────────────────────────────────────────────────────
+ *
+ * Extends the data-theme system beyond light/dark with four personality themes.
+ * Each block redefines the full set of CSS custom properties and applies
+ * structural overrides scoped to its selector.
+ *
+ * X1  terminal    — monochrome green-on-black, monospace, scanlines
+ * X2  retro       — 8-bit pixel font, NES palette, bevelled borders
+ * X3  glass       — frosted-glass panels, backdrop-filter blur
+ * X4  neon        — cyberpunk dark base, electric cyan/magenta glows
+ *
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   X1 — TERMINAL
+   Phosphor green on pure black. Monospace everywhere. Scanline CRT overlay.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="terminal"] {
+  --primary:            #00ff41;
+  --primary-hover:      #00cc33;
+  --primary-light:      rgba(0, 255, 65, 0.15);
+  --primary-dark:       #009925;
+
+  --header-bg:          #000000;
+  --header-accent:      #00ff41;
+
+  --bg-primary:         #000000;
+  --bg-secondary:       #0a0a0a;
+  --bg-tertiary:        #111111;
+  --bg-elevated:        #0d0d0d;
+  --bg-hover:           rgba(0, 255, 65, 0.08);
+  --bg-active:          rgba(0, 255, 65, 0.16);
+
+  --border-primary:     #1a3a1a;
+  --border-secondary:   #00ff41;
+  --border-focus:       #00ff41;
+
+  --text-primary:       #00ff41;
+  --text-secondary:     #00cc33;
+  --text-tertiary:      #006617;
+  --text-inverse:       #000000;
+
+  --success:            #00ff41;
+  --success-bg:         rgba(0, 255, 65, 0.12);
+  --warning:            #ffcc00;
+  --warning-bg:         rgba(255, 204, 0, 0.12);
+  --danger:             #ff4444;
+  --danger-bg:          rgba(255, 68, 68, 0.12);
+  --info:               #00ddff;
+  --info-bg:            rgba(0, 221, 255, 0.12);
+
+  --shadow-sm:          none;
+  --shadow-md:          0 0 12px rgba(0, 255, 65, 0.15);
+  --shadow-lg:          0 0 24px rgba(0, 255, 65, 0.2);
+  --shadow-xl:          0 0 40px rgba(0, 255, 65, 0.25);
+
+  --overlay:            rgba(0, 0, 0, 0.88);
+  --overlay-light:      rgba(0, 255, 65, 0.05);
+
+  /* Force monospace font stack */
+  --font-sans: 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace;
+}
+
+/* Scanline CRT overlay */
+[data-theme="terminal"] #app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent        0px,
+    transparent        2px,
+    rgba(0, 255, 65, 0.025) 3px,
+    transparent        3px
+  );
+  pointer-events: none;
+  z-index: 9990;
+}
+
+/* Glow on primary text elements */
+[data-theme="terminal"] .header h1,
+[data-theme="terminal"] .reader-title,
+[data-theme="terminal"] .tree-label-text {
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
+}
+
+/* Green glowing borders on interactive elements */
+[data-theme="terminal"] .search-container:focus-within {
+  box-shadow: 0 0 0 1px #00ff41, 0 0 12px rgba(0, 255, 65, 0.3) !important;
+}
+
+[data-theme="terminal"] .form-input:focus,
+[data-theme="terminal"] .form-select:focus,
+[data-theme="terminal"] .form-textarea:focus {
+  box-shadow: 0 0 0 1px #00ff41, 0 0 8px rgba(0, 255, 65, 0.2) !important;
+}
+
+/* Blinking cursor on active/focused elements */
+@keyframes termCursor {
+  0%, 49% { border-right-color: #00ff41; }
+  50%, 100% { border-right-color: transparent; }
+}
+
+[data-theme="terminal"] .search-input:focus {
+  border-right: 2px solid #00ff41;
+  animation: termCursor 1s step-start infinite;
+}
+
+/* All borders sharp */
+[data-theme="terminal"] *,
+[data-theme="terminal"] *::before,
+[data-theme="terminal"] *::after {
+  border-radius: 0 !important;
+}
+
+/* Glowing primary button */
+[data-theme="terminal"] .btn-primary {
+  background: transparent !important;
+  color: #00ff41 !important;
+  border: 1px solid #00ff41 !important;
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.3) !important;
+}
+
+[data-theme="terminal"] .btn-primary:hover {
+  background: #00ff41 !important;
+  color: #000 !important;
+  box-shadow: 0 0 16px rgba(0, 255, 65, 0.5) !important;
+  transform: none !important;
+}
+
+/* Secondary + icon buttons */
+[data-theme="terminal"] .btn-secondary,
+[data-theme="terminal"] .btn-icon {
+  background: transparent !important;
+  border: 1px solid #1a3a1a !important;
+}
+
+[data-theme="terminal"] .btn-secondary:hover,
+[data-theme="terminal"] .btn-icon:hover {
+  border-color: #00ff41 !important;
+  color: #00ff41 !important;
+  background: rgba(0, 255, 65, 0.08) !important;
+}
+
+/* Context menu glow border */
+[data-theme="terminal"] .context-menu {
+  border: 1px solid #00ff41 !important;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3) !important;
+}
+
+/* Badge colours */
+[data-theme="terminal"] .badge--chatgpt,
+[data-theme="terminal"] .badge--claude,
+[data-theme="terminal"] .badge--gemini,
+[data-theme="terminal"] .badge--copilot {
+  background: transparent !important;
+  color: #00ff41 !important;
+  border: 1px solid #00ff41 !important;
+}
+
+/* Badges in tree */
+[data-theme="terminal"] .tree-source-chip {
+  background: transparent !important;
+  color: #00ff41 !important;
+  border: 1px solid #00ff41 !important;
+}
+
+/* Source left-border use green for all */
+[data-theme="terminal"] .tree-chat-item > .tree-node-content {
+  box-shadow: inset 3px 0 0 0 #00ff41 !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   X2 — RETRO / 8-BIT
+   Press Start 2P pixel font. NES-inspired 16-colour palette. Outset borders.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'PressStart2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/press-start-2p-latin-400-normal.woff2') format('woff2');
+}
+
+[data-theme="retro"] {
+  --primary:            #fc0;
+  --primary-hover:      #ffa500;
+  --primary-light:      rgba(255, 204, 0, 0.2);
+  --primary-dark:       #cc9900;
+
+  --header-bg:          #000080;
+  --header-accent:      #fc0;
+
+  --bg-primary:         #0a001a;
+  --bg-secondary:       #000060;
+  --bg-tertiary:        #00004a;
+  --bg-elevated:        #000080;
+  --bg-hover:           #0000aa;
+  --bg-active:          #0000cc;
+
+  --border-primary:     #5555ff;
+  --border-secondary:   #aaaaff;
+  --border-focus:       #fc0;
+
+  --text-primary:       #ffffff;
+  --text-secondary:     #aaaaff;
+  --text-tertiary:      #5555ff;
+  --text-inverse:       #000000;
+
+  --success:            #55ff55;
+  --success-bg:         #003300;
+  --warning:            #fc0;
+  --warning-bg:         #333300;
+  --danger:             #ff5555;
+  --danger-bg:          #330000;
+  --info:               #55ffff;
+  --info-bg:            #003333;
+
+  --shadow-sm:          3px 3px 0px #000;
+  --shadow-md:          4px 4px 0px #000;
+  --shadow-lg:          6px 6px 0px #000;
+  --shadow-xl:          8px 8px 0px #000;
+
+  --overlay:            rgba(0, 0, 0, 0.9);
+  --overlay-light:      rgba(0, 0, 170, 0.4);
+
+  /* Pixel font */
+  --font-sans: 'PressStart2P', 'Courier New', monospace;
+
+  /* Zero radius — pixels are square */
+  --radius-xs:   0px;
+  --radius-sm:   0px;
+  --radius-md:   0px;
+  --radius-lg:   0px;
+  --radius-xl:   0px;
+  --radius-full: 0px;
+}
+
+/* Enforce pixel font and sharp corners everywhere */
+[data-theme="retro"] * {
+  font-family: 'PressStart2P', 'Courier New', monospace !important;
+  border-radius: 0 !important;
+  image-rendering: pixelated;
+}
+
+/* Scale down font size — Press Start 2P is large at default sizes */
+[data-theme="retro"] body {
+  font-size: 10px !important;
+  line-height: 1.9 !important;
+}
+
+[data-theme="retro"] .tree-label-text {
+  font-size: 8px !important;
+}
+
+[data-theme="retro"] .header h1 .title {
+  font-size: 10px !important;
+  letter-spacing: 0.05em;
+}
+
+/* NES-style outset button borders */
+[data-theme="retro"] .btn-primary {
+  background: var(--primary) !important;
+  color: #000 !important;
+  border: 2px solid;
+  border-color: #fff #888 #888 #fff !important;
+  box-shadow: var(--shadow-md) !important;
+  text-transform: uppercase;
+}
+
+[data-theme="retro"] .btn-primary:hover {
+  background: #ffd700 !important;
+  transform: none !important;
+}
+
+[data-theme="retro"] .btn-primary:active {
+  border-color: #888 #fff #fff #888 !important;
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0px #000 !important;
+}
+
+[data-theme="retro"] .btn-secondary {
+  background: #0000aa !important;
+  color: #fff !important;
+  border: 2px solid;
+  border-color: #aaaaff #000055 #000055 #aaaaff !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+[data-theme="retro"] .btn-secondary:active {
+  border-color: #000055 #aaaaff #aaaaff #000055 !important;
+  transform: translate(2px, 2px) !important;
+  box-shadow: none !important;
+}
+
+/* Outset card borders */
+[data-theme="retro"] .toc-section,
+[data-theme="retro"] .search-results,
+[data-theme="retro"] .tree-node--card,
+[data-theme="retro"] .modal-content {
+  border: 2px solid;
+  border-color: #aaaaff #000055 #000055 #aaaaff !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Search container */
+[data-theme="retro"] .search-container {
+  border: 2px solid #5555ff !important;
+  background: #000 !important;
+}
+
+[data-theme="retro"] .search-container:focus-within {
+  border-color: #fc0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Fixed-width pixel input text */
+[data-theme="retro"] .form-input,
+[data-theme="retro"] .form-select,
+[data-theme="retro"] .form-textarea,
+[data-theme="retro"] .search-input {
+  background: #000 !important;
+  color: #fff !important;
+  border: 2px inset #5555ff !important;
+  font-size: 8px !important;
+}
+
+/* Pixel-style context menu */
+[data-theme="retro"] .context-menu {
+  border: 2px solid;
+  border-color: #aaaaff #000055 #000055 #aaaaff !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Source colours → NES palette */
+[data-theme="retro"] .tree-source-chip--chatgpt { background: #003300 !important; color: #55ff55 !important; }
+[data-theme="retro"] .tree-source-chip--claude  { background: #330000 !important; color: #ff5555 !important; }
+[data-theme="retro"] .tree-source-chip--gemini  { background: #000033 !important; color: #55ffff !important; }
+[data-theme="retro"] .tree-source-chip--copilot { background: #220033 !important; color: #ff55ff !important; }
+
+/* No smooth transitions — instant snap */
+[data-theme="retro"] * {
+  transition-duration: 0ms !important;
+  animation-timing-function: step-start !important;
+}
+
+/* Blinking cursor on search */
+@keyframes retroBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+[data-theme="retro"] .search-input::placeholder {
+  animation: retroBlink 1s step-start infinite;
+}
+
+/* Toast pixel-style */
+[data-theme="retro"] .toast {
+  border: 2px solid #fc0 !important;
+  background: #000080 !important;
+  box-shadow: var(--shadow-md) !important;
+  font-size: 8px !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   X3 — GLASSMORPHISM
+   Frosted-glass panels. backdrop-filter blur. Semi-transparent surfaces.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="glass"] {
+  --primary:            #6d9eff;
+  --primary-hover:      #5b8bff;
+  --primary-light:      rgba(109, 158, 255, 0.2);
+  --primary-dark:       #3b6bdd;
+
+  --header-bg:          rgba(255, 255, 255, 0.10);
+  --header-accent:      rgba(109, 158, 255, 0.7);
+
+  --bg-primary:         rgba(255, 255, 255, 0.06);
+  --bg-secondary:       rgba(255, 255, 255, 0.10);
+  --bg-tertiary:        rgba(255, 255, 255, 0.14);
+  --bg-elevated:        rgba(255, 255, 255, 0.12);
+  --bg-hover:           rgba(255, 255, 255, 0.16);
+  --bg-active:          rgba(255, 255, 255, 0.22);
+
+  --border-primary:     rgba(255, 255, 255, 0.18);
+  --border-secondary:   rgba(255, 255, 255, 0.30);
+  --border-focus:       rgba(109, 158, 255, 0.8);
+
+  --text-primary:       rgba(255, 255, 255, 0.95);
+  --text-secondary:     rgba(255, 255, 255, 0.70);
+  --text-tertiary:      rgba(255, 255, 255, 0.45);
+  --text-inverse:       #0b0e1a;
+
+  --success:            #5af7a0;
+  --success-bg:         rgba(90, 247, 160, 0.12);
+  --warning:            #ffd166;
+  --warning-bg:         rgba(255, 209, 102, 0.12);
+  --danger:             #ff7b7b;
+  --danger-bg:          rgba(255, 123, 123, 0.12);
+  --info:               #6d9eff;
+  --info-bg:            rgba(109, 158, 255, 0.12);
+
+  --shadow-sm:          0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md:          0 8px 24px rgba(0, 0, 0, 0.30);
+  --shadow-lg:          0 16px 40px rgba(0, 0, 0, 0.35);
+  --shadow-xl:          0 24px 56px rgba(0, 0, 0, 0.40);
+
+  --overlay:            rgba(0, 0, 0, 0.55);
+  --overlay-light:      rgba(255, 255, 255, 0.06);
+}
+
+/* Deep gradient base on body — provide something to blur through */
+[data-theme="glass"] body {
+  background: linear-gradient(135deg, #0b0e2a 0%, #11193a 40%, #0e2240 100%) !important;
+  min-height: 100vh;
+}
+
+/* Frosted glass on all panels */
+[data-theme="glass"] .toc-section,
+[data-theme="glass"] .search-results,
+[data-theme="glass"] .header,
+[data-theme="glass"] .footer,
+[data-theme="glass"] .modal-content,
+[data-theme="glass"] .context-menu,
+[data-theme="glass"] .settings-panel__drawer {
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Slightly more opaque cards */
+[data-theme="glass"] .result-card,
+[data-theme="glass"] .tree-node--card {
+  background: rgba(255, 255, 255, 0.07) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="glass"] .result-card:hover,
+[data-theme="glass"] .tree-node--card:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(109, 158, 255, 0.4) !important;
+}
+
+/* Glass buttons */
+[data-theme="glass"] .btn-primary {
+  background: rgba(109, 158, 255, 0.25) !important;
+  color: #fff !important;
+  border: 1px solid rgba(109, 158, 255, 0.5) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 0 4px 14px rgba(109, 158, 255, 0.2) !important;
+}
+
+[data-theme="glass"] .btn-primary:hover {
+  background: rgba(109, 158, 255, 0.40) !important;
+  box-shadow: 0 6px 20px rgba(109, 158, 255, 0.35) !important;
+}
+
+[data-theme="glass"] .btn-secondary,
+[data-theme="glass"] .btn-icon {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+[data-theme="glass"] .btn-secondary:hover,
+[data-theme="glass"] .btn-icon:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+}
+
+/* Glass input / search */
+[data-theme="glass"] .search-container,
+[data-theme="glass"] .form-input,
+[data-theme="glass"] .form-select,
+[data-theme="glass"] .form-textarea {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+[data-theme="glass"] .search-container:focus-within {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(109, 158, 255, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(109, 158, 255, 0.2), var(--shadow-md) !important;
+}
+
+/* Toast glass  */
+[data-theme="glass"] .toast {
+  background: rgba(30, 40, 80, 0.7) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Main content area transparent to show body gradient */
+[data-theme="glass"] .main-content {
+  background: transparent !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   X4 — NEON / CYBERPUNK
+   Near-black base. Electric cyan + magenta accents. Glow text-shadow effects.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="neon"] {
+  --primary:            #00fff5;
+  --primary-hover:      #00cccc;
+  --primary-light:      rgba(0, 255, 245, 0.15);
+  --primary-dark:       #00aaaa;
+
+  --header-bg:          #0a0a0f;
+  --header-accent:      #00fff5;
+
+  --bg-primary:         #0a0a0f;
+  --bg-secondary:       #0f0f16;
+  --bg-tertiary:        #14141e;
+  --bg-elevated:        #111120;
+  --bg-hover:           rgba(0, 255, 245, 0.07);
+  --bg-active:          rgba(0, 255, 245, 0.14);
+
+  --border-primary:     #1a1a2e;
+  --border-secondary:   rgba(0, 255, 245, 0.25);
+  --border-focus:       #00fff5;
+
+  --text-primary:       #e0e0ff;
+  --text-secondary:     #9090c0;
+  --text-tertiary:      #4a4a7a;
+  --text-inverse:       #0a0a0f;
+
+  --success:            #00fff5;
+  --success-bg:         rgba(0, 255, 245, 0.10);
+  --warning:            #ff00c8;
+  --warning-bg:         rgba(255, 0, 200, 0.10);
+  --danger:             #ff0055;
+  --danger-bg:          rgba(255, 0, 85, 0.10);
+  --info:               #aa00ff;
+  --info-bg:            rgba(170, 0, 255, 0.10);
+
+  --shadow-sm:          0 0 8px  rgba(0, 255, 245, 0.10);
+  --shadow-md:          0 0 20px rgba(0, 255, 245, 0.15);
+  --shadow-lg:          0 0 36px rgba(0, 255, 245, 0.20);
+  --shadow-xl:          0 0 56px rgba(0, 255, 245, 0.25);
+
+  --overlay:            rgba(0, 0, 0, 0.85);
+  --overlay-light:      rgba(0, 255, 245, 0.05);
+}
+
+/* Subtle grid-line background */
+[data-theme="neon"] body {
+  background-color: #0a0a0f !important;
+  background-image:
+    linear-gradient(rgba(0, 255, 245, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 245, 0.04) 1px, transparent 1px) !important;
+  background-size: 40px 40px !important;
+}
+
+/* Neon glow on headings and tree labels */
+[data-theme="neon"] .header h1 {
+  text-shadow: 0 0 10px rgba(0, 255, 245, 0.7), 0 0 20px rgba(0, 255, 245, 0.4);
+}
+
+[data-theme="neon"] .tree-label-text {
+  text-shadow: 0 0 6px rgba(0, 255, 245, 0.35);
+}
+
+[data-theme="neon"] .reader-title,
+[data-theme="neon"] .section-header h2 {
+  text-shadow: 0 0 8px rgba(0, 255, 245, 0.5);
+}
+
+/* Glowing borders on interactive elements */
+[data-theme="neon"] .toc-section,
+[data-theme="neon"] .search-results {
+  border-color: rgba(0, 255, 245, 0.15) !important;
+  box-shadow: 0 0 20px rgba(0, 255, 245, 0.08), inset 0 0 40px rgba(0, 255, 245, 0.02) !important;
+}
+
+[data-theme="neon"] .tree-node--card {
+  border-color: rgba(0, 255, 245, 0.12) !important;
+  box-shadow: 0 0 12px rgba(0, 255, 245, 0.07) !important;
+}
+
+[data-theme="neon"] .tree-node--card:hover {
+  border-color: rgba(0, 255, 245, 0.35) !important;
+  box-shadow: 0 0 24px rgba(0, 255, 245, 0.18) !important;
+}
+
+/* Neon primary button */
+[data-theme="neon"] .btn-primary {
+  background: transparent !important;
+  color: #00fff5 !important;
+  border: 1.5px solid #00fff5 !important;
+  box-shadow: 0 0 12px rgba(0, 255, 245, 0.35), inset 0 0 12px rgba(0, 255, 245, 0.05) !important;
+  text-shadow: 0 0 6px rgba(0, 255, 245, 0.7);
+}
+
+[data-theme="neon"] .btn-primary:hover {
+  background: rgba(0, 255, 245, 0.10) !important;
+  box-shadow: 0 0 24px rgba(0, 255, 245, 0.55), inset 0 0 20px rgba(0, 255, 245, 0.08) !important;
+  transform: none !important;
+}
+
+/* Secondary / icon buttons with magenta accent on hover */
+[data-theme="neon"] .btn-secondary {
+  background: transparent !important;
+  border-color: rgba(0, 255, 245, 0.20) !important;
+}
+
+[data-theme="neon"] .btn-secondary:hover {
+  border-color: #ff00c8 !important;
+  color: #ff00c8 !important;
+  background: rgba(255, 0, 200, 0.06) !important;
+  box-shadow: 0 0 12px rgba(255, 0, 200, 0.25) !important;
+}
+
+[data-theme="neon"] .btn-icon:hover {
+  color: #ff00c8 !important;
+  background: rgba(255, 0, 200, 0.06) !important;
+  box-shadow: 0 0 10px rgba(255, 0, 200, 0.2) !important;
+}
+
+/* Glowing search container */
+[data-theme="neon"] .search-container:focus-within {
+  border-color: #00fff5 !important;
+  box-shadow: 0 0 0 1px #00fff5, 0 0 16px rgba(0, 255, 245, 0.30) !important;
+  transform: none !important;
+}
+
+/* Context menu neon border */
+[data-theme="neon"] .context-menu {
+  border-color: rgba(0, 255, 245, 0.25) !important;
+  box-shadow: 0 0 30px rgba(0, 255, 245, 0.20) !important;
+}
+
+/* Source chips → neon palette */
+[data-theme="neon"] .tree-source-chip--chatgpt  { background: rgba(0, 255, 100, 0.12) !important; color: #00ff64 !important; border: 1px solid rgba(0, 255, 100, 0.3) !important; }
+[data-theme="neon"] .tree-source-chip--claude   { background: rgba(255, 100, 0, 0.12) !important;  color: #ff6400 !important; border: 1px solid rgba(255, 100, 0, 0.3) !important; }
+[data-theme="neon"] .tree-source-chip--gemini   { background: rgba(0, 150, 255, 0.12) !important;  color: #0096ff !important; border: 1px solid rgba(0, 150, 255, 0.3) !important; }
+[data-theme="neon"] .tree-source-chip--copilot  { background: rgba(170, 0, 255, 0.12) !important;  color: #aa00ff !important; border: 1px solid rgba(170, 0, 255, 0.3) !important; }
+
+/* Source borders — neon colours */
+[data-theme="neon"] .tree-chat-item[data-source="chatgpt"] > .tree-node-content { box-shadow: inset 3px 0 0 0 #00ff64 !important; }
+[data-theme="neon"] .tree-chat-item[data-source="claude"]  > .tree-node-content { box-shadow: inset 3px 0 0 0 #ff6400 !important; }
+[data-theme="neon"] .tree-chat-item[data-source="gemini"]  > .tree-node-content { box-shadow: inset 3px 0 0 0 #0096ff !important; }
+[data-theme="neon"] .tree-chat-item[data-source="copilot"] > .tree-node-content { box-shadow: inset 3px 0 0 0 #aa00ff !important; }
+
+/* Toast neon */
+[data-theme="neon"] .toast {
+  box-shadow: 0 0 20px rgba(0, 255, 245, 0.25) !important;
+  border-left-color: #00fff5 !important;
+}
+
+[data-theme="neon"] .toast--success { border-left-color: #00fff5 !important; }
+[data-theme="neon"] .toast--error   { border-left-color: #ff0055 !important; }
+
+/* Settings drawer */
+[data-theme="neon"] .settings-panel__drawer {
+  border-left-color: rgba(0, 255, 245, 0.2) !important;
+  box-shadow: -8px 0 40px rgba(0, 255, 245, 0.12) !important;
+}
+
+/* Modal */
+[data-theme="neon"] .modal-content {
+  border-color: rgba(0, 255, 245, 0.20) !important;
+  box-shadow: 0 0 60px rgba(0, 255, 245, 0.20) !important;
+}
+
+/* Badge colours */
+[data-theme="neon"] .badge--chatgpt { background: rgba(0, 255, 100, 0.12); color: #00ff64; }
+[data-theme="neon"] .badge--claude  { background: rgba(255, 100, 0, 0.12);  color: #ff6400; }
+[data-theme="neon"] .badge--gemini  { background: rgba(0, 150, 255, 0.12);  color: #0096ff; }
+[data-theme="neon"] .badge--copilot { background: rgba(170, 0, 255, 0.12);  color: #aa00ff; }

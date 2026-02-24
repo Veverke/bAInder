@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>bAInder - AI Chat Organizer</title>
   <link rel="stylesheet" href="sidepanel.css">
+  <link rel="stylesheet" href="skins.css">
+  <link rel="stylesheet" href="themes.css">
 </head>
 <body>
   <div id="app">
@@ -50,6 +52,11 @@
 
     <!-- Main Content Area -->
     <main class="main-content">
+    <!-- Recently Saved Rail (U4) -->
+      <div id="recentRail" class="recent-rail" style="display:none" aria-label="Recently saved chats">
+        <span class="recent-rail__label">Recent</span>
+      </div>
+
       <!-- Table of Contents Section -->
       <section class="toc-section">
         <div class="section-header">
@@ -59,7 +66,14 @@
             </svg>
             Table of Contents
           </h2>
-          <span id="itemCount" class="badge">0 topics</span>
+          <div class="section-header__right">
+            <span id="itemCount" class="badge">0 topics</span>
+            <button id="tocCollapseBtn" class="section-toggle" aria-label="Collapse table of contents" aria-expanded="true">
+              <svg class="section-toggle__chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- Tree View Container -->
@@ -296,7 +310,37 @@
             <select id="settingsThemeSelect" class="form-select settings-select">
               <option value="light">☀️ Light</option>
               <option value="dark">🌙 Dark</option>
+              <option value="oled">🕶️ OLED Black</option>
               <option value="auto">🌓 Auto (system)</option>
+              <option value="terminal">🖥️ Terminal</option>
+              <option value="retro">🕹️ Retro 8-bit</option>
+              <option value="glass">🪟 Glassmorphism</option>
+              <option value="neon">💡 Neon</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row__label">
+              <span>Accent Color</span>
+              <span class="settings-row__hint">Primary action colour</span>
+            </div>
+            <div class="accent-swatches" id="accentSwatches">
+              <button class="accent-swatch accent-swatch--indigo" data-accent="" aria-label="Indigo (default)" title="Indigo"></button>
+              <button class="accent-swatch accent-swatch--rose" data-accent="rose" aria-label="Rose" title="Rose"></button>
+              <button class="accent-swatch accent-swatch--teal" data-accent="teal" aria-label="Teal" title="Teal"></button>
+              <button class="accent-swatch accent-swatch--amber" data-accent="amber" aria-label="Amber" title="Amber"></button>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row__label">
+              <span>Control Skin</span>
+              <span class="settings-row__hint">Visual style of UI controls</span>
+            </div>
+            <select id="settingsSkinSelect" class="form-select settings-select">
+              <option value="">Default</option>
+              <option value="sharp">■ Sharp</option>
+              <option value="rounded">● Rounded</option>
+              <option value="outlined">□ Outlined</option>
+              <option value="elevated">⬟ Elevated</option>
             </select>
           </div>
         </section>

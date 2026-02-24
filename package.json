@@ -22,6 +22,7 @@
   "license": "ISC",
   "devDependencies": {
     "@fontsource/inter": "^5.2.8",
+    "@fontsource/press-start-2p": "^5.2.7",
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
     "happy-dom": "^20.6.2",

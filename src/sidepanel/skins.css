@@ -1,0 +1,387 @@
+/* ── bAInder Control Skins ─────────────────────────────────────────────────────
+ *
+ * A skin changes the visual grammar of interactive controls (radius, shadow,
+ * border weight, fill style) without touching colour or layout.
+ *
+ * Applied via data-skin="<name>" on <html>, set alongside data-theme.
+ * Four skins: sharp | rounded | outlined | elevated
+ * Default (no data-skin attribute) = the existing sidepanel.css behaviour.
+ *
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   S1 — SHARP
+   Zero border-radius. Flat fills. 1 px rule borders. No shadows.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+[data-skin="sharp"] {
+  /* Override all radius tokens to zero */
+  --radius-xs:   0px;
+  --radius-sm:   0px;
+  --radius-md:   0px;
+  --radius-lg:   0px;
+  --radius-xl:   0px;
+  --radius-full: 0px;
+
+  /* Flatten all shadows */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+}
+
+/* Flatten everything that uses border-radius directly (not CSS vars) */
+[data-skin="sharp"] *,
+[data-skin="sharp"] *::before,
+[data-skin="sharp"] *::after {
+  border-radius: 0 !important;
+}
+
+/* 1 px borders on buttons */
+[data-skin="sharp"] .btn-primary,
+[data-skin="sharp"] .btn-secondary {
+  border: 1px solid currentColor;
+  transform: none !important;
+}
+
+/* Flat input/select borders */
+[data-skin="sharp"] .form-input,
+[data-skin="sharp"] .form-select,
+[data-skin="sharp"] .form-textarea,
+[data-skin="sharp"] .search-container {
+  border-width: 1px;
+  box-shadow: none !important;
+}
+
+[data-skin="sharp"] .search-container:focus-within {
+  box-shadow: inset 0 0 0 1px var(--border-focus) !important;
+  transform: none;
+}
+
+/* Flat card */
+[data-skin="sharp"] .toc-section,
+[data-skin="sharp"] .search-results,
+[data-skin="sharp"] .result-card,
+[data-skin="sharp"] .tree-node--card {
+  box-shadow: none !important;
+}
+
+/* Flat context menu */
+[data-skin="sharp"] .context-menu {
+  box-shadow: 1px 1px 0 var(--border-primary) !important;
+}
+
+/* Flat modal */
+[data-skin="sharp"] .modal-container { backdrop-filter: none; }
+[data-skin="sharp"] .modal-content   { box-shadow: none !important; }
+
+/* Flat toast */
+[data-skin="sharp"] .toast { box-shadow: none !important; }
+
+/* Flat settings drawer */
+[data-skin="sharp"] .settings-panel__drawer { box-shadow: none !important; }
+
+/* Remove hover lift on buttons */
+[data-skin="sharp"] .btn-primary:hover,
+[data-skin="sharp"] .btn-secondary:hover { transform: none !important; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   S2 — ROUNDED
+   Maximum pill-shape. Everything that can be rounded fully is.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+[data-skin="rounded"] {
+  --radius-xs:   8px;
+  --radius-sm:   12px;
+  --radius-md:   20px;
+  --radius-lg:   24px;
+  --radius-xl:   32px;
+  --radius-full: 9999px;
+}
+
+/* Force pill shape on buttons and inputs */
+[data-skin="rounded"] .btn-primary,
+[data-skin="rounded"] .btn-secondary,
+[data-skin="rounded"] .btn-icon {
+  border-radius: var(--radius-full) !important;
+}
+
+[data-skin="rounded"] .form-input,
+[data-skin="rounded"] .form-select,
+[data-skin="rounded"] .form-textarea {
+  border-radius: var(--radius-full) !important;
+}
+
+[data-skin="rounded"] .search-container {
+  border-radius: var(--radius-full) !important;
+}
+
+/* Cards get generous radius */
+[data-skin="rounded"] .toc-section,
+[data-skin="rounded"] .search-results,
+[data-skin="rounded"] .result-card,
+[data-skin="rounded"] .modal-content {
+  border-radius: var(--radius-xl) !important;
+}
+
+[data-skin="rounded"] .tree-node--card {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Context menu gets a larger radius */
+[data-skin="rounded"] .context-menu {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Settings drawer rounded top-left */
+[data-skin="rounded"] .settings-panel__drawer {
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl) !important;
+}
+
+/* Toast pill */
+[data-skin="rounded"] .toast {
+  border-radius: var(--radius-full) !important;
+}
+
+/* Tree source chips and badges stay fully rounded */
+[data-skin="rounded"] .tree-source-chip,
+[data-skin="rounded"] .tree-timespan,
+[data-skin="rounded"] .tree-chat-count,
+[data-skin="rounded"] .badge--coming {
+  border-radius: var(--radius-full) !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   S3 — OUTLINED
+   Ghost-style controls — transparent fill, visible border, colour on hover.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Primary button → ghost */
+[data-skin="outlined"] .btn-primary {
+  background: transparent !important;
+  color: var(--primary) !important;
+  border: 1.5px solid var(--primary) !important;
+  box-shadow: none !important;
+}
+
+[data-skin="outlined"] .btn-primary:hover {
+  background: var(--primary) !important;
+  color: var(--text-inverse) !important;
+}
+
+[data-skin="outlined"] .btn-primary:active {
+  background: var(--primary-hover) !important;
+  color: var(--text-inverse) !important;
+}
+
+/* Secondary button → ghost */
+[data-skin="outlined"] .btn-secondary {
+  background: transparent !important;
+  border-color: var(--border-secondary) !important;
+  box-shadow: none !important;
+}
+
+[data-skin="outlined"] .btn-secondary:hover {
+  background: var(--bg-hover) !important;
+}
+
+/* Icon buttons → ghost */
+[data-skin="outlined"] .btn-icon {
+  background: transparent !important;
+  border: 1.5px solid var(--border-primary) !important;
+}
+
+[data-skin="outlined"] .btn-icon:hover {
+  background: var(--bg-hover) !important;
+  border-color: var(--border-secondary) !important;
+}
+
+/* Inputs get a 2 px border, no fill */
+[data-skin="outlined"] .form-input,
+[data-skin="outlined"] .form-select,
+[data-skin="outlined"] .form-textarea {
+  background: transparent !important;
+  border-width: 2px !important;
+}
+
+/* Search container outlined */
+[data-skin="outlined"] .search-container {
+  background: transparent !important;
+  border-width: 2px !important;
+}
+
+/* Cards outlined only */
+[data-skin="outlined"] .toc-section,
+[data-skin="outlined"] .search-results {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-skin="outlined"] .result-card {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-skin="outlined"] .result-card:hover {
+  background: var(--bg-hover) !important;
+  box-shadow: none !important;
+}
+
+/* Tree cards outlined */
+[data-skin="outlined"] .tree-node--card {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-skin="outlined"] .tree-node--card:hover {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-color: var(--primary) !important;
+}
+
+/* Source chips → outlined */
+[data-skin="outlined"] .tree-source-chip {
+  background: transparent !important;
+  border: 1px solid currentColor !important;
+}
+
+/* Chat count badge → outlined */
+[data-skin="outlined"] .tree-chat-count {
+  background: transparent !important;
+  color: var(--primary) !important;
+  border: 1.5px solid var(--primary) !important;
+}
+
+/* Modal outlined */
+[data-skin="outlined"] .modal-content {
+  box-shadow: none !important;
+  border-width: 2px !important;
+}
+
+/* Settings drawer outlined */
+[data-skin="outlined"] .settings-panel__drawer {
+  box-shadow: none !important;
+  border-left-width: 2px !important;
+}
+
+/* Toast outlined */
+[data-skin="outlined"] .toast {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1.5px solid var(--border-secondary) !important;
+  box-shadow: none !important;
+}
+
+[data-skin="outlined"] .toast--success { border-left-color: var(--success) !important; color: var(--text-primary) !important; }
+[data-skin="outlined"] .toast--error   { border-left-color: var(--danger)  !important; color: var(--text-primary) !important; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   S4 — ELEVATED
+   Material-style deep-shadow hierarchy + lift interactions.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+[data-skin="elevated"] {
+  /* Deeper shadows at every level */
+  --shadow-sm: 0 2px 6px -1px rgba(0, 0, 0, 0.14), 0 1px 3px -1px rgba(0, 0, 0, 0.10);
+  --shadow-md: 0 8px 20px -4px rgba(0, 0, 0, 0.18), 0 4px 8px -4px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 16px 36px -6px rgba(0, 0, 0, 0.22), 0 8px 14px -6px rgba(0, 0, 0, 0.14);
+  --shadow-xl: 0 28px 52px -8px rgba(0, 0, 0, 0.28), 0 12px 20px -8px rgba(0, 0, 0, 0.16);
+}
+
+/* Buttons float */
+[data-skin="elevated"] .btn-primary {
+  box-shadow: var(--shadow-md) !important;
+}
+
+[data-skin="elevated"] .btn-primary:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+[data-skin="elevated"] .btn-primary:active {
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+[data-skin="elevated"] .btn-secondary {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+[data-skin="elevated"] .btn-secondary:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+[data-skin="elevated"] .btn-icon {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+[data-skin="elevated"] .btn-icon:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Cards sit higher */
+[data-skin="elevated"] .toc-section,
+[data-skin="elevated"] .search-results {
+  box-shadow: var(--shadow-md) !important;
+}
+
+[data-skin="elevated"] .result-card {
+  box-shadow: var(--shadow-sm) !important;
+  transition: box-shadow 180ms ease, transform 180ms ease !important;
+}
+
+[data-skin="elevated"] .result-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Tree topic cards */
+[data-skin="elevated"] .tree-node--card {
+  box-shadow: var(--shadow-md) !important;
+  transition: box-shadow 180ms ease, transform 180ms ease !important;
+}
+
+[data-skin="elevated"] .tree-node--card:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* Context menu pops further */
+[data-skin="elevated"] .context-menu {
+  box-shadow: var(--shadow-xl) !important;
+}
+
+/* Modal floats */
+[data-skin="elevated"] .modal-content {
+  box-shadow: var(--shadow-xl) !important;
+}
+
+/* Settings drawer */
+[data-skin="elevated"] .settings-panel__drawer {
+  box-shadow: var(--shadow-xl) !important;
+}
+
+/* Toast */
+[data-skin="elevated"] .toast {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* Search container lifts on focus */
+[data-skin="elevated"] .search-container:focus-within {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Dark theme shadow adjustment for elevated — use brighter colour elevations */
+[data-theme="dark"][data-skin="elevated"] {
+  --shadow-sm: 0 2px 6px -1px rgba(0, 0, 0, 0.5),  0 1px 3px -1px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 20px -4px rgba(0, 0, 0, 0.6),  0 4px 8px -4px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 36px -6px rgba(0, 0, 0, 0.7), 0 8px 14px -6px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 28px 52px -8px rgba(0, 0, 0, 0.8), 0 12px 20px -8px rgba(0, 0, 0, 0.55);
+}

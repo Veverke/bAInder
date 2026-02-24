@@ -505,6 +505,74 @@ A horizontal rule (`---`) separates consecutive turns for visual clarity.
 - Storage usage indicator
 - Responsive design
 
+#### 1.7 Sticky Notes on Saved Chats
+
+Saved chats can be enriched with **sticky notes** — user-authored annotations that sit alongside (not replacing) the original chat content. This turns the chat archive into a living knowledge base where users can capture insights, caveats, or follow-up thoughts.
+
+##### 1.7.1 Concept & Motivation
+
+- Chats are read-only records of a conversation; the original text is never modified.
+- Sticky notes are a separate, additive layer: they do not alter the saved chat content but extend it with personal commentary.
+- Use cases: highlighting key takeaways, flagging things to revisit, linking related topics, adding context that emerged after the chat.
+
+##### 1.7.2 Creating a Sticky Note
+
+- The user **right-clicks anywhere inside the saved chat area** (reader view) to open the context menu.
+- A **"Add Sticky Note"** option appears in the context menu.
+- Selecting it inserts a sticky-note overlay/div anchored to the area where the user right-clicked.
+- The note is immediately focused and ready for input — no separate dialog required.
+
+##### 1.7.3 Note Editor
+
+- The note body is a **plain-text / Markdown input area**.
+- **Markdown formatting is supported** — user types standard Markdown syntax and it is rendered inline (live preview or toggle between edit/preview modes, TBD at implementation time).
+- **Auto-save on every keystroke**: each character the user types is immediately persisted to storage; there is no explicit "save" button for note content.
+- The note overlay displays a subtle timestamp (created / last modified).
+
+##### 1.7.4 Multiple Sticky Notes in the Same Area
+
+- There is **no limit** on the number of sticky notes a user can add to a single chat.
+- When more than one note exists in the same positional area, a **disambiguation control** is shown (e.g., "Note 1 of 3" with prev/next arrows, or a small numbered badge) so the user can cycle through the overlapping notes.
+- Each note is independently editable and deletable.
+
+##### 1.7.5 Show / Hide Sticky Notes
+
+- The **chat header / metadata bar** (displayed at the top of the reader view for each saved chat) includes a **"Sticky Notes" toggle** (e.g., an eye icon or a checkbox labelled "Show sticky notes").
+- When toggled off, all sticky-note overlays are hidden; the original chat content is shown clean.
+- When toggled on (default when notes exist), all notes are rendered in their anchored positions.
+- The toggle state persists per-chat (remembered across sessions).
+
+##### 1.7.6 Data Model (conceptual)
+
+```
+StickyNote {
+  id:         string          // unique identifier (UUID)
+  chatId:     string          // references the parent ChatEntry
+  anchorInfo: object          // positional anchor within the chat (e.g., scroll offset, turn index)
+  content:    string          // raw Markdown text entered by the user
+  createdAt:  number          // Unix timestamp
+  updatedAt:  number          // Unix timestamp (updated on every keystroke save)
+}
+```
+
+Notes are stored as an array on (or alongside) the `ChatEntry` object and persisted via the existing storage abstraction layer.
+
+##### 1.7.7 Scope for v1
+
+| Capability | v1 |
+|---|---|
+| Add sticky note via context menu | ✅ |
+| Markdown formatting in note body | ✅ |
+| Auto-save on every keystroke | ✅ |
+| No limit on number of notes per chat | ✅ |
+| Disambiguation UI for overlapping notes | ✅ |
+| Show / hide all notes toggle in chat header | ✅ |
+| Edit existing note | ✅ |
+| Delete a note | ✅ |
+| Drag / reposition note overlay | ❌ (future) |
+| Shared / collaborative notes | ❌ (out of scope) |
+| Note search / filtering | ❌ (future) |
+
 ---
 
 ## 2. Architecture & Technical Design
@@ -1582,46 +1650,46 @@ Generated: February 23, 2026. Grouped by implementation scope and priority.
 **1. Web Font — Inter (bundled woff2)** ✅ *Implemented*  
 Replaced the `system-ui` stack with [Inter](https://rsms.me/inter/) (weights 400–700, latin subset, ~95 KB total). Woff2 files are bundled under `src/fonts/` to comply with Chrome extension CSP (no external CDN). `font-display: swap` prevents invisible-text flash.
 
-**2. Source-color left-border + badge chips on chat tree rows**  
+**2. Source-color left-border + badge chips on chat tree rows** ✅ *Implemented*  
 Each saved chat row in the tree should display a 3px colored left-border and a compact badge chip using the same source-color system already established in `reader.css` (ChatGPT = green, Claude = orange, Gemini = blue, Copilot = purple). Makes the list scannable at a glance without opening anything.
 
-**3. Header gradient / brand identity**  
+**3. Header gradient / brand identity** ✅ *Implemented*  
 The header is currently a flat `--bg-elevated` rectangle. Adding a subtle directional gradient with a primary-color tinted origin (light: indigo-tinted white; dark: deep navy) plus a 3px `var(--primary)` top-border accent gives instant brand identity. Pure CSS, no HTML changes.
 
-**4. Topic folders as cards**  
+**4. Topic folders as cards** ✅ *Implemented*  
 Wrap each topic in a card (`border-radius`, `box-shadow`, `--bg-secondary` background). Creates clear visual grouping especially when the tree is expanded. Requires changes to `tree-renderer.js` (add wrapper element) and `sidepanel.css` (card styles).
 
 ---
 
 ### A.2 Medium-Impact / Polish
 
-**5. Micro-animations (Group A — sidepanel.css only)**  
+**5. Micro-animations (Group A — sidepanel.css only)** ✅ *Implemented*  
 Three independent CSS-only improvements:
 - Smooth tree expand/collapse via `max-height` transition instead of instant toggle
 - Toast slides in from below with `translateY` + spring-eased `cubic-bezier`; colored left-border per type variant (info/success/error)
 - Context menu fades in with `scale(0.95) → scale(1)` + `opacity`, with `transform-origin` anchored to cursor corner
 
-**6. Empty state illustration**  
+**6. Empty state illustration** ✅ *Implemented*  
 Replace the current generic binder SVG with a more on-brand illustration. Could be a simple animated-pulse placeholder or a custom SVG featuring an open notebook with AI logos. HTML + CSS change only.
 
-**7. Loading skeleton**  
+**7. Loading skeleton** ✅ *Implemented*  
 Show 3–4 shimmer skeleton rows (animated `--bg-tertiary` gradient) between page load and tree population, instead of an empty flash. Requires a small JS change to insert/remove skeleton markup around the tree render call.
 
 ---
 
 ### A.3 Reader-Specific
 
-**8. Message bubbles in reader**  
+**8. Message bubbles in reader** ✅ *Implemented*  
 User messages: right-aligned bubble with `--primary-light` tinted background. Assistant messages: left-aligned card with subtle left-border. Makes transcripts feel like a real chat log rather than raw `<div>` blocks. Changes in `reader.css` only.
 
-**9. Sticky "Jump to top" + scroll progress bar**  
+**9. Sticky "Jump to top" + scroll progress bar** ✅ *Implemented*  
 For long conversations: a thin `var(--primary)` progress bar at the very top of the reader viewport (scroll-driven), plus a `↑` floating button that appears after 300px of scroll. `reader.js` + `reader.css`.
 
 ---
 
 ### A.4 Optional / Lower Priority
 
-**10. Settings slide-in panel**  
+**10. Settings slide-in panel** ✅ *Implemented*  
 Replace the centered modal for settings with a `translateX` slide-in sidebar panel. Better UX inside a narrow sidepanel. Touches `sidepanel.js` + `sidepanel.css`.
 
 **11. Keyboard shortcut hints**  
@@ -1674,7 +1742,7 @@ Add a `--accent-hue` CSS variable and four preset swatches to the settings panel
 Add `[data-theme="oled"]` CSS block alongside the existing `[data-theme="dark"]` block where all `--bg-*` vars collapse to pure `#000000` and borders become `#1a1a1a`. Expose it as a third option in the settings theme `<select>`.  
 *Files:* `sidepanel.css` (depends on T1 for the settings wiring)
 
-**T3 — Per-source reader background tint**  
+**T3 — Per-source reader background tint** ✅ *Implemented*  
 Read the `source` field off the loaded chat object in `reader.js` and set `data-source` on `<body>`. Add four `[data-source]` CSS blocks that apply a very soft (3–5 % opacity) tinted `background-color` so the reader page subtly reflects which platform the chat came from.  
 *Files:* `reader.css`, `reader.js`
 
@@ -1686,15 +1754,15 @@ Read the `source` field off the loaded chat object in `reader.js` and set `data-
 After a chat is saved and the tree re-renders, find the newly inserted `<li>` and briefly add a `.tree-node--pop` class (`scale 1 → 1.04 → 1`, 250 ms spring). Gives instant confirmation that the save succeeded.  
 *Files:* `sidepanel.js` (add class after render), `sidepanel.css` (`@keyframes` + class)
 
-**A2 — Custom drag ghost pill**  
+**A2 — Custom drag ghost pill** ✅ *Implemented*  
 Override the browser's default drag image in `dragstart` with a compact pill showing the chat title and source color. Uses `DataTransfer.setDragImage()` with an off-screen element.  
 *Files:* `tree-renderer.js` only — fully isolated
 
-**A3 — Staggered tree-entry animation**  
+**A3 — Staggered tree-entry animation** ✅ *Implemented*  
 When nodes are rendered, add a CSS custom property `--node-index` to each `<li>` and a `@keyframes nodeEntry` (fade-in + translateY(-6px) → 0). Each node's `animation-delay` is `calc(var(--node-index) * 30ms)`.  
 *Files:* `tree-renderer.js` (set `--node-index`), `sidepanel.css` (keyframes + class)
 
-**A4 — Search result count badge morph**  
+**A4 — Search result count badge morph** ⚠️ *Partially implemented (count badge display + JS update done; `tabular-nums` and `scale` morph transition pending)*  
 The search field currently shows no feedback on result count. Add a small badge pill next to the input that animates between count values using `tabular-nums` and a `scale` micro-transition.  
 *Files:* `sidepanel.css` (badge + transition), `sidepanel.html` (badge element), `sidepanel.js` (count update)
 
@@ -1702,7 +1770,7 @@ The search field currently shows no feedback on result count. Add a small badge 
 While the user is typing in the search field (debounce window), replace the static placeholder with a subtle animated underline shimmer so the UI feels responsive before results appear.  
 *Files:* `sidepanel.css` (shimmer keyframe + `:focus` state)
 
-**A6 — Chat-open ripple**  
+**A6 — Chat-open ripple** ✅ *Implemented*  
 Clicking a chat row emits a circular ripple using a pseudo-element `::after` with `scale(0) → scale(2)` + `opacity(0.15 → 0)` on a `--source-color` tinted background.  
 *Files:* `tree-renderer.js` (inject ripple element on click), `sidepanel.css` (ripple styles)
 
@@ -1714,11 +1782,11 @@ Clicking a chat row emits a circular ripple using a pseudo-element `::after` wit
 Add `<details>`/`<summary>` wrappers (or JS-driven toggle buttons) around the Search and Tree sections so users can collapse one to give more room to the other.  
 *Files:* `sidepanel.html` (structure), `sidepanel.js` (persist collapse state), `sidepanel.css` (chevron animation)
 
-**U2 — Pinned / starred topics**  
+**U2 — Pinned / starred topics** ✅ *Implemented*  
 A star icon on each topic card header. Clicking sets `topic.pinned = true` in storage. Pinned topics always appear before unpinned ones in the tree regardless of alphabetical order, with a subtle `★` prefix.  
 *Files:* `tree-renderer.js` (star element + sort), `sidepanel.js` (storage write), `sidepanel.css` (star icon styles)
 
-**U3 — Chat-count histogram sparkline in topic cards**  
+**U3 — Chat-count histogram sparkline in topic cards** ✅ *Implemented*  
 Each topic card footer shows a micro bar chart (SVG, max 6 bars) representing the number of chats saved per week over the last 6 weeks. Derived from `chat.savedAt` timestamps — no new data needed.  
 *Files:* `tree-renderer.js` (SVG generation), `sidepanel.css` (sparkline styles)
 
@@ -1730,7 +1798,7 @@ A horizontally scrollable chip rail above the tree listing the 5 most recently s
 When a search query returns zero results, show a small inline illustration + "No chats match '…'" message instead of a blank list. Complements the existing empty-tree state.  
 *Files:* `sidepanel.html` (illustration markup), `sidepanel.css` (styles; reuses empty-state design tokens), `sidepanel.js` (show/hide logic)
 
-**U6 — Keyboard tree navigation**  
+**U6 — Keyboard tree navigation** ✅ *Implemented*  
 `↑`/`↓` arrow keys move focus between chat rows; `Enter` opens the focused chat; `Space` toggles a topic open/close. Requires `tabIndex` management on `<li>` elements.  
 *Files:* `sidepanel.js` (keydown handler), `tree-renderer.js` (`tabIndex` on items)
 
@@ -1738,35 +1806,116 @@ When a search query returns zero results, show a small inline illustration + "No
 
 ### B.5 Reader Round 2
 
-**R1 — Print / PDF stylesheet**  
+**R1 — Print / PDF stylesheet** ✅ *Implemented*  
 A `@media print` block that hides the progress bar, jump-to-top button, and header chrome; forces black-on-white text; and removes all box-shadow/border-radius decorations. Zero JS required.  
 *Files:* `reader.html` (`<link rel="stylesheet" media="print"` or inline), `reader.css`
 
-**R2 — Highlight & annotate** *(high effort)*  
+**R2 — Highlight & annotate** ✅ *Implemented* *(high effort)*  
 User can select text in the reader, press a floating toolbar button, and save a highlight with optional note to `chrome.storage.local`. Highlights are re-applied on re-open using stored character offsets. Requires a new `annotations.js` module.  
 *Files:* `reader.js`, `reader.css`, new `src/lib/annotations.js`
 
-**R3 — Reading time estimate in reader header**  
+**R3 — Reading time estimate in reader header** ✅ *Implemented*  
 Count words in the rendered content and display "~X min read" in the reader header area. Standard 200 wpm estimate. Updates after `renderChat()` completes.  
 *Files:* `reader.js` (word count), `reader.css` (badge style)
 
 ---
 
-### B.6 Recommended Implementation Waves
+### B.6 Themes — Round 2 Extension
 
-| Wave | Track | Items | Can run in parallel with |
-|---|---|---|---|
-| Wave 1 | F | R1, R3 | Wave 1 G, Wave 1 H |
-| Wave 1 | G | A2, A3 | Wave 1 F, Wave 1 H |
-| Wave 1 | H | T1, A4, A5 | Wave 1 F, Wave 1 G |
-| Wave 2 | F | T3 | Wave 2 G, Wave 2 H |
-| Wave 2 | G | A6, U3 | Wave 2 F, Wave 2 H |
-| Wave 2 | H | T2, A1, U5 | Wave 2 F, Wave 2 G |
-| Wave 3 | F | R2 (high effort) | Wave 3 G, Wave 3 H |
-| Wave 3 | G | U2, U6 | Wave 3 F, Wave 3 H |
-| Wave 3 | H | U1, U4 | Wave 3 F, Wave 3 G |
+These additions introduce a **skin system** (visual language of controls) and **radical themes** (total personality overhauls) as a third independent dimension alongside the existing `data-theme="light|dark"` system. They combine into a new Track I.
 
 ---
 
-*Document Version: 1.1*  
-*Last Updated: February 23, 2026*
+#### B.6.1 Control Skins (`data-skin` attribute)
+
+A skin changes the visual grammar of all interactive controls — border-radius, shadow depth, border weight, button fill style — without touching colour or layout. Implemented as a `data-skin` attribute on `<html>`, exposed in the settings panel alongside the theme selector.
+
+**S1 — Sharp skin** ✅ *Implemented*  
+Zero border-radius everywhere. Flat fills, 1px borders. Minimal shadows. References brutalist UI aesthetic.  
+*CSS vars overridden:* `--radius-sm → 0`, `--radius-md → 0`, `--radius-lg → 0`, `--radius-full → 2px`. Shadow vars set to `none`.  
+*Files:* new `src/sidepanel/skins.css` (loaded by `sidepanel.html`)
+
+**S2 — Rounded skin** ✅ *Implemented*  
+Maximally pill-shaped. Buttons, inputs, chips, and card containers all use `border-radius: var(--radius-full)`. Soft, friendly aesthetic.  
+*Files:* `skins.css`
+
+**S3 — Outlined skin** ✅ *Implemented*  
+Ghost-style controls. Buttons are transparent with a visible border and coloured text; filled only on `:hover`/`:active`. Inputs get a 2px solid border with no background fill.  
+*Files:* `skins.css`
+
+**S4 — Elevated skin** ✅ *Implemented*  
+Material-inspired deep shadow hierarchy. Cards use `--shadow-xl`, buttons float with `--shadow-md` at rest and `--shadow-lg` on hover; hover also produces a `translateY(-2px)` lift.  
+*Files:* `skins.css`
+
+**Implementation notes — skins:**
+- All four skins live in a single `skins.css` file as `[data-skin="sharp"] { … }` blocks.
+- `sidepanel.js` reads `skin` from `chrome.storage.local` on init, sets `document.documentElement.dataset.skin`, and exposes a new `<select>` row in the settings panel.
+- Zero conflict with Track H's `data-theme` system — separate attribute, separate file.
+
+---
+
+#### B.6.2 Radical Themes
+
+Full personality overhauls that go beyond colour into typography, animation timing, and icon rendering. Each is a `data-theme="<name>"` value (extending the existing T1/T2 theme system).
+
+**X1 — Terminal theme**  
+Monochrome green-on-black. Monospace font (`Cascadia Code` / `Fira Code`, already in the font stack). Animated blinking cursor on the active element. Scanline overlay on `.main-content` via `::before` repeating-linear-gradient with very low opacity. All border-radius collapsed to 0. `text-shadow: 0 0 6px currentColor` glow on headings and badges.  
+*Files:* `sidepanel.css` (`[data-theme="terminal"]` block), `sidepanel.js` (expose in settings select)  
+*Effort:* Low — pure CSS + font swap, no sprites needed.
+
+**X2 — Retro / 8-bit theme** *(medium effort)*  
+Pixel-art aesthetic. Requires:
+- Bundled pixel font (e.g. **Press Start 2P**, ~14 KB woff2) under `src/fonts/`
+- `[data-theme="retro"]` CSS block: 16-colour NES-inspired palette, `image-rendering: pixelated`, chunky 4px bevelled borders via `border-style: outset`, square corners, no transitions (all durations `0ms`)
+- SVG icons replaced with inline pixel-art SVGs (24×24 on a pixel grid) for the header buttons and tree icons
+- Emoji tree icons (📁 💬 etc.) replaced with CSS `content` pixel-art replacements using a custom sprite sheet or single inline SVG data-URI per icon
+- Scrollbars styled chunky via `::-webkit-scrollbar` overrides
+
+*Files:* `sidepanel.css`, `sidepanel.html` (font `@font-face`), `src/fonts/press-start-2p.woff2`, potentially `src/assets/pixel-icons.css`  
+*Effort:* Medium — font + palette is low effort; icon layer requires each icon to be hand-authored as a pixel SVG or replaced with CSS sprite. Emoji can be hidden with `font-size: 0` and replaced via `::before content` with a data-URI.
+
+**X3 — Glassmorphism theme**  
+Frosted-glass panels. `background: rgba(255,255,255,0.12)`, `backdrop-filter: blur(16px) saturate(180%)`, 1px `rgba(255,255,255,0.25)` border. Light dark base with vivid primary accent. Works best combined with a background gradient on `<body>`.  
+*Files:* `sidepanel.css` (`[data-theme="glass"]` block)  
+*Effort:* Low.
+
+**X4 — Neon / Cyberpunk theme**  
+Dark base (#0a0a0f), vivid neon accent (electric cyan `#00fff5` / magenta `#ff00c8`). `text-shadow` and `box-shadow` glow effects on active elements. Scanline overlay variant. Grid-line background pattern. Monospace secondary font.  
+*Files:* `sidepanel.css` (`[data-theme="neon"]` block)  
+*Effort:* Low.
+
+---
+
+### B.7 Updated Parallel Execution Map
+
+Track I is fully independent of F, G, and H (separate attribute, separate CSS file).
+
+| Track | Items | Files (exclusive to this track) | Can run in parallel with |
+|---|---|---|---|
+| **F — Reader** | T3, R1, R3, R2 | `reader.html`, `reader.css`, `reader.js` | G, H, I |
+| **G — Tree** | A2, A3, A6, U3, U2, U6 | `tree-renderer.js` (+ sidepanel.css additions) | F, H, I |
+| **H — Sidepanel Core** | T1, T2, A1, A4, A5, U1, U4, U5 | `sidepanel.html`, `sidepanel.js`, `sidepanel.css` | F, G, I |
+| **I — Skins & Radical Themes** | S1–S4, X1–X4 | new `skins.css`, `sidepanel.css` additions, `sidepanel.js` settings wiring | F, G, H |
+
+---
+
+### B.8 Recommended Implementation Waves (updated)
+
+| Wave | Track | Items | Notes |
+|---|---|---|---|
+| Wave 1 | F | R1, R3 | Parallel with Wave 1 G, H, I |
+| Wave 1 | G | A2, A3 | Parallel with Wave 1 F, H, I |
+| Wave 1 | H | T1, A4, A5 | Parallel with Wave 1 F, G, I |
+| Wave 1 | I | X1, X3, X4, S1–S4 | All pure CSS; parallel with everything |
+| Wave 2 | F | T3 | |
+| Wave 2 | G | A6, U3 | |
+| Wave 2 | H | T2, A1, U5 | |
+| Wave 2 | I | X2 (retro) | Icon layer is the long pole |
+| Wave 3 | F | R2 (high effort) | |
+| Wave 3 | G | U2, U6 | |
+| Wave 3 | H | U1, U4 | |
+
+---
+
+*Document Version: 1.3*  
+*Last Updated: February 24, 2026*
