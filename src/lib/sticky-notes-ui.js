@@ -1,0 +1,367 @@
+/**
+ * bAInder Sticky Notes UI — src/lib/sticky-notes-ui.js
+ *
+ * Renders sticky-note overlays in the reader page, wires the context-menu
+ * "Add Sticky Note" action, handles the show/hide header toggle, and provides
+ * auto-save + Markdown preview for each note.
+ *
+ * Public API
+ * ──────────
+ *   setupStickyNotes(chatId, storage)  — call once after renderChat()
+ */
+
+import {
+  loadStickyNotes,
+  saveStickyNote,
+  updateStickyNote,
+  deleteStickyNote,
+  loadNotesVisible,
+  saveNotesVisible,
+} from './sticky-notes.js';
+
+// renderMarkdown is injected at call time to avoid a circular import
+// (reader.js ← sticky-notes-ui.js ← reader.js).
+// Default: plain-text passthrough so the module is safe to import standalone.
+const plainTextRender = text => `<pre style="white-space:pre-wrap">${
+  text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}</pre>`;
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+/** Two notes whose anchorPageY values differ by ≤ this are "in the same area" */
+const SAME_AREA_THRESHOLD_PX = 100;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Format a Unix ms timestamp as a short locale string.
+ * @param {number} ms
+ * @returns {string}
+ */
+function fmtTs(ms) {
+  if (!ms) return '';
+  try {
+    return new Date(ms).toLocaleString(undefined, {
+      month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch (_) {
+    return '';
+  }
+}
+
+/**
+ * Group notes into clusters where each cluster's notes are all within
+ * SAME_AREA_THRESHOLD_PX of each other (sorted by anchorPageY).
+ * @param {StickyNote[]} notes
+ * @returns {StickyNote[][]}
+ */
+export function clusterNotes(notes) {
+  if (!notes.length) return [];
+  const sorted = [...notes].sort((a, b) => a.anchorPageY - b.anchorPageY);
+  const clusters = [];
+  let current    = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    if (curr.anchorPageY - prev.anchorPageY <= SAME_AREA_THRESHOLD_PX) {
+      current.push(curr);
+    } else {
+      clusters.push(current);
+      current = [curr];
+    }
+  }
+  clusters.push(current);
+  return clusters;
+}
+
+// ─── Note overlay ─────────────────────────────────────────────────────────────
+
+/**
+ * Build and return a sticky-note overlay element for the given cluster.
+ * When the cluster has multiple notes a disambiguation nav is shown.
+ *
+ * @param {StickyNote[]} cluster  — one or more notes at the same anchor area
+ * @param {string}       chatId
+ * @param {object}       storage
+ * @param {Function}     onDelete — called with () to trigger a full re-render
+ * @returns {HTMLElement}
+ */
+export function buildNoteOverlay(cluster, chatId, storage, onDelete, renderFn) {
+  const _render = renderFn || plainTextRender;
+  let activeIdx       = 0;
+  let lastRenderedIdx = -1;   // tracks which note index was last rendered
+  let isPreview       = Boolean(cluster[0].content); // hoisted; survives refresh()
+
+  const overlay = document.createElement('div');
+  overlay.className = 'sticky-note';
+  overlay.dataset.clusterId = cluster[0].id;
+  overlay.style.top = `${cluster[0].anchorPageY}px`;
+
+  function refresh() {
+    overlay.innerHTML = '';
+    const note = cluster[activeIdx];
+
+    // Reset preview/edit mode only when navigating to a different note
+    if (activeIdx !== lastRenderedIdx) {
+      isPreview       = Boolean(note.content);
+      lastRenderedIdx = activeIdx;
+    }
+
+    // ── Header bar ────────────────────────────────────────────────────────
+    const header = document.createElement('div');
+    header.className = 'sticky-note__header';
+
+    // Multi-note disambiguation nav
+    if (cluster.length > 1) {
+      const nav = document.createElement('span');
+      nav.className = 'sticky-note__nav';
+
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'sticky-note__nav-btn';
+      prevBtn.setAttribute('aria-label', 'Previous note');
+      prevBtn.textContent = '◀';
+      prevBtn.addEventListener('click', () => {
+        activeIdx = (activeIdx - 1 + cluster.length) % cluster.length;
+        refresh();
+      });
+
+      const label = document.createElement('span');
+      label.className = 'sticky-note__nav-label';
+      label.textContent = `${activeIdx + 1} / ${cluster.length}`;
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'sticky-note__nav-btn';
+      nextBtn.setAttribute('aria-label', 'Next note');
+      nextBtn.textContent = '▶';
+      nextBtn.addEventListener('click', () => {
+        activeIdx = (activeIdx + 1) % cluster.length;
+        refresh();
+      });
+
+      nav.appendChild(prevBtn);
+      nav.appendChild(label);
+      nav.appendChild(nextBtn);
+      header.appendChild(nav);
+    }
+
+    // Timestamp
+    const ts = document.createElement('span');
+    ts.className = 'sticky-note__ts';
+    ts.title = `Created: ${fmtTs(note.createdAt)}`;
+    ts.textContent = fmtTs(note.updatedAt || note.createdAt);
+    header.appendChild(ts);
+
+    // Edit / Preview toggle
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'sticky-note__mode-btn';
+    toggleBtn.setAttribute('aria-label', 'Toggle edit/preview');
+    toggleBtn.textContent = isPreview ? '✎' : '👁';
+    header.appendChild(toggleBtn);
+
+    // Delete button
+    const delBtn = document.createElement('button');
+    delBtn.className = 'sticky-note__del-btn';
+    delBtn.setAttribute('aria-label', 'Delete this sticky note');
+    delBtn.textContent = '✕';
+    delBtn.addEventListener('click', async () => {
+      if (!window.confirm('Delete this sticky note?')) return;
+      cluster.splice(activeIdx, 1);
+      await deleteStickyNote(chatId, note.id, storage);
+      if (cluster.length === 0) {
+        overlay.remove();
+      } else {
+        activeIdx = Math.min(activeIdx, cluster.length - 1);
+        refresh();
+      }
+      onDelete?.();
+    });
+    header.appendChild(delBtn);
+
+    overlay.appendChild(header);
+
+    // ── Body ──────────────────────────────────────────────────────────────
+    const body = document.createElement('div');
+    body.className = 'sticky-note__body';
+
+    if (isPreview) {
+      const preview = document.createElement('div');
+      preview.className = 'sticky-note__preview';
+      preview.innerHTML = note.content
+        ? _render(note.content)
+        : '<em class="sticky-note__empty">Empty note — click ✎ to edit.</em>';
+      body.appendChild(preview);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.className = 'sticky-note__textarea';
+      ta.placeholder = 'Write your note here… (Markdown supported)';
+      ta.value = note.content || '';
+      ta.rows = 5;
+
+      // Auto-save on every keystroke
+      ta.addEventListener('input', async () => {
+        note.content = ta.value;
+        note.updatedAt = Date.now();
+        ts.textContent = fmtTs(note.updatedAt);
+        await updateStickyNote(chatId, note.id, { content: ta.value }, storage);
+      });
+
+      body.appendChild(ta);
+      // Auto-focus the textarea for new / edit mode
+      requestAnimationFrame(() => ta.focus());
+    }
+
+    overlay.appendChild(body);
+
+    // ── Toggle handler (wired after body is in DOM) ────────────────────
+    toggleBtn.addEventListener('click', () => {
+      isPreview = !isPreview;
+      refresh();
+    });
+  }
+
+  refresh();
+  return overlay;
+}
+
+// ─── Custom context menu ──────────────────────────────────────────────────────
+
+/**
+ * Build and inject a custom context-menu element (hidden by default).
+ * Returns the element for further wiring.
+ * @returns {HTMLElement}
+ */
+function createContextMenu() {
+  const existing = document.getElementById('sn-context-menu');
+  if (existing) return existing;
+
+  const menu = document.createElement('div');
+  menu.id = 'sn-context-menu';
+  menu.className = 'sn-context-menu';
+  menu.hidden = true;
+  menu.innerHTML = `
+    <button class="sn-context-menu__item" id="sn-add-note-btn">
+      📌 Add Sticky Note
+    </button>
+  `;
+  document.body.appendChild(menu);
+  return menu;
+}
+
+// ─── Main setup ───────────────────────────────────────────────────────────────
+
+/**
+ * Set up sticky notes for the reader page.
+ * Safe no-op when required DOM elements are absent (e.g. unit tests without DOM).
+ *
+ * @param {string} chatId
+ * @param {object} storage  — chrome.storage.local-like API
+ */
+export async function setupStickyNotes(chatId, storage, renderFn) {
+  if (!chatId || !storage) return;
+
+  const contentEl = document.getElementById('reader-content');
+  const header    = document.getElementById('reader-header');
+  if (!contentEl || !header) return;
+
+  // ── Sticky-notes layer ────────────────────────────────────────────────────
+  let layer = document.getElementById('sticky-notes-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'sticky-notes-layer';
+    layer.className = 'sticky-notes-layer';
+    document.body.appendChild(layer);
+  }
+
+  // ── Visibility toggle in header ──────────────────────────────────────────
+  let toggleBtn = document.getElementById('sticky-notes-toggle');
+  if (!toggleBtn) {
+    toggleBtn = document.createElement('button');
+    toggleBtn.id = 'sticky-notes-toggle';
+    toggleBtn.className = 'sticky-notes-toggle';
+    toggleBtn.setAttribute('aria-label', 'Show/hide sticky notes');
+    // Insert into header meta row
+    const metaRow = header.querySelector('.reader-header__meta');
+    if (metaRow) metaRow.appendChild(toggleBtn);
+    else header.querySelector('.reader-header__inner')?.appendChild(toggleBtn);
+  }
+
+  // ── Load initial state ───────────────────────────────────────────────────
+  let [notes, visible] = await Promise.all([
+    loadStickyNotes(chatId, storage),
+    loadNotesVisible(chatId, storage),
+  ]);
+
+  // ── Helper: re-render all overlays ───────────────────────────────────────
+  function renderLayer() {
+    layer.innerHTML = '';
+    const clusters = clusterNotes(notes);
+    for (const cluster of clusters) {
+      const overlay = buildNoteOverlay(cluster, chatId, storage, null, renderFn);
+      layer.appendChild(overlay);
+    }
+    // Update toggle button label
+    const count = notes.length;
+    toggleBtn.textContent = `📌 ${count || ''} ${count === 1 ? 'note' : 'notes'}`.trim();
+    toggleBtn.title = `${visible ? 'Hide' : 'Show'} sticky notes (${count})`;
+  }
+
+  // ── Apply visibility ─────────────────────────────────────────────────────
+  function applyVisibility() {
+    layer.hidden = !visible;
+    toggleBtn.classList.toggle('sticky-notes-toggle--active', visible);
+    toggleBtn.title = `${visible ? 'Hide' : 'Show'} sticky notes (${notes.length})`;
+  }
+
+  renderLayer();
+  applyVisibility();
+
+  // ── Toggle button handler ────────────────────────────────────────────────
+  toggleBtn.addEventListener('click', async () => {
+    visible = !visible;
+    applyVisibility();
+    await saveNotesVisible(chatId, visible, storage);
+  });
+
+  // ── Custom context menu ──────────────────────────────────────────────────
+  const ctxMenu  = createContextMenu();
+  const addBtn   = document.getElementById('sn-add-note-btn');
+  let pendingY   = 0;
+
+  contentEl.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    pendingY = e.pageY;
+
+    ctxMenu.style.top  = `${e.clientY + window.scrollY}px`;
+    ctxMenu.style.left = `${e.clientX}px`;
+    ctxMenu.hidden     = false;
+  });
+
+  // Dismiss context menu on outside click
+  document.addEventListener('click', (e) => {
+    if (!ctxMenu.contains(e.target)) {
+      ctxMenu.hidden = true;
+    }
+  });
+
+  // ── Add note action ──────────────────────────────────────────────────────
+  addBtn?.addEventListener('click', async () => {
+    ctxMenu.hidden = true;
+
+    const newNote = {
+      anchorPageY: pendingY,
+      content:     '',
+    };
+
+    // Make visible if currently hidden
+    if (!visible) {
+      visible = true;
+      applyVisibility();
+      await saveNotesVisible(chatId, true, storage);
+    }
+
+    const updatedList = await saveStickyNote(chatId, newNote, storage);
+    notes = updatedList;
+    renderLayer();
+  });
+}

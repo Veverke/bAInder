@@ -10,6 +10,7 @@ import {
   loadAnnotations, saveAnnotation, deleteAnnotation,
   serializeRange,  applyAnnotations,
 } from '../lib/annotations.js';
+import { setupStickyNotes } from '../lib/sticky-notes-ui.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -670,6 +671,7 @@ export async function init(storage) {
     renderChat(chat);
     setupScrollFeatures();
     setupAnnotations(chatId, storage);
+    setupStickyNotes(chatId, storage, renderMarkdown);
   } catch (err) {
     showError(`Failed to load conversation: ${err.message}`);
   }
