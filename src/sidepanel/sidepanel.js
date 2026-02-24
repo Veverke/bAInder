@@ -19,6 +19,7 @@ import { extractSnippet, highlightTerms, formatBreadcrumb, escapeHtml } from '..
 import { getTagColor } from '../lib/tree-renderer.js';
 import { ExportDialog } from '../lib/export-dialog.js';
 import { ImportDialog } from '../lib/import-dialog.js';
+import { loadThemeFile, validateTheme, applyCustomTheme } from '../lib/theme-sdk.js';
 
 console.log('bAInder Side Panel loaded');
 
@@ -124,18 +125,51 @@ async function init() {
 // Initialize theme system
 async function initTheme() {
   try {
-    const result = await chrome.storage.local.get('theme');
-    state.theme = result.theme || 'light';
-    applyTheme(state.theme);
+    const result = await chrome.storage.local.get(['theme', 'customTheme']);
+    const savedTheme = result.theme || 'light';
+
+    if (savedTheme === 'custom' && result.customTheme) {
+      applyCustomTheme(result.customTheme);
+      state.theme = 'custom';
+    } else {
+      state.theme = savedTheme;
+      applyTheme(state.theme);
+    }
   } catch (error) {
     console.error('Error loading theme:', error);
     applyTheme('light');
   }
 }
 
+// Load a custom theme from a .json File object
+async function handleLoadTheme(file) {
+  try {
+    const json = await loadThemeFile(file);
+    const error = validateTheme(json);
+    if (error) {
+      await state.dialog.alert(error, 'Invalid Theme File');
+      return;
+    }
+    applyCustomTheme(json);
+    state.theme = 'custom';
+    await chrome.storage.local.set({ theme: 'custom', customTheme: json });
+
+    // Reflect in the settings selector
+    const sel = document.getElementById('settingsThemeSelect');
+    if (sel) sel.value = 'custom';
+
+    showToast(`Theme "${json.name}" loaded`, 'success');
+  } catch (err) {
+    console.error('Load theme error:', err);
+    await state.dialog.alert(err.message, 'Load Theme Error');
+  }
+}
+
 // Apply theme to document
 function applyTheme(theme) {
   const html = document.documentElement;
+  // Clear any inline CSS variables injected by a previous custom theme
+  html.style.cssText = '';
   const themeIcon = elements.themeToggle?.querySelector('.theme-icon');
 
   // OLED: dark theme vars + black-surface override attribute
@@ -1053,9 +1087,21 @@ function openSettingsPanel() {
   // Theme select live-change
   document.getElementById('settingsThemeSelect')
     ?.addEventListener('change', (e) => {
+      if (e.target.value === 'custom') return; // read-only placeholder
       applyTheme(e.target.value);
-      chrome.storage.local.set({ theme: e.target.value }).catch(() => {});
+      chrome.storage.local.set({ theme: e.target.value, customTheme: null }).catch(() => {});
     });
+
+  // Load Theme file input
+  const loadThemeInput = document.getElementById('loadThemeInput');
+  if (loadThemeInput) {
+    // Re-attach each time the panel opens; clear old value so same file re-triggers
+    loadThemeInput.value = '';
+    loadThemeInput.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (file) handleLoadTheme(file);
+    }, { once: true });
+  }
 
   // Skin select — sync value then wire change
   const skinSel = document.getElementById('settingsSkinSelect');
@@ -1324,7 +1370,7 @@ function setSaveBtnState(s) {
   const btn = elements.saveBtn;
   if (!btn) return;
   const map = {
-    default: { text: '💾 Save to bAInder', disabled: false },
+    default: { text: '💾 Save', disabled: false },
     loading: { text: '⏳ Saving…',          disabled: true  },
     success: { text: '✅ Saved!',            disabled: true  },
     error:   { text: '❌ Error',             disabled: false },

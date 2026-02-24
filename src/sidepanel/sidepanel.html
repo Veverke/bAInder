@@ -191,7 +191,7 @@
     <!-- Save Banner: shown on supported AI chat pages -->
     <div id="saveBanner" class="save-banner" style="display:none">
       <span id="saveBannerMsg" class="save-banner__msg">Conversation detected</span>
-      <button id="saveChatBtn" class="save-banner__btn">💾 Save to bAInder</button>
+      <button id="saveChatBtn" class="save-banner__btn btn-primary">💾 Save</button>
     </div>
 
     <!-- Footer Section -->
@@ -343,6 +343,7 @@
               <option value="nord">🏔️ Nord</option>
               <option value="solarized">☀️ Solarized Dark</option>
               <option value="forest">🌲 Forest</option>
+              <option value="custom" disabled>📂 Custom (loaded)</option>
             </select>
           </div>
           <div class="settings-row">
@@ -369,6 +370,14 @@
               <option value="outlined">□ Outlined</option>
               <option value="elevated">⬟ Elevated</option>
             </select>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row__label">
+              <span>Custom Theme</span>
+              <span class="settings-row__hint">Load a .json theme file</span>
+            </div>
+            <label class="btn-secondary settings-load-theme-btn" for="loadThemeInput" title="Load a .json theme file">📂 Load Theme</label>
+            <input id="loadThemeInput" type="file" accept=".json,application/json" style="display:none">
           </div>
         </section>
 

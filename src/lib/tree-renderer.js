@@ -558,7 +558,7 @@ export class TreeRenderer {
     
     const allTopics = this.tree.getAllTopics();
     allTopics.forEach(topic => {
-      if (topic.children.length > 0) {
+      if (topic.children.length > 0 || this.chats.some(c => c.topicId === topic.id)) {
         this.expandedNodes.add(topic.id);
       }
     });

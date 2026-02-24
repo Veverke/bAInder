@@ -1,0 +1,50 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Neon",
+  "id": "neon",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Cyberpunk near-black base with electric cyan and magenta glows.",
+  "variables": {
+    "--primary":           "#00fff5",
+    "--primary-hover":     "#00cccc",
+    "--primary-light":     "rgba(0, 255, 245, 0.15)",
+    "--primary-dark":      "#00aaaa",
+
+    "--header-bg":         "#0a0a0f",
+    "--header-accent":     "#00fff5",
+
+    "--bg-primary":        "#0a0a0f",
+    "--bg-secondary":      "#0f0f16",
+    "--bg-tertiary":       "#14141e",
+    "--bg-elevated":       "#111120",
+    "--bg-hover":          "rgba(0, 255, 245, 0.07)",
+    "--bg-active":         "rgba(0, 255, 245, 0.14)",
+
+    "--border-primary":    "#1a1a2e",
+    "--border-secondary":  "rgba(0, 255, 245, 0.25)",
+    "--border-focus":      "#00fff5",
+
+    "--text-primary":      "#e0e0ff",
+    "--text-secondary":    "#9090c0",
+    "--text-tertiary":     "#4a4a7a",
+    "--text-inverse":      "#0a0a0f",
+
+    "--success":           "#00fff5",
+    "--success-bg":        "rgba(0, 255, 245, 0.10)",
+    "--warning":           "#ff00c8",
+    "--warning-bg":        "rgba(255, 0, 200, 0.10)",
+    "--danger":            "#ff0055",
+    "--danger-bg":         "rgba(255, 0, 85, 0.10)",
+    "--info":              "#aa00ff",
+    "--info-bg":           "rgba(170, 0, 255, 0.10)",
+
+    "--shadow-sm":         "0 0 8px rgba(0, 255, 245, 0.10)",
+    "--shadow-md":         "0 0 20px rgba(0, 255, 245, 0.15)",
+    "--shadow-lg":         "0 0 36px rgba(0, 255, 245, 0.20)",
+    "--shadow-xl":         "0 0 56px rgba(0, 255, 245, 0.25)",
+
+    "--overlay":           "rgba(0, 0, 0, 0.85)",
+    "--overlay-light":     "rgba(0, 255, 245, 0.05)"
+  }
+}

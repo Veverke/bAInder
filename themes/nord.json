@@ -1,0 +1,50 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Nord",
+  "id": "nord",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Arctic palette with cool slate-blues and Aurora accent colours.",
+  "variables": {
+    "--primary":           "#88c0d0",
+    "--primary-hover":     "#8fbcbb",
+    "--primary-light":     "rgba(136, 192, 208, 0.15)",
+    "--primary-dark":      "#5e81ac",
+
+    "--header-bg":         "#2e3440",
+    "--header-accent":     "#88c0d0",
+
+    "--bg-primary":        "#2e3440",
+    "--bg-secondary":      "#3b4252",
+    "--bg-tertiary":       "#434c5e",
+    "--bg-elevated":       "#4c566a",
+    "--bg-hover":          "rgba(136, 192, 208, 0.08)",
+    "--bg-active":         "rgba(136, 192, 208, 0.15)",
+
+    "--border-primary":    "#3b4252",
+    "--border-secondary":  "#4c566a",
+    "--border-focus":      "#88c0d0",
+
+    "--text-primary":      "#eceff4",
+    "--text-secondary":    "#d8dee9",
+    "--text-tertiary":     "#9aa3b2",
+    "--text-inverse":      "#2e3440",
+
+    "--success":           "#a3be8c",
+    "--success-bg":        "rgba(163, 190, 140, 0.12)",
+    "--warning":           "#ebcb8b",
+    "--warning-bg":        "rgba(235, 203, 139, 0.12)",
+    "--danger":            "#bf616a",
+    "--danger-bg":         "rgba(191, 97, 106, 0.12)",
+    "--info":              "#81a1c1",
+    "--info-bg":           "rgba(129, 161, 193, 0.12)",
+
+    "--shadow-sm":         "0 1px 4px rgba(0, 0, 0, 0.28)",
+    "--shadow-md":         "0 4px 16px rgba(0, 0, 0, 0.32)",
+    "--shadow-lg":         "0 8px 28px rgba(0, 0, 0, 0.36)",
+    "--shadow-xl":         "0 16px 44px rgba(0, 0, 0, 0.40)",
+
+    "--overlay":           "rgba(46, 52, 64, 0.92)",
+    "--overlay-light":     "rgba(136, 192, 208, 0.05)"
+  }
+}

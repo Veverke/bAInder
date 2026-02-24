@@ -1,0 +1,50 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Dark",
+  "id": "dark",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Deep slate dark theme with soft indigo accents.",
+  "variables": {
+    "--primary":           "#818cf8",
+    "--primary-hover":     "#a5b4fc",
+    "--primary-light":     "#312e81",
+    "--primary-dark":      "#c7d2fe",
+
+    "--header-bg":         "linear-gradient(135deg, #1a1c35 0%, #0f172a 55%)",
+    "--header-accent":     "#818cf8",
+
+    "--bg-primary":        "#0f172a",
+    "--bg-secondary":      "#1e293b",
+    "--bg-tertiary":       "#334155",
+    "--bg-elevated":       "#1e293b",
+    "--bg-hover":          "#334155",
+    "--bg-active":         "#475569",
+
+    "--border-primary":    "#334155",
+    "--border-secondary":  "#475569",
+    "--border-focus":      "#818cf8",
+
+    "--text-primary":      "#f1f5f9",
+    "--text-secondary":    "#cbd5e1",
+    "--text-tertiary":     "#64748b",
+    "--text-inverse":      "#0f172a",
+
+    "--success":           "#34d399",
+    "--success-bg":        "#064e3b",
+    "--warning":           "#fbbf24",
+    "--warning-bg":        "#78350f",
+    "--danger":            "#f87171",
+    "--danger-bg":         "#7f1d1d",
+    "--info":              "#60a5fa",
+    "--info-bg":           "#1e3a8a",
+
+    "--shadow-sm":         "0 1px 2px 0 rgba(0, 0, 0, 0.3)",
+    "--shadow-md":         "0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3)",
+    "--shadow-lg":         "0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4)",
+    "--shadow-xl":         "0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.5)",
+
+    "--overlay":           "rgba(0, 0, 0, 0.7)",
+    "--overlay-light":     "rgba(0, 0, 0, 0.2)"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/your-org/theme-spec/spec.schema.json",
+  "title": "Extension Theme",
+  "description": "Portable theme file spec. Any extension that imports theme-sdk.js can consume this format.",
+  "type": "object",
+  "required": ["name", "version", "variables"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional reference to this schema for editor intellisense."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable display name, e.g. 'Ocean Dark'."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Optional machine-readable slug, e.g. 'ocean-dark'. Lowercase, hyphens only."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "Semantic version string, e.g. '1.0' or '1.0.0'."
+    },
+    "author": {
+      "type": "string",
+      "description": "Optional. Name or handle of the theme author."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional. Short description shown in theme pickers."
+    },
+    "variables": {
+      "type": "object",
+      "description": "CSS custom properties to inject on :root. Keys must start with '--'.",
+      "minProperties": 1,
+      "required": [
+        "--primary",
+        "--bg-primary",
+        "--text-primary"
+      ],
+      "patternProperties": {
+        "^--": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "--primary":           { "type": "string" },
+        "--primary-hover":     { "type": "string" },
+        "--primary-light":     { "type": "string" },
+        "--primary-dark":      { "type": "string" },
+
+        "--header-bg":         { "type": "string" },
+        "--header-accent":     { "type": "string" },
+
+        "--bg-primary":        { "type": "string" },
+        "--bg-secondary":      { "type": "string" },
+        "--bg-tertiary":       { "type": "string" },
+        "--bg-elevated":       { "type": "string" },
+        "--bg-hover":          { "type": "string" },
+        "--bg-active":         { "type": "string" },
+
+        "--border-primary":    { "type": "string" },
+        "--border-secondary":  { "type": "string" },
+        "--border-focus":      { "type": "string" },
+
+        "--text-primary":      { "type": "string" },
+        "--text-secondary":    { "type": "string" },
+        "--text-tertiary":     { "type": "string" },
+        "--text-inverse":      { "type": "string" },
+
+        "--success":           { "type": "string" },
+        "--success-bg":        { "type": "string" },
+        "--warning":           { "type": "string" },
+        "--warning-bg":        { "type": "string" },
+        "--danger":            { "type": "string" },
+        "--danger-bg":         { "type": "string" },
+        "--info":              { "type": "string" },
+        "--info-bg":           { "type": "string" },
+
+        "--shadow-sm":         { "type": "string" },
+        "--shadow-md":         { "type": "string" },
+        "--shadow-lg":         { "type": "string" },
+        "--shadow-xl":         { "type": "string" },
+
+        "--overlay":           { "type": "string" },
+        "--overlay-light":     { "type": "string" },
+
+        "--font-sans":         { "type": "string" },
+
+        "--radius-xs":         { "type": "string" },
+        "--radius-sm":         { "type": "string" },
+        "--radius-md":         { "type": "string" },
+        "--radius-lg":         { "type": "string" },
+        "--radius-xl":         { "type": "string" },
+        "--radius-full":       { "type": "string" }
+      }
+    }
+  }
+}

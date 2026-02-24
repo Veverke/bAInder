@@ -1,0 +1,52 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Terminal",
+  "id": "terminal",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Phosphor green on pure black. Monospace. CRT vibes.",
+  "variables": {
+    "--primary":           "#00ff41",
+    "--primary-hover":     "#00cc33",
+    "--primary-light":     "rgba(0, 255, 65, 0.15)",
+    "--primary-dark":      "#009925",
+
+    "--header-bg":         "#000000",
+    "--header-accent":     "#00ff41",
+
+    "--bg-primary":        "#000000",
+    "--bg-secondary":      "#0a0a0a",
+    "--bg-tertiary":       "#111111",
+    "--bg-elevated":       "#0d0d0d",
+    "--bg-hover":          "rgba(0, 255, 65, 0.08)",
+    "--bg-active":         "rgba(0, 255, 65, 0.16)",
+
+    "--border-primary":    "#1a3a1a",
+    "--border-secondary":  "#00ff41",
+    "--border-focus":      "#00ff41",
+
+    "--text-primary":      "#00ff41",
+    "--text-secondary":    "#00cc33",
+    "--text-tertiary":     "#006617",
+    "--text-inverse":      "#000000",
+
+    "--success":           "#00ff41",
+    "--success-bg":        "rgba(0, 255, 65, 0.12)",
+    "--warning":           "#ffcc00",
+    "--warning-bg":        "rgba(255, 204, 0, 0.12)",
+    "--danger":            "#ff4444",
+    "--danger-bg":         "rgba(255, 68, 68, 0.12)",
+    "--info":              "#00ddff",
+    "--info-bg":           "rgba(0, 221, 255, 0.12)",
+
+    "--shadow-sm":         "none",
+    "--shadow-md":         "0 0 12px rgba(0, 255, 65, 0.15)",
+    "--shadow-lg":         "0 0 24px rgba(0, 255, 65, 0.2)",
+    "--shadow-xl":         "0 0 40px rgba(0, 255, 65, 0.25)",
+
+    "--overlay":           "rgba(0, 0, 0, 0.88)",
+    "--overlay-light":     "rgba(0, 255, 65, 0.05)",
+
+    "--font-sans":         "'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace"
+  }
+}

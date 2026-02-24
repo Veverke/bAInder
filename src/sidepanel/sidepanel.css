@@ -767,22 +767,10 @@ mark.search-highlight {
 }
 
 .save-banner__btn {
-  background: var(--accent-bg, #4f46e5);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-md);
+  /* size-only override — colour/shape/skin come from .btn-primary */
   padding: var(--space-xs) var(--space-md);
   font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: filter 0.15s, transform 0.1s;
   flex-shrink: 0;
-}
-
-.save-banner__btn:hover:not(:disabled) {
-  filter: brightness(1.12);
-  transform: scale(1.02);
 }
 
 .save-banner__btn:disabled {
@@ -966,6 +954,16 @@ mark.search-highlight {
   width: 130px;
   flex-shrink: 0;
   font-size: 0.875rem;
+  padding: var(--space-sm) var(--space-md);
+}
+
+/* Load Theme label-button — matches settings-select width and size */
+.settings-load-theme-btn {
+  width: 130px;
+  flex-shrink: 0;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 500;
   padding: var(--space-sm) var(--space-md);
 }
 

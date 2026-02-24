@@ -247,6 +247,16 @@ describe('TreeRenderer', () => {
       expect(renderer.expandedNodes.has(p2)).toBe(true);
     });
 
+    it('should expand topics that contain only chats (no sub-topics)', () => {
+      const topicId = tree.addTopic('Root with chats');
+      renderer = new TreeRenderer(container, tree);
+      // Provide a chat assigned to this topic — no child sub-topics
+      renderer.setChatData([{ id: 'c1', topicId, title: 'Chat', source: 'chatgpt', timestamp: 0 }]);
+      renderer.expandAll();
+
+      expect(renderer.expandedNodes.has(topicId)).toBe(true);
+    });
+
     it('should collapse all nodes', () => {
       const p1 = tree.addTopic('Parent 1');
       tree.addTopic('Child 1', p1);
