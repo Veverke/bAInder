@@ -52,18 +52,44 @@
 
   --content-max-width: 720px;
   --header-height:     80px;
+
+  /* Extended tokens — fallback values used by sticky notes (overridden by
+     themes.css when a data-theme attribute is applied at runtime).          */
+  --bg-elevated:    #ffffff;
+  --bg-hover:       #f1f5f9;
+  --border-focus:   #2563eb;
+  --text-tertiary:  #94a3b8;
+  --shadow-sm:      0 1px 2px rgba(0, 0, 0, .05);
+  --shadow-md:      0 4px 6px -1px rgba(0, 0, 0, .10), 0 2px 4px -1px rgba(0, 0, 0, .06);
+  --warning:        #f59e0b;
+  --warning-bg:     #fef3c7;
+  --danger:         #ef4444;
+  --danger-bg:      #fee2e2;
 }
 
+/* Dark-mode fallback — only applied when no explicit data-theme is set.
+   Once init() loads the stored theme and sets data-theme on <html>,
+   themes.css takes over and this block is ignored.                       */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --bg-primary:     #1a1a1a;
     --bg-secondary:   #242424;
     --bg-code:        #2d2d2d;
+    --bg-elevated:    #242424;
+    --bg-hover:       #374151;
     --text-primary:   #f0f0f0;
     --text-secondary: #9ca3af;
+    --text-tertiary:  #6b7280;
     --border-primary: #374151;
+    --border-focus:   #60a5fa;
     --primary-light:  #1e3a5f;
     --hr-color:       #374151;
+    --shadow-sm:      0 1px 2px rgba(0, 0, 0, .30);
+    --shadow-md:      0 4px 6px -1px rgba(0, 0, 0, .40), 0 2px 4px -1px rgba(0, 0, 0, .30);
+    --warning:        #fbbf24;
+    --warning-bg:     rgba(251, 191, 36, .15);
+    --danger:         #f87171;
+    --danger-bg:      rgba(248, 113, 113, .15);
   }
 }
 
@@ -123,6 +149,81 @@ body {
 .meta-date, .meta-count {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+/* ── Prompts count badge + overlay ──────────────────────────────────────── */
+.meta-prompts {
+  display: inline-block;
+  position: relative;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.meta-prompts__trigger {
+  border-bottom: 1px dashed var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.prompts-overlay {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  background: var(--bg-elevated, var(--bg-primary));
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .14);
+  padding: 12px 5px 5px; /* top padding bridges the visual gap */
+  min-width: 220px;
+  max-width: 380px;
+  max-height: 300px;
+  overflow-y: auto;
+  /* Pull the overlay up so it overlaps the trigger slightly,
+     then push content down via padding — no physical gap to cross */
+  margin-top: -4px;
+}
+
+/* Transparent bridge so the mouse can travel from trigger → overlay */
+.meta-prompts__trigger::after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 100%;
+  left: -8px;
+  right: -8px;
+  height: 16px; /* covers the visual gap */
+}
+
+.meta-prompts:hover .prompts-overlay,
+.meta-prompts:focus-within .prompts-overlay {
+  display: block;
+}
+
+.prompts-overlay__item {
+  display: block;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.12s;
+}
+
+.prompts-overlay__item:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.prompts-overlay__num {
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 3px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Source badge */
@@ -509,16 +610,49 @@ body[data-source="copilot"] { background-color: color-mix(in srgb, #7c3aed 4%, v
 }
 
 .annotation-highlight:hover {
-  filter: brightness(0.9);
+  filter: brightness(0.88);
 }
 
-/* Hover tooltip for annotations with a note */
+/* In dark / oled / high-contrast themes the pastel swatch colours are very
+   bright against dark text — reduce opacity so they read as a tint, not a
+   solid block, and keep foreground text legible. */
+[data-theme="dark"]     .annotation-highlight,
+[data-theme="oled"]     .annotation-highlight,
+[data-theme="terminal"] .annotation-highlight,
+[data-theme="neon"]     .annotation-highlight,
+:root:not([data-theme]) .annotation-highlight {
+  /* Default dark-mode rule: let prefers-color-scheme handle it     */
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .annotation-highlight {
+    opacity: 0.55;
+    mix-blend-mode: lighten;
+  }
+}
+[data-theme="dark"] .annotation-highlight,
+[data-theme="oled"] .annotation-highlight {
+  opacity: 0.55;
+  mix-blend-mode: lighten;
+}
+[data-theme="terminal"] .annotation-highlight,
+[data-theme="neon"]     .annotation-highlight {
+  opacity: 0.40;
+  mix-blend-mode: screen;
+}
+
+/* Hover tooltip for annotations with a note — positioned ABOVE the mark */
 .annotation-highlight[title]:hover::after {
   content: attr(title);
-  position: fixed;
-  background: var(--text-primary);
-  color: var(--bg-primary);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  /* Use surface / border tokens so the tooltip inherits every theme */
+  background: var(--bg-elevated, var(--bg-secondary));
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
   font-size: 12px;
+  line-height: 1.4;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
   white-space: nowrap;
@@ -527,17 +661,17 @@ body[data-source="copilot"] { background-color: color-mix(in srgb, #7c3aed 4%, v
   text-overflow: ellipsis;
   pointer-events: none;
   z-index: 400;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,0.18));
 }
 
 /* Annotation toolbar */
 .annotation-toolbar {
   position: fixed;
   z-index: 300;
-  background: var(--bg-secondary);
+  background: var(--bg-elevated, var(--bg-secondary));
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0,0,0,0.18));
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
@@ -665,7 +799,8 @@ body[data-source="copilot"] { background-color: color-mix(in srgb, #7c3aed 4%, v
 
   /* Typography */
   .reader-title { font-size: 16pt; margin-bottom: 4pt; }
-  .meta-date, .meta-count, .meta-reading-time { font-size: 9pt; color: #666 !important; }
+  .meta-date, .meta-count, .meta-prompts, .meta-reading-time { font-size: 9pt; color: #666 !important; }
+  .prompts-overlay { display: none !important; }
   .meta-reading-time[hidden] { display: inline !important; }
 
   /* Hide sticky-notes layer when printing */
@@ -675,9 +810,10 @@ body[data-source="copilot"] { background-color: color-mix(in srgb, #7c3aed 4%, v
 }
 
 /* ── Sticky Notes ─────────────────────────────────────────────────────────── */
+/* All colours reference the shared CSS token system so sticky notes
+   automatically adopt whichever theme/skin the user has chosen.            */
 
-/* Full-page overlay layer (positioned from <body>, which is position:relative
-   via the body rule below). Individual notes are positioned by anchorPageY. */
+/* Full-page overlay layer — anchored to body (position:relative below). */
 body { position: relative; }
 
 .sticky-notes-layer {
@@ -693,25 +829,19 @@ body { position: relative; }
   position: absolute;
   right: max(16px, calc((100% - var(--content-max-width)) / 2 - 260px));
   width: 240px;
-  background: #fefce8;
-  border: 1px solid #fde68a;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  /* Top accent stripe using the theme's warning colour (gold → magenta → etc.) */
+  border-top: 2px solid var(--warning);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, .12), 0 1px 3px rgba(0, 0, 0, .08);
+  box-shadow: var(--shadow-md);
   pointer-events: auto;
+  font-family: var(--font-sans);
   font-size: 13px;
   line-height: 1.5;
-  color: #1c1917;
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
-}
-
-@media (prefers-color-scheme: dark) {
-  .sticky-note {
-    background: #292524;
-    border-color: #44403c;
-    color: #e7e5e4;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, .40);
-  }
 }
 
 /* Header bar ── */
@@ -720,30 +850,35 @@ body { position: relative; }
   align-items: center;
   gap: 4px;
   padding: 5px 8px 4px;
-  border-bottom: 1px solid #fde68a;
-  background: #fef9c3;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
   flex-wrap: nowrap;
+  /* Signal that the header can be grabbed to drag the note */
+  cursor: grab;
+}
+/* Restore pointer cursor for interactive children inside the header */
+.sticky-note__header button {
+  cursor: pointer;
 }
 
-@media (prefers-color-scheme: dark) {
-  .sticky-note__header {
-    background: #1c1917;
-    border-bottom-color: #44403c;
-  }
+/* While dragging: grabbing cursor + suppress text selection + subtle fade */
+.sticky-note--dragging {
+  opacity: 0.88;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sticky-note--dragging .sticky-note__header {
+  cursor: grabbing;
 }
 
 .sticky-note__ts {
   font-size: 11px;
-  color: #78716c;
+  color: var(--text-tertiary);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-@media (prefers-color-scheme: dark) {
-  .sticky-note__ts { color: #a8a29e; }
 }
 
 .sticky-note__mode-btn,
@@ -755,32 +890,20 @@ body { position: relative; }
   padding: 2px 4px;
   border-radius: var(--radius-sm);
   font-size: 12px;
-  color: #78716c;
+  color: var(--text-secondary);
   line-height: 1;
   transition: background 0.15s, color 0.15s;
 }
 
 .sticky-note__mode-btn:hover,
 .sticky-note__nav-btn:hover {
-  background: rgba(0, 0, 0, .06);
-  color: #1c1917;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .sticky-note__del-btn:hover {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-@media (prefers-color-scheme: dark) {
-  .sticky-note__mode-btn:hover,
-  .sticky-note__nav-btn:hover {
-    background: rgba(255, 255, 255, .08);
-    color: #e7e5e4;
-  }
-  .sticky-note__del-btn:hover {
-    background: #450a0a;
-    color: #f87171;
-  }
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 /* Disambiguation nav ── */
@@ -789,7 +912,7 @@ body { position: relative; }
   align-items: center;
   gap: 1px;
   font-size: 11px;
-  color: #78716c;
+  color: var(--text-tertiary);
   white-space: nowrap;
 }
 
@@ -807,31 +930,89 @@ body { position: relative; }
 .sticky-note__textarea {
   width: 100%;
   resize: vertical;
-  border: 1px solid #fde68a;
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm);
-  background: transparent;
+  background: var(--bg-primary);
   font-family: var(--font-sans);
   font-size: 13px;
   line-height: 1.5;
-  color: inherit;
+  color: var(--text-primary);
   padding: 4px 6px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .sticky-note__textarea:focus {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, .2);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px var(--primary-light);
 }
 
-@media (prefers-color-scheme: dark) {
-  .sticky-note__textarea {
-    border-color: #44403c;
-  }
-  .sticky-note__textarea:focus {
-    border-color: #d97706;
-    box-shadow: 0 0 0 2px rgba(217, 119, 6, .2);
-  }
+/* ── Markdown toolbar ── */
+.sticky-note__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px 4px;
+  margin-bottom: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+}
+
+.sticky-note__toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 5px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  flex-shrink: 0;
+}
+
+.sticky-note__toolbar-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+}
+
+.sticky-note__toolbar-btn:active {
+  background: var(--bg-elevated);
+}
+
+/* Bold / Italic button text styling */
+.sticky-note__toolbar-btn[title="Bold"]   { font-style: normal; }
+.sticky-note__toolbar-btn[title="Italic"] { font-style: italic; }
+
+/* Separator pushes Preview button to the right */
+.sticky-note__toolbar-sep {
+  flex: 1;
+}
+
+/* Preview button — distinct from formatting buttons */
+.sticky-note__toolbar-btn--preview {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  padding: 0 7px;
+  white-space: nowrap;
+}
+
+.sticky-note__toolbar-btn--preview:hover {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .sticky-note__preview {
@@ -841,7 +1022,7 @@ body { position: relative; }
 .sticky-note__preview > *:last-child  { margin-bottom: 0; }
 
 .sticky-note__empty {
-  color: #a8a29e;
+  color: var(--text-tertiary);
   font-style: italic;
 }
 
@@ -864,22 +1045,15 @@ body { position: relative; }
 }
 
 .sticky-notes-toggle:hover {
-  background: var(--bg-code);
+  background: var(--bg-hover);
   color: var(--text-primary);
 }
 
+/* Active state uses the warning/accent token so it naturally adapts per theme */
 .sticky-notes-toggle--active {
-  background: #fef9c3;
-  border-color: #fde68a;
-  color: #92400e;
-}
-
-@media (prefers-color-scheme: dark) {
-  .sticky-notes-toggle--active {
-    background: #1c1917;
-    border-color: #44403c;
-    color: #fbbf24;
-  }
+  background: var(--warning-bg);
+  border-color: var(--warning);
+  color: var(--warning);
 }
 
 /* ── Custom context menu ──────────────────────────────────────────────────── */
@@ -888,10 +1062,10 @@ body { position: relative; }
   position: absolute;
   z-index: 200;
   min-width: 180px;
-  background: var(--bg-secondary);
+  background: var(--bg-elevated);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .08);
+  box-shadow: var(--shadow-md);
   padding: 4px 0;
   overflow: hidden;
 }
@@ -913,6 +1087,6 @@ body { position: relative; }
 }
 
 .sn-context-menu__item:hover {
-  background: var(--primary-light);
+  background: var(--bg-hover);
   color: var(--primary);
 }

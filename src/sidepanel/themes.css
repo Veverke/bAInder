@@ -240,26 +240,48 @@
   --radius-full: 0px;
 }
 
-/* Enforce pixel font and sharp corners everywhere */
+/* Sharp corners + pixelated rendering everywhere; pixel font scoped to UI chrome only */
 [data-theme="retro"] * {
-  font-family: 'PressStart2P', 'Courier New', monospace !important;
   border-radius: 0 !important;
   image-rendering: pixelated;
 }
 
-/* Scale down font size — Press Start 2P is large at default sizes */
-[data-theme="retro"] body {
-  font-size: 10px !important;
-  line-height: 1.9 !important;
+/* Pixel font — header, buttons, chips, context menu, toasts only.
+   Content / prose areas intentionally use the normal sans-serif so
+   reading tree entries and descriptions isn't exhausting. */
+[data-theme="retro"] .header,
+[data-theme="retro"] .header *,
+[data-theme="retro"] .btn-primary,
+[data-theme="retro"] .btn-secondary,
+[data-theme="retro"] .btn-icon,
+[data-theme="retro"] .section-header h2,
+[data-theme="retro"] .tree-source-chip,
+[data-theme="retro"] [class*="badge"],
+[data-theme="retro"] .settings-section__title,
+[data-theme="retro"] .settings-row__label span,
+[data-theme="retro"] .context-menu,
+[data-theme="retro"] .context-menu *,
+[data-theme="retro"] .toast {
+  font-family: 'PressStart2P', 'Courier New', monospace !important;
 }
 
-[data-theme="retro"] .tree-label-text {
+/* Scale down — PressStart2P is wide; keep body at comfortable reading size */
+[data-theme="retro"] body {
+  font-size: 11px !important;
+  line-height: 1.6 !important;
+}
+
+[data-theme="retro"] .header * {
   font-size: 8px !important;
 }
 
 [data-theme="retro"] .header h1 .title {
-  font-size: 10px !important;
+  font-size: 9px !important;
   letter-spacing: 0.05em;
+}
+
+[data-theme="retro"] .tree-label-text {
+  font-size: 11px !important;
 }
 
 /* NES-style outset button borders */
@@ -327,7 +349,6 @@
   background: #000 !important;
   color: #fff !important;
   border: 2px inset #5555ff !important;
-  font-size: 8px !important;
 }
 
 /* Pixel-style context menu */
@@ -335,9 +356,11 @@
   border: 2px solid;
   border-color: #aaaaff #000055 #000055 #aaaaff !important;
   box-shadow: var(--shadow-md) !important;
+  font-size: 8px !important;
 }
 
 /* Source colours → NES palette */
+[data-theme="retro"] .tree-source-chip { font-size: 7px !important; }
 [data-theme="retro"] .tree-source-chip--chatgpt { background: #003300 !important; color: #55ff55 !important; }
 [data-theme="retro"] .tree-source-chip--claude  { background: #330000 !important; color: #ff5555 !important; }
 [data-theme="retro"] .tree-source-chip--gemini  { background: #000033 !important; color: #55ffff !important; }
@@ -680,3 +703,279 @@
 [data-theme="neon"] .badge--claude  { background: rgba(255, 100, 0, 0.12);  color: #ff6400; }
 [data-theme="neon"] .badge--gemini  { background: rgba(0, 150, 255, 0.12);  color: #0096ff; }
 [data-theme="neon"] .badge--copilot { background: rgba(170, 0, 255, 0.12);  color: #aa00ff; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   X5 — NORD
+   The famous Arctic palette by Arctic Ice Studio. Cool slate-blues, muted
+   snowfield highlights, four aurora accent colours. Clean and restful.
+
+   Palette reference:
+     Polar Night: #2e3440  #3b4252  #434c5e  #4c566a
+     Snow Storm:  #d8dee9  #e5e9f0  #eceff4
+     Frost:       #8fbcbb  #88c0d0  #81a1c1  #5e81ac
+     Aurora:      #bf616a  #d08770  #ebcb8b  #a3be8c  #b48ead
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="nord"] {
+  --primary:            #88c0d0;
+  --primary-hover:      #8fbcbb;
+  --primary-light:      rgba(136, 192, 208, 0.15);
+  --primary-dark:       #5e81ac;
+
+  --header-bg:          #2e3440;
+  --header-accent:      #88c0d0;
+
+  --bg-primary:         #2e3440;
+  --bg-secondary:       #3b4252;
+  --bg-tertiary:        #434c5e;
+  --bg-elevated:        #4c566a;
+  --bg-hover:           rgba(136, 192, 208, 0.08);
+  --bg-active:          rgba(136, 192, 208, 0.15);
+
+  --border-primary:     #3b4252;
+  --border-secondary:   #4c566a;
+  --border-focus:       #88c0d0;
+
+  --text-primary:       #eceff4;
+  --text-secondary:     #d8dee9;
+  --text-tertiary:      #9aa3b2;
+  --text-inverse:       #2e3440;
+
+  --success:            #a3be8c;
+  --success-bg:         rgba(163, 190, 140, 0.12);
+  --warning:            #ebcb8b;
+  --warning-bg:         rgba(235, 203, 139, 0.12);
+  --danger:             #bf616a;
+  --danger-bg:          rgba(191, 97, 106, 0.12);
+  --info:               #81a1c1;
+  --info-bg:            rgba(129, 161, 193, 0.12);
+
+  --shadow-sm:          0 1px 4px  rgba(0, 0, 0, 0.28);
+  --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.32);
+  --shadow-lg:          0 8px 28px rgba(0, 0, 0, 0.36);
+  --shadow-xl:          0 16px 44px rgba(0, 0, 0, 0.40);
+
+  --overlay:            rgba(46, 52, 64, 0.92);
+  --overlay-light:      rgba(136, 192, 208, 0.05);
+}
+
+/* Subtle gradient on body */
+[data-theme="nord"] body {
+  background: linear-gradient(160deg, #2e3440 0%, #3b4252 100%) !important;
+}
+
+/* Frost-blue primary button */
+[data-theme="nord"] .btn-primary {
+  background: #5e81ac !important;
+  color: #eceff4 !important;
+  border-color: #81a1c1 !important;
+}
+[data-theme="nord"] .btn-primary:hover {
+  background: #81a1c1 !important;
+}
+
+/* Source chips — Aurora palette */
+[data-theme="nord"] .tree-source-chip--chatgpt { background: rgba(163,190,140,0.15) !important; color: #a3be8c !important; border: 1px solid rgba(163,190,140,0.35) !important; }
+[data-theme="nord"] .tree-source-chip--claude  { background: rgba(208,135,112,0.15) !important; color: #d08770 !important; border: 1px solid rgba(208,135,112,0.35) !important; }
+[data-theme="nord"] .tree-source-chip--gemini  { background: rgba(129,161,193,0.15) !important; color: #81a1c1 !important; border: 1px solid rgba(129,161,193,0.35) !important; }
+[data-theme="nord"] .tree-source-chip--copilot { background: rgba(180,142,173,0.15) !important; color: #b48ead !important; border: 1px solid rgba(180,142,173,0.35) !important; }
+
+/* Source left-borders */
+[data-theme="nord"] .tree-chat-item[data-source="chatgpt"] > .tree-node-content { box-shadow: inset 3px 0 0 0 #a3be8c !important; }
+[data-theme="nord"] .tree-chat-item[data-source="claude"]  > .tree-node-content { box-shadow: inset 3px 0 0 0 #d08770 !important; }
+[data-theme="nord"] .tree-chat-item[data-source="gemini"]  > .tree-node-content { box-shadow: inset 3px 0 0 0 #81a1c1 !important; }
+[data-theme="nord"] .tree-chat-item[data-source="copilot"] > .tree-node-content { box-shadow: inset 3px 0 0 0 #b48ead !important; }
+
+/* Badge colours */
+[data-theme="nord"] .badge--chatgpt { background: rgba(163,190,140,0.15); color: #a3be8c; }
+[data-theme="nord"] .badge--claude  { background: rgba(208,135,112,0.15); color: #d08770; }
+[data-theme="nord"] .badge--gemini  { background: rgba(129,161,193,0.15); color: #81a1c1; }
+[data-theme="nord"] .badge--copilot { background: rgba(180,142,173,0.15); color: #b48ead; }
+
+/* Nord focus glow */
+[data-theme="nord"] .search-container:focus-within {
+  box-shadow: 0 0 0 2px rgba(136, 192, 208, 0.40) !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   X6 — SOLARIZED DARK
+   Ethan Schoonover's classic palette. Warm teal-green dark background,
+   gold/blue accents, beige-grey readable text. Timeless and sophisticated.
+
+   Palette reference:
+     base03 #002b36  base02 #073642  base01 #586e75  base00 #657b83
+     base0  #839496  base1  #93a1a1  base2  #eee8d5  base3  #fdf6e3
+     yellow #b58900  orange #cb4b16  red    #dc322f  magenta #d33682
+     violet #6c71c4  blue   #268bd2  cyan   #2aa198  green  #859900
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solarized"] {
+  --primary:            #268bd2;
+  --primary-hover:      #2aa198;
+  --primary-light:      rgba(38, 139, 210, 0.15);
+  --primary-dark:       #1a6fa3;
+
+  --header-bg:          #073642;
+  --header-accent:      #268bd2;
+
+  --bg-primary:         #002b36;
+  --bg-secondary:       #073642;
+  --bg-tertiary:        #0a3f4d;
+  --bg-elevated:        #0d4a5a;
+  --bg-hover:           rgba(38, 139, 210, 0.08);
+  --bg-active:          rgba(38, 139, 210, 0.16);
+
+  --border-primary:     #073642;
+  --border-secondary:   #0e5060;
+  --border-focus:       #268bd2;
+
+  --text-primary:       #93a1a1;
+  --text-secondary:     #839496;
+  --text-tertiary:      #586e75;
+  --text-inverse:       #002b36;
+
+  --success:            #859900;
+  --success-bg:         rgba(133, 153, 0, 0.12);
+  --warning:            #b58900;
+  --warning-bg:         rgba(181, 137, 0, 0.12);
+  --danger:             #dc322f;
+  --danger-bg:          rgba(220, 50, 47, 0.12);
+  --info:               #2aa198;
+  --info-bg:            rgba(42, 161, 152, 0.12);
+
+  --shadow-sm:          0 1px 4px  rgba(0, 0, 0, 0.35);
+  --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.40);
+  --shadow-lg:          0 8px 28px rgba(0, 0, 0, 0.45);
+  --shadow-xl:          0 16px 44px rgba(0, 0, 0, 0.50);
+
+  --overlay:            rgba(0, 43, 54, 0.93);
+  --overlay-light:      rgba(38, 139, 210, 0.05);
+}
+
+/* Warm blue accent on primary button */
+[data-theme="solarized"] .btn-primary {
+  background: #268bd2 !important;
+  color: #fdf6e3 !important;
+  border-color: #2aa198 !important;
+  box-shadow: 0 2px 8px rgba(38, 139, 210, 0.30) !important;
+}
+[data-theme="solarized"] .btn-primary:hover {
+  background: #2aa198 !important;
+  box-shadow: 0 4px 14px rgba(42, 161, 152, 0.40) !important;
+}
+
+/* Search focus ring */
+[data-theme="solarized"] .search-container:focus-within {
+  box-shadow: 0 0 0 2px rgba(38, 139, 210, 0.40) !important;
+}
+
+/* Source chips — Solarized accent palette */
+[data-theme="solarized"] .tree-source-chip--chatgpt { background: rgba(133,153, 0,0.15) !important; color: #859900 !important; border: 1px solid rgba(133,153, 0,0.35) !important; }
+[data-theme="solarized"] .tree-source-chip--claude  { background: rgba(203, 75,22,0.15) !important; color: #cb4b16 !important; border: 1px solid rgba(203, 75,22,0.35) !important; }
+[data-theme="solarized"] .tree-source-chip--gemini  { background: rgba(42,161,152,0.15) !important; color: #2aa198 !important; border: 1px solid rgba(42,161,152,0.35) !important; }
+[data-theme="solarized"] .tree-source-chip--copilot { background: rgba(108,113,196,0.15) !important; color: #6c71c4 !important; border: 1px solid rgba(108,113,196,0.35) !important; }
+
+/* Source left-borders */
+[data-theme="solarized"] .tree-chat-item[data-source="chatgpt"] > .tree-node-content { box-shadow: inset 3px 0 0 0 #859900 !important; }
+[data-theme="solarized"] .tree-chat-item[data-source="claude"]  > .tree-node-content { box-shadow: inset 3px 0 0 0 #cb4b16 !important; }
+[data-theme="solarized"] .tree-chat-item[data-source="gemini"]  > .tree-node-content { box-shadow: inset 3px 0 0 0 #2aa198 !important; }
+[data-theme="solarized"] .tree-chat-item[data-source="copilot"] > .tree-node-content { box-shadow: inset 3px 0 0 0 #6c71c4 !important; }
+
+/* Badge colours */
+[data-theme="solarized"] .badge--chatgpt { background: rgba(133,153, 0,0.15); color: #859900; }
+[data-theme="solarized"] .badge--claude  { background: rgba(203, 75,22,0.15);  color: #cb4b16; }
+[data-theme="solarized"] .badge--gemini  { background: rgba(42,161,152,0.15);  color: #2aa198; }
+[data-theme="solarized"] .badge--copilot { background: rgba(108,113,196,0.15); color: #6c71c4; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   X7 — FOREST
+   Deep woodland greens with warm amber accents. Earthy, calm, and natural.
+   Inspired by old-growth canopy colours: dark moss, fern, and golden light.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="forest"] {
+  --primary:            #7cb87c;
+  --primary-hover:      #8fca8f;
+  --primary-light:      rgba(124, 184, 124, 0.15);
+  --primary-dark:       #568f56;
+
+  --header-bg:          #0e1a0e;
+  --header-accent:      #a8d5a2;
+
+  --bg-primary:         #0e1a0e;
+  --bg-secondary:       #162416;
+  --bg-tertiary:        #1c2d1c;
+  --bg-elevated:        #213521;
+  --bg-hover:           rgba(124, 184, 124, 0.08);
+  --bg-active:          rgba(124, 184, 124, 0.16);
+
+  --border-primary:     #243824;
+  --border-secondary:   #365536;
+  --border-focus:       #7cb87c;
+
+  --text-primary:       #d4ecd4;
+  --text-secondary:     #a8c8a8;
+  --text-tertiary:      #6d966d;
+  --text-inverse:       #0e1a0e;
+
+  --success:            #a8d5a2;
+  --success-bg:         rgba(168, 213, 162, 0.12);
+  --warning:            #d4a640;
+  --warning-bg:         rgba(212, 166, 64, 0.12);
+  --danger:             #cc6666;
+  --danger-bg:          rgba(204, 102, 102, 0.12);
+  --info:               #6baed6;
+  --info-bg:            rgba(107, 174, 214, 0.12);
+
+  --shadow-sm:          0 1px 4px  rgba(0, 0, 0, 0.30);
+  --shadow-md:          0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg:          0 8px 28px rgba(0, 0, 0, 0.40);
+  --shadow-xl:          0 16px 44px rgba(0, 0, 0, 0.45);
+
+  --overlay:            rgba(14, 26, 14, 0.92);
+  --overlay-light:      rgba(124, 184, 124, 0.05);
+}
+
+/* Rich forest gradient on body */
+[data-theme="forest"] body {
+  background: linear-gradient(160deg, #0e1a0e 0%, #162416 60%, #1a2e18 100%) !important;
+}
+
+/* Amber-accented primary button */
+[data-theme="forest"] .btn-primary {
+  background: #568f56 !important;
+  color: #d4ecd4 !important;
+  border-color: #7cb87c !important;
+  box-shadow: 0 2px 8px rgba(124, 184, 124, 0.25) !important;
+}
+[data-theme="forest"] .btn-primary:hover {
+  background: #7cb87c !important;
+  box-shadow: 0 4px 14px rgba(124, 184, 124, 0.38) !important;
+}
+
+/* Amber glow on focused search */
+[data-theme="forest"] .search-container:focus-within {
+  box-shadow: 0 0 0 2px rgba(212, 166, 64, 0.45) !important;
+  border-color: #d4a640 !important;
+}
+
+/* Source chips */
+[data-theme="forest"] .tree-source-chip--chatgpt { background: rgba(168,213,162,0.15) !important; color: #a8d5a2 !important; border: 1px solid rgba(168,213,162,0.35) !important; }
+[data-theme="forest"] .tree-source-chip--claude  { background: rgba(212,166, 64,0.15) !important; color: #d4a640 !important; border: 1px solid rgba(212,166, 64,0.35) !important; }
+[data-theme="forest"] .tree-source-chip--gemini  { background: rgba(107,174,214,0.15) !important; color: #6baed6 !important; border: 1px solid rgba(107,174,214,0.35) !important; }
+[data-theme="forest"] .tree-source-chip--copilot { background: rgba(192,158,220,0.15) !important; color: #c09edc !important; border: 1px solid rgba(192,158,220,0.35) !important; }
+
+/* Source left-borders */
+[data-theme="forest"] .tree-chat-item[data-source="chatgpt"] > .tree-node-content { box-shadow: inset 3px 0 0 0 #a8d5a2 !important; }
+[data-theme="forest"] .tree-chat-item[data-source="claude"]  > .tree-node-content { box-shadow: inset 3px 0 0 0 #d4a640 !important; }
+[data-theme="forest"] .tree-chat-item[data-source="gemini"]  > .tree-node-content { box-shadow: inset 3px 0 0 0 #6baed6 !important; }
+[data-theme="forest"] .tree-chat-item[data-source="copilot"] > .tree-node-content { box-shadow: inset 3px 0 0 0 #c09edc !important; }
+
+/* Badge colours */
+[data-theme="forest"] .badge--chatgpt { background: rgba(168,213,162,0.15); color: #a8d5a2; }
+[data-theme="forest"] .badge--claude  { background: rgba(212,166, 64,0.15);  color: #d4a640; }
+[data-theme="forest"] .badge--gemini  { background: rgba(107,174,214,0.15);  color: #6baed6; }
+[data-theme="forest"] .badge--copilot { background: rgba(192,158,220,0.15);  color: #c09edc; }

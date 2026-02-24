@@ -12,6 +12,8 @@ import {
   showError,
   renderChat,
   init,
+  applySettingsFromValues,
+  watchReaderSettings,
 } from '../src/reader/reader.js';
 import { messagesToMarkdown } from '../src/lib/markdown-serialiser.js';
 
@@ -258,6 +260,56 @@ describe('renderMarkdown', () => {
     expect(html).toContain('>here</a>');
   });
 
+  // ── Bare URL auto-linking ──────────────────────────────────────────────
+
+  it('auto-links a bare https URL', () => {
+    const html = renderMarkdown('see https://example.com for details');
+    expect(html).toContain('<a href="https://example.com"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain('>https://example.com</a>');
+  });
+
+  it('auto-links a bare http URL', () => {
+    const html = renderMarkdown('go to http://example.com now');
+    expect(html).toContain('<a href="http://example.com"');
+  });
+
+  it('does not double-link an explicit markdown link whose href is a URL', () => {
+    const html = renderMarkdown('[label](https://example.com)');
+    const count = (html.match(/<a /g) || []).length;
+    expect(count).toBe(1);
+    expect(html).toContain('>label</a>');
+  });
+
+  it('trims trailing period from auto-linked URL and keeps the period as text', () => {
+    const html = renderMarkdown('visit https://example.com.');
+    expect(html).toContain('href="https://example.com"');
+    expect(html).not.toContain('href="https://example.com."');
+    expect(html).toContain('</a>.');
+  });
+
+  it('trims trailing ) from auto-linked URL', () => {
+    const html = renderMarkdown('(see https://example.com)');
+    expect(html).toContain('href="https://example.com"');
+    expect(html).not.toContain('href="https://example.com)"');
+  });
+
+  it('auto-links URL with path and query string', () => {
+    const html = renderMarkdown('open https://example.com/page?x=1&y=2 now');
+    expect(html).toContain('href="https://example.com/page?x=1&amp;y=2"');
+    // display text decodes &amp; back to &
+    expect(html).toContain('>https://example.com/page?x=1&y=2</a>');
+  });
+
+  it('does not link text that starts with http inside a word (e.g. no-op for plain text)', () => {
+    // Not a URL — should remain plain text
+    const html = renderMarkdown('The word "https" appears here');
+    // only "https" without :// would not be linked
+    const linked = html.includes('<a href="https"');
+    expect(linked).toBe(false);
+  });
+
   it('renders Microsoft Designer as a card (not iframe)', () => {
     const src = 'https://designer.svc.cloud.microsoft/chat-image-creator?clientName=CWC&iframeid=abc123';
     const html = renderMarkdown(`[Microsoft Designer generated image](${src})`);
@@ -478,5 +530,185 @@ describe('init', () => {
     await init({ get: vi.fn().mockRejectedValue(new Error('storage unavailable')) });
     expect(document.getElementById('state-error').hidden).toBe(false);
     expect(document.getElementById('error-message').textContent).toContain('storage unavailable');
+  });
+});
+
+// ─── applySettingsFromValues ───────────────────────────────────────────────────────
+
+describe('applySettingsFromValues', () => {
+  const html = () => document.documentElement;
+
+  beforeEach(() => {
+    html().removeAttribute('data-theme');
+    html().removeAttribute('data-skin');
+    html().removeAttribute('data-accent');
+    html().removeAttribute('data-oled');
+  });
+
+  it('sets data-theme for a named theme', () => {
+    applySettingsFromValues({ theme: 'dark' });
+    expect(html().getAttribute('data-theme')).toBe('dark');
+  });
+
+  it('defaults to light when theme is absent', () => {
+    applySettingsFromValues({});
+    expect(html().getAttribute('data-theme')).toBe('light');
+  });
+
+  it('sets data-theme=dark and data-oled for oled theme', () => {
+    applySettingsFromValues({ theme: 'oled' });
+    expect(html().getAttribute('data-theme')).toBe('dark');
+    expect(html().hasAttribute('data-oled')).toBe(true);
+  });
+
+  it('removes data-oled when switching away from oled', () => {
+    html().setAttribute('data-oled', '');
+    applySettingsFromValues({ theme: 'light' });
+    expect(html().hasAttribute('data-oled')).toBe(false);
+    expect(html().getAttribute('data-theme')).toBe('light');
+  });
+
+  it('applies auto theme based on prefers-color-scheme (mocked light)', () => {
+    vi.stubGlobal('matchMedia', q => ({ matches: false, media: q }));
+    applySettingsFromValues({ theme: 'auto' });
+    expect(html().getAttribute('data-theme')).toBe('light');
+  });
+
+  it('applies auto theme based on prefers-color-scheme (mocked dark)', () => {
+    vi.stubGlobal('matchMedia', q => ({ matches: true, media: q }));
+    applySettingsFromValues({ theme: 'auto' });
+    expect(html().getAttribute('data-theme')).toBe('dark');
+  });
+
+  it('sets data-skin when skin is provided', () => {
+    applySettingsFromValues({ theme: 'light', skin: 'rounded' });
+    expect(html().getAttribute('data-skin')).toBe('rounded');
+  });
+
+  it('removes data-skin when skin is empty string', () => {
+    html().setAttribute('data-skin', 'sharp');
+    applySettingsFromValues({ theme: 'light', skin: '' });
+    expect(html().hasAttribute('data-skin')).toBe(false);
+  });
+
+  it('removes data-skin when skin is absent', () => {
+    html().setAttribute('data-skin', 'sharp');
+    applySettingsFromValues({ theme: 'light' });
+    expect(html().hasAttribute('data-skin')).toBe(false);
+  });
+
+  it('sets data-accent when provided', () => {
+    applySettingsFromValues({ theme: 'light', accent: 'teal' });
+    expect(html().getAttribute('data-accent')).toBe('teal');
+  });
+
+  it('removes data-accent when absent', () => {
+    html().setAttribute('data-accent', 'teal');
+    applySettingsFromValues({ theme: 'light' });
+    expect(html().hasAttribute('data-accent')).toBe(false);
+  });
+
+  it('sets all three attributes at once', () => {
+    applySettingsFromValues({ theme: 'terminal', skin: 'sharp', accent: 'green' });
+    expect(html().getAttribute('data-theme')).toBe('terminal');
+    expect(html().getAttribute('data-skin')).toBe('sharp');
+    expect(html().getAttribute('data-accent')).toBe('green');
+  });
+});
+
+// ─── watchReaderSettings ──────────────────────────────────────────────────────────
+describe('watchReaderSettings', () => {
+  let listener;
+  const html = () => document.documentElement;
+
+  beforeEach(() => {
+    listener = null;
+    html().removeAttribute('data-theme');
+    html().removeAttribute('data-skin');
+    html().removeAttribute('data-accent');
+    html().removeAttribute('data-oled');
+
+    // Provide a stub chrome.storage.onChanged that captures the listener
+    vi.stubGlobal('chrome', {
+      storage: {
+        onChanged: {
+          addListener: vi.fn(fn => { listener = fn; }),
+        },
+      },
+    });
+  });
+
+  function fire(changes, area = 'local') {
+    listener?.(changes, area);
+  }
+
+  it('registers exactly one listener', () => {
+    watchReaderSettings();
+    expect(chrome.storage.onChanged.addListener).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates data-theme when theme changes', () => {
+    html().setAttribute('data-theme', 'light');
+    watchReaderSettings();
+    fire({ theme: { oldValue: 'light', newValue: 'dark' } });
+    expect(html().getAttribute('data-theme')).toBe('dark');
+  });
+
+  it('updates data-skin when skin changes', () => {
+    html().setAttribute('data-theme', 'light');
+    watchReaderSettings();
+    fire({ skin: { oldValue: '', newValue: 'rounded' } });
+    expect(html().getAttribute('data-skin')).toBe('rounded');
+  });
+
+  it('removes data-skin when skin is cleared', () => {
+    html().setAttribute('data-theme', 'light');
+    html().setAttribute('data-skin', 'sharp');
+    watchReaderSettings();
+    fire({ skin: { oldValue: 'sharp', newValue: undefined } });
+    expect(html().hasAttribute('data-skin')).toBe(false);
+  });
+
+  it('updates data-accent when accent changes', () => {
+    html().setAttribute('data-theme', 'light');
+    watchReaderSettings();
+    fire({ accent: { oldValue: '', newValue: 'teal' } });
+    expect(html().getAttribute('data-accent')).toBe('teal');
+  });
+
+  it('does nothing for sync area changes', () => {
+    html().setAttribute('data-theme', 'light');
+    watchReaderSettings();
+    fire({ theme: { oldValue: 'light', newValue: 'dark' } }, 'sync');
+    expect(html().getAttribute('data-theme')).toBe('light'); // unchanged
+  });
+
+  it('does nothing when only unrelated keys change', () => {
+    html().setAttribute('data-theme', 'light');
+    watchReaderSettings();
+    fire({ unrelated: { oldValue: 'a', newValue: 'b' } });
+    expect(html().getAttribute('data-theme')).toBe('light'); // unchanged
+  });
+
+  it('preserves existing skin when only theme changes', () => {
+    html().setAttribute('data-theme', 'light');
+    html().setAttribute('data-skin', 'elevated');
+    watchReaderSettings();
+    fire({ theme: { oldValue: 'light', newValue: 'neon' } });
+    expect(html().getAttribute('data-theme')).toBe('neon');
+    expect(html().getAttribute('data-skin')).toBe('elevated');
+  });
+
+  it('sets oled attribute when theme changes to oled', () => {
+    html().setAttribute('data-theme', 'light');
+    watchReaderSettings();
+    fire({ theme: { oldValue: 'light', newValue: 'oled' } });
+    expect(html().getAttribute('data-theme')).toBe('dark');
+    expect(html().hasAttribute('data-oled')).toBe(true);
+  });
+
+  it('is a no-op when chrome.storage.onChanged is unavailable', () => {
+    vi.stubGlobal('chrome', undefined);
+    expect(() => watchReaderSettings()).not.toThrow();
   });
 });

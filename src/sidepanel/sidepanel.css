@@ -746,6 +746,50 @@ mark.search-highlight {
   box-shadow: 0 -2px 8px var(--overlay-light);
 }
 
+/* Save-to-bAInder banner (shown when on a supported AI chat page) */
+.save-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  background: linear-gradient(90deg, var(--bg-elevated), var(--bg-secondary));
+  border-top: 1px solid var(--border-primary);
+  flex-shrink: 0;
+}
+
+.save-banner__msg {
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.save-banner__btn {
+  background: var(--accent-bg, #4f46e5);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-md);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s, transform 0.1s;
+  flex-shrink: 0;
+}
+
+.save-banner__btn:hover:not(:disabled) {
+  filter: brightness(1.12);
+  transform: scale(1.02);
+}
+
+.save-banner__btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .storage-info {
   display: flex;
   align-items: center;

@@ -530,165 +530,6 @@
     };
   }
 
-  // ─── Button Injection ──────────────────────────────────────────────────────
-
-  const BUTTON_ID = 'bAInder-save-btn';
-
-  /**
-   * Create the "Save to bAInder" button element.
-   * @param {string} platform
-   * @returns {HTMLButtonElement}
-   */
-  function createSaveButton(platform) {
-    const btn = document.createElement('button');
-    btn.id              = BUTTON_ID;
-    btn.textContent     = '💾 Save to bAInder';
-    btn.title           = 'Save this chat to bAInder';
-    btn.setAttribute('aria-label', 'Save chat to bAInder');
-    btn.setAttribute('data-platform', platform);
-
-    // Floating button styles (no inline event handlers – CSP safe)
-    Object.assign(btn.style, {
-      position:     'fixed',
-      bottom:       '80px',
-      right:        '20px',
-      zIndex:       '2147483647',
-      background:   '#4f46e5',
-      color:        '#fff',
-      border:       'none',
-      borderRadius: '8px',
-      padding:      '10px 16px',
-      fontSize:     '13px',
-      fontWeight:   '600',
-      cursor:       'pointer',
-      boxShadow:    '0 4px 12px rgba(0,0,0,0.25)',
-      transition:   'background 0.2s, transform 0.1s',
-      fontFamily:   'system-ui, -apple-system, sans-serif',
-      lineHeight:   '1.4'
-    });
-
-    btn.addEventListener('mouseenter', () => {
-      btn.style.background = '#4338ca';
-      btn.style.transform  = 'scale(1.03)';
-    });
-    btn.addEventListener('mouseleave', () => {
-      btn.style.background = '#4f46e5';
-      btn.style.transform  = 'scale(1)';
-    });
-
-    btn.addEventListener('click', handleSaveClick);
-    return btn;
-  }
-
-  /**
-   * Inject the save button if not already present.
-   * @param {string} platform
-   */
-  function injectSaveButton(platform) {
-    if (document.getElementById(BUTTON_ID)) return; // already injected
-    const btn = createSaveButton(platform);
-    document.body.appendChild(btn);
-    console.log(`bAInder: Save button injected for ${platform}`);
-  }
-
-  /** Remove the save button (called before reinject on SPA navigation). */
-  function removeSaveButton() {
-    const existing = document.getElementById(BUTTON_ID);
-    if (existing) existing.remove();
-  }
-
-  // ─── Save Flow ─────────────────────────────────────────────────────────────
-
-  /**
-   * Temporarily change button text/style to give visual feedback.
-   * @param {HTMLButtonElement} btn
-   * @param {'loading'|'success'|'error'|'empty'|'default'} state
-   */
-  function setButtonState(btn, s, detail) {
-    if (!btn) return;
-    const errorText = detail ? `❌ ${String(detail).slice(0, 28)}` : '❌ Error';
-    const states = {
-      loading:      { text: '⏳ Saving...',          bg: '#6366f1', disabled: true  },
-      success:      { text: '✅ Saved!',              bg: '#16a34a', disabled: true  },
-      error:        { text: errorText,                bg: '#dc2626', disabled: false },
-      empty:        { text: '⚠️ No chat yet',        bg: '#d97706', disabled: false },
-      'ctx-lost':   { text: '⚠️ Reload page',        bg: '#b45309', disabled: true  },
-      default:      { text: '💾 Save to bAInder',    bg: '#4f46e5', disabled: false }
-    };
-    const st = states[s] || states.default;
-    btn.textContent      = st.text;
-    btn.style.background = st.bg;
-    btn.disabled         = st.disabled;
-
-    if (s === 'success' || s === 'error' || s === 'empty') {
-      setTimeout(() => setButtonState(btn, 'default'), 3500);
-    }
-    // 'ctx-lost' intentionally does NOT auto-reset — the page must be reloaded.
-  }
-
-  /**
-   * Handle button click: extract → send to background → show feedback.
-   */
-  async function handleSaveClick() {
-    const btn      = document.getElementById(BUTTON_ID);
-    const platform = detectPlatform(window.location.hostname);
-    if (!platform) return;
-
-    setButtonState(btn, 'loading');
-
-    try {
-      // ── On-demand Designer image pre-capture ────────────────────────────────
-      // Capture any Designer iframes not yet in the cache before extracting the
-      // full chat. Each capture scrolls the iframe into view first so the
-      // screenshot is correct regardless of the current scroll position.
-      const designerIframes = document.querySelectorAll(
-        'iframe[name="Microsoft Designer"], iframe[aria-label="Microsoft Designer"]'
-      );
-      const capturePromises = [];
-      for (const iframe of designerIframes) {
-        try {
-          const u = new URL(iframe.src);
-          const iframeid = u.searchParams.get('iframeid') || u.searchParams.get('correlationId');
-          if (!iframeid) continue;
-          if (window.__bAInderDesignerImages?.[iframeid]) continue; // already cached
-          console.log('[bAInder] On-demand capture for Designer iframe (save)', iframeid);
-          capturePromises.push(captureDesignerIframe(iframeid, iframe));
-        } catch (_) {}
-      }
-      if (capturePromises.length > 0) {
-        // Wait up to 8 s (scroll + repaint + round-trip per image); continue regardless
-        await Promise.race([
-          Promise.all(capturePromises),
-          new Promise(r => setTimeout(r, 8000))
-        ]);
-      }
-
-      const chatData    = extractChat(platform, document);
-      if (chatData.messageCount === 0) {
-        setButtonState(btn, 'empty');
-        return;
-      }
-
-      const savePayload = prepareChatForSave(chatData);
-      const response    = await sendMessage({ type: 'SAVE_CHAT', data: savePayload });
-
-      if (response && response.success) {
-        setButtonState(btn, 'success');
-        console.log('bAInder: Chat saved successfully', response.data);
-      } else {
-        throw new Error((response && response.error) || 'Unknown error');
-      }
-    } catch (err) {
-      if (/context (lost|invalidated)/i.test(err.message)) {
-        setButtonState(btn, 'ctx-lost');
-        console.warn('bAInder: Extension context invalidated — page must be reloaded', err);
-      } else {
-        setButtonState(btn, 'error', err.message);
-        console.error('bAInder: Failed to save chat', err);
-      }
-    }
-  }
-
   // ─── Selection pre-capture for excerpt saves ───────────────────────────────
   // Chrome clears the page selection by the time a context menu item is clicked.
   // On right-click we immediately push the rich markdown to the background script
@@ -866,7 +707,6 @@
     if (currentUrl === lastUrl) return;
     console.log('bAInder: URL change detected', { from: lastUrl, to: currentUrl });
     lastUrl = currentUrl;
-    removeSaveButton();
     initContentScript();
   }
 
@@ -891,7 +731,6 @@
       return;
     }
     console.log(`bAInder: Detected platform - ${platform}`);
-    injectSaveButton(platform);
     console.log('bAInder: Content script ready');
   }
 

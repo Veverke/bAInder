@@ -255,9 +255,12 @@ export class TreeRenderer {
     });
     nodeContent.appendChild(topicMoreBtn);
 
-    // Click handler for selection
+    // Click handler for selection + expand/collapse
     nodeContent.addEventListener('click', () => {
       this.selectNode(topic.id);
+      if (hasChildren) {
+        this.toggleNode(topic.id);
+      }
       if (this.onTopicClick) {
         this.onTopicClick(topic);
       }
@@ -469,8 +472,11 @@ export class TreeRenderer {
     });
     content.appendChild(chatMoreBtn);
 
-    // Click → open original chat URL + ripple effect (A6)
-    content.addEventListener('click', (e) => {
+    // Click → open saved chat in reader (A6)
+    // Listen on `li` (the entire row) so any click within the row fires —
+    // including clicks on the label text, date badge, tags, or any padding area.
+    // The ⋮ more-btn calls e.stopPropagation() so it never reaches here.
+    li.addEventListener('click', (e) => {
       const ripple = document.createElement('span');
       ripple.className = 'tree-ripple';
       const rect  = content.getBoundingClientRect();

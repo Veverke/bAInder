@@ -75,6 +75,116 @@ export function clusterNotes(notes) {
   return clusters;
 }
 
+// ─── Markdown toolbar helpers ─────────────────────────────────────────────────
+
+/**
+ * Wrap the current textarea selection with prefix/suffix.
+ * If nothing is selected, inserts `prefix + defaultText + suffix` and
+ * selects the defaultText so the user can immediately type over it.
+ * Dispatches a synthetic `input` event to trigger auto-save.
+ *
+ * @param {HTMLTextAreaElement} ta
+ * @param {string} prefix
+ * @param {string} suffix
+ * @param {string} [defaultText]
+ */
+export function wrapSelection(ta, prefix, suffix, defaultText = '') {
+  const { selectionStart: ss, selectionEnd: se, value } = ta;
+  const selected = value.slice(ss, se) || defaultText;
+  const before   = value.slice(0, ss);
+  const after    = value.slice(se);
+  ta.value = `${before}${prefix}${selected}${suffix}${after}`;
+  // If we used the default text, select it so the user can type over it.
+  // If there was a selection, keep the selection around the wrapped content.
+  const cursorStart = ss + prefix.length;
+  const cursorEnd   = cursorStart + selected.length;
+  ta.setSelectionRange(cursorStart, cursorEnd);
+  ta.focus();
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/**
+ * Wrap the current textarea selection as a Markdown link `[text](url)`.
+ * After insertion the `https://` URL placeholder is selected so the user
+ * can type the URL without extra navigation.
+ * Dispatches a synthetic `input` event to trigger auto-save.
+ *
+ * @param {HTMLTextAreaElement} ta
+ */
+export function wrapLink(ta) {
+  const { selectionStart: ss, selectionEnd: se, value } = ta;
+  const selected       = value.slice(ss, se) || 'link text';
+  const urlPlaceholder = 'https://';
+  const before         = value.slice(0, ss);
+  const after          = value.slice(se);
+  ta.value = `${before}[${selected}](${urlPlaceholder})${after}`;
+  // Select just the URL placeholder: position = ss + 1 (for '[') + selected.length + 2 (for '](')
+  const urlStart = ss + 1 + selected.length + 2;
+  ta.setSelectionRange(urlStart, urlStart + urlPlaceholder.length);
+  ta.focus();
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/**
+ * Build the formatting toolbar element for a note textarea.
+ * @param {HTMLTextAreaElement} ta
+ * @returns {HTMLElement}
+ */
+/**
+ * Build the formatting toolbar element for a note textarea.
+ * @param {HTMLTextAreaElement} ta
+ * @param {Function} [onPreview]  — called when the Preview button is clicked
+ * @returns {HTMLElement}
+ */
+function buildToolbar(ta, onPreview) {
+  const toolbar = document.createElement('div');
+  toolbar.className = 'sticky-note__toolbar';
+
+  const buttons = [
+    { label: 'B',    title: 'Bold',        fn: () => wrapSelection(ta, '**', '**', 'bold text')  },
+    { label: 'I',    title: 'Italic',      fn: () => wrapSelection(ta, '*',  '*',  'italic text') },
+    { label: '`',    title: 'Inline code', fn: () => wrapSelection(ta, '`',  '`',  'code')        },
+    { label: '🔗',   title: 'Link',        fn: () => wrapLink(ta)                                 },
+    { label: '</>',  title: 'Code block',  fn: () => wrapSelection(ta, '```\n', '\n```', 'code here') },
+  ];
+
+  for (const { label, title, fn } of buttons) {
+    const btn = document.createElement('button');
+    btn.className = 'sticky-note__toolbar-btn';
+    btn.textContent = label;
+    btn.title = title;
+    btn.setAttribute('aria-label', title);
+    btn.type = 'button';
+    btn.addEventListener('mousedown', (e) => {
+      // Prevent the textarea from losing focus on button click
+      e.preventDefault();
+      fn();
+    });
+    toolbar.appendChild(btn);
+  }
+
+  // ── Preview button (right-aligned) ────────────────────────────────────
+  if (onPreview) {
+    const sep = document.createElement('span');
+    sep.className = 'sticky-note__toolbar-sep';
+    toolbar.appendChild(sep);
+
+    const previewBtn = document.createElement('button');
+    previewBtn.className = 'sticky-note__toolbar-btn sticky-note__toolbar-btn--preview';
+    previewBtn.textContent = '👁 Preview';
+    previewBtn.title = 'Preview rendered markdown';
+    previewBtn.setAttribute('aria-label', 'Preview');
+    previewBtn.type = 'button';
+    previewBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      onPreview();
+    });
+    toolbar.appendChild(previewBtn);
+  }
+
+  return toolbar;
+}
+
 // ─── Note overlay ─────────────────────────────────────────────────────────────
 
 /**
@@ -97,6 +207,74 @@ export function buildNoteOverlay(cluster, chatId, storage, onDelete, renderFn) {
   overlay.className = 'sticky-note';
   overlay.dataset.clusterId = cluster[0].id;
   overlay.style.top = `${cluster[0].anchorPageY}px`;
+
+  // If this cluster was previously dragged, restore the saved X position.
+  // Otherwise leave 'right' to the CSS default (right-of-content rule).
+  if (cluster[0].anchorPageX != null) {
+    overlay.style.left  = `${cluster[0].anchorPageX}px`;
+    overlay.style.right = 'auto';
+  }
+
+  // ── Drag-to-move ──────────────────────────────────────────────────────────
+  /**
+   * Attach pointer-capture drag to a header element.
+   * Called at the end of every refresh() because the header is rebuilt then.
+   * @param {HTMLElement} headerEl
+   */
+  function makeDraggable(headerEl) {
+    headerEl.title = 'Drag to move';
+    headerEl.addEventListener('pointerdown', (e) => {
+      // Ignore clicks on interactive children (buttons, inputs)
+      if (e.target.closest('button, input, textarea')) return;
+      e.preventDefault();
+
+      // Snapshot current page-coords position
+      const rect      = overlay.getBoundingClientRect();
+      const startLeft = rect.left + window.scrollX;
+      const startTop  = rect.top  + window.scrollY;
+      const startX    = e.clientX;
+      const startY    = e.clientY;
+
+      // Switch from CSS `right` to explicit `left` so we can position freely
+      overlay.style.left  = `${startLeft}px`;
+      overlay.style.right = 'auto';
+      overlay.style.top   = `${startTop}px`;
+      overlay.classList.add('sticky-note--dragging');
+
+      headerEl.setPointerCapture(e.pointerId);
+
+      function onMove(ev) {
+        overlay.style.left = `${startLeft + (ev.clientX - startX)}px`;
+        overlay.style.top  = `${startTop  + (ev.clientY - startY)}px`;
+      }
+
+      async function onUp(ev) {
+        headerEl.releasePointerCapture(ev.pointerId);
+        headerEl.removeEventListener('pointermove', onMove);
+        headerEl.removeEventListener('pointerup',   onUp);
+        overlay.classList.remove('sticky-note--dragging');
+
+        const newLeft = parseFloat(overlay.style.left);
+        const newTop  = parseFloat(overlay.style.top);
+
+        // Clamp horizontally so the note stays within the page
+        const maxLeft     = Math.max(0, document.body.offsetWidth - overlay.offsetWidth - 8);
+        const clampedLeft = Math.max(8, Math.min(newLeft, maxLeft));
+        overlay.style.left = `${clampedLeft}px`;
+
+        // Persist new position for every note in this cluster
+        for (const note of cluster) {
+          note.anchorPageY = newTop;
+          note.anchorPageX = clampedLeft;
+          await updateStickyNote(chatId, note.id,
+            { anchorPageY: newTop, anchorPageX: clampedLeft }, storage);
+        }
+      }
+
+      headerEl.addEventListener('pointermove', onMove);
+      headerEl.addEventListener('pointerup',   onUp);
+    });
+  }
 
   function refresh() {
     overlay.innerHTML = '';
@@ -206,6 +384,7 @@ export function buildNoteOverlay(cluster, chatId, storage, onDelete, renderFn) {
         await updateStickyNote(chatId, note.id, { content: ta.value }, storage);
       });
 
+      body.appendChild(buildToolbar(ta, () => { isPreview = true; refresh(); }));
       body.appendChild(ta);
       // Auto-focus the textarea for new / edit mode
       requestAnimationFrame(() => ta.focus());
@@ -218,6 +397,9 @@ export function buildNoteOverlay(cluster, chatId, storage, onDelete, renderFn) {
       isPreview = !isPreview;
       refresh();
     });
+
+    // ── Drag handle (re-wired every refresh because header is rebuilt) ──
+    makeDraggable(header);
   }
 
   refresh();

@@ -108,39 +108,56 @@ export function badgeClass(source, isExcerpt) {
 
 /**
  * Apply inline markdown formatting to a text segment.
- * Handles: **bold**, *italic*, _italic_, `inline code`, ![alt](src) images.
+ * Handles: **bold**, *italic*, _italic_, `inline code`, ![alt](src) images,
+ *          [text](url) links, and bare https?:// URLs (auto-linked).
  * Input text must already be HTML-escaped.
  * @param {string} escaped  HTML-escaped text
  * @returns {string}  HTML with inline elements applied
  */
 export function applyInline(escaped) {
-  // Protect inline code spans first (use null-byte placeholders so bold/italic
-  // regexes cannot accidentally match content inside backtick spans)
+  // ── Pass 1: protect inline code spans (\x00 placeholders) ──────────────
+  // These must be shielded earliest so nothing inside backticks gets parsed.
   const codeMap = [];
   let s = escaped.replace(/`([^`]+)`/g, (_, code) => {
     codeMap.push(`<code>${code}</code>`);
     return `\x00${codeMap.length - 1}\x00`;
   });
 
+  // ── Pass 2: protect images + explicit markdown links (\x01 placeholders) ─
+  // Shielding them prevents the bare-URL pass from double-linking the href.
+  const linkMap = [];
+  const protect = html => { linkMap.push(html); return `\x01${linkMap.length - 1}\x01`; };
+
   // Inline images ![alt](src) — must come before link handling
   s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) => {
-    // src has already been through escapeHtml so & is already &amp; — keep it
-    return `<img class="chat-image" src="${src}" alt="${alt}" loading="lazy">`;
+    return protect(`<img class="chat-image" src="${src}" alt="${alt}" loading="lazy">`);
   });
 
   // Inline links [text](url)
   s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
-    // href has already been through escapeHtml so & is already &amp; — keep it
-    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    return protect(`<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`);
   });
 
-  // Bold **text** and italic *text* / _text_
+  // ── Pass 3: auto-link bare https?:// URLs ──────────────────────────────
+  // All explicit links/images are placeholders here, so we can't accidentally
+  // double-match inside an href="…" attribute.
+  s = s.replace(/https?:\/\/[^\s<>"\x01]+/g, (url) => {
+    // Trim trailing punctuation chars that are almost certainly sentence
+    // punctuation rather than part of the URL (e.g. "see https://foo.com.")
+    const trimmed  = url.replace(/[.,;:!?)'"\]]+$/, '');
+    const trailing = url.slice(trimmed.length);
+    const display  = trimmed.replace(/&amp;/g, '&'); // human-readable display
+    return protect(`<a href="${trimmed}" target="_blank" rel="noopener noreferrer">${display}</a>`) + trailing;
+  });
+
+  // ── Pass 4: bold / italic ─────────────────────────────────────────────
   s = s
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(/(?<!\w)_([^_]+)_(?!\w)/g, '<em>$1</em>');
 
-  // Restore code spans
+  // ── Restore placeholders (links first, then code) ─────────────────────
+  s = s.replace(/\x01(\d+)\x01/g, (_, i) => linkMap[parseInt(i, 10)]);
   return s.replace(/\x00(\d+)\x00/g, (_, i) => codeMap[parseInt(i, 10)]);
 }
 
@@ -471,11 +488,14 @@ export async function setupAnnotations(chatId, storage) {
 
     pendingRange = serialized;
 
-    // Position toolbar below the selection
-    const rect        = range.getBoundingClientRect();
-    toolbar.style.top  = `${rect.bottom + window.scrollY + 8}px`;
-    toolbar.style.left = `${Math.max(8, rect.left  + window.scrollX)}px`;
-    toolbar.hidden     = false;
+    // Position toolbar ABOVE the selection (toolbar is position:fixed — no scrollY needed)
+    const rect = range.getBoundingClientRect();
+    // Use translateY(-100%) so the toolbar bottom sits 8 px above the selection top.
+    // This avoids needing to measure offsetHeight before the element is visible.
+    toolbar.style.top       = `${Math.max(8, rect.top - 8)}px`;
+    toolbar.style.left      = `${Math.max(8, Math.min(rect.left, window.innerWidth - 240))}px`;
+    toolbar.style.transform = 'translateY(-100%)';
+    toolbar.hidden          = false;
   });
 
   // ── Cancel button ─────────────────────────────────────────────────────────
@@ -626,6 +646,67 @@ export function renderChat(chat) {
   wrapChatTurns(contentEl);
   contentEl.hidden = false;
 
+  // ── Prompts count + hover overlay ─────────────────────────────────────────
+  // Supports two markdown formats produced by the serializer:
+  //   1. Emoji format (current): <p> elements whose text starts with 🙋
+  //   2. Heading format (legacy): .chat-turn--user divs from wrapChatTurns
+  const promptsEl = document.getElementById('meta-prompts');
+  if (promptsEl) {
+    promptsEl.innerHTML = '';
+
+    // Gather user-turn elements and their display text
+    let userTurns; // Array<{ el: Element, text: string }>
+
+    const wrappedEls = Array.from(contentEl.querySelectorAll('.chat-turn--user'));
+    if (wrappedEls.length > 0) {
+      // Legacy heading format
+      userTurns = wrappedEls.map((el, i) => {
+        el.id = `prompt-${i + 1}`;
+        return { el, text: el.querySelector('.chat-turn__body')?.textContent?.trim() || '' };
+      });
+    } else {
+      // Current emoji format: paragraphs that begin with the 🙋 emoji
+      const USER_EMOJI = '\uD83D\uDE4B'; // 🙋
+      const emojiEls = Array.from(contentEl.querySelectorAll('p')).filter(
+        p => p.textContent.trimStart().startsWith(USER_EMOJI)
+      );
+      userTurns = emojiEls.map((el, i) => {
+        el.id = `prompt-${i + 1}`;
+        // Strip the leading 🙋 glyph (may be followed by gender/skin modifiers)
+        // and any surrounding whitespace to obtain a clean snippet.
+        const raw = el.textContent.replace(/^\s*\uD83D\uDE4B[\uD83C\uDFFB-\uD83C\uDFFF\u200D\u2640\u2642\uFE0F]*/u, '').trim();
+        return { el, text: raw };
+      });
+    }
+
+    if (userTurns.length > 0) {
+      const trigger = document.createElement('span');
+      trigger.className = 'meta-prompts__trigger';
+      trigger.textContent = `${userTurns.length} prompt${userTurns.length !== 1 ? 's' : ''}`;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'prompts-overlay';
+      overlay.setAttribute('role', 'list');
+
+      userTurns.forEach(({ text }, i) => {
+        const snippet = text.length > 72 ? text.slice(0, 69) + '\u2026' : text;
+        const a = document.createElement('a');
+        a.href      = `#prompt-${i + 1}`;
+        a.className = 'prompts-overlay__item';
+        a.setAttribute('role', 'listitem');
+        a.title     = text.slice(0, 300);
+        a.innerHTML = `<span class="prompts-overlay__num">${i + 1}.</span> ${escapeHtml(snippet)}`;
+        overlay.appendChild(a);
+      });
+
+      promptsEl.appendChild(trigger);
+      promptsEl.appendChild(overlay);
+      promptsEl.hidden = false;
+    } else {
+      promptsEl.hidden = true;
+    }
+  }
+
   // ── Copy-code button wiring ─────────────────────────────────────────
   // Use event delegation on the content container so no per-button listeners.
   contentEl.addEventListener('click', (e) => {
@@ -646,11 +727,96 @@ export function renderChat(chat) {
 }
 
 /**
+ * Apply theme / skin / accent values directly to <html>.
+ * Shared by the initial load path and the live-update listener.
+ * @param {{ theme?: string, skin?: string, accent?: string }} values
+ */
+export function applySettingsFromValues({ theme, skin, accent } = {}) {
+  const html = document.documentElement;
+
+  // ─ Theme ─────────────────────────────────────────────────────
+  const t = theme || 'light';
+  if (t === 'oled') {
+    html.setAttribute('data-theme', 'dark');
+    html.setAttribute('data-oled', '');
+  } else {
+    html.removeAttribute('data-oled');
+    if (t === 'auto') {
+      const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+      html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    } else {
+      html.setAttribute('data-theme', t);
+    }
+  }
+
+  // ─ Skin ──────────────────────────────────────────────────────
+  if (skin) html.setAttribute('data-skin', skin);
+  else      html.removeAttribute('data-skin');
+
+  // ─ Accent ───────────────────────────────────────────────────
+  if (accent) html.setAttribute('data-accent', accent);
+  else        html.removeAttribute('data-accent');
+}
+
+/**
+ * Apply the stored theme / skin / accent to <html> so themes.css and skins.css
+ * tokens are active before the first render pass.
+ * Injectable storage object is the same one used by init().
+ * @param {Object} storage
+ */
+export async function applyReaderSettings(storage) {
+  try {
+    const result = await storage.get(['theme', 'skin', 'accent']);
+    applySettingsFromValues(result);
+  } catch (_) {
+    // Non-fatal — fall back to :root defaults
+  }
+}
+
+/**
+ * Register a chrome.storage.onChanged listener so if the user changes the
+ * theme / skin / accent in the sidepanel settings while a reader tab is open,
+ * the reader page updates instantly without a reload.
+ *
+ * Safe no-op when chrome.storage.onChanged is unavailable (unit tests).
+ */
+export function watchReaderSettings() {
+  /* c8 ignore next */
+  if (typeof chrome === 'undefined' || !chrome.storage?.onChanged) return;
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (!('theme' in changes) && !('skin' in changes) && !('accent' in changes)) return;
+
+    // Build a partial values object from only the keys that changed
+    const updated = {};
+    if ('theme'  in changes) updated.theme  = changes.theme.newValue;
+    if ('skin'   in changes) updated.skin   = changes.skin.newValue;
+    if ('accent' in changes) updated.accent = changes.accent.newValue;
+
+    // For unchanged keys we keep the current attribute value so we don’t
+    // accidentally reset e.g. skin when only theme changed.
+    if (!('theme' in updated)) {
+      updated.theme = document.documentElement.getAttribute('data-theme') || 'light';
+      // Restore 'oled' label when the special data-oled attr is set
+      if (document.documentElement.hasAttribute('data-oled')) updated.theme = 'oled';
+    }
+    if (!('skin'   in updated)) updated.skin   = document.documentElement.getAttribute('data-skin')   || '';
+    if (!('accent' in updated)) updated.accent = document.documentElement.getAttribute('data-accent') || '';
+
+    applySettingsFromValues(updated);
+  });
+}
+
+/**
  * Main entry point — reads chatId from URL, loads from storage, renders.
  * @param {Object} storage  Object with a `.get(keys)` method — injectable for testing
  */
 export async function init(storage) {
   try {
+    // Apply theme/skin/accent first so the page never flashes unstyled.
+    await applyReaderSettings(storage);
+
     const params  = new URLSearchParams(window.location.search);
     const chatId  = params.get('chatId');
 
@@ -680,7 +846,8 @@ export async function init(storage) {
 // ── Auto-run when loaded as a browser extension page ──────────────────────────
 // Only run when the actual reader DOM (reader-content element) is present.
 // This guard prevents accidental execution when reader.js is imported in tests.
-/* c8 ignore next 3 */
+/* c8 ignore next 4 */
 if (typeof chrome !== 'undefined' && chrome.storage && document.getElementById('reader-content')) {
   init(chrome.storage.local);
+  watchReaderSettings();
 }

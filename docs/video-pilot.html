@@ -1,0 +1,1930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>bAInder — Video Pilot Animatic</title>
+<style>
+/* ── Reset & base ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f0f11;
+  --surface: #1a1a1f;
+  --surface2: #25252d;
+  --border: #2e2e3a;
+  --text: #e8e8f0;
+  --mute: #888899;
+  --accent: #7c6af7;
+  --accent2: #a78bfa;
+  --green: #34d399;
+  --rose: #f87171;
+  --amber: #fbbf24;
+  --teal: #2dd4bf;
+  --blue: #60a5fa;
+  --radius: 8px;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  gap: 12px;
+}
+
+/* ── Player chrome ────────────────────────────────────────────────── */
+.player-title {
+  font-size: 13px;
+  color: var(--mute);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.player-wrap {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stage-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.scene {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .45s ease;
+  display: flex;
+  flex-direction: column;
+}
+.scene.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Narrator bar ─────────────────────────────────────────────────── */
+.narrator {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,.82));
+  padding: 28px 32px 12px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: #eee;
+  z-index: 10;
+  text-align: center;
+  font-style: italic;
+}
+.narrator em { font-style: normal; color: var(--accent2); font-weight: 600; }
+
+/* ── Controls strip ───────────────────────────────────────────────── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.progress-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.progress-bar {
+  width: 100%;
+  height: 5px;
+  background: var(--surface2);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width .3s linear;
+  width: 0%;
+}
+.chapter-label {
+  font-size: 11px;
+  color: var(--mute);
+}
+.btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.btn:hover { background: var(--surface); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent2); }
+.time-display { font-size: 12px; color: var(--mute); min-width: 54px; text-align: right; }
+
+/* ── Chapter grid ─────────────────────────────────────────────────── */
+.chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ch-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--mute);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.ch-btn:hover { border-color: var(--accent); color: var(--text); }
+.ch-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ════════════════════════════════════════════════
+   SCENE BACKGROUNDS & LAYOUTS
+   ════════════════════════════════════════════════ */
+
+/* Title cards */
+.scene-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 60% 40%, #29204a 0%, #0a0a10 70%);
+  gap: 12px;
+  text-align: center;
+  padding: 32px;
+}
+.scene-title .logo {
+  font-size: 52px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  background: linear-gradient(135deg, var(--accent2), var(--teal));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.scene-title .sub {
+  font-size: 18px;
+  color: var(--mute);
+  font-weight: 400;
+}
+.scene-title .part-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  border-radius: 99px;
+  margin-top: 6px;
+}
+.scene-title .tagline {
+  font-size: 15px;
+  color: #ccc;
+  max-width: 480px;
+  line-height: 1.6;
+}
+
+/* 2-column chrome+panel or page+panel layout */
+.layout-two {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  background: #1e1e2e;
+  overflow: hidden;
+}
+.layout-two.flipped { grid-template-columns: 260px 1fr; }
+.main-area {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #1a1a27;
+  border-right: 1px solid #2a2a3a;
+}
+.panel-area {
+  display: flex;
+  flex-direction: column;
+  background: #141420;
+  overflow: hidden;
+}
+
+/* ── Mock browser chrome ── */
+.browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #111118;
+  padding: 6px 12px;
+  border-bottom: 1px solid #2a2a3a;
+  flex-shrink: 0;
+}
+.browser-dots { display: flex; gap: 4px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; }
+.d-red { background:#e45; } .d-yellow { background:#fa3; } .d-green { background:#3b3; }
+.browser-url {
+  flex: 1;
+  background: #1c1c28;
+  border: 1px solid #2e2e3a;
+  border-radius: 5px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: #7a7a9a;
+}
+.ext-icon {
+  width: 20px; height: 20px;
+  background: linear-gradient(135deg, var(--accent), var(--teal));
+  border-radius: 4px;
+  font-size: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 12px rgba(124,106,247,.5);
+}
+
+/* ── Extensions page ── */
+.ext-page {
+  flex: 1;
+  background: #1a1a27;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+.ext-page-h { font-size: 17px; font-weight: 600; color: #ccc; border-bottom: 1px solid #2a2a3a; padding-bottom: 10px; display:flex; justify-content:space-between; align-items:center; }
+.dev-toggle { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--mute); }
+.toggle { width:30px;height:16px;background:var(--accent);border-radius:99px;position:relative; }
+.toggle::after { content:''; width:12px;height:12px;background:#fff;border-radius:50%;position:absolute;top:2px;right:2px;transition:right .2s; }
+.ext-card { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; align-items:center; gap:12px; }
+.ext-card-icon { width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--teal));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff; }
+.ext-card-info { flex:1; }
+.ext-card-name { font-size:13px;font-weight:600; }
+.ext-card-desc { font-size:11px;color:var(--mute);margin-top:2px; }
+.ext-card-badge { font-size:10px;background:var(--accent);color:#fff;padding:2px 8px;border-radius:99px; }
+.btn-load { background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600; }
+.highlight-box { outline:2px solid var(--amber); outline-offset:3px; animation: pulse-outline 1s ease-in-out infinite; border-radius:8px; }
+@keyframes pulse-outline { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── ChatGPT mock ── */
+.chatgpt-page {
+  flex:1;
+  background: #212121;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chatgpt-header {
+  background: #171717;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #eee;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gpt-logo { font-size: 16px; }
+.chatgpt-messages {
+  flex:1;
+  overflow: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.msg { display:flex; gap:8px; }
+.msg-avatar { width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700; }
+.msg-u .msg-avatar { background:#7c6af7;color:#fff; }
+.msg-a .msg-avatar { background:#1aa571;color:#fff; }
+.msg-bubble { background:#2a2a2a;border-radius:8px;padding:8px 12px;font-size:12px;color:#ddd;line-height:1.5;max-width:85%; }
+.msg-u .msg-bubble { background:#303030; }
+
+/* ── Side panel mock ── */
+.panel-header {
+  background: #1a1a26;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2a2a3a;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.panel-brand { font-size:13px;font-weight:700;color:var(--accent2);letter-spacing:-.01em; display:flex;align-items:center;gap:6px; justify-content:space-between;}
+.panel-brand-icons { display:flex;gap:5px; }
+.icon-btn-sm { width:22px;height:22px;background:var(--surface2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mute);cursor:pointer;border:1px solid var(--border); }
+.search-row { display:flex;align-items:center;gap:6px;background:var(--surface2);border-radius:6px;padding:5px 8px;border:1px solid var(--border); }
+.search-row span { font-size:11px;color:var(--mute); }
+.panel-body { flex:1;overflow:hidden;padding:8px; }
+.recent-rail { display:flex;gap:6px;overflow:hidden;margin-bottom:8px; }
+.chip { background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:3px 9px;font-size:10px;color:#bbb;white-space:nowrap; }
+.chip.new { border-color:var(--accent);background:#1f1a36;color:var(--accent2); }
+.topic-node { display:flex;flex-direction:column;gap:2px; }
+.topic-row { display:flex;align-items:center;gap:5px;padding:4px 5px;border-radius:6px;cursor:pointer; }
+.topic-row:hover { background:var(--surface2); }
+.topic-row.selected { background:#1e1a36;border-left:2px solid var(--accent); }
+.topic-icon { font-size:12px; }
+.topic-name { font-size:12px;flex:1;color:#ccc; }
+.badge { background:var(--surface2);border-radius:4px;padding:1px 5px;font-size:9.5px;color:var(--mute); }
+.badge.count { background:#1e1a36;color:var(--accent2); }
+.children { padding-left:14px;display:flex;flex-direction:column;gap:1px; }
+.chat-row { display:flex;align-items:center;gap:5px;padding:3px 5px 3px 6px;border-radius:5px;font-size:11px;color:#aaa;cursor:pointer; }
+.chat-row:hover { background:var(--surface2); }
+.chat-row.new-flash { animation: flash-green .8s ease-out; }
+@keyframes flash-green { 0%{background:#14301f} 100%{background:transparent} }
+.tag-chip { background:#1e1a30;border:1px solid #3a2e60;border-radius:99px;padding:1px 6px;font-size:9px;color:var(--accent2);margin-left:2px; }
+.tag-chip.teal { background:#0e2a26;border-color:#1a4a42;color:var(--teal); }
+.tag-chip.rose { background:#2a1020;border-color:#4a1828;color:var(--rose); }
+.tag-chip.amber { background:#2a1e08;border-color:#4a3010;color:var(--amber); }
+.sparkline { display:flex;align-items:flex-end;gap:2px;height:18px; }
+.spark-bar { width:7px;background:var(--accent);border-radius:2px 2px 0 0;opacity:.55; }
+.spark-bar.hi { opacity:1; }
+.pinned-star { color:var(--amber);font-size:10px; }
+.storage-bar { margin:auto 0 0;padding:8px;border-top:1px solid var(--border); }
+.storage-label { font-size:10px;color:var(--mute);margin-bottom:4px; }
+.storage-track { height:4px;background:var(--surface2);border-radius:2px; }
+.storage-fill { height:100%;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:2px;width:34%; }
+.item-count { font-size:9.5px;color:var(--mute);margin-top:3px; }
+
+/* ── Save button overlay ── */
+.save-banner {
+  background: linear-gradient(90deg,#29204a,#1a1a27);
+  border-top: 1px solid var(--border);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--mute);
+  flex-shrink: 0;
+}
+.save-btn { background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap; }
+
+/* ── Dialog overlay ── */
+.dialog-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+.dialog-box {
+  background: #1f1f2e;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+.dialog-title { font-size:14px;font-weight:700;color:#e8e8f0; }
+.field-label { font-size:11px;color:var(--mute);margin-bottom:4px; }
+.field-input { background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;color:#e8e8f0;width:100%; }
+.field-input.focused { border-color:var(--accent); }
+.select-input { background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;color:#e8e8f0;width:100%; }
+.tags-input { display:flex;flex-wrap:wrap;gap:5px;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:12px;color:#e8e8f0;min-height:32px; }
+.inline-chip { background:#1e1a36;border:1px solid #3a2e60;color:var(--accent2);border-radius:99px;padding:2px 8px;font-size:11px; }
+.dialog-actions { display:flex;justify-content:flex-end;gap:8px; }
+.btn-sm { border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer; }
+.btn-sm.save { background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600; }
+
+/* ── Callout arrow annotation ── */
+.callout {
+  position: absolute;
+  background: #29204a;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  color: var(--accent2);
+  white-space: nowrap;
+  z-index: 8;
+  pointer-events: none;
+  animation: pop-in .4s cubic-bezier(.175,.885,.32,1.275);
+}
+@keyframes pop-in { from{opacity:0;transform:scale(.8)} to{opacity:1;transform:scale(1)} }
+
+/* ── Reader view ── */
+.reader-page {
+  flex:1;
+  background: #1a1a28;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.reader-topbar {
+  background: #111118;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #2a2a3a;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.reader-topbar-title { flex:1;color:#ccc;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.reader-body {
+  flex:1;
+  overflow: hidden;
+  padding: 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.reader-turn { display:flex;flex-direction:column;gap:4px; }
+.reader-role { font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase; color:var(--accent2); }
+.reader-role.assistant { color:var(--teal); }
+.reader-content { font-size:12.5px;color:#ccc;line-height:1.7; }
+.sticky-note {
+  position:absolute;
+  background:#2d2008;
+  border:1px solid var(--amber);
+  border-left:3px solid var(--amber);
+  border-radius:6px;
+  padding:8px 10px;
+  font-size:11.5px;
+  color:#f5d070;
+  width:190px;
+  box-shadow: 3px 3px 15px rgba(0,0,0,.5);
+  line-height:1.5;
+  z-index:5;
+}
+.sticky-note .sn-header { font-size:9.5px;color:var(--amber);opacity:.7;margin-bottom:4px;display:flex;justify-content:space-between; }
+.sticky-note .sn-del { cursor:pointer;color:#f87171; font-size:10px; }
+
+/* ── Search results ── */
+.search-results { display:flex;flex-direction:column;gap:5px;overflow:hidden; }
+.result-card { background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:11px;color:#bbb;cursor:pointer;transition:border-color .15s; }
+.result-card:hover { border-color:var(--accent); }
+.result-card-title { font-size:12px;font-weight:600;color:#ddd;margin-bottom:3px; }
+.result-snippet { line-height:1.5; }
+.result-snippet .hl { background:#3a2e10;color:var(--amber);border-radius:3px;padding:0 3px; }
+.result-snippet .hl.tag { background:#1e1a36;color:var(--accent2); }
+.breadcrumb { font-size:10px;color:var(--mute);margin-top:4px; }
+
+/* ── Context menu ── */
+.ctx-menu {
+  position: absolute;
+  background: #1f1f2d;
+  border: 1px solid #3a3a50;
+  border-radius: 8px;
+  padding: 4px 0;
+  min-width: 160px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  z-index: 9;
+  animation: pop-in .2s ease-out;
+}
+.ctx-item {
+  padding: 7px 14px;
+  font-size: 12px;
+  color: #bbb;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ctx-item:hover { background:#2a2a3e; color:#fff; }
+.ctx-item.danger:hover { background:#2a1020; color:var(--rose); }
+.ctx-sep { height:1px;background:#2e2e3e;margin:3px 0; }
+
+/* ── Drag visual ── */
+.drag-ghost {
+  position: absolute;
+  background: #1e1a36;
+  border: 1.5px dashed var(--accent);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--accent2);
+  pointer-events: none;
+  opacity: .85;
+  z-index: 9;
+  transition: top .6s ease, left .6s ease;
+}
+.drop-target { outline:2px solid var(--teal); outline-offset:2px; border-radius:5px; }
+
+/* ── Settings panel ── */
+.settings-pane {
+  flex:1;
+  background:#1a1a28;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.settings-header { padding:12px 16px;font-size:14px;font-weight:700;border-bottom:1px solid var(--border);color:#ddd; }
+.settings-body { flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:14px;overflow:hidden; }
+.settings-section { display:flex;flex-direction:column;gap:8px; }
+.settings-section-title { font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.1em;font-weight:600; }
+.theme-grid { display:flex;gap:8px; }
+.theme-swatch {
+  display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;
+}
+.theme-preview { width:44px;height:30px;border-radius:5px;border:2px solid var(--border);transition:border-color .15s; }
+.theme-preview.active { border-color:var(--accent); }
+.theme-preview.light { background:#f8f9fa; }
+.theme-preview.dark { background:#1a1a2e; }
+.theme-preview.oled { background:#000; }
+.theme-preview.auto { background:linear-gradient(135deg,#f8f9fa 50%,#1a1a2e 50%); }
+.theme-name { font-size:10px;color:var(--mute); }
+.skin-btns { display:flex;gap:5px;flex-wrap:wrap; }
+.skin-btn { background:var(--surface2);border:1px solid var(--border);color:var(--mute);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer; }
+.skin-btn.active { border-color:var(--accent);color:var(--accent2);background:#1e1a36; }
+.accent-dots { display:flex;gap:8px; }
+.accent-dot { width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent; }
+.accent-dot.active { border-color:#fff; }
+.panel-live { background:#141420;border:1px solid var(--border);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:5px; }
+.panel-live-row { display:flex;align-items:center;gap:6px;font-size:11px;color:#bbb; }
+.panel-live-btn { border-radius:5px;padding:3px 10px;font-size:11px;border:1px solid var(--border);background:var(--surface2);color:#bbb;cursor:pointer; }
+.panel-live-btn.accent { background:var(--accent);border-color:var(--accent);color:#fff; }
+
+/* ── Export and import dialogs ── */
+.export-formats { display:flex;gap:8px; }
+.fmt-btn { flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;cursor:pointer;font-size:11px;color:#bbb;transition:all .15s; }
+.fmt-btn.active { border-color:var(--accent);background:#1e1a36;color:var(--accent2); }
+.import-summary { background:#0d2010;border:1px solid #1a4020;border-radius:7px;padding:8px 12px;font-size:11.5px;color:var(--green);line-height:1.7; }
+
+/* ── Full-width layout for reader ── */
+.layout-full { flex:1;display:flex;flex-direction:column;overflow:hidden; }
+
+/* ── Sparkline callout ── */
+.sparkline-callout { position:absolute;background:rgba(20,20,30,.95);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--text);pointer-events:none;z-index:9; }
+
+/* ── Timers progress micro bar inside progress area ── */
+.scene-timer { height:2px;background:var(--accent);border-radius:1px;width:0%;transition:width linear; }
+
+/* ── Fullscreen ───────────────────────────────────────────────────── */
+.btn-fs { font-size:14px; min-width:34px; padding:6px 10px; }
+:fullscreen .player-wrap { max-width:100%; width:100%; height:100vh; padding:0; justify-content:center; }
+:fullscreen body { padding:0; justify-content:stretch; }
+:fullscreen .stage-box { border-radius:0; border:none; }
+:fullscreen .player-title { display:none; }
+
+/* ── Animated cursor ──────────────────────────────────────────────── */
+#animCursor {
+  position:absolute;
+  width:22px; height:22px;
+  pointer-events:none;
+  z-index:20;
+  transform:translate(-2px,-2px);
+  /* NO CSS transition — JS lerp drives all motion */
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));
+}
+#animCursor svg { width:100%; height:100%; }
+
+/* ── Click ripple ─────────────────────────────────────────────────── */
+.click-ripple {
+  position:absolute;
+  width:28px; height:28px;
+  border-radius:50%;
+  border:2px solid var(--accent2);
+  background:rgba(167,139,250,.18);
+  pointer-events:none;
+  z-index:19;
+  transform:translate(-50%,-50%) scale(0);
+  animation:ripple-out .5s ease-out forwards;
+}
+@keyframes ripple-out {
+  0%  { transform:translate(-50%,-50%) scale(0); opacity:1; }
+  60% { transform:translate(-50%,-50%) scale(1.4); opacity:.6; }
+  100%{ transform:translate(-50%,-50%) scale(2.2); opacity:0; }
+}
+/* cursor label tooltip */
+#cursorLabel {
+  position:absolute;
+  background:rgba(20,18,40,.92);
+  border:1px solid var(--accent);
+  color:var(--accent2);
+  font-size:11px;
+  padding:3px 9px;
+  border-radius:5px;
+  pointer-events:none;
+  z-index:21;
+  white-space:nowrap;
+  opacity:0;
+  transition:opacity .25s;
+}
+#cursorLabel.visible { opacity:1; }
+
+/* ── Action captions ──────────────────────────────────────────────── */
+#actionCaption {
+  position: absolute;
+  top: 10px; left: 50%; transform: translateX(-50%);
+  max-width: 88%;
+  background: rgba(14,12,30,.88);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 7px 16px 7px 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  pointer-events: none;
+  z-index: 15;
+  backdrop-filter: blur(6px);
+  transition: opacity .3s, transform .3s;
+  opacity: 0;
+  transform: translateX(-50%) translateY(-8px);
+}
+#actionCaption.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#actionCaption .cap-step {
+  background: var(--accent);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#actionCaption .cap-text {
+  font-size: 12.5px;
+  color: #e8e8f0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+#actionCaption .cap-text em {
+  color: var(--accent2);
+  font-style: normal;
+  font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<div class="player-title">bAInder — Instructional Video Pilot Animatic</div>
+
+<div class="player-wrap">
+  <div class="stage-box" id="stage">
+
+    <!-- ══ S0: Title card ══════════════════════════════════════════ -->
+    <div class="scene active" id="s0">
+      <div class="scene-title">
+        <div class="logo">bAInder</div>
+        <div class="sub">AI Chat Organizer</div>
+        <div class="tagline">You've had hundreds of great conversations with AI — but where do they go?</div>
+        <div class="part-badge">Part 1 — Core Flows</div>
+      </div>
+      <div class="narrator">Your personal library for every AI conversation that matters.</div>
+    </div>
+
+    <!-- ══ S1: Install ════════════════════════════════════════════ -->
+    <div class="scene" id="s1">
+      <div class="layout-two" style="grid-template-columns:1fr">
+        <div class="main-area">
+          <div class="browser-bar">
+            <div class="browser-dots"><div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div></div>
+            <div class="browser-url">chrome://extensions</div>
+          </div>
+          <div class="ext-page">
+            <div class="ext-page-h">
+              Extensions
+              <div class="dev-toggle"><span>Developer mode</span><div class="toggle"></div></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:4px">
+              <button class="btn-load highlight-box">Load unpacked</button>
+              <button class="btn-load" style="background:var(--surface2);color:#aaa;border:1px solid var(--border)">Pack extension</button>
+            </div>
+            <div class="ext-card highlight-box" style="margin-top:4px">
+              <div class="ext-card-icon">B</div>
+              <div class="ext-card-info">
+                <div class="ext-card-name">bAInder — AI Chat Organizer</div>
+                <div class="ext-card-desc">Save, organise and revisit your AI conversations.</div>
+              </div>
+              <div class="ext-card-badge">Active</div>
+            </div>
+            <div style="font-size:11px;color:var(--mute);margin-top:8px;">📌 Pin the bAInder icon to your toolbar for one-click access.</div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Installing takes under a minute. Enable <em>Developer mode</em>, click <em>Load unpacked</em>, and pin the extension to your toolbar.</div>
+    </div>
+
+    <!-- ══ S2: Save a chat ════════════════════════════════════════ -->
+    <div class="scene" id="s2">
+      <div class="layout-two">
+        <div class="main-area">
+          <div class="browser-bar">
+            <div class="browser-dots"><div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div></div>
+            <div class="browser-url">chatgpt.com/c/abc123</div>
+            <div class="ext-icon highlight-box" title="bAInder">B</div>
+          </div>
+          <div class="chatgpt-page">
+            <div class="chatgpt-header"><span class="gpt-logo">⬡</span> ChatGPT</div>
+            <div class="chatgpt-messages">
+              <div class="msg msg-u">
+                <div class="msg-avatar">U</div>
+                <div class="msg-bubble">Can you help me optimise this React component for performance?</div>
+              </div>
+              <div class="msg msg-a">
+                <div class="msg-avatar">G</div>
+                <div class="msg-bubble">Sure! Let's start with <code>React.memo</code> and <code>useMemo</code>. The key principle is to prevent unnecessary re-renders by memoizing expensive computations…</div>
+              </div>
+              <div class="msg msg-u">
+                <div class="msg-avatar">U</div>
+                <div class="msg-bubble">What about the useCallback hook?</div>
+              </div>
+              <div class="msg msg-a">
+                <div class="msg-avatar">G</div>
+                <div class="msg-bubble">Great question — <code>useCallback</code> memoizes functions so child components that receive them as props won't re-render unless the dependencies change.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-area">
+          <div class="panel-header">
+            <div class="panel-brand">bAInder
+              <div class="panel-brand-icons">
+                <div class="icon-btn-sm">⚙</div>
+              </div>
+            </div>
+            <div class="search-row"><span>🔍</span><span>Search chats and topics…</span></div>
+          </div>
+          <div class="panel-body">
+            <div class="topic-node">
+              <div class="topic-row"><span class="topic-icon">📁</span><span class="topic-name">Work</span><span class="badge count">3</span></div>
+            </div>
+            <div class="topic-node" style="margin-top:4px">
+              <div class="topic-row"><span class="topic-icon">📁</span><span class="topic-name">Learning</span><span class="badge count">2</span></div>
+            </div>
+          </div>
+          <div class="save-banner">
+            <span style="flex:1">ChatGPT conversation detected</span>
+            <button class="save-btn highlight-box">💾 Save to bAInder</button>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">When you're on a ChatGPT page, bAInder detects the conversation. Open the side panel and click <em>Save to bAInder</em>.</div>
+    </div>
+
+    <!-- ══ S3: Assign dialog ══════════════════════════════════════ -->
+    <div class="scene" id="s3">
+      <div class="layout-two">
+        <div class="main-area">
+          <div class="browser-bar">
+            <div class="browser-dots"><div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div></div>
+            <div class="browser-url">chatgpt.com/c/abc123</div>
+          </div>
+          <div class="chatgpt-page" style="filter:blur(1px) brightness(.5)"></div>
+          <div class="dialog-overlay">
+            <div class="dialog-box">
+              <div class="dialog-title">📎 Save Chat</div>
+              <div>
+                <div class="field-label">Title</div>
+                <input class="field-input focused" value="React Performance Optimisation" readonly/>
+              </div>
+              <div>
+                <div class="field-label">Topic</div>
+                <select class="select-input">
+                  <option>Learning / React</option>
+                  <option>Work</option>
+                  <option>+ New topic…</option>
+                </select>
+              </div>
+              <div>
+                <div class="field-label">Tags</div>
+                <div class="tags-input">
+                  <span class="inline-chip">react</span>
+                  <span class="inline-chip" style="background:#0e2a26;border-color:#1a4a42;color:var(--teal)">performance</span>
+                  <span style="font-size:11px;color:var(--mute)">add tag…</span>
+                </div>
+              </div>
+              <div class="dialog-actions">
+                <button class="btn-sm">Cancel</button>
+                <button class="btn-sm save">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-area">
+          <div class="panel-header">
+            <div class="panel-brand">bAInder</div>
+            <div class="search-row"><span>🔍</span><span>Search…</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">A dialog appears — edit the title, choose (or create) a topic, and add free-text <em>tags</em>. Click <em>Save</em> and the chat is filed instantly.</div>
+    </div>
+
+    <!-- ══ S4: Side panel tour ════════════════════════════════════ -->
+    <div class="scene" id="s4">
+      <div class="layout-two">
+        <div class="main-area" style="background:#111118;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:13px;color:var(--mute)">← See the side panel</span>
+        </div>
+        <div class="panel-area" style="position:relative;">
+          <div class="panel-header">
+            <div class="panel-brand">bAInder
+              <div class="panel-brand-icons">
+                <div class="icon-btn-sm">⊞</div>
+                <div class="icon-btn-sm">⊟</div>
+                <div class="icon-btn-sm">⚙</div>
+              </div>
+            </div>
+            <div class="search-row"><span>🔍</span><span>Search chats and topics…</span></div>
+          </div>
+          <div class="panel-body">
+            <!-- recently saved rail -->
+            <div class="recent-rail">
+              <div class="chip new">React Perf…</div>
+              <div class="chip">Async Patterns</div>
+              <div class="chip">SQL Joins</div>
+            </div>
+            <!-- tree -->
+            <div class="topic-node">
+              <div class="topic-row selected"><span class="topic-icon">📁</span><span class="topic-name"><span class="pinned-star">★</span> Learning</span><span class="badge count">5</span></div>
+              <div class="children">
+                <div class="topic-row"><span class="topic-icon">📁</span><span class="topic-name">React</span><span class="badge count">2</span>
+                  <div class="sparkline"><div class="spark-bar" style="height:6px"></div><div class="spark-bar" style="height:10px"></div><div class="spark-bar" style="height:5px"></div><div class="spark-bar hi" style="height:16px"></div><div class="spark-bar" style="height:8px"></div><div class="spark-bar" style="height:12px"></div></div>
+                </div>
+                <div class="children">
+                  <div class="chat-row new-flash">💬 React Performance Optimisation<span class="tag-chip">react</span><span class="tag-chip teal">perf</span></div>
+                  <div class="chat-row">💬 Hooks Deep Dive</div>
+                </div>
+              </div>
+            </div>
+            <div class="topic-node" style="margin-top:4px">
+              <div class="topic-row"><span class="topic-icon">📁</span><span class="topic-name">Work</span><span class="badge count">3</span></div>
+            </div>
+          </div>
+          <div class="storage-bar">
+            <div class="storage-label">Storage used</div>
+            <div class="storage-track"><div class="storage-fill"></div></div>
+            <div class="item-count">7 chats · 4 topics</div>
+          </div>
+          <!-- callouts -->
+          <div class="callout" style="top:47px;right:268px">← recently saved rail</div>
+          <div class="callout" style="top:85px;right:268px">← topic tree with sparklines</div>
+          <div class="callout" style="bottom:42px;right:268px">← storage meter</div>
+        </div>
+      </div>
+      <div class="narrator">The side panel is your library: a <em>Recently Saved</em> rail, a hierarchical topic tree with date ranges and sparklines, and a storage meter at the bottom.</div>
+    </div>
+
+    <!-- ══ S5: Reader view ════════════════════════════════════════ -->
+    <div class="scene" id="s5">
+      <div class="layout-full">
+        <div class="browser-bar" style="background:#111118;border-bottom:1px solid #2a2a3a;">
+          <div class="browser-dots"><div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div></div>
+          <div class="browser-url">chrome-extension://…/reader.html?chatId=abc123</div>
+        </div>
+        <div class="reader-page">
+          <div class="reader-topbar">
+            <span style="color:var(--accent2)">←</span>
+            <span class="reader-topbar-title">React Performance Optimisation</span>
+            <span class="badge">Learning / React</span>
+            <span class="tag-chip">react</span>
+            <span class="tag-chip teal">perf</span>
+          </div>
+          <div class="reader-body">
+            <div class="reader-turn">
+              <div class="reader-role">You</div>
+              <div class="reader-content">Can you help me optimise this React component for performance?</div>
+            </div>
+            <div class="reader-turn">
+              <div class="reader-role assistant">ChatGPT</div>
+              <div class="reader-content">Sure! Let's start with <strong>React.memo</strong> and <strong>useMemo</strong>. The key principle is to prevent unnecessary re-renders by memoizing expensive computations and keeping component references stable between renders.</div>
+            </div>
+            <div class="reader-turn">
+              <div class="reader-role">You</div>
+              <div class="reader-content">What about the useCallback hook?</div>
+            </div>
+            <div class="reader-turn">
+              <div class="reader-role assistant">ChatGPT</div>
+              <div class="reader-content"><strong>useCallback</strong> memoizes function references. Pass it to child components to prevent them from re-rendering whenever the parent updates, as long as the dependency array hasn't changed.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Click any saved chat to open it in the built-in <em>Reader</em> — a clean, distraction-free view of the full conversation.</div>
+    </div>
+
+    <!-- ══ S6: Search ══════════════════════════════════════════════ -->
+    <div class="scene" id="s6">
+      <div class="layout-two">
+        <div class="main-area" style="background:#111118;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:13px;color:var(--mute)">Click a result to open its chat →</span>
+        </div>
+        <div class="panel-area">
+          <div class="panel-header">
+            <div class="panel-brand">bAInder</div>
+            <div class="search-row" style="border-color:var(--accent)"><span>🔍</span><span style="color:#ddd">performance</span></div>
+          </div>
+          <div class="panel-body">
+            <div style="font-size:10px;color:var(--mute);margin-bottom:6px;">3 results</div>
+            <div class="search-results">
+              <div class="result-card">
+                <div class="result-card-title">React Performance Optimisation</div>
+                <div class="result-snippet">…prevent unnecessary re-renders by memoizing expensive <span class="hl">performance</span>-critical computations…</div>
+                <div class="breadcrumb">Learning › React · <span class="hl tag">perf</span></div>
+              </div>
+              <div class="result-card">
+                <div class="result-card-title">Node.js Server Tuning</div>
+                <div class="result-snippet">…cluster mode for <span class="hl">performance</span> gains on multi-core machines…</div>
+                <div class="breadcrumb">Work › Backend</div>
+              </div>
+              <div class="result-card">
+                <div class="result-card-title">CSS Animation Tips</div>
+                <div class="result-snippet">…GPU-composited properties for better rendering <span class="hl">performance</span>…</div>
+                <div class="breadcrumb">Learning › CSS</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Search works across all chats — full text, titles, and tags. Results show a snippet with <em>highlighted matches</em> and the topic breadcrumb. Click to open.</div>
+    </div>
+
+    <!-- ══ S7: Part 1 end card ════════════════════════════════════ -->
+    <div class="scene" id="s7">
+      <div class="scene-title">
+        <div class="logo" style="font-size:32px">Part 1 complete ✓</div>
+        <div class="tagline" style="font-size:16px">Save · Organise · Find</div>
+        <div class="part-badge" style="background:var(--teal)">Part 2 — Advanced Features</div>
+      </div>
+      <div class="narrator">That's the core workflow. Next: advanced features — topic management, drag &amp; drop, sticky notes, export, and themes.</div>
+    </div>
+
+    <!-- ══ S8: Part 2 intro ════════════════════════════════════════ -->
+    <div class="scene" id="s8">
+      <div class="scene-title">
+        <div class="logo">bAInder</div>
+        <div class="sub">Advanced Features</div>
+        <div class="part-badge">Part 2</div>
+        <div class="tagline">Topic management · Tags · Sticky notes · Export/Import · Themes</div>
+      </div>
+      <div class="narrator">Welcome to Part 2. We'll cover everything that turns bAInder into a full knowledge-management tool.</div>
+    </div>
+
+    <!-- ══ S9: Topic management — add ════════════════════════════ -->
+    <div class="scene" id="s9">
+      <div class="layout-two">
+        <div class="main-area" style="background:#111118">
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px">
+            <button class="btn primary highlight-box" style="font-size:13px;">+ Add Topic</button>
+            <span style="font-size:11px;color:var(--mute)">or right-click any topic in the tree</span>
+          </div>
+          <div class="dialog-overlay" style="position:relative;flex:1;">
+            <div class="dialog-box">
+              <div class="dialog-title">➕ New Topic</div>
+              <div><div class="field-label">Name</div><input class="field-input focused" value="TypeScript" readonly/></div>
+              <div>
+                <div class="field-label">Parent topic (optional)</div>
+                <select class="select-input"><option>Learning</option><option>Work</option><option>— None (root) —</option></select>
+              </div>
+              <div class="dialog-actions">
+                <button class="btn-sm">Cancel</button>
+                <button class="btn-sm save">Create</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-area" style="position:relative">
+          <div class="panel-header"><div class="panel-brand">bAInder</div></div>
+          <div class="panel-body">
+            <div class="topic-node">
+              <div class="topic-row selected"><span class="topic-icon">📁</span><span class="topic-name">Learning</span><span class="badge count">5</span></div>
+              <div class="children">
+                <div class="topic-row"><span class="topic-icon">📄</span><span class="topic-name">React</span></div>
+                <div class="topic-row highlight-box" style="animation:pop-in .4s ease-out"><span class="topic-icon">📄</span><span class="topic-name">TypeScript</span><span class="badge" style="background:#0e2020;color:var(--teal)">new</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Click <em>+ Add Topic</em> to create a new folder. Give it a name and optionally nest it under a parent. The topic appears in the tree immediately.</div>
+    </div>
+
+    <!-- ══ S10: Context menu (rename/move/merge) ═══════════════════ -->
+    <div class="scene" id="s10">
+      <div class="layout-two">
+        <div class="main-area" style="background:#111118;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:12px;color:var(--mute)">Right-click any topic →</span>
+        </div>
+        <div class="panel-area" style="position:relative">
+          <div class="panel-header"><div class="panel-brand">bAInder</div></div>
+          <div class="panel-body">
+            <div class="topic-node">
+              <div class="topic-row selected" style="outline:1.5px solid var(--accent);outline-offset:1px"><span class="topic-icon">📁</span><span class="topic-name">Learning</span></div>
+              <div class="children">
+                <div class="topic-row"><span class="topic-icon">📄</span><span class="topic-name">React</span></div>
+                <div class="topic-row"><span class="topic-icon">📄</span><span class="topic-name">TypeScript</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="ctx-menu" style="right:8px;top:80px;">
+            <div class="ctx-item highlight-box">✏️ Rename</div>
+            <div class="ctx-item">↗️ Move to…</div>
+            <div class="ctx-item">🔀 Merge into…</div>
+            <div class="ctx-item">📤 Export</div>
+            <div class="ctx-sep"></div>
+            <div class="ctx-item danger">🗑 Delete</div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Right-clicking any topic opens a context menu: <em>Rename</em>, <em>Move</em>, <em>Merge into</em> another topic, <em>Export</em>, or <em>Delete</em>. Merge is great for cleaning up duplicates.</div>
+    </div>
+
+    <!-- ══ S11: Drag & drop ═══════════════════════════════════════ -->
+    <div class="scene" id="s11">
+      <div class="layout-two">
+        <div class="main-area" style="background:#111118;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px">
+          <div style="font-size:12px;color:var(--mute)">Drag topics or chats to reorganise</div>
+          <div style="display:flex;gap:16px;align-items:center">
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 14px;font-size:12px;color:#ccc">📁 Work</div>
+            <span style="color:var(--accent);font-size:20px">→</span>
+            <div style="background:#1e1a36;border:1.5px solid var(--accent);border-radius:7px;padding:8px 14px;font-size:12px;color:var(--accent2)" class="drop-target">📁 Learning</div>
+          </div>
+        </div>
+        <div class="panel-area" style="position:relative">
+          <div class="panel-header"><div class="panel-brand">bAInder</div></div>
+          <div class="panel-body">
+            <div class="topic-node">
+              <div class="topic-row"><span class="topic-icon">📁</span><span class="topic-name">Learning</span></div>
+              <div class="children">
+                <div class="topic-row drop-target"><span class="topic-icon">📁</span><span class="topic-name">Work</span><span style="font-size:10px;color:var(--teal);margin-left:4px">← drop here</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="drag-ghost" style="bottom:60px;right:40px;">📁 Work</div>
+        </div>
+      </div>
+      <div class="narrator">Everything in the tree is draggable. Drag a topic onto another to nest it, or drag a chat into a different topic — the tree updates instantly.</div>
+    </div>
+
+    <!-- ══ S12: Pin / star ════════════════════════════════════════ -->
+    <div class="scene" id="s12">
+      <div class="layout-two">
+        <div class="main-area" style="background:#111118;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:12px;color:var(--mute)">← Hover to reveal the star</span>
+        </div>
+        <div class="panel-area">
+          <div class="panel-header"><div class="panel-brand">bAInder</div></div>
+          <div class="panel-body">
+            <!-- pinned at top -->
+            <div class="topic-node">
+              <div class="topic-row selected" style="background:#1e1a10;border-left:2px solid var(--amber)">
+                <span class="topic-icon">📁</span>
+                <span class="topic-name"><span class="pinned-star">★</span> Learning</span>
+                <span class="badge count">5</span>
+                <span class="callout" style="position:relative;top:0;background:#2d2008;border-color:var(--amber);color:var(--amber);font-size:9px;padding:2px 7px">pinned</span>
+              </div>
+            </div>
+            <div style="height:6px"></div>
+            <div class="topic-node">
+              <div class="topic-row">
+                <span class="topic-icon">📁</span>
+                <span class="topic-name">Work</span>
+                <span class="badge count">3</span>
+                <span style="margin-left:auto;font-size:14px;color:var(--mute);opacity:.5">☆</span>
+              </div>
+            </div>
+            <div class="topic-node" style="margin-top:2px">
+              <div class="topic-row">
+                <span class="topic-icon">📁</span>
+                <span class="topic-name">Personal</span>
+                <span class="badge count">1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Hover a topic to reveal the <em>star</em> icon. Click it to pin — pinned topics always float to the top of the tree, marked with <em>★</em>.</div>
+    </div>
+
+    <!-- ══ S13: Tags & tag search ══════════════════════════════════ -->
+    <div class="scene" id="s13">
+      <div class="layout-two">
+        <div class="main-area" style="background:#111118;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:12px;color:var(--mute)">Search result with tag match →</span>
+        </div>
+        <div class="panel-area">
+          <div class="panel-header">
+            <div class="panel-brand">bAInder</div>
+            <div class="search-row" style="border-color:var(--accent2)"><span>🔍</span><span style="color:#ddd">react</span></div>
+          </div>
+          <div class="panel-body">
+            <div class="topic-node" style="margin-bottom:6px">
+              <div class="topic-row"><span class="topic-icon">📁</span><span class="topic-name">Learning / React</span></div>
+              <div class="children">
+                <div class="chat-row" style="background:var(--surface2)">
+                  💬 React Performance Opt…
+                  <span class="tag-chip highlight-box">react</span>
+                  <span class="tag-chip teal">perf</span>
+                </div>
+                <div class="chat-row">
+                  💬 Hooks Deep Dive
+                  <span class="tag-chip highlight-box">react</span>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--mute);margin-bottom:4px;">2 full-text · 2 tag matches</div>
+            <div class="result-card">
+              <div class="result-card-title">React Performance Optimisation</div>
+              <div class="result-snippet">…memoizing using <span class="hl">React</span>.memo and <span class="hl">React</span>.useMemo…</div>
+              <div class="breadcrumb">Learning › React · tag: <span class="hl tag">react</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Tags appear as coloured chips on every chat. Search by tag name and bAInder highlights the matching chip in results — cross-referencing chats across any folder structure.</div>
+    </div>
+
+    <!-- ══ S14: Sticky notes ══════════════════════════════════════ -->
+    <div class="scene" id="s14">
+      <div class="layout-full">
+        <div class="browser-bar" style="background:#111118;border-bottom:1px solid #2a2a3a;">
+          <div class="browser-dots"><div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div></div>
+          <div class="browser-url">chrome-extension://…/reader.html?chatId=abc123</div>
+          <div style="font-size:11px;color:var(--amber);margin-left:8px">📌 2 sticky notes</div>
+        </div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr;position:relative;overflow:hidden">
+          <div class="reader-page">
+            <div class="reader-topbar">
+              <span style="color:var(--accent2)">←</span>
+              <span class="reader-topbar-title">React Performance Optimisation</span>
+            </div>
+            <div class="reader-body" style="position:relative">
+              <div class="reader-turn">
+                <div class="reader-role">You</div>
+                <div class="reader-content">Can you help me optimise this React component?</div>
+              </div>
+              <div class="reader-turn">
+                <div class="reader-role assistant">ChatGPT</div>
+                <div class="reader-content">Use <strong>React.memo</strong> to prevent unnecessary re-renders…</div>
+              </div>
+              <!-- sticky note 1 -->
+              <div class="sticky-note" style="top:16px;right:16px;">
+                <div class="sn-header"><span>Note</span><span class="sn-del">✕</span></div>
+                Follow up: try the chunking approach with <strong>useDeferredValue</strong>
+              </div>
+              <!-- sticky note 2 -->
+              <div class="sticky-note" style="top:120px;right:20px;background:#0d1e2d;border-color:var(--teal);color:#7de8df;">
+                <div class="sn-header" style="color:var(--teal)"><span>Note</span><span class="sn-del">✕</span></div>
+                Link to related: <em>Hooks Deep Dive</em>
+              </div>
+              <!-- context menu hint -->
+              <div class="ctx-menu" style="left:30px;top:40px;">
+                <div class="ctx-item highlight-box">📌 Add Sticky Note</div>
+                <div class="ctx-item">📋 Copy text</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Right-click anywhere in the Reader and choose <em>Add Sticky Note</em>. Notes are a personal layer on top of the read-only conversation — they auto-save, support Markdown, and can be hidden with one click.</div>
+    </div>
+
+    <!-- ══ S15: Export & Import ════════════════════════════════════ -->
+    <div class="scene" id="s15">
+      <div class="layout-two">
+        <div class="main-area">
+          <div class="browser-bar" style="background:#111118">
+            <div class="browser-dots"><div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div></div>
+            <div class="browser-url">chrome-extension://…/sidepanel.html</div>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+            <div class="dialog-box" style="width:340px">
+              <div class="dialog-title">📤 Export Topic</div>
+              <div style="font-size:12px;color:var(--mute)">Learning / React — 5 chats</div>
+              <div><div class="field-label">Format</div>
+                <div class="export-formats">
+                  <div class="fmt-btn active">📝 Markdown</div>
+                  <div class="fmt-btn">🌐 HTML</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--mute);background:var(--surface2);border-radius:6px;padding:7px 10px">
+                <span>📦</span> Learning_React_export.zip
+              </div>
+              <div class="dialog-actions">
+                <button class="btn-sm">Cancel</button>
+                <button class="btn-sm save">Download ZIP</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-area" style="position:relative">
+          <div class="panel-header"><div class="panel-brand">bAInder</div></div>
+          <div class="panel-body">
+            <div style="font-size:11px;color:var(--mute);margin-bottom:8px;padding:6px;background:var(--surface2);border-radius:6px">
+              <strong style="color:#ccc">Import complete</strong><br/>
+              <div class="import-summary" style="margin-top:6px">
+                ✓ 5 chats imported<br/>
+                ✓ 2 topics created<br/>
+                ✓ 1 topic merged
+              </div>
+            </div>
+            <button class="btn primary" style="font-size:11px;width:100%;margin-top:6px" id="importBtn2">📥 Import ZIP</button>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Right-click any topic to <em>Export</em> it as a ZIP of Markdown or HTML files. The <em>Import</em> button in the toolbar reads a ZIP back in — useful for backup or moving to another machine.</div>
+    </div>
+
+    <!-- ══ S16: Themes, skins, accents ════════════════════════════ -->
+    <div class="scene" id="s16">
+      <div class="layout-two">
+        <div class="main-area">
+          <div class="settings-pane">
+            <div class="settings-header">⚙ Settings</div>
+            <div class="settings-body">
+              <div class="settings-section">
+                <div class="settings-section-title">Theme</div>
+                <div class="theme-grid">
+                  <div class="theme-swatch"><div class="theme-preview light"></div><div class="theme-name">Light</div></div>
+                  <div class="theme-swatch"><div class="theme-preview dark active"></div><div class="theme-name">Dark</div></div>
+                  <div class="theme-swatch"><div class="theme-preview oled"></div><div class="theme-name">OLED</div></div>
+                  <div class="theme-swatch"><div class="theme-preview auto"></div><div class="theme-name">Auto</div></div>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-title">Control Skin</div>
+                <div class="skin-btns">
+                  <div class="skin-btn">Default</div>
+                  <div class="skin-btn active">Sharp</div>
+                  <div class="skin-btn">Rounded</div>
+                  <div class="skin-btn">Outlined</div>
+                  <div class="skin-btn">Elevated</div>
+                </div>
+              </div>
+              <div class="settings-section">
+                <div class="settings-section-title">Accent colour</div>
+                <div class="accent-dots">
+                  <div class="accent-dot" style="background:#7c6af7"></div>
+                  <div class="accent-dot active" style="background:#f87171"></div>
+                  <div class="accent-dot" style="background:#2dd4bf"></div>
+                  <div class="accent-dot" style="background:#fbbf24"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-area">
+          <div class="panel-header" style="background:#1a0f0e;border-color:#3a1818">
+            <div class="panel-brand" style="color:#f87171">bAInder</div>
+            <div class="search-row" style="background:#2a1414;border-color:#3a1818"><span>🔍</span><span>Search…</span></div>
+          </div>
+          <div class="panel-body">
+            <div class="panel-live">
+              <div style="font-size:10px;color:var(--mute);margin-bottom:4px">Live preview</div>
+              <div class="panel-live-row">
+                <span class="topic-icon">📁</span>
+                <span style="flex:1;font-size:12px;color:#ccc">Learning</span>
+                <span class="badge" style="background:#2a0f0e;color:#f87171">5</span>
+              </div>
+              <div class="panel-live-row" style="padding-left:14px">
+                <span class="chat-row" style="font-size:11px">💬 React Perf…<span class="tag-chip rose">react</span></span>
+              </div>
+              <button class="panel-live-btn accent" style="background:#f87171;border-color:#f87171;margin-top:6px;font-size:11px">Save to bAInder</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Open Settings to personalise the look: <em>four themes</em> (Light, Dark, <em>OLED</em> pitch-black, Auto), <em>five control skins</em>, and <em>accent colours</em>. Changes apply live.</div>
+    </div>
+
+    <!-- ══ S17: Sparklines zoom ════════════════════════════════════ -->
+    <div class="scene" id="s17">
+      <div class="layout-two">
+        <div class="main-area" style="background:#111118;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:12px;color:var(--mute)">Activity sparkline — zoom in →</span>
+        </div>
+        <div class="panel-area" style="position:relative">
+          <div class="panel-header"><div class="panel-brand">bAInder</div></div>
+          <div class="panel-body">
+            <div class="topic-node">
+              <div class="topic-row selected" style="gap:7px">
+                <span class="topic-icon">📁</span>
+                <span class="topic-name">Learning</span>
+                <div class="sparkline" style="height:24px;gap:3px;margin-left:auto">
+                  <div class="spark-bar" style="height:7px;width:9px"></div>
+                  <div class="spark-bar" style="height:14px;width:9px;opacity:.7"></div>
+                  <div class="spark-bar" style="height:5px;width:9px"></div>
+                  <div class="spark-bar hi" style="height:22px;width:9px"></div>
+                  <div class="spark-bar" style="height:10px;width:9px;opacity:.7"></div>
+                  <div class="spark-bar hi" style="height:18px;width:9px"></div>
+                </div>
+              </div>
+            </div>
+            <div class="sparkline-callout" style="right:12px;top:58px;">
+              📊 6 chats saved last week<br/>
+              <span style="font-size:10px;color:var(--mute)">past 6 weeks activity</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Each topic shows a <em>mini sparkline</em> — six bars representing chats saved per week. A quick visual pulse of where your activity has been concentrated.</div>
+    </div>
+
+    <!-- ══ S18: Closing ════════════════════════════════════════════ -->
+    <div class="scene" id="s18">
+      <div class="scene-title">
+        <div class="logo">bAInder</div>
+        <div class="sub">AI Chat Organizer</div>
+        <div class="tagline" style="font-size:16px">Save · Organise · Search · Annotate · Export</div>
+        <div class="tagline" style="font-size:13px;color:var(--mute)">Turn fleeting AI conversations into a lasting knowledge base.</div>
+        <div class="part-badge" style="background:linear-gradient(90deg,var(--accent),var(--teal))">Install · Link in description</div>
+      </div>
+      <div class="narrator">That's bAInder. Install the extension and start building your personal AI knowledge library today.</div>
+    </div>
+
+    <!-- Action caption bar -->
+    <div id="actionCaption"><span class="cap-step" id="capStep">step</span><span class="cap-text" id="capText"></span></div>
+
+    <!-- Animated cursor -->
+    <div id="animCursor" style="left:50%;top:50%">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 3L19 10.5L12.5 12.5L10 19L5 3Z" fill="white" stroke="#333" stroke-width="1"/>
+        <path d="M12.5 12.5L17 17" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div id="cursorLabel"></div>
+  </div><!-- /stage-box -->
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn" id="prevBtn" onclick="prevScene()">◀</button>
+    <button class="btn primary" id="playBtn" onclick="togglePlay()">▶ Play</button>
+    <button class="btn" id="nextBtn" onclick="nextScene()">▶</button>
+    <button class="btn btn-fs" id="fsBtn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar" onclick="seekClick(event)">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="chapter-label" id="chapterLabel">Chapter 0 — Intro</div>
+    </div>
+    <div class="time-display" id="timeDisplay">0:00</div>
+  </div>
+
+  <!-- Chapter quick-nav -->
+  <div class="chapters" id="chapterNav"></div>
+
+</div><!-- /player-wrap -->
+
+<script>
+/* ── Scene definitions ─────────────────────────────────────────── */
+const SCENES = [
+  { id:'s0',  dur:5,  part:1, label:'0 — Intro' },
+  { id:'s1',  dur:9,  part:1, label:'1 — Install' },
+  { id:'s2',  dur:10, part:1, label:'2 — Save chat' },
+  { id:'s3',  dur:12, part:1, label:'3 — Assign dialog' },
+  { id:'s4',  dur:11, part:1, label:'4 — Panel tour' },
+  { id:'s5',  dur:9,  part:1, label:'5 — Reader view' },
+  { id:'s6',  dur:10, part:1, label:'6 — Search' },
+  { id:'s7',  dur:5,  part:1, label:'— End Part 1' },
+  { id:'s8',  dur:5,  part:2, label:'— Part 2 Intro' },
+  { id:'s9',  dur:10, part:2, label:'7 — Add topic' },
+  { id:'s10', dur:10, part:2, label:'8 — Context menu' },
+  { id:'s11', dur:9,  part:2, label:'9 — Drag & drop' },
+  { id:'s12', dur:8,  part:2, label:'10 — Pin topic' },
+  { id:'s13', dur:9,  part:2, label:'11 — Tags' },
+  { id:'s14', dur:12, part:2, label:'12 — Sticky notes' },
+  { id:'s15', dur:11, part:2, label:'13 — Export/Import' },
+  { id:'s16', dur:12, part:2, label:'14 — Themes' },
+  { id:'s17', dur:7,  part:2, label:'15 — Sparklines' },
+  { id:'s18', dur:7,  part:2, label:'— Closing' },
+];
+
+const TOTAL = SCENES.reduce((a,s)=>a+s.dur,0);
+
+let current = 0;
+let elapsed = 0;     // seconds into current scene
+let totalElapsed = 0; // seconds from start
+let playing = false;
+let raf = null;
+let lastTs = null;
+
+/* ── Build chapter nav ────────────────────────────────────────── */
+const nav = document.getElementById('chapterNav');
+SCENES.forEach((s,i)=>{
+  const b = document.createElement('button');
+  b.className = 'ch-btn';
+  b.id = 'ch'+i;
+  b.textContent = s.label;
+  b.onclick = ()=>{ goTo(i); if(!playing) start(); };
+  nav.appendChild(b);
+});
+
+/* ── Scene transitions ────────────────────────────────────────── */
+function showScene(idx){
+  SCENES.forEach((s,i)=>{
+    document.getElementById(s.id).classList.toggle('active', i===idx);
+    document.getElementById('ch'+i)?.classList.toggle('active', i===idx);
+  });
+  document.getElementById('chapterLabel').textContent = SCENES[idx].label;
+  updateProgress();
+}
+
+function updateProgress(){
+  // total elapsed seconds up to start of current scene
+  let pre = SCENES.slice(0,current).reduce((a,s)=>a+s.dur,0);
+  totalElapsed = pre + elapsed;
+  const pct = Math.min(100, (totalElapsed/TOTAL)*100);
+  document.getElementById('progressFill').style.width = pct+'%';
+  const secs = Math.round(totalElapsed);
+  const m = Math.floor(secs/60), s2 = secs%60;
+  document.getElementById('timeDisplay').textContent = m+':'+(s2<10?'0':'')+s2;
+}
+
+function goTo(idx){
+  current = Math.max(0, Math.min(SCENES.length-1, idx));
+  elapsed = 0;
+  if(window.__bShowScene) window.__bShowScene(current); else showScene(current);
+}
+
+/* ── Playback ──────────────────────────────────────────────────── */
+function start(){
+  playing = true;
+  document.getElementById('playBtn').textContent = '⏸ Pause';
+  lastTs = null;
+  raf = requestAnimationFrame(tick);
+}
+function stop(){
+  playing = false;
+  document.getElementById('playBtn').textContent = '▶ Play';
+  if(raf) cancelAnimationFrame(raf);
+  raf = null;
+  lastTs = null;
+}
+function togglePlay(){
+  if(playing) stop(); else start();
+}
+function prevScene(){ stop(); goTo(current-1); }
+function nextScene(){ stop(); goTo(current+1); }
+
+function tick(ts){
+  if(!playing) return;
+  if(lastTs===null) lastTs=ts;
+  const dt = (ts-lastTs)/1000;
+  lastTs = ts;
+  elapsed += dt;
+  updateCursor(SCENES[current].id, elapsed);
+  updateCaption(SCENES[current].id, elapsed);
+  if(elapsed >= SCENES[current].dur){
+    elapsed = 0;
+    if(current < SCENES.length-1){
+      current++;
+      if(window.__bShowScene) window.__bShowScene(current); else showScene(current);
+    } else {
+      stop();
+      updateProgress();
+      return;
+    }
+  }
+  updateProgress();
+  raf = requestAnimationFrame(tick);
+}
+
+function seekClick(e){
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  const target = pct * TOTAL;
+  let acc=0;
+  for(let i=0;i<SCENES.length;i++){
+    if(acc+SCENES[i].dur > target){
+      current = i;
+      elapsed = target-acc;
+      showScene(i);
+      return;
+    }
+    acc += SCENES[i].dur;
+  }
+}
+
+/* ── Fullscreen ───────────────────────────────────────────────── */
+function toggleFullscreen(){
+  const wrap = document.getElementById('stage');
+  if(!document.fullscreenElement){
+    wrap.requestFullscreen().catch(()=>{});
+    document.getElementById('fsBtn').textContent='✕';
+  } else {
+    document.exitFullscreen();
+    document.getElementById('fsBtn').textContent='⛶';
+  }
+}
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement)
+    document.getElementById('fsBtn').textContent='⛶';
+});
+
+/* ── Cursor waypoints ──────────────────────────────────────────────
+   Layout reference (stage ≈ 960 × 540 px):
+   2-col grid (1fr 260px): main = 0–73 %, panel = 73–100 %
+   Panel inner centre ≈ x 86 %, elements start at x ≈ 75 %
+   Browser bar height ≈ 5 %,  panel header ≈ 0–14 %
+   Pattern per click: arrive at target, pause 0.3 s, fire click
+─────────────────────────────────────────────────────────────────── */
+const CURSOR_PATHS = {
+  /* S0 — title card, just idle centre */
+  s0: [
+    {t:0, x:50, y:50}
+  ],
+
+  /* S1 — extensions page (full width) */
+  s1: [
+    {t:0,   x:50, y:14},                              // near Extensions header
+    {t:1,   x:81, y:16, label:'Enable Developer mode'},
+    {t:1.5, x:81, y:16, click:true},                  // click toggle
+    {t:3,   x:10, y:32, label:'Load unpacked'},
+    {t:3.5, x:10, y:32, click:true},                  // click button
+    {t:5.5, x:50, y:52, label:'Extension installed ✓'},
+    {t:7,   x:50, y:52}
+  ],
+
+  /* S2 — save chat (2-col; ext icon at x≈70 y≈4; save btn x≈89 y≈90) */
+  s2: [
+    {t:0,   x:35, y:50},                              // idle on chat text
+    {t:1.5, x:70, y:4,  label:'bAInder icon'},
+    {t:2,   x:70, y:4,  click:true},                  // open side panel
+    {t:4,   x:89, y:90, label:'Save this chat'},
+    {t:4.5, x:89, y:90, click:true}
+  ],
+
+  /* S3 — assign dialog (dialog centred in 73 % main; x≈37 centre) */
+  s3: [
+    {t:0,   x:37, y:37, label:'Edit title'},
+    {t:0.5, x:37, y:40, click:true},                  // focus title input
+    {t:2,   x:37, y:52, label:'Choose topic'},
+    {t:2.5, x:37, y:52, click:true},                  // open dropdown
+    {t:5,   x:37, y:63, label:'Add tags'},
+    {t:5.5, x:37, y:63, click:true},                  // focus tags
+    {t:8.5, x:47, y:74, label:'Save'},
+    {t:9,   x:47, y:74, click:true}                   // click Save
+  ],
+
+  /* S4 — panel tour (panel x 73–100 %) */
+  s4: [
+    {t:0,   x:83, y:12, label:'Search bar'},
+    {t:2,   x:78, y:22, label:'Recently Saved rail'},
+    {t:4.5, x:91, y:38, label:'Sparkline chart'},
+    {t:7.5, x:83, y:92, label:'Storage meter'}
+  ],
+
+  /* S5 — reader view (full width) */
+  s5: [
+    {t:0,   x:75, y:7,  label:'Topic & tags'},
+    {t:2,   x:30, y:7,  label:'Chat title'},
+    {t:4,   x:35, y:35},
+    {t:6.5, x:35, y:58}
+  ],
+
+  /* S6 — search (panel) */
+  s6: [
+    {t:0,   x:83, y:12, label:'Type keyword'},
+    {t:0.8, x:83, y:12, click:true},
+    {t:2.5, x:83, y:45, label:'Click result'},
+    {t:5.5, x:83, y:45, click:true},
+    {t:7.5, x:83, y:58}
+  ],
+
+  s7:  [{t:0, x:50, y:50}],
+  s8:  [{t:0, x:50, y:50}],
+
+  /* S9 — add topic (button in main centre; dialog centred in main) */
+  s9: [
+    {t:0,   x:37, y:27, label:'+ Add Topic'},
+    {t:0.8, x:37, y:27, click:true},
+    {t:2.5, x:37, y:44, label:'Type name'},
+    {t:3,   x:37, y:44, click:true},
+    {t:5,   x:37, y:57, label:'Pick parent'},
+    {t:5.5, x:37, y:57, click:true},
+    {t:7.5, x:43, y:68, label:'Create'},
+    {t:8,   x:43, y:68, click:true}
+  ],
+
+  /* S10 — context menu (panel topic at x≈80 y≈28; menu items below) */
+  s10: [
+    {t:0,   x:80, y:28, label:'Right-click topic'},
+    {t:0.8, x:80, y:28, click:true},
+    {t:2.5, x:85, y:37, label:'Rename'},
+    {t:4.5, x:85, y:45, label:'Move to…'},
+    {t:6.5, x:85, y:53, label:'Merge into…'}
+  ],
+
+  /* S11 — drag & drop (main area visual + panel) */
+  s11: [
+    {t:0,   x:17, y:50, label:'Drag topic'},
+    {t:0.5, x:17, y:50, click:true},
+    {t:2,   x:42, y:50},
+    {t:2.5, x:42, y:50, label:'Drop on target'},
+    {t:4.5, x:87, y:58, label:'Drag chat'},
+    {t:5,   x:87, y:58, click:true},
+    {t:6.5, x:80, y:43, label:'Drop on topic'}
+  ],
+
+  /* S12 — pin/star (panel topic x≈80 y≈28; star icon x≈93) */
+  s12: [
+    {t:0,   x:80, y:30, label:'Hover topic'},
+    {t:1.5, x:93, y:28, label:'Click ☆ to pin'},
+    {t:2,   x:93, y:28, click:true},
+    {t:3.5, x:79, y:22, label:'★ pinned at top'}
+  ],
+
+  /* S13 — tags & search (panel) */
+  s13: [
+    {t:0,   x:83, y:12, label:'Search tag name'},
+    {t:0.8, x:83, y:12, click:true},
+    {t:2.5, x:88, y:36, label:'Tag chip highlighted'},
+    {t:5,   x:83, y:62, label:'Click result'},
+    {t:5.5, x:83, y:62, click:true}
+  ],
+
+  /* S14 — sticky notes (full-width reader) */
+  s14: [
+    {t:0,   x:35, y:42, label:'Right-click in Reader'},
+    {t:0.8, x:35, y:42, click:true},
+    {t:2,   x:20, y:41, label:'Add Sticky Note'},
+    {t:2.5, x:20, y:41, click:true},
+    {t:5,   x:73, y:22, label:'Note created'},
+    {t:7,   x:73, y:35},
+    {t:9.5, x:56, y:7,  label:'Show / Hide toggle'}
+  ],
+
+  /* S15 — export/import (panel right-click; dialog in main) */
+  s15: [
+    {t:0,   x:80, y:28, label:'Right-click → Export'},
+    {t:0.8, x:80, y:28, click:true},
+    {t:2.5, x:26, y:51, label:'Markdown format'},
+    {t:3,   x:26, y:51, click:true},
+    {t:5,   x:42, y:68, label:'Download ZIP'},
+    {t:5.5, x:42, y:68, click:true},
+    {t:8,   x:83, y:65, label:'Import ZIP'},
+    {t:8.5, x:83, y:65, click:true}
+  ],
+
+  /* S16 — themes/skins/accents (main = settings, 0–73 %) */
+  s16: [
+    {t:0,   x:20, y:12, label:'Settings panel'},
+    {t:1.5, x:24, y:42, label:'Dark theme'},
+    {t:2,   x:24, y:42, click:true},
+    {t:3,   x:31, y:42, label:'OLED theme'},
+    {t:3.5, x:31, y:42, click:true},
+    {t:5,   x:22, y:59, label:'Sharp skin'},
+    {t:5.5, x:22, y:59, click:true},
+    {t:7.5, x:22, y:76, label:'Rose accent'},
+    {t:8,   x:22, y:76, click:true},
+    {t:10,  x:83, y:65, label:'Live preview ↑'}
+  ],
+
+  /* S17 — sparklines (panel) */
+  s17: [
+    {t:0,   x:91, y:32, label:'Mini sparkline'},
+    {t:2.5, x:91, y:32},
+    {t:4,   x:82, y:50, label:'6-week activity'}
+  ],
+
+  s18: [{t:0, x:50, y:65}]
+};
+
+const cursorEl    = document.getElementById('animCursor');
+const labelEl     = document.getElementById('cursorLabel');
+const capEl       = document.getElementById('actionCaption');
+const capStepEl   = document.getElementById('capStep');
+const capTextEl   = document.getElementById('capText');
+const stage       = document.getElementById('stage');
+let   labelTimer  = null;
+let   capHideTimer = null;
+
+/* ── Scene action captions ─────────────────────────────────────────
+   Each entry: { t, step, text }
+   t    = seconds into scene to show this caption
+   step = short badge label (e.g. "Step 1", "Note", "Tip")
+   text = instruction — wrap key terms in <em>…</em>
+──────────────────────────────────────────────────────────────────── */
+const SCENE_CAPTIONS = {
+  s0: [
+    {t:0, step:'Intro', text:'<em>bAInder</em> — AI Chat Organizer Chrome extension'}
+  ],
+  s1: [
+    {t:0, step:'Step 1', text:'Go to <em>chrome://extensions</em> in your browser'},
+    {t:2, step:'Step 2', text:'Enable <em>Developer mode</em> → click <em>Load unpacked</em> → select the bAInder folder'},
+    {t:5, step:'Step 3', text:'Pin the <em>bAInder icon</em> to your Chrome toolbar for one-click access'}
+  ],
+  s2: [
+    {t:0, step:'Step 1', text:'Navigate to any <em>ChatGPT</em> conversation'},
+    {t:3, step:'Step 2', text:'Click the <em>bAInder icon</em> in the toolbar — the side panel slides open'},
+    {t:7, step:'Step 3', text:'Click <em>Save to bAInder</em> in the side panel footer'}
+  ],
+  s3: [
+    {t:0, step:'Step 1', text:'Edit the <em>auto-detected title</em> to something descriptive'},
+    {t:3, step:'Step 2', text:'Pick an existing <em>topic</em> from the dropdown — or click <em>+ New topic</em>'},
+    {t:7, step:'Step 3', text:'Type <em>tags</em> as comma-separated words — they appear as coloured chips'},
+    {t:10,step:'Step 4', text:'Click <em>Save</em> — the chat is filed and the tree updates instantly'}
+  ],
+  s4: [
+    {t:0, step:'Panel',  text:'Side panel overview — your full library at a glance'},
+    {t:1, step:'①',     text:'<em>Search bar</em> — full-text search across all chats and topics'},
+    {t:3, step:'②',     text:'<em>Recently Saved rail</em> — your 5 latest chats, one click to open'},
+    {t:5, step:'③',     text:'<em>Topic tree</em> — date ranges, chat-count badges, sparkline charts'},
+    {t:8, step:'④',     text:'<em>Storage meter</em> — shows total topics, chats, and local usage'}
+  ],
+  s5: [
+    {t:0, step:'Action', text:'Click any chat node in the tree…'},
+    {t:2, step:'Result', text:'Opens in the <em>built-in Reader</em> — clean, distraction-free view'},
+    {t:5, step:'Note',   text:'Title, topic breadcrumb, and tags all visible in the reader topbar'}
+  ],
+  s6: [
+    {t:0, step:'Step 1', text:'Type any keyword into the <em>search bar</em>'},
+    {t:2, step:'Step 2', text:'Results show <em>highlighted snippets</em>, topic breadcrumbs, and tag matches'},
+    {t:6, step:'Step 3', text:'Click any result card to open that chat in the Reader'}
+  ],
+  s7: [
+    {t:0, step:'Done ✓', text:'<em>Part 1</em> complete — Save · Organise · Find'}
+  ],
+  s8: [
+    {t:0, step:'Part 2', text:'Advanced features — management, annotations, export &amp; personalisation'}
+  ],
+  s9: [
+    {t:0, step:'Step 1', text:'Click <em>+ Add Topic</em> in the sidebar toolbar'},
+    {t:3, step:'Step 2', text:'Enter a <em>name</em> and optionally pick a <em>parent topic</em> (or leave as root)'},
+    {t:8, step:'Step 3', text:'Click <em>Create</em> — the topic appears in the tree with an animation'}
+  ],
+  s10: [
+    {t:0, step:'Action', text:'<em>Right-click</em> any topic to open its context menu'},
+    {t:2, step:'Rename', text:'<em>Rename</em> — edit the topic name directly'},
+    {t:4, step:'Move',   text:'<em>Move to…</em> — pick a new parent from the tree'},
+    {t:7, step:'Merge',  text:'<em>Merge into…</em> — combine two topics; all chats consolidate into one'}
+  ],
+  s11: [
+    {t:0, step:'Drag',   text:'<em>Drag a topic</em> and drop it onto another to nest it'},
+    {t:5, step:'Drag',   text:'<em>Drag a chat</em> and drop it onto any topic to reassign it'}
+  ],
+  s12: [
+    {t:0, step:'Hover',  text:'Hover over any topic — the <em>☆ star icon</em> appears'},
+    {t:2, step:'Click',  text:'Click the star to <em>pin</em> the topic'},
+    {t:4, step:'Result', text:'Pinned topics float to the <em>top of the tree</em> with a <em>★ prefix</em>'}
+  ],
+  s13: [
+    {t:0, step:'Tags',   text:'<em>Tags</em> appear as coloured chips on every chat node in the tree'},
+    {t:2, step:'Search', text:'Type a tag name in the search bar — e.g. <em>react</em>'},
+    {t:4, step:'Result', text:'Matching tag chips are <em>highlighted</em> in both the tree and result cards'},
+    {t:7, step:'Open',   text:'Click a result to open the chat in the Reader'}
+  ],
+  s14: [
+    {t:0, step:'Step 1', text:'Inside the Reader, <em>right-click</em> anywhere on the conversation'},
+    {t:2, step:'Step 2', text:'Choose <em>Add Sticky Note</em> from the context menu'},
+    {t:4, step:'Step 3', text:'Type your note — it <em>auto-saves</em> and supports <em>Markdown</em>'},
+    {t:7, step:'Step 4', text:'Drag the note to reposition it; toggle all notes with the <em>Show/Hide</em> header'}
+  ],
+  s15: [
+    {t:0, step:'Export', text:'<em>Right-click</em> any topic → <em>Export</em>'},
+    {t:2, step:'Format', text:'Choose <em>Markdown</em> or <em>HTML</em> — downloads as a ZIP archive'},
+    {t:6, step:'Import', text:'Click the <em>Import</em> button → pick a ZIP → confirm to restore chats and topics'}
+  ],
+  s16: [
+    {t:0, step:'Settings', text:'Click <em>⚙ Settings</em> to open the personalisation panel'},
+    {t:2, step:'Theme',    text:'<em>4 themes</em>: Light · Dark · OLED (pitch‑black) · Auto (follows system)'},
+    {t:5, step:'Skin',     text:'<em>5 control skins</em>: Default · Sharp · Rounded · Outlined · Elevated'},
+    {t:8, step:'Accent',   text:'<em>Accent colours</em>: Purple · Rose · Teal · Amber — live preview'}
+  ],
+  s17: [
+    {t:0, step:'Sparkline', text:'Each topic card shows a <em>6-bar mini chart</em>'},
+    {t:2, step:'Data',      text:'Each bar = chats saved <em>per week</em> over the last 6 weeks'},
+    {t:4, step:'Use',       text:'Quick visual pulse of <em>where your activity</em> has been concentrated'}
+  ],
+  s18: [
+    {t:0, step:'Done', text:'<em>bAInder</em> — turn fleeting AI conversations into a lasting knowledge base'}
+  ]
+};
+
+let lastCapIdx = -1;
+
+function updateCaption(sceneId, t) {
+  const caps = SCENE_CAPTIONS[sceneId];
+  if (!caps || caps.length === 0) { capEl.classList.remove('visible'); return; }
+
+  // find the latest caption whose t <= elapsed
+  let best = null, bestIdx = -1;
+  for (let i = 0; i < caps.length; i++) {
+    if (caps[i].t <= t) { best = caps[i]; bestIdx = i; }
+  }
+  if (!best) { capEl.classList.remove('visible'); return; }
+
+  if (bestIdx !== lastCapIdx) {
+    lastCapIdx = bestIdx;
+    capStepEl.textContent = best.step;
+    capTextEl.innerHTML   = best.text;
+    // brief flash: hide then show
+    capEl.classList.remove('visible');
+    clearTimeout(capHideTimer);
+    capHideTimer = setTimeout(() => capEl.classList.add('visible'), 60);
+  }
+}
+
+function lerp(a,b,t){ return a+(b-a)*t; }
+
+function fireRipple(xPct, yPct){
+  const r = document.createElement('div');
+  r.className='click-ripple';
+  r.style.left=xPct+'%';
+  r.style.top=yPct+'%';
+  stage.appendChild(r);
+  r.addEventListener('animationend',()=>r.remove());
+}
+
+function showLabel(text, xPct, yPct){
+  clearTimeout(labelTimer);
+  if(!text){ labelEl.classList.remove('visible'); return; }
+  labelEl.textContent=text;
+  // offset label so it doesn't overlap cursor
+  const ox = xPct > 70 ? xPct-28 : xPct+4;
+  const oy = yPct > 85 ? yPct-8  : yPct+5;
+  labelEl.style.left=ox+'%';
+  labelEl.style.top=oy+'%';
+  labelEl.classList.add('visible');
+  labelTimer=setTimeout(()=>labelEl.classList.remove('visible'),1800);
+}
+
+// previous waypoint index tracked per scene
+let lastWpIdx = -1;
+
+function updateCursor(sceneId, t){
+  const path = CURSOR_PATHS[sceneId];
+  if(!path || path.length===0) return;
+
+  // find aIdx = index of last waypoint whose t <= elapsed
+  let aIdx = 0;
+  for(let i=0; i<path.length; i++){
+    if(path[i].t <= t) aIdx = i;
+    else break;
+  }
+  const wpA = path[aIdx];
+  const wpB = (aIdx + 1 < path.length) ? path[aIdx + 1] : wpA;
+
+  // interpolate position between wpA and wpB
+  let x, y;
+  if(wpA === wpB || wpB.t === wpA.t){
+    x = wpA.x; y = wpA.y;
+  } else {
+    const prog = Math.min(1, (t - wpA.t) / (wpB.t - wpA.t));
+    const e = prog < .5 ? 2*prog*prog : (1 - Math.pow(-2*prog+2, 2)/2); // ease-in-out
+    x = lerp(wpA.x, wpB.x, e);
+    y = lerp(wpA.y, wpB.y, e);
+  }
+
+  cursorEl.style.left = x + '%';
+  cursorEl.style.top  = y + '%';
+
+  // fire events once per waypoint arrival
+  if(aIdx !== lastWpIdx){
+    lastWpIdx = aIdx;
+    if(wpA.click) fireRipple(wpA.x, wpA.y);
+    if(wpA.label) showLabel(wpA.label, wpA.x, wpA.y);
+  }
+}
+
+// hook into existing showScene and tick
+const _origShowScene = window.__bShowScene = function(idx){
+  SCENES.forEach((s,i)=>{
+    document.getElementById(s.id).classList.toggle('active', i===idx);
+    document.getElementById('ch'+i).classList.toggle('active', i===idx);
+  });
+  document.getElementById('chapterLabel').textContent = SCENES[idx].label;
+  updateProgress();
+  // cursor + caption reset
+  lastWpIdx=-1;
+  lastCapIdx=-1;
+  capEl.classList.remove('visible');
+  const sid = SCENES[idx].id;
+  const path = CURSOR_PATHS[sid];
+  if(path && path.length){
+    cursorEl.style.left = path[0].x + '%';
+    cursorEl.style.top  = path[0].y + '%';
+  }
+};
+
+// keyboard shortcuts
+document.addEventListener('keydown',e=>{
+  if(e.key===' '||e.key==='k'){ e.preventDefault(); togglePlay(); }
+  if(e.key==='ArrowRight') nextScene();
+  if(e.key==='ArrowLeft')  prevScene();
+  if(e.key==='f'||e.key==='F') toggleFullscreen();
+});
+
+/* ── Init ─────────────────────────────────────────────────────── */
+(window.__bShowScene || showScene)(0);
+</script>
+</body>
+</html>

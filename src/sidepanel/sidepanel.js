@@ -42,7 +42,10 @@ const elements = {
   expandAllBtn: document.getElementById('expandAllBtn'),
   collapseAllBtn: document.getElementById('collapseAllBtn'),
   resultCount: document.getElementById('resultCount'),
-  storageUsage: document.getElementById('storageUsage')
+  storageUsage: document.getElementById('storageUsage'),
+  saveBanner:   document.getElementById('saveBanner'),
+  saveBtn:      document.getElementById('saveChatBtn'),
+  saveBannerMsg:document.getElementById('saveBannerMsg')
 };
 
 // Application State
@@ -111,7 +114,10 @@ async function init() {
   
   // Update storage usage display
   updateStorageUsage();
-  
+
+  // Detect current tab and show Save banner when on a supported AI chat page
+  await initSaveBanner();
+
   console.log('bAInder initialized successfully');
 }
 
@@ -146,7 +152,7 @@ function applyTheme(theme) {
     if (themeIcon) themeIcon.textContent = '🌓';
   } else if (theme !== 'oled') {
     html.setAttribute('data-theme', theme);
-    const themeIcons = { dark: '☀️', oled: '🕶️', terminal: '🖥️', retro: '🕹️', glass: '🪟', neon: '💡' };
+    const themeIcons = { dark: '☀️', oled: '🕶️', terminal: '🖥️', retro: '🕹️', glass: '🪟', neon: '💡', nord: '🏔️', solarized: '☀️', forest: '🌲' };
     if (themeIcon) themeIcon.textContent = themeIcons[theme] ?? '🌙';
   } else {
     // oled branch — data-theme already set to 'dark' above
@@ -330,6 +336,11 @@ function setupEventListeners() {
       localStorage.setItem('toc-collapsed', nowCollapsed ? '1' : '0');
     });
   }
+
+  // Save to bAInder button (in banner above footer)
+  if (elements.saveBtn) {
+    elements.saveBtn.addEventListener('click', handlePanelSave);
+  }
 }
 
 // Load data from storage
@@ -487,7 +498,7 @@ function handleTopicClick(topic) {
 
 // Handle chat click — open saved content in the built-in reader
 async function handleChatClick(chat) {
-  if (!chat || !chat.id || !chat.content) return;
+  if (!chat || !chat.id) return;
 
   const readerUrl = chrome.runtime.getURL(
     `src/reader/reader.html?chatId=${encodeURIComponent(chat.id)}`
@@ -1273,6 +1284,107 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true; // async
   }
 });
+
+// ─── Save Banner (detect active AI tab & drive the save flow) ────────────────
+
+const SIDEPANEL_PLATFORM_PATTERNS = [
+  { re: /chatgpt\.com|chat\.openai\.com/, name: 'ChatGPT'  },
+  { re: /claude\.ai/,                     name: 'Claude'   },
+  { re: /gemini\.google\.com/,            name: 'Gemini'   },
+  { re: /copilot\.microsoft\.com|m365\.cloud\.microsoft/, name: 'Copilot' },
+];
+
+function detectPlatformFromUrl(url) {
+  if (!url) return null;
+  for (const { re, name } of SIDEPANEL_PLATFORM_PATTERNS) {
+    if (re.test(url)) return name;
+  }
+  return null;
+}
+
+async function initSaveBanner() {
+  if (!elements.saveBanner) return;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const platform = tab ? detectPlatformFromUrl(tab.url) : null;
+    if (platform) {
+      if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = `${platform} conversation detected`;
+      elements.saveBanner.style.display = 'flex';
+      setSaveBtnState('default');
+    } else {
+      elements.saveBanner.style.display = 'none';
+    }
+  } catch (err) {
+    console.warn('bAInder: initSaveBanner error', err);
+    if (elements.saveBanner) elements.saveBanner.style.display = 'none';
+  }
+}
+
+function setSaveBtnState(s) {
+  const btn = elements.saveBtn;
+  if (!btn) return;
+  const map = {
+    default: { text: '💾 Save to bAInder', disabled: false },
+    loading: { text: '⏳ Saving…',          disabled: true  },
+    success: { text: '✅ Saved!',            disabled: true  },
+    error:   { text: '❌ Error',             disabled: false },
+    empty:   { text: '⚠️ No chat yet',       disabled: false },
+  };
+  const st = map[s] || map.default;
+  btn.textContent = st.text;
+  btn.disabled    = st.disabled;
+  if (s === 'success' || s === 'error' || s === 'empty') {
+    setTimeout(() => setSaveBtnState('default'), 3500);
+  }
+}
+
+async function handlePanelSave() {
+  setSaveBtnState('loading');
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) throw new Error('No active tab');
+
+    // Ask content script to extract the chat
+    const extractResponse = await chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_CHAT' });
+    if (!extractResponse?.success) {
+      throw new Error(extractResponse?.error || 'Extraction failed');
+    }
+    const chatData = extractResponse.data;
+    if (!chatData || (chatData.messageCount === 0 && !chatData.messages?.length)) {
+      setSaveBtnState('empty');
+      return;
+    }
+
+    // Forward to background to save
+    const saveResponse = await chrome.runtime.sendMessage({ type: 'SAVE_CHAT', data: chatData });
+    if (!saveResponse?.success) {
+      throw new Error(saveResponse?.error || 'Save failed');
+    }
+
+    setSaveBtnState('success');
+
+    // Refresh local state
+    await loadChats();
+    await loadTree();
+    updateRecentRail();
+    renderTreeView();
+    await updateStorageUsage();
+  } catch (err) {
+    if (/context.*(lost|invalidated)/i.test(err.message)) {
+      if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = '⚠️ Reload the page to reconnect';
+    }
+    setSaveBtnState('error');
+    console.error('bAInder: Panel save failed', err);
+  }
+}
+
+// Refresh the save banner whenever the user switches tabs or a tab finishes loading
+try {
+  chrome.tabs.onActivated.addListener(() => initSaveBanner());
+  chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
+    if (changeInfo.status === 'complete') initSaveBanner();
+  });
+} catch (_) { /* non-extension context (tests) */ }
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
