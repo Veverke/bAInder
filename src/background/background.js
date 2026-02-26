@@ -120,7 +120,6 @@ async function setupDefaults() {
         chats: [],
         expandedTopics: [],
         settings: {
-          theme: 'light',
           autoSave: true,
           showTimestamps: true,
           defaultExportFormat: 'markdown'

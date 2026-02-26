@@ -1,12 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>bAInder - AI Chat Organizer</title>
   <link rel="stylesheet" href="sidepanel.css">
-  <link rel="stylesheet" href="skins.css">
-  <link rel="stylesheet" href="themes.css">
 </head>
 <body>
   <div id="app">
@@ -18,9 +16,6 @@
           <span class="title">bAInder</span>
         </h1>
         <div class="header-actions">
-          <button id="themeToggle" class="btn-icon" title="Toggle theme">
-            <span class="theme-icon">🌙</span>
-          </button>
           <button id="addTopicBtn" class="btn-primary" title="Add Topic">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -322,64 +317,6 @@
       </header>
 
       <div class="settings-panel__body">
-
-        <!-- Theme -->
-        <section class="settings-section">
-          <h3 class="settings-section__title">Appearance</h3>
-          <div class="settings-row">
-            <div class="settings-row__label">
-              <span>Theme</span>
-              <span class="settings-row__hint">Controls the colour scheme</span>
-            </div>
-            <select id="settingsThemeSelect" class="form-select settings-select">
-              <option value="light">☀️ Light</option>
-              <option value="dark">🌙 Dark</option>
-              <option value="oled">🕶️ OLED Black</option>
-              <option value="auto">🌓 Auto (system)</option>
-              <option value="terminal">🖥️ Terminal</option>
-              <option value="retro">🕹️ Retro 8-bit</option>
-              <option value="glass">🪟 Glassmorphism</option>
-              <option value="neon">💡 Neon</option>
-              <option value="nord">🏔️ Nord</option>
-              <option value="solarized">☀️ Solarized Dark</option>
-              <option value="forest">🌲 Forest</option>
-              <option value="custom" disabled>📂 Custom (loaded)</option>
-            </select>
-          </div>
-          <div class="settings-row">
-            <div class="settings-row__label">
-              <span>Accent Color</span>
-              <span class="settings-row__hint">Primary action colour</span>
-            </div>
-            <div class="accent-swatches" id="accentSwatches">
-              <button class="accent-swatch accent-swatch--indigo" data-accent="" aria-label="Indigo (default)" title="Indigo"></button>
-              <button class="accent-swatch accent-swatch--rose" data-accent="rose" aria-label="Rose" title="Rose"></button>
-              <button class="accent-swatch accent-swatch--teal" data-accent="teal" aria-label="Teal" title="Teal"></button>
-              <button class="accent-swatch accent-swatch--amber" data-accent="amber" aria-label="Amber" title="Amber"></button>
-            </div>
-          </div>
-          <div class="settings-row">
-            <div class="settings-row__label">
-              <span>Control Skin</span>
-              <span class="settings-row__hint">Visual style of UI controls</span>
-            </div>
-            <select id="settingsSkinSelect" class="form-select settings-select">
-              <option value="">Default</option>
-              <option value="sharp">■ Sharp</option>
-              <option value="rounded">● Rounded</option>
-              <option value="outlined">□ Outlined</option>
-              <option value="elevated">⬟ Elevated</option>
-            </select>
-          </div>
-          <div class="settings-row">
-            <div class="settings-row__label">
-              <span>Custom Theme</span>
-              <span class="settings-row__hint">Load a .json theme file</span>
-            </div>
-            <label class="btn-secondary settings-load-theme-btn" for="loadThemeInput" title="Load a .json theme file">📂 Load Theme</label>
-            <input id="loadThemeInput" type="file" accept=".json,application/json" style="display:none">
-          </div>
-        </section>
 
         <!-- About -->
         <section class="settings-section">
