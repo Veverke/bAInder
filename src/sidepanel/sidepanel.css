@@ -1,4 +1,6 @@
-﻿/* bAInder Side Panel Styles */
+@import './theme-base.css';
+
+/* bAInder Side Panel Styles */
 
 /* â”€â”€ Inter font (bundled woff2, latin subset) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @font-face {

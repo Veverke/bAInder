@@ -1,0 +1,127 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Battletoads",
+  "id": "battletoads",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Big Big World brawler — Black Ops One military stencil, zero-radius brutal cuts, diagonal hazard stripes and hard comic panel shadows.",
+  "category": "videogame",
+  "dark": true,
+  "variables": {
+    "--primary":           "#44ff44",
+    "--primary-hover":     "#66ff66",
+    "--primary-light":     "rgba(68,255,68,0.16)",
+    "--primary-dark":      "#22cc22",
+
+    "--header-bg":         "#000000",
+    "--header-accent":     "#44ff44",
+
+    "--bg-primary":        "rgba(3,6,3,0.55)",
+    "--bg-secondary":      "rgba(6,13,6,0.60)",
+    "--bg-tertiary":       "rgba(10,22,10,0.65)",
+    "--bg-elevated":       "rgba(15,32,15,0.62)",
+    "--bg-hover":          "rgba(68,255,68,0.09)",
+    "--bg-active":         "rgba(68,255,68,0.18)",
+
+    "--border-primary":    "#162e16",
+    "--border-secondary":  "rgba(68,255,68,0.35)",
+    "--border-focus":      "#44ff44",
+
+    "--text-primary":      "#c6f0c6",
+    "--text-secondary":    "#7acc7a",
+    "--text-tertiary":     "#356635",
+    "--text-inverse":      "#030603",
+
+    "--success":           "#44ff44",
+    "--success-bg":        "rgba(68,255,68,0.14)",
+    "--warning":           "#ffdd00",
+    "--warning-bg":        "rgba(255,221,0,0.14)",
+    "--danger":            "#ff3300",
+    "--danger-bg":         "rgba(255,51,0,0.14)",
+    "--info":              "#44ddff",
+    "--info-bg":           "rgba(68,221,255,0.14)",
+
+    "--shadow-sm":         "3px 3px 0 #000000",
+    "--shadow-md":         "5px 5px 0 #000000",
+    "--shadow-lg":         "7px 7px 0 #000000",
+    "--shadow-xl":         "10px 10px 0 #000000",
+
+    "--overlay":           "rgba(0,0,0,0.92)",
+    "--overlay-light":     "rgba(68,255,68,0.07)",
+
+    "--font-sans":         "'Black Ops One', 'Oswald', sans-serif",
+    "--font-mono":         "'Courier New', Courier, monospace",
+    "--font-serif":        "'Black Ops One', Georgia, sans-serif",
+
+    "--radius-xs":         "0px",
+    "--radius-sm":         "0px",
+    "--radius-md":         "0px",
+    "--radius-lg":         "0px",
+    "--radius-xl":         "0px",
+    "--radius-full":       "0px",
+
+    "--pattern-bg":        "repeating-linear-gradient(-45deg, rgba(68,255,68,0.05) 0px, rgba(68,255,68,0.05) 12px, transparent 12px, transparent 24px)",
+    "--pattern-size":      "auto",
+    "--pattern-header":    "repeating-linear-gradient(-45deg, rgba(68,255,68,0.10) 0px, rgba(68,255,68,0.10) 10px, rgba(255,221,0,0.06) 10px, rgba(255,221,0,0.06) 20px)",
+
+    "--gradient-primary":  "linear-gradient(135deg, #44ff44 0%, #ffdd00 100%)",
+    "--gradient-accent":   "linear-gradient(135deg, #44ff44 0%, #44ddff 100%)",
+    "--gradient-bg":       "linear-gradient(180deg, #030603 0%, #060d06 100%)",
+    "--gradient-header":   "linear-gradient(180deg, #000000 0%, #030603 100%)",
+
+    "--blur-sm":           "blur(0px)",
+    "--blur-md":           "blur(0px)",
+    "--blur-lg":           "blur(0px)",
+    "--glass-bg":          "rgba(0,0,0,0)",
+
+    "--page-bg":           "#030603",
+    "--noise-opacity":     "0",
+
+    "--transition-fast":   "0ms",
+    "--transition-normal": "0ms",
+    "--transition-slow":   "0ms",
+    "--easing-standard":   "step-end",
+    "--easing-decelerate": "step-end",
+    "--easing-accelerate": "step-end",
+
+    "--focus-ring-color":  "#44ff44",
+    "--focus-ring-width":  "2px",
+    "--focus-ring-offset": "0px",
+    "--focus-ring-style":  "solid",
+
+    "--code-bg":           "rgba(0,0,0,0.92)",
+    "--code-text":         "#c6f0c6",
+    "--code-keyword":      "#44ff44",
+    "--code-string":       "#ffdd00",
+    "--code-comment":      "#356635",
+    "--code-number":       "#44ddff",
+    "--code-operator":     "#ff3300",
+
+    "--selection-bg":      "rgba(68,255,68,0.28)",
+    "--selection-text":    "#030603",
+
+    "--scrollbar-thumb":   "#44ff44",
+    "--scrollbar-track":   "#060d06",
+    "--scrollbar-width":   "6px",
+
+    "--icon-primary":             "#44ff44",
+    "--icon-secondary":           "#ffdd00",
+    "--icon-muted":               "#356635",
+
+    "--font-display":             "'Black Ops One', 'Oswald', sans-serif",
+    "--text-glow":                "2px 2px 0 #000000, -1px -1px 0 rgba(68,255,68,0.40)",
+    "--image-filter":             "contrast(1.3) brightness(0.9) saturate(0.7)",
+    "--card-accent-border":       "5px solid #44ff44",
+    "--btn-text-transform":       "uppercase",
+    "--btn-letter-spacing":       "0.08em",
+    "--animation-click":          "theme-shake 0.24s ease-out",
+    "--animation-hover":          "none",
+    "--glow-primary":             "0 0 10px rgba(68,255,68,0.60)",
+
+    "--bg-image":          "url('https://m.media-amazon.com/images/I/9175IKy8JEL._UF1000,1000_QL80_.jpg')",
+    "--bg-image-opacity":  "0.55",
+    "--bg-image-blur":     "0px",
+    "--bg-image-size":     "cover",
+    "--bg-image-position": "center"
+  }
+}

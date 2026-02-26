@@ -1,0 +1,126 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Glassmorphism",
+  "id": "glass",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Frosted-glass panels on a deep blue gradient.",
+  "category": "solid",
+  "dark": true,
+  "variables": {
+    "--primary":           "#6d9eff",
+    "--primary-hover":     "#5b8bff",
+    "--primary-light":     "rgba(109, 158, 255, 0.2)",
+    "--primary-dark":      "#3b6bdd",
+
+    "--header-bg":         "rgba(255, 255, 255, 0.10)",
+    "--header-accent":     "rgba(109, 158, 255, 0.7)",
+
+    "--bg-primary":        "rgba(255, 255, 255, 0.06)",
+    "--bg-secondary":      "rgba(255, 255, 255, 0.10)",
+    "--bg-tertiary":       "rgba(255, 255, 255, 0.14)",
+    "--bg-elevated":       "rgba(255, 255, 255, 0.12)",
+    "--bg-hover":          "rgba(255, 255, 255, 0.16)",
+    "--bg-active":         "rgba(255, 255, 255, 0.22)",
+
+    "--border-primary":    "rgba(255, 255, 255, 0.18)",
+    "--border-secondary":  "rgba(255, 255, 255, 0.30)",
+    "--border-focus":      "rgba(109, 158, 255, 0.8)",
+
+    "--text-primary":      "rgba(255, 255, 255, 0.95)",
+    "--text-secondary":    "rgba(255, 255, 255, 0.70)",
+    "--text-tertiary":     "rgba(255, 255, 255, 0.45)",
+    "--text-inverse":      "#0b0e1a",
+
+    "--success":           "#5af7a0",
+    "--success-bg":        "rgba(90, 247, 160, 0.12)",
+    "--warning":           "#ffd166",
+    "--warning-bg":        "rgba(255, 209, 102, 0.12)",
+    "--danger":            "#ff7b7b",
+    "--danger-bg":         "rgba(255, 123, 123, 0.12)",
+    "--info":              "#6d9eff",
+    "--info-bg":           "rgba(109, 158, 255, 0.12)",
+
+    "--shadow-sm":         "0 2px 8px rgba(0, 0, 0, 0.25)",
+    "--shadow-md":         "0 8px 24px rgba(0, 0, 0, 0.30)",
+    "--shadow-lg":         "0 16px 40px rgba(0, 0, 0, 0.35)",
+    "--shadow-xl":         "0 24px 56px rgba(0, 0, 0, 0.40)",
+
+    "--overlay":           "rgba(0, 0, 0, 0.55)",
+    "--overlay-light":     "rgba(255, 255, 255, 0.06)",
+
+    "--gradient-primary":  "linear-gradient(135deg, #6d9eff 0%, #a78bfa 100%)",
+    "--gradient-accent":   "linear-gradient(135deg, rgba(109, 158, 255, 0.8) 0%, rgba(167, 139, 250, 0.8) 100%)",
+    "--gradient-bg":       "linear-gradient(135deg, #0b1a3e 0%, #1a0b3e 50%, #0b3a2e 100%)",
+    "--gradient-header":   "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(109,158,255,0.08) 100%)",
+
+    "--blur-sm":           "blur(4px)",
+    "--blur-md":           "blur(12px)",
+    "--blur-lg":           "blur(24px)",
+    "--glass-bg":          "rgba(255, 255, 255, 0.08)",
+
+    "--page-bg":           "linear-gradient(135deg, #0b1a3e 0%, #1a0b3e 50%, #0b3a2e 100%)",
+    "--noise-opacity":     "0.03",
+
+    "--transition-fast":   "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--transition-normal": "250ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--transition-slow":   "400ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--easing-standard":   "cubic-bezier(0.4, 0, 0.2, 1)",
+    "--easing-decelerate": "cubic-bezier(0, 0, 0.2, 1)",
+    "--easing-accelerate": "cubic-bezier(0.4, 0, 1, 1)",
+
+    "--focus-ring-color":  "rgba(109, 158, 255, 0.8)",
+    "--focus-ring-width":  "2px",
+    "--focus-ring-offset": "2px",
+    "--focus-ring-style":  "solid",
+
+    "--font-mono":                "'Cascadia Code', 'Fira Code', Consolas, monospace",
+    "--font-serif":               "Georgia, 'Times New Roman', serif",
+    "--font-size-base":           "14px",
+    "--font-size-sm":             "12px",
+    "--font-size-lg":             "16px",
+    "--font-weight-normal":       "400",
+    "--font-weight-bold":         "600",
+    "--line-height-base":         "1.5",
+    "--letter-spacing-tight":     "-0.01em",
+    "--letter-spacing-wide":      "0.05em",
+
+    "--code-bg":           "rgba(255, 255, 255, 0.06)",
+    "--code-text":         "rgba(255, 255, 255, 0.95)",
+    "--code-keyword":      "#a78bfa",
+    "--code-string":       "#5af7a0",
+    "--code-comment":      "rgba(255, 255, 255, 0.40)",
+    "--code-number":       "#ffd166",
+    "--code-operator":     "#6d9eff",
+
+    "--selection-bg":      "rgba(109, 158, 255, 0.35)",
+    "--selection-text":    "rgba(255, 255, 255, 0.95)",
+
+    "--scrollbar-thumb":   "rgba(255, 255, 255, 0.25)",
+    "--scrollbar-track":   "rgba(255, 255, 255, 0.05)",
+    "--scrollbar-width":   "6px",
+
+    "--icon-primary":      "#6d9eff",
+    "--icon-secondary":    "rgba(255, 255, 255, 0.70)",
+    "--icon-muted":        "rgba(255, 255, 255, 0.40)",
+
+    "--spacing-xs":        "4px",
+    "--spacing-sm":        "8px",
+    "--spacing-md":        "16px",
+    "--spacing-lg":        "24px",
+    "--spacing-xl":        "40px",
+
+    "--z-dropdown":        "100",
+    "--z-modal":           "200",
+    "--z-toast":           "300",
+    "--z-tooltip":         "400",
+    "--z-overlay":         "150",
+
+    "--pattern-bg":        "none",
+    "--pattern-size":      "auto",
+    "--pattern-header":    "none",
+
+    "--card-accent-border": "2px solid #6d9eff",
+    "--btn-letter-spacing": "0.02em"
+  }
+}

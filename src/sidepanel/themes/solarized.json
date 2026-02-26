@@ -1,0 +1,126 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Solarized Dark",
+  "id": "solarized",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Ethan Schoonover's classic warm teal-green dark palette.",
+  "category": "solid",
+  "dark": true,
+  "variables": {
+    "--primary":           "#268bd2",
+    "--primary-hover":     "#2aa198",
+    "--primary-light":     "rgba(38, 139, 210, 0.15)",
+    "--primary-dark":      "#1a6fa3",
+
+    "--header-bg":         "#073642",
+    "--header-accent":     "#268bd2",
+
+    "--bg-primary":        "#002b36",
+    "--bg-secondary":      "#073642",
+    "--bg-tertiary":       "#0a3f4d",
+    "--bg-elevated":       "#0d4a5a",
+    "--bg-hover":          "rgba(38, 139, 210, 0.08)",
+    "--bg-active":         "rgba(38, 139, 210, 0.16)",
+
+    "--border-primary":    "#073642",
+    "--border-secondary":  "#0e5060",
+    "--border-focus":      "#268bd2",
+
+    "--text-primary":      "#93a1a1",
+    "--text-secondary":    "#839496",
+    "--text-tertiary":     "#586e75",
+    "--text-inverse":      "#002b36",
+
+    "--success":           "#859900",
+    "--success-bg":        "rgba(133, 153, 0, 0.12)",
+    "--warning":           "#b58900",
+    "--warning-bg":        "rgba(181, 137, 0, 0.12)",
+    "--danger":            "#dc322f",
+    "--danger-bg":         "rgba(220, 50, 47, 0.12)",
+    "--info":              "#2aa198",
+    "--info-bg":           "rgba(42, 161, 152, 0.12)",
+
+    "--shadow-sm":         "0 1px 4px rgba(0, 0, 0, 0.35)",
+    "--shadow-md":         "0 4px 16px rgba(0, 0, 0, 0.40)",
+    "--shadow-lg":         "0 8px 28px rgba(0, 0, 0, 0.45)",
+    "--shadow-xl":         "0 16px 44px rgba(0, 0, 0, 0.50)",
+
+    "--overlay":           "rgba(0, 43, 54, 0.93)",
+    "--overlay-light":     "rgba(38, 139, 210, 0.05)",
+
+    "--gradient-primary":  "linear-gradient(135deg, #268bd2 0%, #2aa198 100%)",
+    "--gradient-accent":   "linear-gradient(135deg, #268bd2 0%, #859900 100%)",
+    "--gradient-bg":       "linear-gradient(180deg, #002b36 0%, #073642 100%)",
+    "--gradient-header":   "linear-gradient(135deg, #073642 0%, #0a3f4d 100%)",
+
+    "--blur-sm":           "blur(4px)",
+    "--blur-md":           "blur(8px)",
+    "--blur-lg":           "blur(16px)",
+    "--glass-bg":          "rgba(0, 43, 54, 0.7)",
+
+    "--page-bg":           "#002b36",
+    "--noise-opacity":     "0",
+
+    "--transition-fast":   "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--transition-normal": "250ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--transition-slow":   "400ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--easing-standard":   "cubic-bezier(0.4, 0, 0.2, 1)",
+    "--easing-decelerate": "cubic-bezier(0, 0, 0.2, 1)",
+    "--easing-accelerate": "cubic-bezier(0.4, 0, 1, 1)",
+
+    "--focus-ring-color":  "#268bd2",
+    "--focus-ring-width":  "2px",
+    "--focus-ring-offset": "2px",
+    "--focus-ring-style":  "solid",
+
+    "--font-mono":                "'Cascadia Code', 'Fira Code', Consolas, monospace",
+    "--font-serif":               "Georgia, 'Times New Roman', serif",
+    "--font-size-base":           "14px",
+    "--font-size-sm":             "12px",
+    "--font-size-lg":             "16px",
+    "--font-weight-normal":       "400",
+    "--font-weight-bold":         "600",
+    "--line-height-base":         "1.5",
+    "--letter-spacing-tight":     "-0.01em",
+    "--letter-spacing-wide":      "0.05em",
+
+    "--code-bg":           "#073642",
+    "--code-text":         "#93a1a1",
+    "--code-keyword":      "#268bd2",
+    "--code-string":       "#859900",
+    "--code-comment":      "#586e75",
+    "--code-number":       "#d33682",
+    "--code-operator":     "#2aa198",
+
+    "--selection-bg":      "rgba(38, 139, 210, 0.3)",
+    "--selection-text":    "#93a1a1",
+
+    "--scrollbar-thumb":   "#0e5060",
+    "--scrollbar-track":   "#073642",
+    "--scrollbar-width":   "8px",
+
+    "--icon-primary":      "#268bd2",
+    "--icon-secondary":    "#839496",
+    "--icon-muted":        "#586e75",
+
+    "--spacing-xs":        "4px",
+    "--spacing-sm":        "8px",
+    "--spacing-md":        "16px",
+    "--spacing-lg":        "24px",
+    "--spacing-xl":        "40px",
+
+    "--z-dropdown":        "100",
+    "--z-modal":           "200",
+    "--z-toast":           "300",
+    "--z-tooltip":         "400",
+    "--z-overlay":         "150",
+
+    "--pattern-bg":        "none",
+    "--pattern-size":      "auto",
+    "--pattern-header":    "none",
+
+    "--card-accent-border": "3px solid #268bd2",
+    "--btn-letter-spacing": "0.02em"
+  }
+}
