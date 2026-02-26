@@ -1,6 +1,56 @@
 # bAInder - AI Chat Organizer
 
-Chrome extension to organize AI browser chats (ChatGPT, Claude, Gemini) into a hierarchical notebook with topics, table of contents, and search functionality.
+Chrome/Edge extension to organize AI browser chats (ChatGPT, Claude, Gemini, Copilot) into a hierarchical notebook with topics, table of contents, and search functionality.
+
+## Installation
+
+### Prerequisites
+
+```bash
+npm install
+npm run build:all   # produces dist/chrome/ and dist/edge/
+```
+
+Or build for a single browser:
+
+```bash
+npm run build:chrome   # → dist/chrome/
+npm run build:edge     # → dist/edge/
+```
+
+---
+
+### Google Chrome
+
+1. Open **chrome://extensions**
+2. Enable **Developer mode** (toggle, top-right)
+3. Click **Load unpacked**
+4. Select the **`dist/chrome`** folder from this repo
+5. The bAInder icon appears in the toolbar — click it to open the side panel
+
+---
+
+### Microsoft Edge
+
+1. Open **edge://extensions**
+2. Enable **Developer mode** (toggle, bottom-left of the sidebar)
+3. Click **Load unpacked**
+4. Select the **`dist/edge`** folder from this repo
+5. The bAInder icon appears in the toolbar — click it to open the side panel
+
+> **Note:** Edge is Chromium-based and supports the same Manifest V3 API as Chrome, so the extension is fully compatible. The separate `dist/edge/` build exists to allow Edge-specific manifest overrides (e.g. a store `update_url`) when publishing to the Microsoft Edge Add-ons portal.
+
+---
+
+### Producing a store-ready zip
+
+```bash
+npm run package:chrome   # → releases/bainder-chrome-v1.0.0.zip
+npm run package:edge     # → releases/bainder-edge-v1.0.0.zip
+npm run package:all      # both at once
+```
+
+---
 
 ## Stage 1: Foundation & Project Setup ✅
 

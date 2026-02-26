@@ -210,6 +210,11 @@
             <path d="M8 3V11M8 11L5 8M8 11L11 8M3 13H13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+        <button id="exportAllBtn" class="btn-icon" title="Export entire tree">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 11V3M8 3L5 6M8 3L11 6M3 13H13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <button id="clearAllBtn" class="btn-icon btn-icon--danger" title="Clear all saved chats">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M3 4H13M12 4V13C12 13.5 11.5 14 11 14H5C4.5 14 4 13.5 4 13V4M6 4V3C6 2.5 6.5 2 7 2H9C9.5 2 10 2.5 10 3V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -404,9 +409,6 @@
     </aside>
   </div>
 
-  <!-- JSZip loaded as a classic script so its UMD global (window.JSZip) is
-       available to the ES-module dialogs via globalThis.JSZip -->
-  <script src="../lib/vendor/jszip.min.js"></script>
   <script type="module" src="sidepanel.js"></script>
 </body>
 </html>

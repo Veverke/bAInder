@@ -15,7 +15,7 @@ import { messagesToMarkdown } from '../lib/markdown-serialiser.js';
  */
 export function detectSource(url) {
   if (!url || typeof url !== 'string') return 'unknown';
-  if (url.includes('chat.openai.com'))   return 'chatgpt';
+  if (url.includes('chat.openai.com') || url.includes('chatgpt.com')) return 'chatgpt';
   if (url.includes('claude.ai'))         return 'claude';
   if (url.includes('gemini.google.com')) return 'gemini';
   if (url.includes('copilot.microsoft.com') || url.includes('m365.cloud.microsoft')) return 'copilot';

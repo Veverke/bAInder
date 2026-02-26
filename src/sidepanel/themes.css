@@ -172,6 +172,26 @@
   box-shadow: inset 3px 0 0 0 #00ff41 !important;
 }
 
+/* Recent chip — monochrome green */
+[data-theme="terminal"] .recent-chip {
+  background: transparent !important;
+  border-color: #1a3a1a !important;
+  color: #00cc33 !important;
+}
+[data-theme="terminal"] .recent-chip:hover {
+  background: rgba(0, 255, 65, 0.08) !important;
+  border-color: #00ff41 !important;
+  color: #00ff41 !important;
+  transform: none !important;
+}
+[data-theme="terminal"] .recent-chip__dot--chatgpt,
+[data-theme="terminal"] .recent-chip__dot--claude,
+[data-theme="terminal"] .recent-chip__dot--gemini,
+[data-theme="terminal"] .recent-chip__dot--copilot,
+[data-theme="terminal"] .recent-chip__dot--unknown {
+  background: #00ff41 !important;
+}
+
 
 /* ══════════════════════════════════════════════════════════════════════════════
    X2 — RETRO / 8-BIT
@@ -390,6 +410,30 @@
   font-size: 8px !important;
 }
 
+/* Recent rail — pixel font + outset borders */
+[data-theme="retro"] .recent-rail__label {
+  font-family: 'PressStart2P', 'Courier New', monospace !important;
+  font-size: 6px !important;
+}
+[data-theme="retro"] .recent-chip {
+  font-family: 'PressStart2P', 'Courier New', monospace !important;
+  font-size: 6px !important;
+  background: #000060 !important;
+  color: #aaaaff !important;
+  border: 2px solid;
+  border-color: #aaaaff #000055 #000055 #aaaaff !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+[data-theme="retro"] .recent-chip:hover {
+  background: #0000aa !important;
+  color: #fff !important;
+  transform: none !important;
+}
+[data-theme="retro"] .recent-chip__dot--chatgpt { background: #55ff55 !important; }
+[data-theme="retro"] .recent-chip__dot--claude  { background: #ff5555 !important; }
+[data-theme="retro"] .recent-chip__dot--gemini  { background: #55ffff !important; }
+[data-theme="retro"] .recent-chip__dot--copilot { background: #ff55ff !important; }
+
 
 /* ══════════════════════════════════════════════════════════════════════════════
    X3 — GLASSMORPHISM
@@ -527,6 +571,18 @@
 /* Main content area transparent to show body gradient */
 [data-theme="glass"] .main-content {
   background: transparent !important;
+}
+
+/* Recent chips — frosted glass */
+[data-theme="glass"] .recent-chip {
+  background: rgba(255, 255, 255, 0.07) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+[data-theme="glass"] .recent-chip:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(109, 158, 255, 0.45) !important;
 }
 
 
@@ -704,6 +760,24 @@
 [data-theme="neon"] .badge--gemini  { background: rgba(0, 150, 255, 0.12);  color: #0096ff; }
 [data-theme="neon"] .badge--copilot { background: rgba(170, 0, 255, 0.12);  color: #aa00ff; }
 
+/* Recent chips — neon glow */
+[data-theme="neon"] .recent-chip {
+  background: transparent !important;
+  border-color: rgba(0, 255, 245, 0.20) !important;
+  color: #9090c0 !important;
+}
+[data-theme="neon"] .recent-chip:hover {
+  background: rgba(0, 255, 245, 0.07) !important;
+  border-color: rgba(0, 255, 245, 0.50) !important;
+  color: #e0e0ff !important;
+  box-shadow: 0 0 10px rgba(0, 255, 245, 0.18) !important;
+  transform: none !important;
+}
+[data-theme="neon"] .recent-chip__dot--chatgpt { background: #00ff64 !important; }
+[data-theme="neon"] .recent-chip__dot--claude  { background: #ff6400 !important; }
+[data-theme="neon"] .recent-chip__dot--gemini  { background: #0096ff !important; }
+[data-theme="neon"] .recent-chip__dot--copilot { background: #aa00ff !important; }
+
 
 /* ══════════════════════════════════════════════════════════════════════════════
    X5 — NORD
@@ -798,6 +872,12 @@
   box-shadow: 0 0 0 2px rgba(136, 192, 208, 0.40) !important;
 }
 
+/* Recent chip dots — Aurora palette */
+[data-theme="nord"] .recent-chip__dot--chatgpt { background: #a3be8c !important; }
+[data-theme="nord"] .recent-chip__dot--claude  { background: #d08770 !important; }
+[data-theme="nord"] .recent-chip__dot--gemini  { background: #81a1c1 !important; }
+[data-theme="nord"] .recent-chip__dot--copilot { background: #b48ead !important; }
+
 
 /* ══════════════════════════════════════════════════════════════════════════════
    X6 — SOLARIZED DARK
@@ -889,6 +969,12 @@
 [data-theme="solarized"] .badge--gemini  { background: rgba(42,161,152,0.15);  color: #2aa198; }
 [data-theme="solarized"] .badge--copilot { background: rgba(108,113,196,0.15); color: #6c71c4; }
 
+/* Recent chip dots — Solarized accent palette */
+[data-theme="solarized"] .recent-chip__dot--chatgpt { background: #859900 !important; }
+[data-theme="solarized"] .recent-chip__dot--claude  { background: #cb4b16 !important; }
+[data-theme="solarized"] .recent-chip__dot--gemini  { background: #2aa198 !important; }
+[data-theme="solarized"] .recent-chip__dot--copilot { background: #6c71c4 !important; }
+
 
 /* ══════════════════════════════════════════════════════════════════════════════
    X7 — FOREST
@@ -979,3 +1065,9 @@
 [data-theme="forest"] .badge--claude  { background: rgba(212,166, 64,0.15);  color: #d4a640; }
 [data-theme="forest"] .badge--gemini  { background: rgba(107,174,214,0.15);  color: #6baed6; }
 [data-theme="forest"] .badge--copilot { background: rgba(192,158,220,0.15);  color: #c09edc; }
+
+/* Recent chip dots — Forest accent palette */
+[data-theme="forest"] .recent-chip__dot--chatgpt { background: #a8d5a2 !important; }
+[data-theme="forest"] .recent-chip__dot--claude  { background: #d4a640 !important; }
+[data-theme="forest"] .recent-chip__dot--gemini  { background: #6baed6 !important; }
+[data-theme="forest"] .recent-chip__dot--copilot { background: #c09edc !important; }

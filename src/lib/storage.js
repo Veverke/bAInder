@@ -1,9 +1,10 @@
+import browser from 'webextension-polyfill';
 /**
  * bAInder Storage Service
  * Stage 2: Storage Abstraction Layer
  * 
  * Provides a flexible storage interface that can be swapped between
- * chrome.storage.local (MVP) and IndexedDB (future enhancement).
+ * browser.storage.local (MVP) and IndexedDB (future enhancement).
  */
 
 /**
@@ -56,7 +57,7 @@ export class IStorageService {
 
 /**
  * Chrome Storage Adapter
- * Implementation using chrome.storage.local API
+ * Implementation using browser.storage.local API
  */
 export class ChromeStorageAdapter extends IStorageService {
   constructor() {
@@ -73,7 +74,7 @@ export class ChromeStorageAdapter extends IStorageService {
    */
   async saveTopicTree(tree) {
     try {
-      await chrome.storage.local.set({
+      await browser.storage.local.set({
         [this.KEYS.TOPIC_TREE]: tree
       });
       await this._updateMetadata();
@@ -89,7 +90,7 @@ export class ChromeStorageAdapter extends IStorageService {
    */
   async loadTopicTree() {
     try {
-      const result = await chrome.storage.local.get(this.KEYS.TOPIC_TREE);
+      const result = await browser.storage.local.get(this.KEYS.TOPIC_TREE);
       return result[this.KEYS.TOPIC_TREE] || {
         topics: {},
         rootTopicIds: [],
@@ -106,7 +107,7 @@ export class ChromeStorageAdapter extends IStorageService {
    */
   async searchChats(query) {
     try {
-      const result = await chrome.storage.local.get(this.KEYS.CHATS);
+      const result = await browser.storage.local.get(this.KEYS.CHATS);
       const chats = result[this.KEYS.CHATS] || [];
 
       const lowerQuery = query.toLowerCase();
@@ -146,12 +147,12 @@ export class ChromeStorageAdapter extends IStorageService {
    */
   async getStorageUsage() {
     try {
-      const bytesInUse = await chrome.storage.local.getBytesInUse();
-      const quota = chrome.storage.local.QUOTA_BYTES || 10485760; // 10MB default
+      const bytesInUse = await browser.storage.local.getBytesInUse();
+      const quota = browser.storage.local.QUOTA_BYTES || 10485760; // 10MB default
       
       // Get counts
       const tree = await this.loadTopicTree();
-      const result = await chrome.storage.local.get(this.KEYS.CHATS);
+      const result = await browser.storage.local.get(this.KEYS.CHATS);
       const chats = result[this.KEYS.CHATS] || [];
       
       return {
@@ -172,7 +173,7 @@ export class ChromeStorageAdapter extends IStorageService {
    */
   async clearAll() {
     try {
-      await chrome.storage.local.clear();
+      await browser.storage.local.clear();
       return true;
     } catch (error) {
       console.error('Error clearing storage:', error);
@@ -189,7 +190,7 @@ export class ChromeStorageAdapter extends IStorageService {
         lastUpdated: Date.now(),
         version: 1
       };
-      await chrome.storage.local.set({
+      await browser.storage.local.set({
         [this.KEYS.METADATA]: metadata
       });
     } catch (error) {

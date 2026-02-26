@@ -24,7 +24,7 @@ import { messagesToMarkdown } from '../lib/markdown-serialiser.js';
 export function detectPlatform(hostname) {
   if (!hostname || typeof hostname !== 'string') return null;
   const h = hostname.toLowerCase();
-  if (h.includes('chat.openai.com'))   return 'chatgpt';
+  if (h.includes('chat.openai.com') || h.includes('chatgpt.com')) return 'chatgpt';
   if (h.includes('claude.ai'))         return 'claude';
   if (h.includes('gemini.google.com')) return 'gemini';
   if (h.includes('copilot.microsoft.com') || h.includes('m365.cloud.microsoft')) return 'copilot';

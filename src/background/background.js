@@ -3,11 +3,12 @@
 // Stage 6: Enhanced SAVE_CHAT handler with validation, deduplication, and context menu excerpt save
 
 import { handleSaveChat as _handleSaveChat, detectSource, buildExcerptPayload } from './chat-save-handler.js';
+import browser from 'webextension-polyfill';
 
 console.log('bAInder Background Service Worker initialized');
 
 // Cache for rich excerpt markdown pushed proactively by content script on right-click.
-// Stored in chrome.storage.session so it survives service worker restarts between
+// Stored in browser.storage.session so it survives service worker restarts between
 // the contextmenu event and the context menu click handler.
 // An in-memory mirror is kept for the fast (non-restart) path.
 let _excerptCache = null;
@@ -16,6 +17,7 @@ let _excerptCache = null;
 
 const SUPPORTED_URL_PATTERNS = [
   'https://chat.openai.com/*',
+  'https://chatgpt.com/*',
   'https://claude.ai/*',
   'https://gemini.google.com/*',
   'https://copilot.microsoft.com/*',
@@ -23,8 +25,8 @@ const SUPPORTED_URL_PATTERNS = [
 ];
 
 function setupContextMenus() {
-  chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
+  browser.contextMenus.removeAll().then(() => {
+    browser.contextMenus.create({
       id:                  'save-excerpt',
       title:               '💾 Save selection to bAInder',
       contexts:            ['selection'],
@@ -33,7 +35,7 @@ function setupContextMenus() {
   });
 }
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+browser.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== 'save-excerpt') return;
   try {
     const pageUrl = info.pageUrl || '';
@@ -45,7 +47,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     // the plain selectionText provided by the Chrome API.
     //
     // The in-memory _excerptCache works when the service worker stayed alive.
-    // chrome.storage.session covers the case where the SW was killed and
+    // browser.storage.session covers the case where the SW was killed and
     // restarted between the contextmenu event and the menu-item click.
     let richMarkdown = _excerptCache?.markdown || null;
     console.log('[bAInder DEBUG] onClicked: _excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
@@ -53,7 +55,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
     if (!richMarkdown) {
       try {
-        const stored = await chrome.storage.session.get('excerptCache');
+        const stored = await browser.storage.session.get('excerptCache');
         richMarkdown = stored?.excerptCache?.markdown || null;
         console.log('[bAInder DEBUG] onClicked: session storage excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
       } catch (e) {
@@ -61,12 +63,12 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       }
     }
     // Always clear session storage after consuming (one-shot)
-    chrome.storage.session.remove('excerptCache').catch(() => {});
+    browser.storage.session.remove('excerptCache').catch(() => {});
 
     if (!richMarkdown) {
       console.log('[bAInder DEBUG] onClicked: no cache, trying EXTRACT_EXCERPT fallback');
       try {
-        const resp = await chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_EXCERPT' });
+        const resp = await browser.tabs.sendMessage(tab.id, { type: 'EXTRACT_EXCERPT' });
         console.log('[bAInder DEBUG] onClicked: EXTRACT_EXCERPT resp =', resp?.success, typeof resp?.data?.markdown, (resp?.data?.markdown || '').slice(0, 200));
         if (resp?.success && resp.data?.markdown) richMarkdown = resp.data.markdown;
       } catch (e) {
@@ -78,7 +80,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const payload = buildExcerptPayload(info.selectionText, pageUrl, richMarkdown);
     console.log('[bAInder DEBUG] onClicked: payload.content =', JSON.stringify(payload.content.slice(0, 500)));
     const entry = await handleSaveChat(payload, { tab });
-    chrome.runtime.sendMessage({ type: 'CHAT_SAVED', data: entry }).catch(() => {});
+    browser.runtime.sendMessage({ type: 'CHAT_SAVED', data: entry }).catch(() => {});
   } catch (err) {
     console.error('bAInder: Excerpt save failed', err.message);
   }
@@ -87,7 +89,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 // Extension installed or updated
-chrome.runtime.onInstalled.addListener((details) => {
+browser.runtime.onInstalled.addListener((details) => {
   console.log('Extension installed/updated:', details.reason);
   setupContextMenus();
 
@@ -97,7 +99,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     setupDefaults();
     
     // Open side panel to welcome user
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
       if (tabs[0]) {
         chrome.sidePanel.open({ tabId: tabs[0].id }).catch(err => {
           console.log('Could not open side panel:', err);
@@ -112,10 +114,10 @@ chrome.runtime.onInstalled.addListener((details) => {
 // Set up default data structure
 async function setupDefaults() {
   try {
-    const existing = await chrome.storage.local.get(['topics', 'chats', 'settings']);
+    const existing = await browser.storage.local.get(['topics', 'chats', 'settings']);
     
     if (!existing.topics) {
-      await chrome.storage.local.set({
+      await browser.storage.local.set({
         topics: [],
         chats: [],
         expandedTopics: [],
@@ -134,7 +136,7 @@ async function setupDefaults() {
 }
 
 // Handle action (toolbar icon) click - open side panel
-chrome.action.onClicked.addListener((tab) => {
+browser.action.onClicked.addListener((tab) => {
   console.log('Extension icon clicked, opening side panel');
   chrome.sidePanel.open({ tabId: tab.id }).catch(err => {
     console.error('Error opening side panel:', err);
@@ -142,7 +144,7 @@ chrome.action.onClicked.addListener((tab) => {
 });
 
 // Handle messages from content scripts and side panel
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Message received:', message.type, message);
   
   switch (message.type) {
@@ -154,7 +156,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (!tabId || !rect) { sendResponse({ success: false }); break; }
       (async () => {
         try {
-          const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
+          const dataUrl = await browser.tabs.captureVisibleTab(null, { format: 'png' });
           // Decode and crop using OffscreenCanvas
           const img = await createImageBitmap(await (await fetch(dataUrl)).blob());
           const x = Math.round(rect.left * dpr);
@@ -186,7 +188,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Store both in-memory (fast path) and session storage (SW restart path).
       _excerptCache = message.data || null;
       console.log('[bAInder DEBUG] STORE_EXCERPT_CACHE received, markdown =', _excerptCache ? JSON.stringify(_excerptCache.markdown?.slice(0, 200)) : null);
-      chrome.storage.session.set({ excerptCache: _excerptCache })
+      browser.storage.session.set({ excerptCache: _excerptCache })
         .then(() => console.log('[bAInder DEBUG] STORE_EXCERPT_CACHE: session storage write OK'))
         .catch(e => console.warn('[bAInder DEBUG] STORE_EXCERPT_CACHE: session storage write failed =', e?.message));
       sendResponse({ success: true });
@@ -196,7 +198,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleSaveChat(message.data, sender)
         .then(result => {
           sendResponse({ success: true, data: result });
-          chrome.runtime.sendMessage({ type: 'CHAT_SAVED', data: result }).catch(() => {});
+          browser.runtime.sendMessage({ type: 'CHAT_SAVED', data: result }).catch(() => {});
         })
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true; // Keep channel open for async response
@@ -220,15 +222,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Handle saving a chat from content script
-// Delegates to the testable handler module, passing chrome.storage.local as storage
+// Delegates to the testable handler module, passing browser.storage.local as storage
 async function handleSaveChat(chatData, sender) {
-  return _handleSaveChat(chatData, sender, chrome.storage.local);
+  return _handleSaveChat(chatData, sender, browser.storage.local);
 }
 
 // Get storage usage
 async function getStorageUsage() {
   try {
-    const bytesInUse = await chrome.storage.local.getBytesInUse();
+    const bytesInUse = await browser.storage.local.getBytesInUse();
     return {
       bytes: bytesInUse,
       megabytes: (bytesInUse / (1024 * 1024)).toFixed(2)
@@ -240,7 +242,7 @@ async function getStorageUsage() {
 }
 
 // Keep service worker alive (optional, for debugging)
-chrome.runtime.onStartup.addListener(() => {
+browser.runtime.onStartup.addListener(() => {
   console.log('Browser started, service worker active');
 });
 
