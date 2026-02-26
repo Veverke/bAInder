@@ -517,7 +517,7 @@ export async function setupStickyNotes(chatId, storage, renderFn) {
   const addBtn   = document.getElementById('sn-add-note-btn');
   let pendingY   = 0;
 
-  contentEl.addEventListener('contextmenu', (e) => {
+  document.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     pendingY = e.pageY;
 
