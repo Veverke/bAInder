@@ -1,0 +1,191 @@
+/* Vendored from ThemeStudio SDK v1.1 — DO NOT EDIT */
+/* Re-run ThemeStudioPlugin to update this file. */
+
+/**
+ * theme-base.css — ThemeStudio SDK generic wiring layer
+ *
+ * Import this once in your consumer application.  Every CSS custom property
+ * in the ThemeStudio spec will be wired to the appropriate DOM selectors
+ * automatically.  No further CSS changes are needed when the spec adds new
+ * variables — just re-import the updated version of this file.
+ *
+ * Usage (Vite/webpack/bundler):
+ *   import 'theme-sdk/theme-base.css';
+ *
+ * Usage (plain HTML):
+ *   <link rel="stylesheet" href="path/to/theme-base.css">
+ *
+ * Tier:  Tier 1 — Core expressiveness
+ * Spec:  themes/spec.schema.json
+ */
+
+/* ── Display typography ─────────────────────────────────────────────────── */
+/* --font-display  : separate heading typeface (falls back to --font-sans)  */
+/* --text-glow     : text-shadow for glowing headings (game/neon/scifi)     */
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display, var(--font-sans, system-ui, sans-serif));
+  text-shadow: var(--text-glow, none);
+}
+
+/* ── Image & media filter ───────────────────────────────────────────────── */
+/* --image-filter  : CSS filter() applied to images / video                 */
+
+img,
+video {
+  filter: var(--image-filter, none);
+}
+
+/* ── Card accent border ─────────────────────────────────────────────────── */
+/* --card-accent-border : coloured left-border strip on card-like elements. */
+/* Falls back to matching the current general border so neutral themes      */
+/* show no visual change — the general border shorthand governs those sides.*/
+
+.card,
+[class*="card"] {
+  border-left: var(--card-accent-border, 1px solid var(--border-primary, #e2e8f0));
+}
+
+/* ── Button personality ─────────────────────────────────────────────────── */
+/* --btn-text-transform  : uppercase / none / capitalize                    */
+/* --btn-letter-spacing  : tracking for button labels                       */
+
+button,
+[class*="btn"],
+[role="button"] {
+  text-transform: var(--btn-text-transform, none);
+  letter-spacing: var(--btn-letter-spacing, inherit);
+}
+
+/* ── Click & hover animations ───────────────────────────────────────────── */
+/* --animation-click : full CSS animation shorthand (name + duration + easing) */
+/* --animation-hover : same for hover state                                     */
+
+button:active,
+[class*="btn"]:active,
+[role="button"]:active {
+  animation: var(--animation-click, none);
+}
+
+button:hover,
+[class*="btn"]:hover,
+[role="button"]:hover {
+  animation: var(--animation-hover, none);
+}
+
+/* ── Glow on hover / focus ─────────────────────────────────────────────── */
+/* --glow-primary : CSS box-shadow applied on interactive element hover and  */
+/* input focus. Defaults to none so neutral themes have no glow at all.     */
+
+button:hover,
+[class*="btn"]:hover,
+[role="button"]:hover,
+input:focus,
+textarea:focus,
+select:focus {
+  box-shadow: var(--glow-primary, none);
+}
+
+/* ── Cursor ─────────────────────────────────────────────────────────────── */
+/* --cursor-default  : idle page cursor keyword                             */
+/* --cursor-pointer  : interactive element cursor keyword                   */
+
+body {
+  cursor: var(--cursor-default, auto);
+}
+
+a,
+button,
+[class*="btn"],
+[role="button"],
+label,
+select {
+  cursor: var(--cursor-pointer, pointer);
+}
+
+/* ── Background image overlay ────────────────────────────────────────────── */
+/* --bg-image          : CSS url(…) or none. Studio supplies a CDN URL        */
+/*                       default; consumer overrides by redeclaring the var.  */
+/* --bg-image-opacity  : 0–1 opacity of the overlay layer (default 0.18)     */
+/* --bg-image-blur     : blur() filter applied to the image layer             */
+/* --bg-image-size     : CSS background-size (default cover)                  */
+/* --bg-image-position : CSS background-position (default center)             */
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: var(--bg-image, none);
+  background-size: var(--bg-image-size, cover);
+  background-position: var(--bg-image-position, center);
+  background-repeat: no-repeat;
+  opacity: var(--bg-image-opacity, 0);
+  filter: blur(var(--bg-image-blur, 0px));
+}
+
+/* ── Native control colour (accent-color) ──────────────────────────────── */
+/* The accent-color bridge is applied as a real CSS property directly by    */
+/* applyCustomTheme() in theme-sdk.js via element.style.setProperty().      */
+/* Kept here as a comment for spec author awareness.                        */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   @keyframes — animations referenced by --animation-click / --animation-hover
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * theme-burst — snappy press pulse for confirm/submit click
+ * Use: theme-burst 0.18s ease-out
+ */
+@keyframes theme-burst {
+  0%   { transform: scale(1);    }
+  40%  { transform: scale(1.10); }
+  70%  { transform: scale(0.97); }
+  100% { transform: scale(1);    }
+}
+
+/**
+ * theme-bounce — vertical trampoline bounce for celebratory actions
+ * Use: theme-bounce 0.22s ease
+ */
+@keyframes theme-bounce {
+  0%   { transform: translateY(0);    }
+  30%  { transform: translateY(-7px); }
+  60%  { transform: translateY(-2px); }
+  80%  { transform: translateY(-4px); }
+  100% { transform: translateY(0);    }
+}
+
+/**
+ * theme-shake — horizontal shake for error / destructive actions
+ * Use: theme-shake 0.24s ease-out
+ */
+@keyframes theme-shake {
+  0%, 100% { transform: translateX(0);    }
+  15%       { transform: translateX(-5px); }
+  35%       { transform: translateX(5px);  }
+  55%       { transform: translateX(-3px); }
+  75%       { transform: translateX(3px);  }
+  90%       { transform: translateX(-1px); }
+}
+
+/**
+ * theme-glow-pulse — soft box-shadow fade in/out for hover emphasis
+ * Use: theme-glow-pulse 0.5s ease
+ * Requires --glow-primary to be defined for visible glow (otherwise blends
+ * with --shadow-md gracefully).
+ */
+@keyframes theme-glow-pulse {
+  0%, 100% { box-shadow: var(--shadow-sm, none);                           }
+  50%      { box-shadow: var(--glow-primary, var(--shadow-md, none));      }
+}
+
+/**
+ * theme-glow-ring — focus ring glow pulse for accessibility emphasis
+ * Use: theme-glow-ring 1.2s ease infinite
+ */
+@keyframes theme-glow-ring {
+  0%, 100% { outline-color: var(--focus-ring-color, currentColor); }
+  50%      { outline-color: transparent;                           }
+}

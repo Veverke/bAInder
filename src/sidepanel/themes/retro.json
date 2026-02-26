@@ -1,0 +1,138 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Retro 8-bit",
+  "id": "retro",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "NES-inspired palette with pixel borders and gold accents.",
+  "category": "solid",
+  "dark": true,
+  "variables": {
+    "--primary":           "#ffcc00",
+    "--primary-hover":     "#ffa500",
+    "--primary-light":     "rgba(255, 204, 0, 0.2)",
+    "--primary-dark":      "#cc9900",
+
+    "--header-bg":         "#000080",
+    "--header-accent":     "#ffcc00",
+
+    "--bg-primary":        "#0a001a",
+    "--bg-secondary":      "#000060",
+    "--bg-tertiary":       "#00004a",
+    "--bg-elevated":       "#000080",
+    "--bg-hover":          "#0000aa",
+    "--bg-active":         "#0000cc",
+
+    "--border-primary":    "#5555ff",
+    "--border-secondary":  "#aaaaff",
+    "--border-focus":      "#ffcc00",
+
+    "--text-primary":      "#ffffff",
+    "--text-secondary":    "#aaaaff",
+    "--text-tertiary":     "#5555ff",
+    "--text-inverse":      "#000000",
+
+    "--success":           "#55ff55",
+    "--success-bg":        "#003300",
+    "--warning":           "#ffcc00",
+    "--warning-bg":        "#333300",
+    "--danger":            "#ff5555",
+    "--danger-bg":         "#330000",
+    "--info":              "#55ffff",
+    "--info-bg":           "#003333",
+
+    "--shadow-sm":         "3px 3px 0px #000",
+    "--shadow-md":         "4px 4px 0px #000",
+    "--shadow-lg":         "6px 6px 0px #000",
+    "--shadow-xl":         "8px 8px 0px #000",
+
+    "--overlay":           "rgba(0, 0, 0, 0.9)",
+    "--overlay-light":     "rgba(0, 0, 170, 0.4)",
+
+    "--font-sans":         "'Press Start 2P', 'Courier New', monospace",
+
+    "--radius-xs":         "0px",
+    "--radius-sm":         "0px",
+    "--radius-md":         "0px",
+    "--radius-lg":         "0px",
+    "--radius-xl":         "0px",
+    "--radius-full":       "0px",
+
+    "--gradient-primary":  "none",
+    "--gradient-accent":   "none",
+    "--gradient-bg":       "none",
+    "--gradient-header":   "none",
+
+    "--blur-sm":           "blur(0px)",
+    "--blur-md":           "blur(0px)",
+    "--blur-lg":           "blur(0px)",
+    "--glass-bg":          "rgba(0, 0, 0, 0)",
+
+    "--page-bg":           "#0a001a",
+    "--noise-opacity":     "0",
+
+    "--transition-fast":   "0ms",
+    "--transition-normal": "0ms",
+    "--transition-slow":   "0ms",
+    "--easing-standard":   "step-end",
+    "--easing-decelerate": "step-end",
+    "--easing-accelerate": "step-end",
+
+    "--focus-ring-color":  "#ffcc00",
+    "--focus-ring-width":  "3px",
+    "--focus-ring-offset": "0px",
+    "--focus-ring-style":  "solid",
+
+    "--font-mono":                "'Press Start 2P', 'Courier New', monospace",
+    "--font-serif":               "'Press Start 2P', 'Courier New', monospace",
+    "--font-size-base":           "14px",
+    "--font-size-sm":             "12px",
+    "--font-size-lg":             "16px",
+    "--font-weight-normal":       "400",
+    "--font-weight-bold":         "700",
+    "--line-height-base":         "1.75",
+    "--letter-spacing-tight":     "0em",
+    "--letter-spacing-wide":      "0.1em",
+
+    "--code-bg":           "#000060",
+    "--code-text":         "#ffffff",
+    "--code-keyword":      "#55ffff",
+    "--code-string":       "#55ff55",
+    "--code-comment":      "#5555ff",
+    "--code-number":       "#ffcc00",
+    "--code-operator":     "#ff5555",
+
+    "--selection-bg":      "#0000aa",
+    "--selection-text":    "#ffffff",
+
+    "--scrollbar-thumb":   "#ffcc00",
+    "--scrollbar-track":   "#000080",
+    "--scrollbar-width":   "8px",
+
+    "--icon-primary":      "#ffcc00",
+    "--icon-secondary":    "#aaaaff",
+    "--icon-muted":        "#5555ff",
+
+    "--spacing-xs":        "4px",
+    "--spacing-sm":        "8px",
+    "--spacing-md":        "16px",
+    "--spacing-lg":        "24px",
+    "--spacing-xl":        "40px",
+
+    "--z-dropdown":        "100",
+    "--z-modal":           "200",
+    "--z-toast":           "300",
+    "--z-tooltip":         "400",
+    "--z-overlay":         "150",
+
+    "--pattern-bg":        "none",
+    "--pattern-size":      "auto",
+    "--pattern-header":    "none",
+
+    "--font-display": "'Press Start 2P', 'Courier New', monospace",
+    "--card-accent-border": "4px solid #ffcc00",
+    "--btn-text-transform": "uppercase",
+    "--btn-letter-spacing": "0.06em",
+    "--animation-click": "theme-burst 0.15s ease-out"
+  }
+}

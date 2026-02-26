@@ -1,0 +1,134 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Graph Paper",
+  "id": "graph-paper",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Crisp white with a subtle crosshatch grid. Clean precision for day-mode.",
+  "category": "pattern",
+  "dark": false,
+  "variables": {
+    "--primary":           "#2d3a8c",
+    "--primary-hover":     "#3547ad",
+    "--primary-light":     "rgba(45,58,140,0.10)",
+    "--primary-dark":      "#1e267a",
+
+    "--header-bg":         "linear-gradient(135deg, #eef0f8 0%, #f4f6fc 100%)",
+    "--header-accent":     "#2d3a8c",
+
+    "--bg-primary":        "#fefeff",
+    "--bg-secondary":      "#f4f5f9",
+    "--bg-tertiary":       "#eaecf4",
+    "--bg-elevated":       "#ffffff",
+    "--bg-hover":          "rgba(45,58,140,0.06)",
+    "--bg-active":         "rgba(45,58,140,0.12)",
+
+    "--border-primary":    "#d8dced",
+    "--border-secondary":  "#bec3da",
+    "--border-focus":      "#2d3a8c",
+
+    "--text-primary":      "#1a1f36",
+    "--text-secondary":    "#4a5068",
+    "--text-tertiary":     "#8a91aa",
+    "--text-inverse":      "#ffffff",
+
+    "--success":           "#1a7a4a",
+    "--success-bg":        "rgba(26,122,74,0.10)",
+    "--warning":           "#b45309",
+    "--warning-bg":        "rgba(180,83,9,0.10)",
+    "--danger":            "#c0192c",
+    "--danger-bg":         "rgba(192,25,44,0.10)",
+    "--info":              "#1e5fb4",
+    "--info-bg":           "rgba(30,95,180,0.10)",
+
+    "--shadow-sm":         "0 1px 2px rgba(26,31,54,0.07)",
+    "--shadow-md":         "0 4px 10px rgba(26,31,54,0.09)",
+    "--shadow-lg":         "0 8px 22px rgba(26,31,54,0.11)",
+    "--shadow-xl":         "0 16px 38px rgba(26,31,54,0.14)",
+
+    "--overlay":           "rgba(26,31,54,0.50)",
+    "--overlay-light":     "rgba(26,31,54,0.10)",
+
+    "--font-sans":         "'Inter', -apple-system, system-ui, sans-serif",
+
+    "--radius-xs":         "3px",
+    "--radius-sm":         "4px",
+    "--radius-md":         "6px",
+    "--radius-lg":         "8px",
+    "--radius-xl":         "12px",
+    "--radius-full":       "9999px",
+
+    "--gradient-primary":  "linear-gradient(135deg, #2d3a8c 0%, #4f46e5 100%)",
+    "--gradient-accent":   "linear-gradient(135deg, #2d3a8c 0%, #7c3aed 100%)",
+    "--gradient-bg":       "linear-gradient(180deg, #fefeff 0%, #f4f5f9 100%)",
+    "--gradient-header":   "linear-gradient(135deg, #eef0f8 0%, #f4f6fc 100%)",
+
+    "--blur-sm":           "blur(4px)",
+    "--blur-md":           "blur(8px)",
+    "--blur-lg":           "blur(16px)",
+    "--glass-bg":          "rgba(255,255,255,0.75)",
+
+    "--page-bg":           "#fefeff",
+    "--noise-opacity":     "0",
+
+    "--transition-fast":   "100ms cubic-bezier(0.4,0,0.2,1)",
+    "--transition-normal": "200ms cubic-bezier(0.4,0,0.2,1)",
+    "--transition-slow":   "360ms cubic-bezier(0.4,0,0.2,1)",
+    "--easing-standard":   "cubic-bezier(0.4,0,0.2,1)",
+    "--easing-decelerate": "cubic-bezier(0,0,0.2,1)",
+    "--easing-accelerate": "cubic-bezier(0.4,0,1,1)",
+
+    "--focus-ring-color":  "#2d3a8c",
+    "--focus-ring-width":  "2px",
+    "--focus-ring-offset": "2px",
+    "--focus-ring-style":  "solid",
+
+    "--font-mono":                "'Cascadia Code', 'Fira Code', Consolas, monospace",
+    "--font-serif":               "Georgia, 'Times New Roman', serif",
+    "--font-size-base":           "14px",
+    "--font-size-sm":             "12px",
+    "--font-size-lg":             "16px",
+    "--font-weight-normal":       "400",
+    "--font-weight-bold":         "600",
+    "--line-height-base":         "1.6",
+    "--letter-spacing-tight":     "-0.01em",
+    "--letter-spacing-wide":      "0.06em",
+
+    "--code-bg":           "#f0f2f9",
+    "--code-text":         "#1a1f36",
+    "--code-keyword":      "#2d3a8c",
+    "--code-string":       "#1a7a4a",
+    "--code-comment":      "#8a91aa",
+    "--code-number":       "#b45309",
+    "--code-operator":     "#4a5068",
+
+    "--selection-bg":      "rgba(45,58,140,0.18)",
+    "--selection-text":    "#1a1f36",
+
+    "--scrollbar-thumb":   "#bec3da",
+    "--scrollbar-track":   "#f4f5f9",
+    "--scrollbar-width":   "6px",
+
+    "--icon-primary":      "#2d3a8c",
+    "--icon-secondary":    "#4a5068",
+    "--icon-muted":        "#8a91aa",
+
+    "--spacing-xs":        "4px",
+    "--spacing-sm":        "8px",
+    "--spacing-md":        "16px",
+    "--spacing-lg":        "24px",
+    "--spacing-xl":        "40px",
+
+    "--z-dropdown":        "100",
+    "--z-modal":           "200",
+    "--z-toast":           "300",
+    "--z-tooltip":         "400",
+    "--z-overlay":         "150",
+
+    "--pattern-bg":        "conic-gradient(from 90deg at 2px 2px, #0000 90deg, rgba(45,58,140,0.14) 0), conic-gradient(from 90deg at 1px 1px, #0000 90deg, rgba(45,58,140,0.07) 0)",
+    "--pattern-size":      "80px 80px, 20px 20px",
+    "--pattern-header":    "conic-gradient(from 90deg at 2px 2px, #0000 90deg, rgba(45,58,140,0.20) 0), conic-gradient(from 90deg at 1px 1px, #0000 90deg, rgba(45,58,140,0.10) 0)",
+
+    "--card-accent-border": "3px solid #2d3a8c"
+  }
+}

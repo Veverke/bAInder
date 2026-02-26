@@ -1,0 +1,125 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Medieval",
+  "id": "medieval",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Dark wood and gilded parchment with Cinzel roman capitals — a fantasy tome aesthetic.",
+  "category": "solid",
+  "dark": true,
+  "variables": {
+    "--primary":           "#c8a050",
+    "--primary-hover":     "#d8b060",
+    "--primary-light":     "rgba(200,160,80,0.15)",
+    "--primary-dark":      "#a08030",
+
+    "--header-bg":         "#0e0905",
+    "--header-accent":     "#c8a050",
+
+    "--bg-primary":        "#120c06",
+    "--bg-secondary":      "#1c1408",
+    "--bg-tertiary":       "#261c0c",
+    "--bg-elevated":       "#302210",
+    "--bg-hover":          "rgba(200,160,80,0.08)",
+    "--bg-active":         "rgba(200,160,80,0.15)",
+
+    "--border-primary":    "#3a2c14",
+    "--border-secondary":  "rgba(200,160,80,0.28)",
+    "--border-focus":      "#c8a050",
+
+    "--text-primary":      "#f0e0c0",
+    "--text-secondary":    "#c0a070",
+    "--text-tertiary":     "#6a5030",
+    "--text-inverse":      "#0e0905",
+
+    "--success":           "#70b060",
+    "--success-bg":        "rgba(112,176,96,0.12)",
+    "--warning":           "#e8c050",
+    "--warning-bg":        "rgba(232,192,80,0.12)",
+    "--danger":            "#c04040",
+    "--danger-bg":         "rgba(192,64,64,0.12)",
+    "--info":              "#6090c0",
+    "--info-bg":           "rgba(96,144,192,0.12)",
+
+    "--shadow-sm":         "2px 2px 6px rgba(14,9,5,0.50)",
+    "--shadow-md":         "3px 3px 14px rgba(14,9,5,0.60)",
+    "--shadow-lg":         "4px 4px 24px rgba(14,9,5,0.70)",
+    "--shadow-xl":         "6px 6px 36px rgba(14,9,5,0.80)",
+
+    "--overlay":           "rgba(14,9,5,0.92)",
+    "--overlay-light":     "rgba(200,160,80,0.06)",
+
+    "--font-sans":         "'Cinzel', 'Palatino Linotype', serif",
+    "--font-mono":         "'Courier New', Courier, monospace",
+    "--font-serif":        "'Cinzel', 'Palatino Linotype', serif",
+    "--font-size-base":    "15px",
+    "--font-size-sm":      "13px",
+    "--font-size-lg":      "17px",
+    "--font-weight-normal":"400",
+    "--font-weight-bold":  "700",
+    "--line-height-base":  "1.80",
+    "--letter-spacing-tight": "0.01em",
+    "--letter-spacing-wide":  "0.10em",
+
+    "--radius-xs":         "1px",
+    "--radius-sm":         "2px",
+    "--radius-md":         "2px",
+    "--radius-lg":         "3px",
+    "--radius-xl":         "4px",
+    "--radius-full":       "2px",
+
+    "--gradient-primary":  "none",
+    "--gradient-accent":   "none",
+    "--gradient-bg":       "none",
+    "--gradient-header":   "none",
+
+    "--blur-sm":           "blur(0px)",
+    "--blur-md":           "blur(0px)",
+    "--blur-lg":           "blur(0px)",
+    "--glass-bg":          "rgba(0,0,0,0)",
+
+    "--page-bg":           "#120c06",
+    "--noise-opacity":     "0",
+
+    "--transition-fast":   "80ms",
+    "--transition-normal": "160ms",
+    "--transition-slow":   "300ms",
+    "--easing-standard":   "ease-in-out",
+    "--easing-decelerate": "ease-out",
+    "--easing-accelerate": "ease-in",
+
+    "--focus-ring-color":  "#c8a050",
+    "--focus-ring-width":  "2px",
+    "--focus-ring-offset": "2px",
+    "--focus-ring-style":  "solid",
+
+    "--code-bg":           "#1c1408",
+    "--code-text":         "#f0e0c0",
+    "--code-keyword":      "#c8a050",
+    "--code-string":       "#70b060",
+    "--code-comment":      "#6a5030",
+    "--code-number":       "#e8c050",
+    "--code-operator":     "#6090c0",
+
+    "--selection-bg":      "rgba(200,160,80,0.28)",
+    "--selection-text":    "#f0e0c0",
+
+    "--scrollbar-thumb":   "rgba(200,160,80,0.40)",
+    "--scrollbar-track":   "#120c06",
+    "--scrollbar-width":   "8px",
+
+    "--icon-primary":      "#c8a050",
+    "--icon-secondary":    "#d8b060",
+    "--icon-muted":        "#6a5030",
+
+    "--pattern-bg":        "none",
+    "--pattern-size":      "auto",
+    "--pattern-header":    "none",
+
+    "--font-display": "'Cinzel', 'Palatino Linotype', serif",
+    "--card-accent-border": "4px solid #c8a050",
+    "--btn-text-transform": "uppercase",
+    "--btn-letter-spacing": "0.14em",
+    "--animation-click": "theme-burst 0.2s ease-in-out"
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Metroid",
+  "id": "metroid",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Planet Zebes desolation — Audiowide cold type, hyper-angular geometry, CRT scanlines and Samus orange isolation glow.",
+  "category": "videogame",
+  "dark": true,
+  "variables": {
+    "--primary":           "#ff6600",
+    "--primary-hover":     "#ff8833",
+    "--primary-light":     "rgba(255,102,0,0.14)",
+    "--primary-dark":      "#cc5200",
+
+    "--header-bg":         "#000000",
+    "--header-accent":     "#ff6600",
+
+    "--bg-primary":        "rgba(2,5,8,0.55)",
+    "--bg-secondary":      "rgba(5,12,18,0.60)",
+    "--bg-tertiary":       "rgba(8,20,32,0.65)",
+    "--bg-elevated":       "rgba(12,28,46,0.62)",
+    "--bg-hover":          "rgba(255,102,0,0.07)",
+    "--bg-active":         "rgba(255,102,0,0.14)",
+
+    "--border-primary":    "rgba(255,102,0,0.14)",
+    "--border-secondary":  "rgba(255,102,0,0.32)",
+    "--border-focus":      "#ff6600",
+
+    "--text-primary":      "#c4dde8",
+    "--text-secondary":    "#7aaabf",
+    "--text-tertiary":     "#2e5870",
+    "--text-inverse":      "#020508",
+
+    "--success":           "#00ff88",
+    "--success-bg":        "rgba(0,255,136,0.10)",
+    "--warning":           "#ffcc00",
+    "--warning-bg":        "rgba(255,204,0,0.10)",
+    "--danger":            "#ff2200",
+    "--danger-bg":         "rgba(255,34,0,0.10)",
+    "--info":              "#3388ff",
+    "--info-bg":           "rgba(51,136,255,0.10)",
+
+    "--shadow-sm":         "0 0 8px rgba(255,102,0,0.14), inset 0 0 1px rgba(255,102,0,0.08)",
+    "--shadow-md":         "0 0 20px rgba(255,102,0,0.20), 0 4px 12px rgba(0,0,0,0.65)",
+    "--shadow-lg":         "0 0 36px rgba(255,102,0,0.26), 0 8px 28px rgba(0,0,0,0.75)",
+    "--shadow-xl":         "0 0 56px rgba(255,102,0,0.32), 0 16px 48px rgba(0,0,0,0.85)",
+
+    "--overlay":           "rgba(0,0,0,0.94)",
+    "--overlay-light":     "rgba(255,102,0,0.05)",
+
+    "--font-sans":         "'Audiowide', 'Exo 2', sans-serif",
+    "--font-mono":         "'Share Tech Mono', 'Courier New', monospace",
+    "--font-serif":        "'Audiowide', Georgia, sans-serif",
+
+    "--radius-xs":         "0px",
+    "--radius-sm":         "1px",
+    "--radius-md":         "2px",
+    "--radius-lg":         "2px",
+    "--radius-xl":         "3px",
+    "--radius-full":       "2px",
+
+    "--pattern-bg":        "repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,102,0,0.03) 3px, rgba(255,102,0,0.03) 4px)",
+    "--pattern-size":      "auto",
+    "--pattern-header":    "repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(255,102,0,0.07) 2px, rgba(255,102,0,0.07) 3px)",
+
+    "--gradient-primary":  "linear-gradient(135deg, #ff6600 0%, #ff2200 100%)",
+    "--gradient-accent":   "linear-gradient(135deg, #ff6600 0%, #ffcc00 100%)",
+    "--gradient-bg":       "radial-gradient(ellipse at 50% 0%, #0c1c2e 0%, #020508 70%)",
+    "--gradient-header":   "linear-gradient(180deg, #000000 0%, #020508 100%)",
+
+    "--blur-sm":           "blur(0px)",
+    "--blur-md":           "blur(0px)",
+    "--blur-lg":           "blur(0px)",
+    "--glass-bg":          "rgba(0,0,0,0)",
+
+    "--page-bg":           "radial-gradient(ellipse at 50% 0%, #0c1c2e 0%, #020508 70%)",
+    "--noise-opacity":     "0",
+
+    "--transition-fast":   "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--transition-normal": "250ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--transition-slow":   "400ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--easing-standard":   "cubic-bezier(0.4, 0, 0.2, 1)",
+    "--easing-decelerate": "cubic-bezier(0, 0, 0.2, 1)",
+    "--easing-accelerate": "cubic-bezier(0.4, 0, 1, 1)",
+
+    "--focus-ring-color":  "#ff6600",
+    "--focus-ring-width":  "1px",
+    "--focus-ring-offset": "2px",
+    "--focus-ring-style":  "solid",
+
+    "--code-bg":           "rgba(2,5,8,0.92)",
+    "--code-text":         "#c4dde8",
+    "--code-keyword":      "#ff6600",
+    "--code-string":       "#00ff88",
+    "--code-comment":      "#2e5870",
+    "--code-number":       "#ffcc00",
+    "--code-operator":     "#3388ff",
+
+    "--selection-bg":      "rgba(255,102,0,0.25)",
+    "--selection-text":    "#c4dde8",
+
+    "--scrollbar-thumb":   "rgba(255,102,0,0.40)",
+    "--scrollbar-track":   "rgba(2,5,8,0.80)",
+    "--scrollbar-width":   "3px",
+
+    "--icon-primary":             "#ff6600",
+    "--icon-secondary":           "#ff8833",
+    "--icon-muted":               "#2e5870",
+
+    "--font-display":             "'Audiowide', 'Exo 2', sans-serif",
+    "--text-glow":                "0 0 10px rgba(255,102,0,0.65)",
+    "--image-filter":             "saturate(0.5) brightness(0.7) contrast(1.2)",
+    "--card-accent-border":       "2px solid #ff6600",
+    "--btn-text-transform":       "uppercase",
+    "--btn-letter-spacing":       "0.12em",
+    "--animation-click":          "theme-burst 0.12s linear",
+    "--animation-hover":          "none",
+    "--glow-primary":             "0 0 14px rgba(255,102,0,0.65)",
+
+    "--bg-image":          "url('https://cdn.wikimg.net/en/metroidwiki/images/thumb/8/8a/Samus_mph_Artwork.png/800px-Samus_mph_Artwork.png')",
+    "--bg-image-opacity":  "0.55",
+    "--bg-image-blur":     "0px",
+    "--bg-image-size":     "70%",
+    "--bg-image-position": "center"
+  }
+}
