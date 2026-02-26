@@ -19,6 +19,8 @@ import { extractSnippet, highlightTerms, formatBreadcrumb, escapeHtml } from '..
 import { getTagColor } from '../lib/tree-renderer.js';
 import { ExportDialog } from '../lib/export-dialog.js';
 import { ImportDialog } from '../lib/import-dialog.js';
+import { loadTheme, persistTheme } from '../lib/useTheme.js';
+import { BUNDLED_THEMES, BUNDLED_THEME_IDS } from './themes/index.js';
 console.log('bAInder Side Panel loaded');
 
 // DOM Elements
@@ -43,7 +45,8 @@ const elements = {
   storageUsage: document.getElementById('storageUsage'),
   saveBanner:   document.getElementById('saveBanner'),
   saveBtn:      document.getElementById('saveChatBtn'),
-  saveBannerMsg:document.getElementById('saveBannerMsg')
+  saveBannerMsg:document.getElementById('saveBannerMsg'),
+  themeBtn:     document.getElementById('themeBtn')
 };
 
 // Application State
@@ -144,8 +147,14 @@ function setupEventListeners() {
 
   // Settings button
   elements.settingsBtn.addEventListener('click', handleSettings);
+
+  // Theme picker button
+  elements.themeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleThemePicker();
+  });
   
-  // Topic context menu - hide when clicking outside
+  // Topic context menu / theme picker - hide when clicking outside
   document.addEventListener('click', (e) => {
     if (elements.contextMenu && !elements.contextMenu.contains(e.target)) {
       hideContextMenu();
@@ -154,6 +163,10 @@ function setupEventListeners() {
     if (elements.chatContextMenu && !elements.chatContextMenu.contains(e.target)) {
       hideChatContextMenu();
       state.contextMenuChat = null;
+    }
+    const picker = document.getElementById('themePicker');
+    if (picker && !picker.contains(e.target) && !elements.themeBtn?.contains(e.target)) {
+      closeThemePicker();
     }
   });
   
@@ -1228,6 +1241,55 @@ try {
     if (changeInfo.status === 'complete') initSaveBanner();
   });
 } catch (_) { /* non-extension context (tests) */ }
+
+// ── Theme Picker ─────────────────────────────────────────────────────────────
+
+let _activeThemeId = localStorage.getItem('themeId') ?? 'light';
+
+function toggleThemePicker() {
+  const picker = document.getElementById('themePicker');
+  if (!picker) return;
+  picker.classList.contains('is-open') ? closeThemePicker() : openThemePicker();
+}
+
+function openThemePicker() {
+  const picker = document.getElementById('themePicker');
+  if (!picker) return;
+  buildThemeChips();
+  picker.classList.add('is-open');
+  picker.removeAttribute('aria-hidden');
+}
+
+function closeThemePicker() {
+  const picker = document.getElementById('themePicker');
+  picker?.classList.remove('is-open');
+  picker?.setAttribute('aria-hidden', 'true');
+}
+
+function buildThemeChips() {
+  const grid = document.getElementById('themePickerGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (const id of BUNDLED_THEME_IDS) {
+    const theme = BUNDLED_THEMES[id];
+    const primary = theme?.variables?.['--primary'] ?? '#6366f1';
+    const btn = document.createElement('button');
+    btn.className = 'theme-chip' + (id === _activeThemeId ? ' theme-chip--active' : '');
+    btn.dataset.themeId = id;
+    btn.innerHTML =
+      `<span class="theme-chip__swatch" style="background:${primary}"></span>` +
+      `<span class="theme-chip__name">${theme?.name ?? id}</span>`;
+    btn.addEventListener('click', () => applyTheme(id));
+    grid.appendChild(btn);
+  }
+}
+
+async function applyTheme(id) {
+  _activeThemeId = id;
+  await loadTheme(id);
+  await persistTheme(id);
+  buildThemeChips();
+}
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
