@@ -1,5 +1,4 @@
-// JSZip is loaded as a classic <script> in sidepanel.html and available via globalThis.JSZip
-// (bare-specifier imports like 'jszip' are not resolved by the browser in source-loaded extensions)
+import JSZip from 'jszip';
 import {
   validateZipFile,
   parseZipEntries,
@@ -602,7 +601,7 @@ export class ImportDialog {
    * @returns {Promise<{ parsed: Object, plan: Object }>}
    */
   async _prepareImport(file, tree, strategy) {
-    const zip = await globalThis.JSZip.loadAsync(file);
+    const zip = await JSZip.loadAsync(file);
 
     const entryPromises = [];
     zip.forEach((relativePath, zipEntry) => {

@@ -5,11 +5,15 @@
  * Injected into ChatGPT, Claude, and Gemini pages.
  * Detects platform, extracts chat content, injects "Save to bAInder" button.
  *
- * NOTE: Chrome content scripts cannot use ES module imports.
+ * Bundled by Vite — ES module imports at the top of this file are resolved at
+ * build time and inlined into the output bundle (a plain IIFE), so content
+ * scripts work without requiring "type":"module" in the manifest.
  * The extraction logic is inlined from src/content/chat-extractor.js.
- * When Vite bundling is added in a future stage this file will be the entry
- * point and will use `import` instead of the inline copies below.
  */
+
+// Content scripts always have `chrome` available as a global — no polyfill import needed.
+// Using it directly avoids ES module output (import statements) which can fail on some sites.
+const browser = chrome;
 
 (function bAInderContentScript() {
   'use strict';
@@ -31,7 +35,7 @@
    * with the data URL (or null on failure).
    */
   async function captureDesignerIframe(iframeid, iframe) {
-    if (!chrome?.runtime?.sendMessage) return null;
+    if (!browser?.runtime?.sendMessage) return null;
     if (!iframe || iframe.offsetWidth < 10) return null;
 
     // Remember where we were so we can scroll back afterwards
@@ -53,25 +57,23 @@
     }
 
     return new Promise(resolve => {
-      try {
-        chrome.runtime.sendMessage({
-          type: 'CAPTURE_DESIGNER_IMAGE',
-          iframeid,
-          rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-          dpr:  window.devicePixelRatio || 1
-        }, (response) => {
-          // Restore scroll position regardless of outcome
-          scrollEl.scrollTo({ top: savedTop, left: savedLeft, behavior: 'instant' });
-          if (chrome.runtime?.lastError || !response?.dataUrl) { resolve(null); return; }
-          window.__bAInderDesignerImages[iframeid] = response.dataUrl;
-          console.log('[bAInder] Captured Designer image for', iframeid,
-            '(' + Math.round(rect.width) + 'x' + Math.round(rect.height) + ')');
-          resolve(response.dataUrl);
-        });
-      } catch (_) {
+      browser.runtime.sendMessage({
+        type: 'CAPTURE_DESIGNER_IMAGE',
+        iframeid,
+        rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+        dpr:  window.devicePixelRatio || 1
+      }).then(response => {
+        // Restore scroll position regardless of outcome
+        scrollEl.scrollTo({ top: savedTop, left: savedLeft, behavior: 'instant' });
+        if (!response?.dataUrl) { resolve(null); return; }
+        window.__bAInderDesignerImages[iframeid] = response.dataUrl;
+        console.log('[bAInder] Captured Designer image for', iframeid,
+          '(' + Math.round(rect.width) + 'x' + Math.round(rect.height) + ')');
+        resolve(response.dataUrl);
+      }).catch(() => {
         scrollEl.scrollTo({ top: savedTop, left: savedLeft, behavior: 'instant' });
         resolve(null);
-      }
+      });
     });
   }
 
@@ -111,7 +113,7 @@
   function detectPlatform(hostname) {
     if (!hostname || typeof hostname !== 'string') return null;
     const h = hostname.toLowerCase();
-    if (h.includes('chat.openai.com'))    return 'chatgpt';
+    if (h.includes('chat.openai.com') || h.includes('chatgpt.com')) return 'chatgpt';
     if (h.includes('claude.ai'))          return 'claude';
     if (h.includes('gemini.google.com'))  return 'gemini';
     if (h.includes('copilot.microsoft.com') || h.includes('m365.cloud.microsoft')) return 'copilot';
@@ -178,7 +180,7 @@
       switch (tag) {
         case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6': {
           const t = inner.trim();
-          // Skip Copilot/M365 role-label headings ("You said:", "Copilot said:") — UI chrome.
+          // Skip Copilot/M365 role-label headings ("You said:", "Copilot said:") — UI browser.
           if (/^(you said|i said|copilot said|copilot):?\s*$/i.test(t)) return '';
           const level = parseInt(tag[1], 10);
           return `\n${'#'.repeat(level)} ${t}\n`;
@@ -594,14 +596,14 @@
         return;
       }
 
-      // Guard: chrome.runtime.id becomes undefined when the extension context is
+      // Guard: browser.runtime.id becomes undefined when the extension context is
       // invalidated (e.g. after a reload). The page must be refreshed to reconnect.
-      if (!chrome?.runtime?.id) {
+      if (!browser?.runtime?.id) {
         console.warn('[bAInder DEBUG] contextmenu: extension context invalidated — reload the page to reconnect');
         return;
       }
 
-      chrome.runtime.sendMessage({
+      browser.runtime.sendMessage({
         type: 'STORE_EXCERPT_CACHE',
         data: { markdown }
       }).then(r => console.log('[bAInder DEBUG] STORE_EXCERPT_CACHE response =', r))
@@ -619,31 +621,15 @@
    * @returns {Promise<Object>}
    */
   function sendMessage(msg) {
-    return new Promise((resolve, reject) => {
-      // chrome.runtime.id becomes undefined when the extension context is
-      // invalidated (e.g. after an extension reload/update). This is the
-      // canonical Chrome check — more reliable than testing sendMessage itself.
-      if (!chrome?.runtime?.id) {
-        reject(new Error('Extension context invalidated — please reload the page'));
-        return;
-      }
-      try {
-        chrome.runtime.sendMessage(msg, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
-      } catch (err) {
-        reject(err);
-      }
-    });
+    if (!browser?.runtime?.id) {
+      return Promise.reject(new Error('Extension context invalidated — please reload the page'));
+    }
+    return browser.runtime.sendMessage(msg);
   }
 
   // ─── Incoming Message Handler ──────────────────────────────────────────────
 
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const platform = detectPlatform(window.location.hostname);
 
     switch (message.type) {

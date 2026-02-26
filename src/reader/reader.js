@@ -1,7 +1,7 @@
 /**
  * bAInder Reader — reader.js
  *
- * Loads a saved chat from chrome.storage.local and renders it in the reader page.
+ * Loads a saved chat from browser.storage.local and renders it in the reader page.
  * Pure functions are exported so they can be unit tested independently.
  */
 
@@ -11,6 +11,7 @@ import {
   serializeRange,  applyAnnotations,
 } from '../lib/annotations.js';
 import { setupStickyNotes } from '../lib/sticky-notes-ui.js';
+import browser from 'webextension-polyfill';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -440,7 +441,7 @@ export function wrapChatTurns(contentEl) {
  * Set up the text-selection annotation toolbar (R2).
  * Safe no-op when annotation elements are absent (e.g. unit tests).
  * @param {string} chatId
- * @param {object} storage  — chrome.storage.local-like API
+ * @param {object} storage  — browser.storage.local-like API
  */
 export async function setupAnnotations(chatId, storage) {
   if (!chatId || !storage) return;
@@ -774,17 +775,17 @@ export async function applyReaderSettings(storage) {
 }
 
 /**
- * Register a chrome.storage.onChanged listener so if the user changes the
+ * Register a browser.storage.onChanged listener so if the user changes the
  * theme / skin / accent in the sidepanel settings while a reader tab is open,
  * the reader page updates instantly without a reload.
  *
- * Safe no-op when chrome.storage.onChanged is unavailable (unit tests).
+ * Safe no-op when browser.storage.onChanged is unavailable (unit tests).
  */
 export function watchReaderSettings() {
   /* c8 ignore next */
-  if (typeof chrome === 'undefined' || !chrome.storage?.onChanged) return;
+  if (typeof browser === 'undefined' || !browser.storage?.onChanged) return;
 
-  chrome.storage.onChanged.addListener((changes, area) => {
+  browser.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (!('theme' in changes) && !('skin' in changes) && !('accent' in changes)) return;
 
@@ -847,7 +848,7 @@ export async function init(storage) {
 // Only run when the actual reader DOM (reader-content element) is present.
 // This guard prevents accidental execution when reader.js is imported in tests.
 /* c8 ignore next 4 */
-if (typeof chrome !== 'undefined' && chrome.storage && document.getElementById('reader-content')) {
-  init(chrome.storage.local);
+if (typeof browser !== 'undefined' && browser.storage && document.getElementById('reader-content')) {
+  init(browser.storage.local);
   watchReaderSettings();
 }

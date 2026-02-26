@@ -8,8 +8,7 @@
  * onto the container that DialogManager already owns.
  */
 
-// JSZip is loaded as a classic <script> in sidepanel.html and available via globalThis.JSZip
-// (bare-specifier imports like 'jszip' are not resolved by the browser in source-loaded extensions)
+import JSZip from 'jszip';
 import {
   buildExportMarkdown,
   buildExportHtml,
@@ -99,6 +98,35 @@ export class ExportDialog {
    * @param {Object} tree  — TopicTree instance
    * @returns {Promise<void>}
    */
+  /**
+   * Show the export dialog pre-set to export the entire tree.
+   *
+   * The Scope selector defaults to "Entire tree"; the user can still change it
+   * if they want.  Because scope is "entire-tree" the topic argument is
+   * irrelevant inside _doExportTopic, so we pass null.
+   *
+   * @param {Object} tree   — TopicTree instance
+   * @param {Array}  chats  — all chat entries from storage
+   * @returns {Promise<void>}
+   */
+  async showExportTree(tree, chats) {
+    if (!Array.isArray(chats)) {
+      await this.dialog.alert('Chat data is unavailable.', 'Export');
+      return;
+    }
+
+    const html = this._buildDialogHtml({
+      title:        'Entire Tree',
+      formats:      TOPIC_FORMATS,
+      scopes:       SCOPE_OPTIONS,
+      showScope:    true,
+      defaultScope: 'entire-tree',
+    });
+
+    this.dialog.show(html, { size: 'large' });
+    this._wireDialogEvents({ mode: 'topic', topic: null, tree, chats });
+  }
+
   async showExportChat(chat, tree) {
     if (!chat) {
       await this.dialog.alert('No chat selected for export.', 'Export');
@@ -125,7 +153,7 @@ export class ExportDialog {
    * @param {{ title: string, formats: Array, scopes: Array, showScope: boolean }} opts
    * @returns {string}
    */
-  _buildDialogHtml({ title, formats, scopes, showScope }) {
+  _buildDialogHtml({ title, formats, scopes, showScope, defaultScope = null }) {
     const formatRadios = formats.map(({ value, label }, i) => /* html */`
       <label class="radio-label">
         <input type="radio" name="export-format" value="${value}"${i === 0 ? ' checked' : ''}>
@@ -134,7 +162,9 @@ export class ExportDialog {
 
     const scopeRadios = scopes.map(({ value, label }, i) => /* html */`
       <label class="radio-label">
-        <input type="radio" name="export-scope" value="${value}"${i === 0 ? ' checked' : ''}>
+        <input type="radio" name="export-scope" value="${value}"${
+          defaultScope ? (value === defaultScope ? ' checked' : '') : (i === 0 ? ' checked' : '')
+        }>
         ${label}
       </label>`).join('');
 
@@ -397,7 +427,7 @@ export class ExportDialog {
         const zipOptions = this._scopeToOptions(scope, topic);
         const files = buildZipPayload(tree, allChats, { ...zipOptions, format: 'markdown', style: 'raw' });
 
-        const zip = new globalThis.JSZip();
+        const zip = new JSZip();
         files.forEach(({ path, content }) => zip.file(path, content));
         const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
         triggerDownload(`bAInder-export-${date}.zip`, blob, 'application/zip');
@@ -420,7 +450,7 @@ export class ExportDialog {
             'PDF export works one chat at a time. Exporting as an HTML ZIP instead.',
             'PDF Export'
           );
-          const zip = new globalThis.JSZip();
+          const zip = new JSZip();
           for (const c of targetChats) {
             const cPath = buildTopicPath(c.topicId, topicsMap);
             zip.file(
@@ -451,7 +481,7 @@ export class ExportDialog {
         }
       } else {
         // Multiple chats — bundle into ZIP with flat file list
-        const zip = new globalThis.JSZip();
+        const zip = new JSZip();
         for (const c of targetChats) {
           const cPath = buildTopicPath(c.topicId, topicsMap);
           const name  = sanitizeFilename(c.title || 'chat');

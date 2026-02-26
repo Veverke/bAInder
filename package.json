@@ -8,8 +8,14 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "build": "vite build",
-    "dev": "vite build --watch"
+    "build": "vite build --mode chrome",
+    "build:chrome": "vite build --mode chrome",
+    "build:edge": "vite build --mode edge",
+    "build:all": "npm run build:chrome && npm run build:edge",
+    "package:chrome": "npm run build:chrome && node scripts/package.js chrome",
+    "package:edge": "npm run build:edge && node scripts/package.js edge",
+    "package:all": "npm run package:chrome && npm run package:edge",
+    "dev": "vite build --mode chrome --watch"
   },
   "keywords": [
     "chrome-extension",
@@ -31,6 +37,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "webextension-polyfill": "^0.12.0"
   }
 }

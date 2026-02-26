@@ -20,6 +20,7 @@ import { getTagColor } from '../lib/tree-renderer.js';
 import { ExportDialog } from '../lib/export-dialog.js';
 import { ImportDialog } from '../lib/import-dialog.js';
 import { loadThemeFile, validateTheme, applyCustomTheme, mergeWithDefaults } from '../lib/theme-sdk.js';
+import browser from 'webextension-polyfill';
 
 /**
  * bAInder's complete baseline variable map.
@@ -64,6 +65,10 @@ const BINDER_VARIABLE_DEFAULTS = {
   '--shadow-xl':        '0 20px 25px -5px rgba(0,0,0,0.1)',
   '--overlay':          'rgba(15,23,42,0.5)',
   '--overlay-light':    'rgba(15,23,42,0.1)',
+  '--dot-chatgpt':      '#10b981',
+  '--dot-claude':       '#f97316',
+  '--dot-gemini':       '#3b82f6',
+  '--dot-copilot':      '#8b5cf6',
   '--font-sans':        "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
   '--radius-xs':        '2px',
   '--radius-sm':        '4px',
@@ -85,6 +90,7 @@ const elements = {
   searchResultsList: document.getElementById('searchResultsList'),
   addTopicBtn: document.getElementById('addTopicBtn'),
   importBtn: document.getElementById('importBtn'),
+  exportAllBtn: document.getElementById('exportAllBtn'),
   clearAllBtn: document.getElementById('clearAllBtn'),
   settingsBtn: document.getElementById('settingsBtn'),
   themeToggle: document.getElementById('themeToggle'),
@@ -114,7 +120,7 @@ const state = {
   contextMenuChat: null, // Currently selected chat for context menu
   searchQuery: '',
   theme: 'light', // 'light', 'dark', 'oled', 'auto', or radical theme name
-  skin: '',        // '' | 'sharp' | 'rounded' | 'outlined' | 'elevated'
+  skin: 'sharp',   // '' | 'sharp' | 'rounded' | 'outlined' | 'elevated'
   accent: '',      // '' | 'rose' | 'teal' | 'amber'
   _toastTimer: null, // setTimeout handle for auto-dismissing toast
   exportDialog: null, // ExportDialog instance (Stage 9)
@@ -177,7 +183,7 @@ async function init() {
 // Initialize theme system
 async function initTheme() {
   try {
-    const result = await chrome.storage.local.get(['theme', 'customTheme']);
+    const result = await browser.storage.local.get(['theme', 'customTheme']);
     const savedTheme = result.theme || 'light';
 
     if (savedTheme === 'custom' && result.customTheme) {
@@ -204,7 +210,7 @@ async function handleLoadTheme(file) {
     }
     applyCustomTheme(mergeWithDefaults(json, BINDER_VARIABLE_DEFAULTS));
     state.theme = 'custom';
-    await chrome.storage.local.set({ theme: 'custom', customTheme: json });
+    await browser.storage.local.set({ theme: 'custom', customTheme: json });
 
     // Reflect in the settings selector
     const sel = document.getElementById('settingsThemeSelect');
@@ -257,7 +263,7 @@ async function toggleTheme() {
   applyTheme(nextTheme);
   
   try {
-    await chrome.storage.local.set({ theme: nextTheme });
+    await browser.storage.local.set({ theme: nextTheme });
     console.log('Theme changed to:', nextTheme);
   } catch (error) {
     console.error('Error saving theme:', error);
@@ -268,8 +274,8 @@ async function toggleTheme() {
 
 async function initSkin() {
   try {
-    const result = await chrome.storage.local.get('skin');
-    state.skin = result.skin || '';
+    const result = await browser.storage.local.get('skin');
+    state.skin = result.skin || 'sharp';
     applySkin(state.skin);
   } catch (_) {
     applySkin('');
@@ -290,7 +296,7 @@ function applySkin(skin) {
 
 async function initAccent() {
   try {
-    const result = await chrome.storage.local.get('accent');
+    const result = await browser.storage.local.get('accent');
     state.accent = result.accent || '';
     applyAccent(state.accent);
   } catch (_) {
@@ -343,6 +349,11 @@ function setupEventListeners() {
   // Import button (Stage 9)
   if (elements.importBtn) {
     elements.importBtn.addEventListener('click', handleImport);
+  }
+
+  // Export entire tree button (Stage 9)
+  if (elements.exportAllBtn) {
+    elements.exportAllBtn.addEventListener('click', handleExportAll);
   }
 
   // Clear all button
@@ -437,7 +448,7 @@ async function loadData() {
 // Load chats from storage
 async function loadChats() {
   try {
-    const result = await chrome.storage.local.get(['chats']);
+    const result = await browser.storage.local.get(['chats']);
     state.chats = Array.isArray(result.chats) ? result.chats : [];
     console.log(`Loaded ${state.chats.length} chats`);
   } catch (error) {
@@ -586,10 +597,10 @@ function handleTopicClick(topic) {
 async function handleChatClick(chat) {
   if (!chat || !chat.id) return;
 
-  const readerUrl = chrome.runtime.getURL(
+  const readerUrl = browser.runtime.getURL(
     `src/reader/reader.html?chatId=${encodeURIComponent(chat.id)}`
   );
-  chrome.tabs.create({ url: readerUrl });
+  browser.tabs.create({ url: readerUrl });
 }
 
 
@@ -619,7 +630,7 @@ async function handleChatSaved(chatEntry) {
     updatedChat.tags = result.tags;
   }
   state.chats = updateChatInArray(chatEntry.id, updatedChat, state.chats);
-  await chrome.storage.local.set({ chats: state.chats });
+  await browser.storage.local.set({ chats: state.chats });
   await saveTree();
   state.renderer.setChatData(state.chats);
   renderTreeView();
@@ -894,7 +905,7 @@ async function handleRenameChatAction() {
   const updates = { title: result.title };
   if (result.tags !== undefined) updates.tags = result.tags;
   state.chats = updateChatInArray(state.contextMenuChat.id, updates, state.chats);
-  await chrome.storage.local.set({ chats: state.chats });
+  await browser.storage.local.set({ chats: state.chats });
   state.renderer.setChatData(state.chats);
   renderTreeView();
 }
@@ -906,7 +917,7 @@ async function handleEditTagsAction() {
   if (!result) return;
 
   state.chats = updateChatInArray(state.contextMenuChat.id, { tags: result.tags }, state.chats);
-  await chrome.storage.local.set({ chats: state.chats });
+  await browser.storage.local.set({ chats: state.chats });
   state.renderer.setChatData(state.chats);
   renderTreeView();
 }
@@ -919,7 +930,7 @@ async function handleMoveChatAction() {
 
   const movedChat = moveChatToTopic(state.contextMenuChat, result.topicId, state.tree);
   state.chats = updateChatInArray(state.contextMenuChat.id, movedChat, state.chats);
-  await chrome.storage.local.set({ chats: state.chats });
+  await browser.storage.local.set({ chats: state.chats });
   await saveTree();
   state.renderer.setChatData(state.chats);
   renderTreeView();
@@ -939,7 +950,7 @@ async function handleDeleteChatAction() {
     await saveTree();
   }
   state.chats = removeChatFromArray(chat.id, state.chats);
-  await chrome.storage.local.set({ chats: state.chats });
+  await browser.storage.local.set({ chats: state.chats });
   state.renderer.setChatData(state.chats);
   renderTreeView();
 }
@@ -993,7 +1004,7 @@ async function handleDeleteTopic() {
     if (chatIdsToDelete.length > 0) {
       const deleteSet = new Set(chatIdsToDelete);
       state.chats = state.chats.filter(c => !deleteSet.has(c.id));
-      await chrome.storage.local.set({ chats: state.chats });
+      await browser.storage.local.set({ chats: state.chats });
       state.renderer.setChatData(state.chats);
       console.log(`Removed ${chatIdsToDelete.length} chat(s) belonging to deleted topic tree`);
     }
@@ -1049,6 +1060,16 @@ async function handleExportTopic() {
   }
 }
 
+// Handle export entire tree toolbar action (Stage 9)
+async function handleExportAll() {
+  try {
+    await state.exportDialog.showExportTree(state.tree, state.chats);
+  } catch (err) {
+    console.error('Export failed:', err);
+    await state.dialog.alert(err.message || 'Export failed', 'Export Error');
+  }
+}
+
 // Handle import from ZIP (Stage 9)
 async function handleImport() {
   try {
@@ -1066,7 +1087,7 @@ async function handleImport() {
 
         // Persist to storage
         await saveTree();
-        await chrome.storage.local.set({ chats: state.chats });
+        await browser.storage.local.set({ chats: state.chats });
 
         // Refresh UI
         state.renderer.setTree(state.tree);
@@ -1103,7 +1124,7 @@ async function handleClearAll() {
     // Clear tree and chats in storage concurrently, then read usage once both are done
     await Promise.all([
       state.storage.saveTopicTree(state.tree.toObject()),
-      chrome.storage.local.set({ chats: state.chats }),
+      browser.storage.local.set({ chats: state.chats }),
     ]);
 
     state.renderer.setTree(state.tree);
@@ -1141,7 +1162,7 @@ function openSettingsPanel() {
     ?.addEventListener('change', (e) => {
       if (e.target.value === 'custom') return; // read-only placeholder
       applyTheme(e.target.value);
-      chrome.storage.local.set({ theme: e.target.value, customTheme: null }).catch(() => {});
+      browser.storage.local.set({ theme: e.target.value, customTheme: null }).catch(() => {});
     });
 
   // Load Theme file input
@@ -1161,7 +1182,7 @@ function openSettingsPanel() {
     skinSel.value = state.skin;
     skinSel.addEventListener('change', (e) => {
       applySkin(e.target.value);
-      chrome.storage.local.set({ skin: e.target.value }).catch(() => {});
+      browser.storage.local.set({ skin: e.target.value }).catch(() => {});
     });
   }
 
@@ -1174,7 +1195,7 @@ function openSettingsPanel() {
       swatch.classList.add('is-active');
       const val = swatch.dataset.accent;
       applyAccent(val);
-      chrome.storage.local.set({ accent: val }).catch(() => {});
+      browser.storage.local.set({ accent: val }).catch(() => {});
     });
   });
 }
@@ -1248,7 +1269,7 @@ async function handleChatDrop(chatId, targetTopicId) {
 
   const movedChat = moveChatToTopic(chat, targetTopicId, state.tree);
   state.chats = updateChatInArray(chatId, movedChat, state.chats);
-  await chrome.storage.local.set({ chats: state.chats });
+  await browser.storage.local.set({ chats: state.chats });
   await saveTree();
   state.renderer.setChatData(state.chats);
   renderTreeView();
@@ -1341,7 +1362,7 @@ function closeModal() {
 // Update storage usage display
 async function updateStorageUsage() {
   try {
-    const usage = await chrome.storage.local.getBytesInUse();
+    const usage = await browser.storage.local.getBytesInUse();
     const usageMB = (usage / (1024 * 1024)).toFixed(2);
     const usageKB = (usage / 1024).toFixed(1);
     
@@ -1374,7 +1395,7 @@ function showNotification(message, type = 'info') {
 }
 
 // Listen for messages from the background service worker (e.g. CHAT_SAVED)
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'CHAT_SAVED') {
     handleChatSaved(message.data)
       .then(() => sendResponse({ success: true }))
@@ -1403,7 +1424,7 @@ function detectPlatformFromUrl(url) {
 async function initSaveBanner() {
   if (!elements.saveBanner) return;
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
     const platform = tab ? detectPlatformFromUrl(tab.url) : null;
     if (platform) {
       if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = `${platform} conversation detected`;
@@ -1439,11 +1460,11 @@ function setSaveBtnState(s) {
 async function handlePanelSave() {
   setSaveBtnState('loading');
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) throw new Error('No active tab');
 
     // Ask content script to extract the chat
-    const extractResponse = await chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_CHAT' });
+    const extractResponse = await browser.tabs.sendMessage(tab.id, { type: 'EXTRACT_CHAT' });
     if (!extractResponse?.success) {
       throw new Error(extractResponse?.error || 'Extraction failed');
     }
@@ -1454,18 +1475,18 @@ async function handlePanelSave() {
     }
 
     // Forward to background to save
-    const saveResponse = await chrome.runtime.sendMessage({ type: 'SAVE_CHAT', data: chatData });
+    const saveResponse = await browser.runtime.sendMessage({ type: 'SAVE_CHAT', data: chatData });
     if (!saveResponse?.success) {
       throw new Error(saveResponse?.error || 'Save failed');
     }
 
     setSaveBtnState('success');
 
-    // Refresh local state
-    await loadChats();
-    await loadTree();
-    updateRecentRail();
-    renderTreeView();
+    // State refresh is handled by handleChatSaved (triggered by the CHAT_SAVED
+    // broadcast from background) — which also shows the assign-to-topic dialog,
+    // saves the topicId, and re-renders. Calling loadTree() here concurrently
+    // would race against that flow and overwrite state.tree before the topicId
+    // mutation is saved, causing the chat to disappear from the tree.
     await updateStorageUsage();
   } catch (err) {
     if (/context.*(lost|invalidated)/i.test(err.message)) {
@@ -1478,8 +1499,8 @@ async function handlePanelSave() {
 
 // Refresh the save banner whenever the user switches tabs or a tab finishes loading
 try {
-  chrome.tabs.onActivated.addListener(() => initSaveBanner());
-  chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
+  browser.tabs.onActivated.addListener(() => initSaveBanner());
+  browser.tabs.onUpdated.addListener((_tabId, changeInfo) => {
     if (changeInfo.status === 'complete') initSaveBanner();
   });
 } catch (_) { /* non-extension context (tests) */ }

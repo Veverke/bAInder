@@ -102,6 +102,12 @@
   /* Overlays */
   --overlay: rgba(15, 23, 42, 0.5);
   --overlay-light: rgba(15, 23, 42, 0.1);
+
+  /* Source brand dot colours (used in recent-chip rail and tree badges) */
+  --dot-chatgpt: #10b981;
+  --dot-claude:  #f97316;
+  --dot-gemini:  #3b82f6;
+  --dot-copilot: #8b5cf6;
 }
 
 /* Dark Theme */
@@ -155,6 +161,12 @@
   /* Overlays */
   --overlay: rgba(0, 0, 0, 0.7);
   --overlay-light: rgba(0, 0, 0, 0.2);
+
+  /* Source brand dot colours */
+  --dot-chatgpt: #10b981;
+  --dot-claude:  #f97316;
+  --dot-gemini:  #3b82f6;
+  --dot-copilot: #8b5cf6;
 }
 
 /* Base Styles */
@@ -2257,10 +2269,10 @@ ul.tree-root.drop-target {
   flex-shrink: 0;
 }
 
-.recent-chip__dot--chatgpt { background: #10b981; }
-.recent-chip__dot--claude  { background: #f97316; }
-.recent-chip__dot--gemini  { background: #3b82f6; }
-.recent-chip__dot--copilot { background: #8b5cf6; }
+.recent-chip__dot--chatgpt { background: var(--dot-chatgpt); }
+.recent-chip__dot--claude  { background: var(--dot-claude); }
+.recent-chip__dot--gemini  { background: var(--dot-gemini); }
+.recent-chip__dot--copilot { background: var(--dot-copilot); }
 .recent-chip__dot--unknown { background: var(--text-tertiary); }
 
 .recent-chip__title {

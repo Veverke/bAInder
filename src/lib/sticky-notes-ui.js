@@ -474,16 +474,23 @@ export async function setupStickyNotes(chatId, storage, renderFn) {
     loadNotesVisible(chatId, storage),
   ]);
 
+  // ── Helper: reload notes from storage then re-render (used by onDelete) ──
+  async function reloadAndRender() {
+    notes = await loadStickyNotes(chatId, storage);
+    renderLayer();
+  }
+
   // ── Helper: re-render all overlays ───────────────────────────────────────
   function renderLayer() {
     layer.innerHTML = '';
     const clusters = clusterNotes(notes);
     for (const cluster of clusters) {
-      const overlay = buildNoteOverlay(cluster, chatId, storage, null, renderFn);
+      const overlay = buildNoteOverlay(cluster, chatId, storage, reloadAndRender, renderFn);
       layer.appendChild(overlay);
     }
-    // Update toggle button label
+    // Update toggle button label and visibility
     const count = notes.length;
+    toggleBtn.hidden = count === 0;
     toggleBtn.textContent = `📌 ${count || ''} ${count === 1 ? 'note' : 'notes'}`.trim();
     toggleBtn.title = `${visible ? 'Hide' : 'Show'} sticky notes (${count})`;
   }
