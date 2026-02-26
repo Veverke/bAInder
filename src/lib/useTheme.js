@@ -3,9 +3,9 @@
 // DO NOT edit the two header lines above — the plugin uses them to detect version drift.
 // You may freely edit everything below. Delete this file and re-run the plugin to regenerate.
 
-import { validateTheme, resolveThemeDependencies, applyCustomTheme, mergeWithDefaults } from './theme-sdk';
-import { BUNDLED_THEMES, BUNDLED_THEME_IDS } from '../sidepanel/themes';
-import { THEME_DEFAULTS } from './theme-defaults';
+import { validateTheme, resolveThemeDependencies, applyCustomTheme, mergeWithDefaults } from './theme-sdk.js';
+import { BUNDLED_THEMES, BUNDLED_THEME_IDS } from '../sidepanel/themes/index.js';
+import { THEME_DEFAULTS } from './theme-defaults.js';
 
 export { BUNDLED_THEME_IDS };
 
