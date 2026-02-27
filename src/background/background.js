@@ -1,6 +1,20 @@
 // bAInder Background Service Worker
 // Stage 1: Basic setup and lifecycle management
 // Stage 6: Enhanced SAVE_CHAT handler with validation, deduplication, and context menu excerpt save
+//
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║  DEVELOPER NOTE                                                              ║
+// ║  This file uses bare npm module specifiers (e.g. 'webextension-polyfill')   ║
+// ║  that browsers cannot resolve directly.                                     ║
+// ║                                                                              ║
+// ║  If you see: "Failed to resolve module specifier 'webextension-polyfill'"   ║
+// ║  you are loading the EXTENSION FROM THE SOURCE FOLDER.                      ║
+// ║                                                                              ║
+// ║  You must build first and load from the dist folder:                        ║
+// ║    1. Run:  npm run build                                                   ║
+// ║    2. In Chrome → Load Unpacked → select  dist/chrome                      ║
+// ║             Edge  → Load Unpacked → select  dist/edge                      ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { handleSaveChat as _handleSaveChat, detectSource, buildExcerptPayload } from './chat-save-handler.js';
 import browser from 'webextension-polyfill';
