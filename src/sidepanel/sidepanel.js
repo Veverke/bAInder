@@ -436,7 +436,19 @@ function setupEventListeners() {
 
   // Save to bAInder button (in banner above footer)
   if (elements.saveBtn) {
-    elements.saveBtn.addEventListener('click', handlePanelSave);
+    elements.saveBtn.addEventListener('click', async () => {
+      if (elements.saveBtn._reloadMode) {
+        // Content script not yet injected — reload the active tab to fix that
+        try {
+          const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+          if (tab?.id) await browser.tabs.reload(tab.id);
+        } catch (_) { /* ignore */ }
+        setSaveBtnState('default');
+        if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = 'Reloading…';
+      } else {
+        handlePanelSave();
+      }
+    });
   }
 }
 
@@ -1448,10 +1460,15 @@ function setSaveBtnState(s) {
     success: { text: '✅ Saved!',            disabled: true  },
     error:   { text: '❌ Error',             disabled: false },
     empty:   { text: '⚠️ No chat yet',       disabled: false },
+    reload:  { text: '🔄 Reload page',       disabled: false },
   };
   const st = map[s] || map.default;
   btn.textContent = st.text;
   btn.disabled    = st.disabled;
+
+  // When in reload state, a click reloads the active tab instead of saving
+  btn._reloadMode = (s === 'reload');
+
   if (s === 'success' || s === 'error' || s === 'empty') {
     setTimeout(() => setSaveBtnState('default'), 3500);
   }
@@ -1489,10 +1506,16 @@ async function handlePanelSave() {
     // mutation is saved, causing the chat to disappear from the tree.
     await updateStorageUsage();
   } catch (err) {
-    if (/context.*(lost|invalidated)/i.test(err.message)) {
-      if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = '⚠️ Reload the page to reconnect';
+    const noContentScript = /receiving end does not exist|could not establish connection/i.test(err.message);
+    const contextLost     = /context.*(lost|invalidated)/i.test(err.message);
+    if (noContentScript || contextLost) {
+      if (elements.saveBannerMsg) {
+        elements.saveBannerMsg.textContent = '⚠️ Reload this page to activate bAInder';
+      }
+      setSaveBtnState('reload');
+    } else {
+      setSaveBtnState('error');
     }
-    setSaveBtnState('error');
     console.error('bAInder: Panel save failed', err);
   }
 }
