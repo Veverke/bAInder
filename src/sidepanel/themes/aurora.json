@@ -1,0 +1,139 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Aurora",
+  "id": "aurora",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Deep navy with shimmering northern-lights bands of cyan and violet.",
+  "category": "gradient",
+  "dark": true,
+  "variables": {
+    "--primary":           "#00e5cc",
+    "--primary-hover":     "#33edd9",
+    "--primary-light":     "rgba(0,229,204,0.15)",
+    "--primary-dark":      "#00b8a4",
+
+    "--header-bg":         "#020d1a",
+    "--header-accent":     "#00e5cc",
+
+    "--bg-primary":        "#020d1a",
+    "--bg-secondary":      "#041a14",
+    "--bg-tertiary":       "#061e18",
+    "--bg-elevated":       "#082820",
+    "--bg-hover":          "rgba(0,229,204,0.08)",
+    "--bg-active":         "rgba(0,229,204,0.15)",
+
+    "--border-primary":    "#0a3030",
+    "--border-secondary":  "#144848",
+    "--border-focus":      "#00e5cc",
+
+    "--text-primary":      "#d0f4ee",
+    "--text-secondary":    "#80c8bc",
+    "--text-tertiary":     "#30787a",
+    "--text-inverse":      "#020d1a",
+
+    "--success":           "#00e5cc",
+    "--success-bg":        "rgba(0,229,204,0.12)",
+    "--warning":           "#f0c040",
+    "--warning-bg":        "rgba(240,192,64,0.12)",
+    "--danger":            "#f06060",
+    "--danger-bg":         "rgba(240,96,96,0.12)",
+    "--info":              "#60a8f0",
+    "--info-bg":           "rgba(96,168,240,0.12)",
+
+    "--shadow-sm":         "0 0 0 1px rgba(0,229,204,0.10)",
+    "--shadow-md":         "0 0 16px rgba(0,229,204,0.12)",
+    "--shadow-lg":         "0 0 32px rgba(0,229,204,0.16)",
+    "--shadow-xl":         "0 0 56px rgba(0,229,204,0.20)",
+
+    "--overlay":           "rgba(2,13,26,0.90)",
+    "--overlay-light":     "rgba(0,229,204,0.05)",
+
+    "--font-sans":         "'Inter', -apple-system, system-ui, sans-serif",
+
+    "--radius-xs":         "2px",
+    "--radius-sm":         "4px",
+    "--radius-md":         "6px",
+    "--radius-lg":         "10px",
+    "--radius-xl":         "14px",
+    "--radius-full":       "9999px",
+
+    "--gradient-primary":  "linear-gradient(135deg, #00e5cc 0%, #a855f7 100%)",
+    "--gradient-accent":   "linear-gradient(135deg, #00e5cc 0%, #00b8a4 100%)",
+    "--gradient-bg":       "linear-gradient(160deg, #020d1a 0%, #061e10 40%, #0a0620 100%)",
+    "--gradient-header":   "linear-gradient(90deg, #020d1a 0%, #041a14 100%)",
+
+    "--blur-sm":           "blur(4px)",
+    "--blur-md":           "blur(8px)",
+    "--blur-lg":           "blur(16px)",
+    "--glass-bg":          "rgba(2,13,26,0.72)",
+
+    "--page-bg":           "linear-gradient(160deg, #020d1a 0%, #061e10 40%, #0a0620 75%, #020d1a 100%)",
+    "--noise-opacity":     "0",
+
+    "--transition-fast":   "100ms cubic-bezier(0.4,0,0.2,1)",
+    "--transition-normal": "200ms cubic-bezier(0.4,0,0.2,1)",
+    "--transition-slow":   "360ms cubic-bezier(0.4,0,0.2,1)",
+    "--easing-standard":   "cubic-bezier(0.4,0,0.2,1)",
+    "--easing-decelerate": "cubic-bezier(0,0,0.2,1)",
+    "--easing-accelerate": "cubic-bezier(0.4,0,1,1)",
+
+    "--focus-ring-color":  "#00e5cc",
+    "--focus-ring-width":  "2px",
+    "--focus-ring-offset": "2px",
+    "--focus-ring-style":  "solid",
+
+    "--font-mono":                "'Cascadia Code', 'Fira Code', Consolas, monospace",
+    "--font-serif":               "Georgia, 'Times New Roman', serif",
+    "--font-size-base":           "14px",
+    "--font-size-sm":             "12px",
+    "--font-size-lg":             "16px",
+    "--font-weight-normal":       "400",
+    "--font-weight-bold":         "600",
+    "--line-height-base":         "1.6",
+    "--letter-spacing-tight":     "-0.01em",
+    "--letter-spacing-wide":      "0.06em",
+
+    "--code-bg":           "#010a14",
+    "--code-text":         "#d0f4ee",
+    "--code-keyword":      "#00e5cc",
+    "--code-string":       "#80c8bc",
+    "--code-comment":      "#30787a",
+    "--code-number":       "#f0c040",
+    "--code-operator":     "#60a8f0",
+
+    "--selection-bg":      "rgba(0,229,204,0.25)",
+    "--selection-text":    "#d0f4ee",
+
+    "--scrollbar-thumb":   "#144848",
+    "--scrollbar-track":   "#020d1a",
+    "--scrollbar-width":   "6px",
+
+    "--icon-primary":      "#00e5cc",
+    "--icon-secondary":    "#33edd9",
+    "--icon-muted":        "#30787a",
+
+    "--spacing-xs":        "4px",
+    "--spacing-sm":        "8px",
+    "--spacing-md":        "16px",
+    "--spacing-lg":        "24px",
+    "--spacing-xl":        "40px",
+
+    "--z-dropdown":        "100",
+    "--z-modal":           "200",
+    "--z-toast":           "300",
+    "--z-tooltip":         "400",
+    "--z-overlay":         "150",
+
+    "--pattern-bg":        "linear-gradient(160deg, #020d1a 0%, #061e10 40%, #0a0620 75%, #020d1a 100%)",
+    "--pattern-size":      "auto",
+    "--pattern-header":    "linear-gradient(90deg, #020d1a 0%, #04200e 50%, #080418 100%)",
+
+    "--text-glow": "0 0 8px rgba(0,229,204,0.7)",
+    "--glow-primary": "0 0 12px #00e5cc, 0 0 20px rgba(0,229,204,0.3)",
+    "--card-accent-border": "3px solid #00e5cc",
+    "--btn-letter-spacing": "0.04em",
+    "--animation-click": "theme-burst 0.18s ease-out",
+    "--animation-hover": "theme-glow-pulse 0.6s ease"
+  }
+}

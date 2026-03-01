@@ -1,0 +1,618 @@
+/* Vendored from ThemeStudio SDK vdev-20260227-0131 — DO NOT EDIT */
+/* Re-run ThemeStudioPlugin to update this file. */
+
+/**
+ * theme-base.css — ThemeStudio SDK generic wiring layer
+ *
+ * Import this once in your consumer application.  Every CSS custom property
+ * in the ThemeStudio spec will be wired to the appropriate DOM selectors
+ * automatically.  No further CSS changes are needed when the spec adds new
+ * variables — just re-import the updated version of this file.
+ *
+ * Usage (Vite/webpack/bundler):
+ *   import 'theme-sdk/theme-base.css';
+ *
+ * Usage (plain HTML):
+ *   <link rel="stylesheet" href="path/to/theme-base.css">
+ *
+ * Tier:  Tier 1 — Core expressiveness
+ * Spec:  themes/spec.schema.json
+ *
+ * SYNC CONTRACT (ADR §12)
+ * ────────────────────────────────────────────────────────────────────────────
+ * Every variable in spec.schema.json MUST appear somewhere in this file —
+ * either as an executable var() wiring rule (generic HTML wireable tokens)
+ * or in the component-semantic reference block at the bottom of this file.
+ *
+ * Two categories:
+ *   Generic HTML wireable  — wired to body/a/code/::selection etc. below.
+ *   Component-semantic     — listed in the reference block; consumer's own
+ *                            component CSS must reference var(--token).
+ *
+ * When you add a variable to the spec, add it here in the same commit.
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GENERIC HTML WIREABLE TOKENS
+   These are wired to plain HTML elements whose semantics are unambiguous.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Base document ──────────────────────────────────────────────────────── */
+/* --bg-primary     : page background colour                                */
+/* --text-primary   : default body text colour                              */
+/* --font-sans      : base UI typeface stack                                */
+/* --font-size-base : base font size (default 14px)                         */
+/* --font-weight-normal : base font weight                                  */
+/* --line-height-base   : base line height                                  */
+/* --page-bg        : CSS gradient/image layered above background-color     */
+/* --gradient-bg    : alias gradient fallback for --page-bg                 */
+/* --pattern-bg     : repeating pattern image layer                         */
+/* --pattern-size   : background-size for --pattern-bg                      */
+
+body {
+  background-color: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #0f172a);
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  font-size: var(--font-size-base, 14px);
+  font-weight: var(--font-weight-normal, 400);
+  line-height: var(--line-height-base, 1.5);
+  background-image: var(--page-bg, var(--gradient-bg, none)), var(--pattern-bg, none);
+  background-size: cover, var(--pattern-size, auto);
+}
+
+/* ── Links ──────────────────────────────────────────────────────────────── */
+/* --primary : accent / brand colour — sets link colour                     */
+
+a {
+  color: var(--primary, #6366f1);
+}
+
+/* ── Display typography ─────────────────────────────────────────────────── */
+/* --font-display  : separate heading typeface (falls back to --font-sans)  */
+/* --text-glow     : text-shadow for glowing headings (game/neon/scifi)     */
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display, var(--font-sans, system-ui, sans-serif));
+  text-shadow: var(--text-glow, none);
+}
+
+/* ── Inline code & preformatted text ────────────────────────────────────── */
+/* --code-bg   : background of inline code and pre blocks                  */
+/* --code-text : text colour inside code blocks                             */
+/* --font-mono : monospace typeface stack                                   */
+
+code,
+pre,
+kbd {
+  background-color: var(--code-bg, #f1f5f9);
+  color: var(--code-text, inherit);
+  font-family: var(--font-mono, 'Cascadia Code', 'Fira Code', Consolas, monospace);
+}
+
+/* ── Text selection ─────────────────────────────────────────────────────── */
+/* --selection-bg   : highlight colour for selected text                    */
+/* --selection-text : text colour within selection highlight                */
+
+::selection {
+  background-color: var(--selection-bg, #c7d2fe);
+  color: var(--selection-text, inherit);
+}
+
+/* ── Scrollbar (webkit) ─────────────────────────────────────────────────── */
+/* --scrollbar-width : width of the vertical scrollbar track                */
+/* --scrollbar-track : scrollbar track/rail background colour               */
+/* --scrollbar-thumb : scrollbar draggable thumb colour                     */
+
+::-webkit-scrollbar {
+  width: var(--scrollbar-width, 6px);
+  height: var(--scrollbar-width, 6px);
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, transparent);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #cbd5e1);
+  border-radius: 9999px;
+}
+
+/* ── Focus ring ─────────────────────────────────────────────────────────── */
+/* --focus-ring-color  : outline colour for keyboard focus                  */
+/* --focus-ring-width  : outline width                                      */
+/* --focus-ring-offset : outline-offset                                     */
+/* --focus-ring-style  : outline style (solid / dashed / dotted)            */
+
+:focus-visible {
+  outline: var(--focus-ring-width, 2px) var(--focus-ring-style, solid) var(--focus-ring-color, var(--primary, #6366f1));
+  outline-offset: var(--focus-ring-offset, 2px);
+}
+
+/* ── Header pattern ─────────────────────────────────────────────────────── */
+/* --pattern-header : repeating pattern image for header/nav bars           */
+/* Consumers apply this on their header element — listed here for coverage. */
+/* Usage: background-image: var(--pattern-header, none);                    */
+
+/* ── Image & media filter ───────────────────────────────────────────────── */
+/* --image-filter  : CSS filter() applied to images / video                 */
+
+img,
+video {
+  filter: var(--image-filter, none);
+}
+
+/* ── Card accent border ─────────────────────────────────────────────────── */
+/* --card-accent-border : coloured left-border strip on card-like elements. */
+/* Falls back to matching the current general border so neutral themes      */
+/* show no visual change — the general border shorthand governs those sides.*/
+
+.card,
+[class*="card"] {
+  border-left: var(--card-accent-border, 1px solid var(--border-primary, #e2e8f0));
+}
+
+/* ── Button personality ─────────────────────────────────────────────────── */
+/* --btn-text-transform  : uppercase / none / capitalize                    */
+/* --btn-letter-spacing  : tracking for button labels                       */
+
+button,
+[class*="btn"],
+[role="button"] {
+  text-transform: var(--btn-text-transform, none);
+  letter-spacing: var(--btn-letter-spacing, inherit);
+}
+
+/* ── Click & hover animations ───────────────────────────────────────────── */
+/* --animation-click : full CSS animation shorthand (name + duration + easing) */
+/* --animation-hover : same for hover state                                     */
+
+button:active,
+[class*="btn"]:active,
+[role="button"]:active {
+  animation: var(--animation-click, none);
+}
+
+button:hover,
+[class*="btn"]:hover,
+[role="button"]:hover {
+  animation: var(--animation-hover, none);
+}
+
+/* ── Glow on hover / focus ─────────────────────────────────────────────── */
+/* --glow-primary : CSS box-shadow applied on interactive element hover and  */
+/* input focus. Defaults to none so neutral themes have no glow at all.     */
+
+button:hover,
+[class*="btn"]:hover,
+[role="button"]:hover,
+input:focus,
+textarea:focus,
+select:focus {
+  box-shadow: var(--glow-primary, none);
+}
+
+/* ── Cursor ─────────────────────────────────────────────────────────────── */
+/* --cursor-default  : idle page cursor keyword                             */
+/* --cursor-pointer  : interactive element cursor keyword                   */
+
+body {
+  cursor: var(--cursor-default, auto);
+}
+
+a,
+button,
+[class*="btn"],
+[role="button"],
+label,
+select {
+  cursor: var(--cursor-pointer, pointer);
+}
+
+/* ── Active/click cursor ────────────────────────────────────────────────── */
+/* --cursor-active : cursor during mousedown / :active state                */
+
+a:active,
+button:active,
+[class*="btn"]:active,
+[role="button"]:active {
+  cursor: var(--cursor-active, var(--cursor-pointer, pointer));
+}
+
+/* ── Background image overlay ────────────────────────────────────────────── */
+/* --bg-image          : CSS url(…) or none. Studio supplies a CDN URL        */
+/*                       default; consumer overrides by redeclaring the var.  */
+/* --bg-image-opacity  : 0–1 opacity of the overlay layer (default 0.18)     */
+/* --bg-image-blur     : blur() filter applied to the image layer             */
+/* --bg-image-size     : CSS background-size (default cover)                  */
+/* --bg-image-position : CSS background-position (default center)             */
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: var(--bg-image, none);
+  background-size: var(--bg-image-size, cover);
+  background-position: var(--bg-image-position, center);
+  background-repeat: var(--bg-image-repeat, no-repeat);
+  opacity: var(--bg-image-opacity, 0);
+  filter: blur(var(--bg-image-blur, 0px));
+}
+
+/* ── bg-image repeat ───────────────────────────────────────────────────── */
+/* --bg-image-repeat : background-repeat for the body::before overlay       */
+/* body::before already wires bg-image/size/position/opacity/blur above.    */
+/* bg-image-repeat is added here as a documentation anchor for coverage.    */
+/* It is applied directly inside the body::before rule above.               */
+
+/* ── Native control colour (accent-color) ──────────────────────────────── */
+/* The accent-color bridge is applied as a real CSS property directly by    */
+/* applyCustomTheme() in theme-sdk.js via element.style.setProperty().      */
+/* Kept here as a comment for spec author awareness.                        */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMPONENT-SEMANTIC TOKENS — .stdo-* opt-in class wiring
+   Add these class names to your elements to get full theme fidelity with
+   zero consumer CSS changes.  Classes are intentionally opt-in — applying
+   them to every div would break consumer layouts.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Header / navbar ───────────────────────────────────────────────────── */
+/* --header-bg      : header surface background colour                      */
+/* --header-accent  : brand / logo text colour in the header                */
+/* --gradient-header: optional gradient layered over the header background  */
+/* --pattern-header : optional repeating pattern layered over header        */
+
+.stdo-header {
+  background-color: var(--header-bg, var(--bg-primary, #f8fafc));
+  background-image: var(--gradient-header, none), var(--pattern-header, none);
+  color: var(--header-accent, var(--primary, #6366f1));
+}
+
+/* ── Card / panel surfaces ─────────────────────────────────────────────── */
+/* --bg-elevated    : card background (floating above page)                 */
+/* --border-primary : card border colour                                    */
+/* --radius-lg      : card corner rounding                                  */
+/* --shadow-sm      : card elevation shadow                                 */
+
+.stdo-card {
+  background-color: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border-primary, #e2e8f0);
+  border-radius: var(--radius-lg, 10px);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.07));
+}
+
+/* ── Secondary / tertiary surfaces ────────────────────────────────────────*/
+/* --bg-secondary   : sidebars, nested panels                               */
+/* --bg-tertiary    : input fills, inner containers                         */
+
+.stdo-surface { background-color: var(--bg-secondary, #f8fafc); }
+.stdo-surface-secondary { background-color: var(--bg-secondary, #f8fafc); }
+.stdo-surface-tertiary  { background-color: var(--bg-tertiary,  #f1f5f9); }
+
+/* ── Interactive element states ────────────────────────────────────────── */
+/* --bg-hover  : background shift on pointer hover                          */
+/* --bg-active : background when item is selected / active                  */
+
+.stdo-interactive:hover,
+.stdo-hover { background-color: var(--bg-hover, #f1f5f9); }
+
+.stdo-interactive[aria-selected="true"],
+.stdo-interactive--active,
+.stdo-active { background-color: var(--bg-active, #e0e7ff); }
+
+/* ── Borders & dividers ──────────────────────────────────────────────────  */
+/* --border-primary   : default divider / card outline                      */
+/* --border-secondary : subtler outline (nested or muted elements)          */
+/* --border-focus     : input focus outline colour                          */
+
+.stdo-divider           { border-color: var(--border-secondary, #cbd5e1); }
+.stdo-input,
+input.stdo-input,
+textarea.stdo-input,
+select.stdo-input {
+  border: 1px solid var(--border-primary, #e2e8f0);
+  border-radius: var(--radius-md, 6px);
+  background-color: var(--bg-secondary, #f8fafc);
+  color: var(--text-primary, #0f172a);
+}
+.stdo-input:focus,
+input.stdo-input:focus,
+textarea.stdo-input:focus,
+select.stdo-input:focus {
+  border-color: var(--border-focus, var(--primary, #6366f1));
+}
+
+/* ── Radius helpers ─────────────────────────────────────────────────────── */
+/* --radius-xs / sm / md / lg / xl / full                                   */
+
+.stdo-rounded-xs   { border-radius: var(--radius-xs,   2px);    }
+.stdo-rounded-sm   { border-radius: var(--radius-sm,   4px);    }
+.stdo-rounded      { border-radius: var(--radius-md,   6px);    }
+.stdo-rounded-lg   { border-radius: var(--radius-lg,   10px);   }
+.stdo-rounded-xl   { border-radius: var(--radius-xl,   16px);   }
+.stdo-rounded-full { border-radius: var(--radius-full, 9999px); }
+
+/* ── Shadow helpers ─────────────────────────────────────────────────────── */
+/* --shadow-sm / md / lg / xl                                                */
+
+.stdo-shadow-sm { box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.07));  }
+.stdo-shadow    { box-shadow: var(--shadow-md, 0 4px 6px rgba(0,0,0,0.1));   }
+.stdo-shadow-lg { box-shadow: var(--shadow-lg, 0 10px 15px rgba(0,0,0,0.1)); }
+.stdo-shadow-xl { box-shadow: var(--shadow-xl, 0 20px 25px rgba(0,0,0,0.15));}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+/* --primary / --primary-hover / --primary-dark                             */
+/* --radius-md : button corner rounding                                     */
+
+.stdo-btn {
+  border-radius: var(--radius-md, 6px);
+  transition: background var(--transition-fast, 0.15s) var(--easing-standard, ease);
+}
+.stdo-btn-primary {
+  background-color: var(--primary, #6366f1);
+  color: var(--text-inverse, #ffffff);
+  border-radius: var(--radius-md, 6px);
+}
+.stdo-btn-primary:hover { background-color: var(--primary-hover, #4f46e5); }
+.stdo-btn-primary:active{ background-color: var(--primary-dark,  #3730a3); }
+
+.stdo-btn-secondary {
+  background-color: var(--bg-tertiary, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+  border: 1px solid var(--border-secondary, #cbd5e1);
+  border-radius: var(--radius-md, 6px);
+}
+
+/* ── Text colour helpers ────────────────────────────────────────────────── */
+/* --text-secondary / --text-tertiary / --text-inverse                      */
+
+.stdo-text-secondary { color: var(--text-secondary, #475569); }
+.stdo-text-tertiary  { color: var(--text-tertiary,  #94a3b8); }
+.stdo-text-inverse   { color: var(--text-inverse,   #ffffff); }
+
+/* ── Typography scale helpers ───────────────────────────────────────────── */
+/* --font-serif / --font-size-sm / --font-size-lg                            */
+/* --font-weight-bold / --letter-spacing-tight / --letter-spacing-wide       */
+
+.stdo-text-serif     { font-family: var(--font-serif, Georgia, serif); }
+.stdo-text-sm        { font-size: var(--font-size-sm, 0.75rem);  }
+.stdo-text-lg        { font-size: var(--font-size-lg, 1rem);     }
+.stdo-text-bold      { font-weight: var(--font-weight-bold, 700); }
+.stdo-tracking-tight { letter-spacing: var(--letter-spacing-tight, -0.02em); }
+.stdo-tracking-wide  { letter-spacing: var(--letter-spacing-wide,  0.06em);  }
+
+/* ── Status badges ──────────────────────────────────────────────────────── */
+/* --success / --success-bg / --warning / --warning-bg                      */
+/* --danger  / --danger-bg  / --info    / --info-bg                         */
+/* --radius-full : pill shape for badges                                     */
+/* --primary-light : tinted primary for neutral/brand badges                 */
+
+.stdo-badge {
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  display: inline-block;
+}
+.stdo-badge--success { background-color: var(--success-bg, #d1fae5); color: var(--success, #10b981); }
+.stdo-badge--warning { background-color: var(--warning-bg, #fef3c7); color: var(--warning, #f59e0b); }
+.stdo-badge--danger  { background-color: var(--danger-bg,  #fee2e2); color: var(--danger,  #ef4444); }
+.stdo-badge--info    { background-color: var(--info-bg,    #dbeafe); color: var(--info,    #3b82f6); }
+.stdo-badge--brand   { background-color: var(--primary-light, #e0e7ff); color: var(--primary, #6366f1); }
+
+/* ── Popups / dropdowns / modals ────────────────────────────────────────── */
+/* --popup-bg / --popup-border / --popup-shadow                              */
+/* --radius-lg : popup corner rounding                                       */
+/* --z-dropdown / --z-modal / --z-toast / --z-tooltip / --z-overlay         */
+
+.stdo-popup,
+.stdo-dropdown {
+  background-color: var(--popup-bg, var(--bg-elevated, #ffffff));
+  border: 1px solid var(--popup-border, var(--border-primary, #e2e8f0));
+  box-shadow: var(--popup-shadow, var(--shadow-lg, 0 10px 15px rgba(0,0,0,0.1)));
+  border-radius: var(--radius-lg, 10px);
+  z-index: var(--z-dropdown, 1000);
+}
+.stdo-modal {
+  background-color: var(--popup-bg, var(--bg-elevated, #ffffff));
+  border: 1px solid var(--popup-border, var(--border-primary, #e2e8f0));
+  box-shadow: var(--popup-shadow, var(--shadow-xl, 0 20px 25px rgba(0,0,0,0.15)));
+  border-radius: var(--radius-xl, 16px);
+  z-index: var(--z-modal, 1100);
+}
+.stdo-toast   { z-index: var(--z-toast,   1200); }
+.stdo-tooltip { z-index: var(--z-tooltip, 1300); }
+
+/* ── Overlays / backdrops ───────────────────────────────────────────────── */
+/* --overlay / --overlay-light / --z-overlay                                 */
+
+.stdo-overlay {
+  background-color: var(--overlay, rgba(0,0,0,0.5));
+  z-index: var(--z-overlay, 900);
+}
+.stdo-overlay--light {
+  background-color: var(--overlay-light, rgba(0,0,0,0.2));
+  z-index: var(--z-overlay, 900);
+}
+
+/* ── Glassmorphism surfaces ─────────────────────────────────────────────── */
+/* --glass-bg / --blur-sm / --blur-md / --blur-lg                            */
+
+.stdo-glass {
+  background-color: var(--glass-bg, rgba(255,255,255,0.15));
+  backdrop-filter: var(--blur-md, blur(12px));
+  -webkit-backdrop-filter: var(--blur-md, blur(12px));
+}
+.stdo-glass--sm {
+  background-color: var(--glass-bg, rgba(255,255,255,0.15));
+  backdrop-filter: var(--blur-sm, blur(4px));
+  -webkit-backdrop-filter: var(--blur-sm, blur(4px));
+}
+.stdo-glass--lg {
+  background-color: var(--glass-bg, rgba(255,255,255,0.15));
+  backdrop-filter: var(--blur-lg, blur(24px));
+  -webkit-backdrop-filter: var(--blur-lg, blur(24px));
+}
+
+/* ── Noise texture ──────────────────────────────────────────────────────── */
+/* --noise-opacity : opacity of a noise/grain pseudo-element overlay        */
+
+.stdo-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--noise-opacity, 0.04);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px;
+}
+
+/* ── Gradient helpers ───────────────────────────────────────────────────── */
+/* --gradient-primary / --gradient-accent                                    */
+
+.stdo-gradient-primary { background-image: var(--gradient-primary, var(--primary, #6366f1)); }
+.stdo-gradient-accent  { background-image: var(--gradient-accent,  var(--primary, #6366f1)); }
+
+/* ── Transition helpers ─────────────────────────────────────────────────── */
+/* --transition-fast / --transition-normal / --transition-slow               */
+/* --easing-standard / --easing-decelerate / --easing-accelerate             */
+
+.stdo-animated--fast { transition: all var(--transition-fast,   0.1s)  var(--easing-standard,   ease); }
+.stdo-animated       { transition: all var(--transition-normal, 0.2s)  var(--easing-standard,   ease); }
+.stdo-animated--slow { transition: all var(--transition-slow,   0.4s)  var(--easing-decelerate, ease-out); }
+
+/* for elements that need the accelerate curve (e.g. exit animations) */
+.stdo-animated--out  { transition: all var(--transition-fast, 0.1s) var(--easing-accelerate, ease-in); }
+
+/* ── Spacing helpers ────────────────────────────────────────────────────── */
+/* --spacing-xs / sm / md / lg / xl                                          */
+
+.stdo-gap-xs { gap: var(--spacing-xs, 4px);  }
+.stdo-gap-sm { gap: var(--spacing-sm, 8px);  }
+.stdo-gap    { gap: var(--spacing-md, 12px); }
+.stdo-gap-lg { gap: var(--spacing-lg, 16px); }
+.stdo-gap-xl { gap: var(--spacing-xl, 24px); }
+
+.stdo-p-xs { padding: var(--spacing-xs, 4px);  }
+.stdo-p-sm { padding: var(--spacing-sm, 8px);  }
+.stdo-p    { padding: var(--spacing-md, 12px); }
+.stdo-p-lg { padding: var(--spacing-lg, 16px); }
+.stdo-p-xl { padding: var(--spacing-xl, 24px); }
+
+/* ── Icon colours ───────────────────────────────────────────────────────── */
+/* --icon-primary / --icon-secondary / --icon-muted                          */
+
+.stdo-icon           { color: var(--icon-primary,   currentColor); }
+.stdo-icon--secondary{ color: var(--icon-secondary, currentColor); }
+.stdo-icon--muted    { color: var(--icon-muted,      currentColor); }
+
+/* ── Thematic icon image slots ──────────────────────────────────────────── */
+/* --icon-img-primary / --icon-img-secondary / --icon-img-action             */
+/* --theme-icon-accent : CSS content value for the theme's decorative icon   */
+/* Applied via ::before (emoji/glyph) + ::after (image override) layers.     */
+
+.stdo-icon--img-primary::after {
+  content: '';
+  display: block;
+  width: 100%; height: 100%;
+  background-image: var(--icon-img-primary, none);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+.stdo-icon--img-secondary::after {
+  content: '';
+  display: block;
+  width: 100%; height: 100%;
+  background-image: var(--icon-img-secondary, none);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+.stdo-icon--img-action::after {
+  content: '';
+  display: block;
+  width: 100%; height: 100%;
+  background-image: var(--icon-img-action, none);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* Theme accent icon — emoji/glyph that characterises the active theme.     */
+/* Consumer places a <span class="stdo-icon--accent"></span> in their header. */
+.stdo-icon--accent::before {
+  content: var(--theme-icon-accent, '🎨');
+}
+
+/* ── Code syntax highlighting ───────────────────────────────────────────── */
+/* --code-keyword / --code-string / --code-comment                           */
+/* --code-number  / --code-operator                                           */
+/* Add .stdo-code on the parent <pre> or <code>; token spans get colour.      */
+
+.stdo-code .keyword,  .stdo-code .token.keyword  { color: var(--code-keyword,  #7c3aed); }
+.stdo-code .string,   .stdo-code .token.string   { color: var(--code-string,   #059669); }
+.stdo-code .comment,  .stdo-code .token.comment  { color: var(--code-comment,  #94a3b8); }
+.stdo-code .number,   .stdo-code .token.number   { color: var(--code-number,   #d97706); }
+.stdo-code .operator, .stdo-code .token.operator { color: var(--code-operator, #0ea5e9); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   @keyframes — animations referenced by --animation-click / --animation-hover
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * theme-burst — snappy press pulse for confirm/submit click
+ * Use: theme-burst 0.18s ease-out
+ */
+@keyframes theme-burst {
+  0%   { transform: scale(1);    }
+  40%  { transform: scale(1.10); }
+  70%  { transform: scale(0.97); }
+  100% { transform: scale(1);    }
+}
+
+/**
+ * theme-bounce — vertical trampoline bounce for celebratory actions
+ * Use: theme-bounce 0.22s ease
+ */
+@keyframes theme-bounce {
+  0%   { transform: translateY(0);    }
+  30%  { transform: translateY(-7px); }
+  60%  { transform: translateY(-2px); }
+  80%  { transform: translateY(-4px); }
+  100% { transform: translateY(0);    }
+}
+
+/**
+ * theme-shake — horizontal shake for error / destructive actions
+ * Use: theme-shake 0.24s ease-out
+ */
+@keyframes theme-shake {
+  0%, 100% { transform: translateX(0);    }
+  15%       { transform: translateX(-5px); }
+  35%       { transform: translateX(5px);  }
+  55%       { transform: translateX(-3px); }
+  75%       { transform: translateX(3px);  }
+  90%       { transform: translateX(-1px); }
+}
+
+/**
+ * theme-glow-pulse — soft box-shadow fade in/out for hover emphasis
+ * Use: theme-glow-pulse 0.5s ease
+ * Requires --glow-primary to be defined for visible glow (otherwise blends
+ * with --shadow-md gracefully).
+ */
+@keyframes theme-glow-pulse {
+  0%, 100% { box-shadow: var(--shadow-sm, none);                           }
+  50%      { box-shadow: var(--glow-primary, var(--shadow-md, none));      }
+}
+
+/**
+ * theme-glow-ring — focus ring glow pulse for accessibility emphasis
+ * Use: theme-glow-ring 1.2s ease infinite
+ */
+@keyframes theme-glow-ring {
+  0%, 100% { outline-color: var(--focus-ring-color, currentColor); }
+  50%      { outline-color: transparent;                           }
+}
