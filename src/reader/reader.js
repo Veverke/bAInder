@@ -11,7 +11,7 @@ import {
   serializeRange,  applyAnnotations,
 } from '../lib/annotations.js';
 import { setupStickyNotes } from '../lib/sticky-notes-ui.js';
-import browser from 'webextension-polyfill';
+import browser from '../lib/vendor/browser.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

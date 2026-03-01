@@ -1,4 +1,4 @@
-import browser from 'webextension-polyfill';
+import browser from './vendor/browser.js';
 /**
  * bAInder Storage Service
  * Stage 2: Storage Abstraction Layer
