@@ -8,7 +8,7 @@
  * onto the container that DialogManager already owns.
  */
 
-import JSZip from 'jszip';
+import JSZip from './vendor/jszip-esm.js';
 import {
   buildExportMarkdown,
   buildExportHtml,
