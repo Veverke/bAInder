@@ -1,4 +1,4 @@
-import JSZip from 'jszip';
+import JSZip from './vendor/jszip-esm.js';
 import {
   validateZipFile,
   parseZipEntries,
