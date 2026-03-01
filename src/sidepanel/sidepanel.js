@@ -21,6 +21,7 @@ import { ExportDialog } from '../lib/export-dialog.js';
 import { ImportDialog } from '../lib/import-dialog.js';
 import { loadTheme, persistTheme } from '../lib/useTheme.js';
 import { BUNDLED_THEMES, BUNDLED_THEME_IDS } from './themes/index.js';
+import browser from '../lib/vendor/browser.js';
 console.log('bAInder Side Panel loaded');
 
 // DOM Elements
