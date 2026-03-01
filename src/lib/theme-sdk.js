@@ -1,39 +1,38 @@
+// Vendored from ThemeStudio SDK vdev-20260227-0131 — DO NOT EDIT
+// Re-run ThemeStudioPlugin to update this file.
+
+// Vendored from ThemesStudio SDK v1.1 — DO NOT EDIT
+// Re-run ThemesStudioPlugin (or copy from ThemeStudioSDK/src/theme-sdk.js) to update.
+
 /**
- * theme-sdk.js
- *
- * Portable theme loader. Any extension that follows the bAInder theme spec
- * can use these three functions to load and apply a .json theme file.
+ * theme-sdk.js — portable theme loader (shared spec)
  *
  * Spec: themes/spec.schema.json
- *
- * Usage:
- *   import { loadThemeFile, validateTheme, applyCustomTheme } from '../lib/theme-sdk.js';
- *
- *   fileInput.addEventListener('change', async (e) => {
- *     const json = await loadThemeFile(e.target.files[0]);
- *     const error = validateTheme(json);
- *     if (error) return console.error(error);
- *     applyCustomTheme(json);
- *   });
+ * Source of truth: bAInder extension.
  */
+
+/** Semantic version of this SDK build — compared against theme.dependencies.requiredBaseVersion. */
+const SDK_VERSION = '1.1';
 
 const REQUIRED_FIELDS = ['name', 'version', 'variables'];
 const REQUIRED_VARIABLES = ['--primary', '--bg-primary', '--text-primary'];
 
+/** CSS variables skipped when a theme declares reducedMotion: true. */
+const MOTION_VARS = new Set([
+  '--transition-fast', '--transition-normal', '--transition-slow',
+  '--easing-standard', '--easing-decelerate', '--easing-accelerate',
+]);
+
 /**
  * Validate a parsed theme object against the spec.
- * @param {object} json - A parsed theme JSON object.
- * @returns {string|null} An error message, or null if valid.
+ * @param {object} json
+ * @returns {string|null} error message or null if valid
  */
 export function validateTheme(json) {
-  if (!json || typeof json !== 'object') {
-    return 'Theme must be a JSON object.';
-  }
+  if (!json || typeof json !== 'object') return 'Theme must be a JSON object.';
 
   for (const field of REQUIRED_FIELDS) {
-    if (!(field in json)) {
-      return `Missing required field: "${field}".`;
-    }
+    if (!(field in json)) return `Missing required field: "${field}".`;
   }
 
   if (typeof json.variables !== 'object' || Array.isArray(json.variables)) {
@@ -41,18 +40,171 @@ export function validateTheme(json) {
   }
 
   for (const v of REQUIRED_VARIABLES) {
-    if (!(v in json.variables)) {
-      return `Missing required variable: "${v}".`;
-    }
+    if (!(v in json.variables)) return `Missing required variable: "${v}".`;
   }
 
   for (const key of Object.keys(json.variables)) {
-    if (!key.startsWith('--')) {
-      return `Variable key "${key}" must start with "--".`;
-    }
+    if (!key.startsWith('--')) return `Variable key "${key}" must start with "--".`;
   }
 
   return null;
+}
+
+/**
+ * Apply a validated theme object by injecting its CSS custom properties as
+ * inline styles on the target element (defaults to <html>).
+ * Sets data-theme="custom" so built-in CSS rules don't override injected variables.
+ *
+ * @param {object} json
+ * @param {Element} element
+ */
+export function applyCustomTheme(json, element = document.documentElement) {
+  element.setAttribute('data-theme', 'custom');
+
+  // oled flag
+  if (json.oled) {
+    element.setAttribute('data-oled', '');
+  } else {
+    element.removeAttribute('data-oled');
+  }
+
+  // dark flag — lets the host sync prefers-color-scheme
+  if (json.dark !== undefined) {
+    element.setAttribute('data-color-scheme', json.dark ? 'dark' : 'light');
+  } else {
+    element.removeAttribute('data-color-scheme');
+  }
+
+  // forcedColors flag — opt-out of Windows High Contrast overrides
+  if (json.forcedColors === false) {
+    element.setAttribute('data-forced-colors', 'off');
+  } else {
+    element.removeAttribute('data-forced-colors');
+  }
+
+  const skipMotion = json.reducedMotion === true;
+
+  for (const [key, value] of Object.entries(json.variables)) {
+    if (skipMotion && MOTION_VARS.has(key)) continue;
+    element.style.setProperty(key, value);
+  }
+
+  // accent-color is a real CSS property (not a custom property slot), so native
+  // controls (checkbox, radio, range, progress) only respond to it when set
+  // directly — var(--accent-color) inside consumer CSS would also work, but this
+  // means zero consumer CSS changes are needed at all.
+  const accentColor = json.variables['--accent-color'];
+  if (accentColor) {
+    element.style.setProperty('accent-color', accentColor);
+  } else {
+    element.style.removeProperty('accent-color');
+  }
+
+  // color-scheme — real CSS property that shifts native form controls,
+  // scrollbars and browser chrome into dark or light mode automatically.
+  // Derived from json.dark; complements the data-color-scheme attribute set above.
+  if (json.dark !== undefined) {
+    element.style.setProperty('color-scheme', json.dark ? 'dark' : 'light');
+  } else {
+    element.style.removeProperty('color-scheme');
+  }
+
+  // caret-color — text input cursor colour.  Derived from --primary so it
+  // automatically matches the theme accent with zero consumer CSS required.
+  const caretColor = json.variables['--primary'];
+  if (caretColor) {
+    element.style.setProperty('caret-color', caretColor);
+  } else {
+    element.style.removeProperty('caret-color');
+  }
+}
+
+/**
+ * Clear a custom theme and restore a built-in named theme.
+ *
+ * @param {string} themeName
+ * @param {Element} element
+ */
+export function clearCustomTheme(themeName = 'light', element = document.documentElement) {
+  element.setAttribute('data-theme', themeName);
+  element.style.cssText = '';
+}
+
+/**
+ * Resolve external dependencies declared in a theme object before applying it.
+ *
+ * Handles:
+ *   - `dependencies.requiredBaseVersion` — logs a warning if the theme needs a
+ *     newer SDK version than the one running.
+ *   - `dependencies.fonts`              — injects Google Fonts <link> tags into
+ *     <head> (de-duplicated) and awaits `document.fonts.ready` so the typeface
+ *     is available before the caller renders.
+ *
+ * Pattern:
+ *   await resolveThemeDependencies(theme);
+ *   applyCustomTheme(theme, element);
+ *
+ * @param {object} theme  A validated theme object (must have a .variables map).
+ * @returns {Promise<void>}
+ */
+export async function resolveThemeDependencies(theme) {
+  if (!theme || typeof theme !== 'object') return;
+
+  const deps = theme.dependencies;
+  if (!deps) return;
+
+  // ── Version guard ────────────────────────────────────────────────────────
+  if (deps.requiredBaseVersion) {
+    const [rMaj, rMin = 0] = String(deps.requiredBaseVersion).split('.').map(Number);
+    const [cMaj, cMin = 0] = SDK_VERSION.split('.').map(Number);
+    if (rMaj > cMaj || (rMaj === cMaj && rMin > cMin)) {
+      console.warn(
+        `[theme-sdk] Theme "${theme.name}" requires SDK ≥ ${deps.requiredBaseVersion}; ` +
+        `current version is ${SDK_VERSION}. Some features may not work correctly.`
+      );
+    }
+  }
+
+  // ── Font loading ─────────────────────────────────────────────────────────
+  const fonts = Array.isArray(deps.fonts) ? deps.fonts : [];
+  if (fonts.length > 0 && typeof document !== 'undefined') {
+    const PRECONNECT_HREF = 'https://fonts.googleapis.com';
+    const GSTATIC_HREF    = 'https://fonts.gstatic.com';
+
+    // Inject preconnects once
+    if (!document.querySelector(`link[href="${PRECONNECT_HREF}"]`)) {
+      const pc1 = document.createElement('link');
+      pc1.rel  = 'preconnect';
+      pc1.href = PRECONNECT_HREF;
+      document.head.appendChild(pc1);
+    }
+    if (!document.querySelector(`link[href="${GSTATIC_HREF}"]`)) {
+      const pc2 = document.createElement('link');
+      pc2.rel         = 'preconnect';
+      pc2.href        = GSTATIC_HREF;
+      pc2.crossOrigin = 'anonymous';
+      document.head.appendChild(pc2);
+    }
+
+    // Build Google Fonts URL and inject stylesheet, de-duplicated
+    const familiesParam = fonts
+      .map(f => encodeURIComponent(f).replace(/%20/g, '+') + ':wght@400;700')
+      .join('&family=');
+    const href = `${PRECONNECT_HREF}/css2?family=${familiesParam}&display=swap`;
+    if (!document.querySelector(`link[href="${href}"]`)) {
+      const link = document.createElement('link');
+      link.rel  = 'stylesheet';
+      link.href = href;
+      document.head.appendChild(link);
+    }
+
+    // Wait for fonts to be parsed and available for rendering
+    try {
+      await document.fonts.ready;
+    } catch {
+      // Non-fatal — document.fonts may be unavailable in some environments
+    }
+  }
 }
 
 /**
@@ -79,106 +231,3 @@ export function mergeWithDefaults(theme, defaults = {}) {
   };
 }
 
-/**
- * Apply a validated theme object by injecting its CSS custom properties as
- * inline styles on the target element (defaults to <html>).
- *
- * Sets data-theme="custom" to prevent built-in theme CSS rules from
- * overriding the injected variables.
- *
- * @param {object} json     - A validated theme object.
- * @param {Element} element - Target element (default: document.documentElement).
- */
-export function applyCustomTheme(json, element = document.documentElement) {
-  // Signal we are in custom-theme mode so extension-bundled CSS can respond
-  element.setAttribute('data-theme', 'custom');
-  element.removeAttribute('data-oled');
-
-  for (const [key, value] of Object.entries(json.variables)) {
-    element.style.setProperty(key, value);
-  }
-}
-
-/**
- * Clear a previously applied custom theme, reverting to a named built-in.
- *
- * @param {string}  themeName - Built-in theme name to restore (default: 'light').
- * @param {Element} element   - Target element (default: document.documentElement).
- */
-export function clearCustomTheme(themeName = 'light', element = document.documentElement) {
-  element.setAttribute('data-theme', themeName);
-  element.style.cssText = '';
-}
-
-/**
- * Read a File object and return the parsed theme JSON.
- *
- * @param {File} file - A File object from an <input type="file"> or drag-drop.
- * @returns {Promise<object>} The parsed theme JSON.
- * @throws If the file cannot be read or is not valid JSON.
- */
-export async function loadThemeFile(file) {
-  return new Promise((resolve, reject) => {
-    if (!file || file.type !== 'application/json') {
-      // Accept by extension too, since MIME type may be empty on some systems
-      if (file && !file.name.endsWith('.json')) {
-        return reject(new Error('File must be a .json file.'));
-      }
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      try {
-        const json = JSON.parse(e.target.result);
-        resolve(json);
-      } catch {
-        reject(new Error('File is not valid JSON.'));
-      }
-    };
-
-    reader.onerror = () => reject(new Error('Could not read file.'));
-    reader.readAsText(file, 'utf-8');
-  });
-}
-
-/**
- * Wrap an HTML snippet in a self-contained preview file with all CSS variables
- * from the theme injected into :root.  The resulting file can be loaded in an
- * <iframe> by ThemesStudio (or any host) to show an extension-specific preview.
- *
- * @param {string}  htmlSnippet    Inner HTML shown inside the preview body.
- * @param {object}  theme          A validated theme object (must have .variables).
- * @param {string}  extensionName  Human-readable name shown in the <title>.
- * @returns {{ blob: Blob, filename: string }}
- */
-export function exportPreview(htmlSnippet, theme, extensionName = 'extension') {
-  if (!theme || typeof theme.variables !== 'object') {
-    throw new Error('exportPreview: theme must be a valid theme object with a variables map.');
-  }
-
-  const varLines = Object.entries(theme.variables)
-    .map(([k, v]) => `  ${k}: ${v};`)
-    .join('\n');
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${extensionName} Preview</title>
-  <style>
-    :root {
-${varLines}
-    }
-  </style>
-</head>
-<body>
-${htmlSnippet}
-</body>
-</html>`;
-
-  const blob = new Blob([html], { type: 'text/html' });
-  const filename = `${extensionName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.preview.html`;
-  return { blob, filename, html };
-}

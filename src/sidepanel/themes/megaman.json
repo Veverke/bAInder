@@ -1,0 +1,127 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Megaman",
+  "id": "megaman",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Dr. Light's Lab — Chakra Petch robot-UI type, precise small-radius controls, dot-grid circuit pattern and clean technical blue glow.",
+  "category": "videogame",
+  "dark": true,
+  "variables": {
+    "--primary":           "#44aaff",
+    "--primary-hover":     "#66bbff",
+    "--primary-light":     "rgba(68,170,255,0.14)",
+    "--primary-dark":      "#2288dd",
+
+    "--header-bg":         "#001230",
+    "--header-accent":     "#44aaff",
+
+    "--bg-primary":        "rgba(0,14,36,0.55)",
+    "--bg-secondary":      "rgba(0,21,51,0.60)",
+    "--bg-tertiary":       "rgba(0,30,68,0.65)",
+    "--bg-elevated":       "rgba(0,34,85,0.62)",
+    "--bg-hover":          "rgba(68,170,255,0.08)",
+    "--bg-active":         "rgba(68,170,255,0.16)",
+
+    "--border-primary":    "#002666",
+    "--border-secondary":  "rgba(68,170,255,0.30)",
+    "--border-focus":      "#44aaff",
+
+    "--text-primary":      "#ddf0ff",
+    "--text-secondary":    "#7ac8ff",
+    "--text-tertiary":     "#2266aa",
+    "--text-inverse":      "#000e24",
+
+    "--success":           "#44ff88",
+    "--success-bg":        "rgba(68,255,136,0.12)",
+    "--warning":           "#ffdd44",
+    "--warning-bg":        "rgba(255,221,68,0.12)",
+    "--danger":            "#ff4444",
+    "--danger-bg":         "rgba(255,68,68,0.12)",
+    "--info":              "#44aaff",
+    "--info-bg":           "rgba(68,170,255,0.12)",
+
+    "--shadow-sm":         "0 2px 6px rgba(0,0,0,0.55), 0 0 4px rgba(68,170,255,0.12)",
+    "--shadow-md":         "0 4px 14px rgba(0,0,0,0.65), 0 0 12px rgba(68,170,255,0.16)",
+    "--shadow-lg":         "0 8px 28px rgba(0,0,0,0.72), 0 0 22px rgba(68,170,255,0.20)",
+    "--shadow-xl":         "0 14px 44px rgba(0,0,0,0.80), 0 0 36px rgba(68,170,255,0.24)",
+
+    "--overlay":           "rgba(0,8,28,0.88)",
+    "--overlay-light":     "rgba(68,170,255,0.07)",
+
+    "--font-sans":         "'Chakra Petch', 'Exo 2', sans-serif",
+    "--font-mono":         "'Share Tech Mono', 'Courier New', monospace",
+    "--font-serif":        "'Chakra Petch', Georgia, sans-serif",
+
+    "--radius-xs":         "2px",
+    "--radius-sm":         "4px",
+    "--radius-md":         "6px",
+    "--radius-lg":         "8px",
+    "--radius-xl":         "10px",
+    "--radius-full":       "6px",
+
+    "--pattern-bg":        "radial-gradient(circle, rgba(68,170,255,0.20) 1px, transparent 1px)",
+    "--pattern-size":      "22px 22px",
+    "--pattern-header":    "linear-gradient(90deg, rgba(68,170,255,0.07) 1px, transparent 1px), linear-gradient(0deg, rgba(68,170,255,0.07) 1px, transparent 1px)",
+
+    "--gradient-primary":  "linear-gradient(135deg, #44aaff 0%, #44ff88 100%)",
+    "--gradient-accent":   "linear-gradient(135deg, #44aaff 0%, #aa44ff 100%)",
+    "--gradient-bg":       "linear-gradient(180deg, #000e24 0%, #001533 100%)",
+    "--gradient-header":   "linear-gradient(180deg, #001230 0%, #000e24 100%)",
+
+    "--blur-sm":           "blur(0px)",
+    "--blur-md":           "blur(0px)",
+    "--blur-lg":           "blur(0px)",
+    "--glass-bg":          "rgba(0,0,0,0)",
+
+    "--page-bg":           "linear-gradient(180deg, #000e24 0%, #001533 100%)",
+    "--noise-opacity":     "0",
+
+    "--transition-fast":   "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--transition-normal": "250ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--transition-slow":   "400ms cubic-bezier(0.4, 0, 0.2, 1)",
+    "--easing-standard":   "cubic-bezier(0.4, 0, 0.2, 1)",
+    "--easing-decelerate": "cubic-bezier(0, 0, 0.2, 1)",
+    "--easing-accelerate": "cubic-bezier(0.4, 0, 1, 1)",
+
+    "--focus-ring-color":  "#44aaff",
+    "--focus-ring-width":  "2px",
+    "--focus-ring-offset": "2px",
+    "--focus-ring-style":  "solid",
+
+    "--code-bg":           "rgba(0,8,20,0.92)",
+    "--code-text":         "#ddf0ff",
+    "--code-keyword":      "#44aaff",
+    "--code-string":       "#44ff88",
+    "--code-comment":      "#2266aa",
+    "--code-number":       "#ffdd44",
+    "--code-operator":     "#aa44ff",
+
+    "--selection-bg":      "rgba(68,170,255,0.25)",
+    "--selection-text":    "#ddf0ff",
+
+    "--scrollbar-thumb":   "rgba(68,170,255,0.42)",
+    "--scrollbar-track":   "rgba(0,8,20,0.70)",
+    "--scrollbar-width":   "5px",
+
+    "--icon-primary":             "#44aaff",
+    "--icon-secondary":           "#44ff88",
+    "--icon-muted":               "#2266aa",
+
+    "--font-display":             "'Chakra Petch', 'Exo 2', sans-serif",
+    "--text-glow":                "0 0 8px rgba(68,170,255,0.55)",
+    "--image-filter":             "brightness(0.85) saturate(1.1) hue-rotate(10deg)",
+    "--card-accent-border":       "3px solid #44aaff",
+    "--btn-text-transform":       "uppercase",
+    "--btn-letter-spacing":       "0.10em",
+    "--animation-click":          "theme-burst 0.14s ease-out",
+    "--animation-hover":          "theme-glow-pulse 0.5s ease",
+    "--glow-primary":             "0 0 12px rgba(68,170,255,0.65)",
+
+    "--bg-image":          "url('https://static.wikia.nocookie.net/megaman/images/2/21/MMLC1_Mega_Man.png/revision/latest?cb=20190531222003')",
+    "--bg-image-opacity":  "0.55",
+    "--bg-image-blur":     "0px",
+    "--bg-image-size":     "cover",
+    "--bg-image-position": "center"
+  }
+}

@@ -19,65 +19,8 @@ import { extractSnippet, highlightTerms, formatBreadcrumb, escapeHtml } from '..
 import { getTagColor } from '../lib/tree-renderer.js';
 import { ExportDialog } from '../lib/export-dialog.js';
 import { ImportDialog } from '../lib/import-dialog.js';
-import { loadThemeFile, validateTheme, applyCustomTheme, mergeWithDefaults } from '../lib/theme-sdk.js';
-import browser from 'webextension-polyfill';
-
-/**
- * bAInder's complete baseline variable map.
- * When a custom theme is loaded, mergeWithDefaults() uses these values for any
- * variable the theme file doesn't define — so new variables added to bAInder's
- * CSS always have a sensible fallback even with older theme files.
- *
- * Values mirror the built-in "light" theme.  Update here whenever a new
- * CSS custom property is introduced in bAInder's stylesheets.
- */
-const BINDER_VARIABLE_DEFAULTS = {
-  '--primary':          '#6366f1',
-  '--primary-hover':    '#4f46e5',
-  '--primary-light':    '#e0e7ff',
-  '--primary-dark':     '#3730a3',
-  '--header-bg':        'linear-gradient(135deg, #eef0ff 0%, #ffffff 55%)',
-  '--header-accent':    '#6366f1',
-  '--bg-primary':       '#ffffff',
-  '--bg-secondary':     '#f8fafc',
-  '--bg-tertiary':      '#f1f5f9',
-  '--bg-elevated':      '#ffffff',
-  '--bg-hover':         '#f1f5f9',
-  '--bg-active':        '#e2e8f0',
-  '--border-primary':   '#e2e8f0',
-  '--border-secondary': '#cbd5e1',
-  '--border-focus':     '#6366f1',
-  '--text-primary':     '#0f172a',
-  '--text-secondary':   '#475569',
-  '--text-tertiary':    '#94a3b8',
-  '--text-inverse':     '#ffffff',
-  '--success':          '#10b981',
-  '--success-bg':       '#d1fae5',
-  '--warning':          '#f59e0b',
-  '--warning-bg':       '#fef3c7',
-  '--danger':           '#ef4444',
-  '--danger-bg':        '#fee2e2',
-  '--info':             '#3b82f6',
-  '--info-bg':          '#dbeafe',
-  '--shadow-sm':        '0 1px 2px 0 rgba(0,0,0,0.05)',
-  '--shadow-md':        '0 4px 6px -1px rgba(0,0,0,0.1)',
-  '--shadow-lg':        '0 10px 15px -3px rgba(0,0,0,0.1)',
-  '--shadow-xl':        '0 20px 25px -5px rgba(0,0,0,0.1)',
-  '--overlay':          'rgba(15,23,42,0.5)',
-  '--overlay-light':    'rgba(15,23,42,0.1)',
-  '--dot-chatgpt':      '#10b981',
-  '--dot-claude':       '#f97316',
-  '--dot-gemini':       '#3b82f6',
-  '--dot-copilot':      '#8b5cf6',
-  '--font-sans':        "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
-  '--radius-xs':        '2px',
-  '--radius-sm':        '4px',
-  '--radius-md':        '6px',
-  '--radius-lg':        '8px',
-  '--radius-xl':        '12px',
-  '--radius-full':      '9999px',
-};
-
+import { loadTheme, persistTheme } from '../lib/useTheme.js';
+import { BUNDLED_THEMES, BUNDLED_THEME_IDS } from './themes/index.js';
 console.log('bAInder Side Panel loaded');
 
 // DOM Elements
@@ -93,7 +36,6 @@ const elements = {
   exportAllBtn: document.getElementById('exportAllBtn'),
   clearAllBtn: document.getElementById('clearAllBtn'),
   settingsBtn: document.getElementById('settingsBtn'),
-  themeToggle: document.getElementById('themeToggle'),
   contextMenu: document.getElementById('contextMenu'),
   chatContextMenu: document.getElementById('chatContextMenu'),
   modalContainer: document.getElementById('modalContainer'),
@@ -104,7 +46,8 @@ const elements = {
   storageUsage: document.getElementById('storageUsage'),
   saveBanner:   document.getElementById('saveBanner'),
   saveBtn:      document.getElementById('saveChatBtn'),
-  saveBannerMsg:document.getElementById('saveBannerMsg')
+  saveBannerMsg:document.getElementById('saveBannerMsg'),
+  themeBtn:     document.getElementById('themeBtn')
 };
 
 // Application State
@@ -119,9 +62,6 @@ const state = {
   contextMenuTopic: null, // Currently selected topic for context menu
   contextMenuChat: null, // Currently selected chat for context menu
   searchQuery: '',
-  theme: 'light', // 'light', 'dark', 'oled', 'auto', or radical theme name
-  skin: 'sharp',   // '' | 'sharp' | 'rounded' | 'outlined' | 'elevated'
-  accent: '',      // '' | 'rose' | 'teal' | 'amber'
   _toastTimer: null, // setTimeout handle for auto-dismissing toast
   exportDialog: null, // ExportDialog instance (Stage 9)
   importDialog: null  // ImportDialog instance (Stage 9)
@@ -137,15 +77,6 @@ async function init() {
   // Initialize dialog manager
   state.dialog = new DialogManager(elements.modalContainer);
   
-  // Initialize theme
-  await initTheme();
-
-  // Initialize control skin
-  await initSkin();
-
-  // Initialize accent colour
-  await initAccent();
-
   // Set up event listeners
   setupEventListeners();
   
@@ -179,147 +110,6 @@ async function init() {
 
   console.log('bAInder initialized successfully');
 }
-
-// Initialize theme system
-async function initTheme() {
-  try {
-    const result = await browser.storage.local.get(['theme', 'customTheme']);
-    const savedTheme = result.theme || 'light';
-
-    if (savedTheme === 'custom' && result.customTheme) {
-      applyCustomTheme(mergeWithDefaults(result.customTheme, BINDER_VARIABLE_DEFAULTS));
-      state.theme = 'custom';
-    } else {
-      state.theme = savedTheme;
-      applyTheme(state.theme);
-    }
-  } catch (error) {
-    console.error('Error loading theme:', error);
-    applyTheme('light');
-  }
-}
-
-// Load a custom theme from a .json File object
-async function handleLoadTheme(file) {
-  try {
-    const json = await loadThemeFile(file);
-    const error = validateTheme(json);
-    if (error) {
-      await state.dialog.alert(error, 'Invalid Theme File');
-      return;
-    }
-    applyCustomTheme(mergeWithDefaults(json, BINDER_VARIABLE_DEFAULTS));
-    state.theme = 'custom';
-    await browser.storage.local.set({ theme: 'custom', customTheme: json });
-
-    // Reflect in the settings selector
-    const sel = document.getElementById('settingsThemeSelect');
-    if (sel) sel.value = 'custom';
-
-    showToast(`Theme "${json.name}" loaded`, 'success');
-  } catch (err) {
-    console.error('Load theme error:', err);
-    await state.dialog.alert(err.message, 'Load Theme Error');
-  }
-}
-
-// Apply theme to document
-function applyTheme(theme) {
-  const html = document.documentElement;
-  // Clear any inline CSS variables injected by a previous custom theme
-  html.style.cssText = '';
-  const themeIcon = elements.themeToggle?.querySelector('.theme-icon');
-
-  // OLED: dark theme vars + black-surface override attribute
-  if (theme === 'oled') {
-    html.setAttribute('data-theme', 'dark');
-    html.setAttribute('data-oled', '');
-  } else {
-    html.removeAttribute('data-oled');
-  }
-
-  if (theme === 'auto') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    if (themeIcon) themeIcon.textContent = '🌓';
-  } else if (theme !== 'oled') {
-    html.setAttribute('data-theme', theme);
-    const themeIcons = { dark: '☀️', oled: '🕶️', terminal: '🖥️', retro: '🕹️', glass: '🪟', neon: '💡', nord: '🏔️', solarized: '☀️', forest: '🌲' };
-    if (themeIcon) themeIcon.textContent = themeIcons[theme] ?? '🌙';
-  } else {
-    // oled branch — data-theme already set to 'dark' above
-    if (themeIcon) themeIcon.textContent = '🕶️';
-  }
-
-  state.theme = theme;
-}
-
-// Toggle theme
-async function toggleTheme() {
-  const themes = ['light', 'dark', 'auto'];
-  const currentIndex = themes.indexOf(state.theme);
-  const nextTheme = themes[(currentIndex + 1) % themes.length];
-  
-  applyTheme(nextTheme);
-  
-  try {
-    await browser.storage.local.set({ theme: nextTheme });
-    console.log('Theme changed to:', nextTheme);
-  } catch (error) {
-    console.error('Error saving theme:', error);
-  }
-}
-
-// ── Control skin ────────────────────────────────────────────────────────────
-
-async function initSkin() {
-  try {
-    const result = await browser.storage.local.get('skin');
-    state.skin = result.skin || 'sharp';
-    applySkin(state.skin);
-  } catch (_) {
-    applySkin('');
-  }
-}
-
-function applySkin(skin) {
-  const html = document.documentElement;
-  if (skin) {
-    html.setAttribute('data-skin', skin);
-  } else {
-    html.removeAttribute('data-skin');
-  }
-  state.skin = skin;
-}
-
-// ── Accent colour ────────────────────────────────────────────────────────────
-
-async function initAccent() {
-  try {
-    const result = await browser.storage.local.get('accent');
-    state.accent = result.accent || '';
-    applyAccent(state.accent);
-  } catch (_) {
-    applyAccent('');
-  }
-}
-
-function applyAccent(accent) {
-  const html = document.documentElement;
-  if (accent) {
-    html.setAttribute('data-accent', accent);
-  } else {
-    html.removeAttribute('data-accent');
-  }
-  state.accent = accent;
-}
-
-// Listen for system theme changes when in auto mode
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  if (state.theme === 'auto') {
-    applyTheme('auto');
-  }
-});
 
 // Set up event listeners
 function setupEventListeners() {
@@ -363,11 +153,14 @@ function setupEventListeners() {
 
   // Settings button
   elements.settingsBtn.addEventListener('click', handleSettings);
+
+  // Theme picker button
+  elements.themeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleThemePicker();
+  });
   
-  // Theme toggle button
-  elements.themeToggle.addEventListener('click', toggleTheme);
-  
-  // Topic context menu - hide when clicking outside
+  // Topic context menu / theme picker - hide when clicking outside
   document.addEventListener('click', (e) => {
     if (elements.contextMenu && !elements.contextMenu.contains(e.target)) {
       hideContextMenu();
@@ -376,6 +169,10 @@ function setupEventListeners() {
     if (elements.chatContextMenu && !elements.chatContextMenu.contains(e.target)) {
       hideChatContextMenu();
       state.contextMenuChat = null;
+    }
+    const picker = document.getElementById('themePicker');
+    if (picker && !picker.contains(e.target) && !elements.themeBtn?.contains(e.target)) {
+      closeThemePicker();
     }
   });
   
@@ -1155,9 +952,6 @@ async function handleClearAll() {
 function openSettingsPanel() {
   const panel = document.getElementById('settingsPanel');
   if (!panel) return;
-  // Sync theme selector to current state
-  const sel = document.getElementById('settingsThemeSelect');
-  if (sel) sel.value = state.theme;
   panel.classList.add('settings-panel--open');
   panel.setAttribute('aria-hidden', 'false');
 
@@ -1169,47 +963,6 @@ function openSettingsPanel() {
   document.getElementById('settingsPanelClose')
     ?.addEventListener('click', closeSettingsPanel, { once: true });
 
-  // Theme select live-change
-  document.getElementById('settingsThemeSelect')
-    ?.addEventListener('change', (e) => {
-      if (e.target.value === 'custom') return; // read-only placeholder
-      applyTheme(e.target.value);
-      browser.storage.local.set({ theme: e.target.value, customTheme: null }).catch(() => {});
-    });
-
-  // Load Theme file input
-  const loadThemeInput = document.getElementById('loadThemeInput');
-  if (loadThemeInput) {
-    // Re-attach each time the panel opens; clear old value so same file re-triggers
-    loadThemeInput.value = '';
-    loadThemeInput.addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (file) handleLoadTheme(file);
-    }, { once: true });
-  }
-
-  // Skin select — sync value then wire change
-  const skinSel = document.getElementById('settingsSkinSelect');
-  if (skinSel) {
-    skinSel.value = state.skin;
-    skinSel.addEventListener('change', (e) => {
-      applySkin(e.target.value);
-      browser.storage.local.set({ skin: e.target.value }).catch(() => {});
-    });
-  }
-
-  // Accent swatch buttons — mark active and wire click
-  const swatches = document.querySelectorAll('#accentSwatches .accent-swatch');
-  swatches.forEach(swatch => {
-    if (swatch.dataset.accent === state.accent) swatch.classList.add('is-active');
-    swatch.addEventListener('click', () => {
-      swatches.forEach(s => s.classList.remove('is-active'));
-      swatch.classList.add('is-active');
-      const val = swatch.dataset.accent;
-      applyAccent(val);
-      browser.storage.local.set({ accent: val }).catch(() => {});
-    });
-  });
 }
 
 function closeSettingsPanel() {
@@ -1527,6 +1280,55 @@ try {
     if (changeInfo.status === 'complete') initSaveBanner();
   });
 } catch (_) { /* non-extension context (tests) */ }
+
+// ── Theme Picker ─────────────────────────────────────────────────────────────
+
+let _activeThemeId = localStorage.getItem('themeId') ?? 'light';
+
+function toggleThemePicker() {
+  const picker = document.getElementById('themePicker');
+  if (!picker) return;
+  picker.classList.contains('is-open') ? closeThemePicker() : openThemePicker();
+}
+
+function openThemePicker() {
+  const picker = document.getElementById('themePicker');
+  if (!picker) return;
+  buildThemeChips();
+  picker.classList.add('is-open');
+  picker.removeAttribute('aria-hidden');
+}
+
+function closeThemePicker() {
+  const picker = document.getElementById('themePicker');
+  picker?.classList.remove('is-open');
+  picker?.setAttribute('aria-hidden', 'true');
+}
+
+function buildThemeChips() {
+  const grid = document.getElementById('themePickerGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (const id of BUNDLED_THEME_IDS) {
+    const theme = BUNDLED_THEMES[id];
+    const primary = theme?.variables?.['--primary'] ?? '#6366f1';
+    const btn = document.createElement('button');
+    btn.className = 'theme-chip' + (id === _activeThemeId ? ' theme-chip--active' : '');
+    btn.dataset.themeId = id;
+    btn.innerHTML =
+      `<span class="theme-chip__swatch" style="background:${primary}"></span>` +
+      `<span class="theme-chip__name">${theme?.name ?? id}</span>`;
+    btn.addEventListener('click', () => applyTheme(id));
+    grid.appendChild(btn);
+  }
+}
+
+async function applyTheme(id) {
+  _activeThemeId = id;
+  await loadTheme(id);
+  await persistTheme(id);
+  buildThemeChips();
+}
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {

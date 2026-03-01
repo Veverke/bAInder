@@ -1,0 +1,128 @@
+{
+  "$schema": "./spec.schema.json",
+  "name": "Sci-Fi",
+  "id": "scifi",
+  "version": "1.0",
+  "author": "bAInder",
+  "description": "Deep-space black with electric-blue Orbitron type and precision-sharp geometry.",
+  "category": "solid",
+  "dark": true,
+  "variables": {
+    "--primary":           "#00d4ff",
+    "--primary-hover":     "#33deff",
+    "--primary-light":     "rgba(0,212,255,0.15)",
+    "--primary-dark":      "#00a8cc",
+
+    "--header-bg":         "#020408",
+    "--header-accent":     "#00d4ff",
+
+    "--bg-primary":        "#03050c",
+    "--bg-secondary":      "#060a14",
+    "--bg-tertiary":       "#0a1020",
+    "--bg-elevated":       "#0d1628",
+    "--bg-hover":          "rgba(0,212,255,0.07)",
+    "--bg-active":         "rgba(0,212,255,0.14)",
+
+    "--border-primary":    "#0d1e30",
+    "--border-secondary":  "rgba(0,212,255,0.22)",
+    "--border-focus":      "#00d4ff",
+
+    "--text-primary":      "#c8eeff",
+    "--text-secondary":    "#6ab4d8",
+    "--text-tertiary":     "#2a5a78",
+    "--text-inverse":      "#03050c",
+
+    "--success":           "#00ffaa",
+    "--success-bg":        "rgba(0,255,170,0.10)",
+    "--warning":           "#ffcc00",
+    "--warning-bg":        "rgba(255,204,0,0.10)",
+    "--danger":            "#ff2244",
+    "--danger-bg":         "rgba(255,34,68,0.10)",
+    "--info":              "#aa44ff",
+    "--info-bg":           "rgba(170,68,255,0.10)",
+
+    "--shadow-sm":         "0 0 6px rgba(0,212,255,0.12)",
+    "--shadow-md":         "0 0 18px rgba(0,212,255,0.18)",
+    "--shadow-lg":         "0 0 32px rgba(0,212,255,0.22)",
+    "--shadow-xl":         "0 0 52px rgba(0,212,255,0.28)",
+
+    "--overlay":           "rgba(2,4,8,0.90)",
+    "--overlay-light":     "rgba(0,212,255,0.05)",
+
+    "--font-sans":         "'Orbitron', 'Exo 2', sans-serif",
+    "--font-mono":         "'Orbitron', 'Courier New', monospace",
+    "--font-serif":        "'Orbitron', Georgia, sans-serif",
+    "--font-size-base":    "13px",
+    "--font-size-sm":      "11px",
+    "--font-size-lg":      "15px",
+    "--font-weight-normal":"400",
+    "--font-weight-bold":  "700",
+    "--line-height-base":  "1.65",
+    "--letter-spacing-tight": "0.02em",
+    "--letter-spacing-wide":  "0.12em",
+
+    "--radius-xs":         "0px",
+    "--radius-sm":         "1px",
+    "--radius-md":         "2px",
+    "--radius-lg":         "2px",
+    "--radius-xl":         "3px",
+    "--radius-full":       "2px",
+
+    "--gradient-primary":  "none",
+    "--gradient-accent":   "none",
+    "--gradient-bg":       "none",
+    "--gradient-header":   "none",
+
+    "--blur-sm":           "blur(0px)",
+    "--blur-md":           "blur(0px)",
+    "--blur-lg":           "blur(0px)",
+    "--glass-bg":          "rgba(0,0,0,0)",
+
+    "--page-bg":           "#03050c",
+    "--noise-opacity":     "0",
+
+    "--transition-fast":   "60ms",
+    "--transition-normal": "120ms",
+    "--transition-slow":   "200ms",
+    "--easing-standard":   "linear",
+    "--easing-decelerate": "ease-out",
+    "--easing-accelerate": "ease-in",
+
+    "--focus-ring-color":  "#00d4ff",
+    "--focus-ring-width":  "2px",
+    "--focus-ring-offset": "0px",
+    "--focus-ring-style":  "solid",
+
+    "--code-bg":           "#060a14",
+    "--code-text":         "#c8eeff",
+    "--code-keyword":      "#00d4ff",
+    "--code-string":       "#00ffaa",
+    "--code-comment":      "#2a5a78",
+    "--code-number":       "#ffcc00",
+    "--code-operator":     "#aa44ff",
+
+    "--selection-bg":      "rgba(0,212,255,0.22)",
+    "--selection-text":    "#c8eeff",
+
+    "--scrollbar-thumb":   "rgba(0,212,255,0.30)",
+    "--scrollbar-track":   "#03050c",
+    "--scrollbar-width":   "6px",
+
+    "--icon-primary":      "#00d4ff",
+    "--icon-secondary":    "#33deff",
+    "--icon-muted":        "#2a5a78",
+
+    "--pattern-bg":        "none",
+    "--pattern-size":      "auto",
+    "--pattern-header":    "none",
+
+    "--font-display": "'Orbitron', 'Exo 2', sans-serif",
+    "--text-glow": "0 0 8px #00d4ff, 0 0 16px rgba(0,212,255,0.35)",
+    "--glow-primary": "0 0 12px #00d4ff, 0 0 24px rgba(0,212,255,0.3)",
+    "--card-accent-border": "2px solid #00d4ff",
+    "--btn-text-transform": "uppercase",
+    "--btn-letter-spacing": "0.14em",
+    "--animation-click": "theme-burst 0.15s linear",
+    "--animation-hover": "theme-glow-pulse 0.5s ease"
+  }
+}
