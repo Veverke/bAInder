@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bAInder — Product Roadmap</title>
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #21262d;
+      --border:    #30363d;
+      --text:      #c9d1d9;
+      --muted:     #8b949e;
+      --accent:    #58a6ff;
+      --green:     #3fb950;
+      --yellow:    #d29922;
+      --orange:    #f0883e;
+      --purple:    #bc8cff;
+      --red:       #f85149;
+      --cyan:      #39c5cf;
+
+      --done-glow:    0 0 12px rgba(63,185,80,0.35);
+      --active-glow:  0 0 12px rgba(88,166,255,0.35);
+      --future-glow:  0 0 0px transparent;
+
+      --radius:    12px;
+      --gap:       24px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1c2128 0%, #0d1117 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 32px 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 80% at 50% -20%, rgba(88,166,255,0.12), transparent);
+      pointer-events: none;
+    }
+    header .logo {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header .tagline {
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin-top: 6px;
+    }
+    header .meta-row {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+    header .badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    header .badge .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    header .badge .dot.green  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    header .badge .dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+    header .badge .dot.purple { background: var(--purple); }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Progress bar ── */
+    .progress-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      margin-bottom: 40px;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+    .progress-header .label { font-weight: 600; font-size: 1rem; }
+    .progress-header .pct   { font-size: 1.6rem; font-weight: 700; color: var(--green); }
+    .progress-bar-track {
+      height: 10px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--green), #56d479);
+      width: 55%;
+      transition: width 0.6s ease;
+    }
+    .progress-legend {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .progress-legend .item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .progress-legend .swatch {
+      width: 10px; height: 10px; border-radius: 2px;
+    }
+
+    /* ── Target audience pill row ── */
+    .audience-section {
+      margin-bottom: 40px;
+    }
+    .audience-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+    .pill.primary   { background: rgba(88,166,255,0.12);  border: 1px solid rgba(88,166,255,0.3);  color: var(--accent);  }
+    .pill.secondary { background: rgba(188,140,255,0.12); border: 1px solid rgba(188,140,255,0.3); color: var(--purple); }
+    .pill.tertiary  { background: rgba(57,197,207,0.12);  border: 1px solid rgba(57,197,207,0.3);  color: var(--cyan);   }
+    .pill.quaternary{ background: rgba(240,136,62,0.12);  border: 1px solid rgba(240,136,62,0.3);  color: var(--orange); }
+
+    /* ── Timeline ── */
+    .timeline {
+      position: relative;
+      padding-left: 32px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 12px;
+      bottom: 12px;
+      width: 2px;
+      background: linear-gradient(
+        to bottom,
+        var(--green)   0%,
+        var(--green)   55%,
+        var(--border)  55%,
+        var(--border)  100%
+      );
+    }
+
+    /* ── Stage card ── */
+    .stage {
+      position: relative;
+      margin-bottom: 24px;
+    }
+    .stage-connector {
+      position: absolute;
+      left: -22px;
+      top: 22px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      z-index: 1;
+    }
+    .stage.done    .stage-connector { border-color: var(--green);  background: rgba(63,185,80,0.15);  color: var(--green);  }
+    .stage.active  .stage-connector { border-color: var(--accent); background: rgba(88,166,255,0.15); color: var(--accent); animation: pulse-border 2s ease-in-out infinite; }
+    .stage.planned .stage-connector { border-color: var(--border); color: var(--muted); }
+    .stage.future  .stage-connector { border-color: var(--border); color: var(--muted); opacity: 0.5; }
+
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(88,166,255,0.4); }
+      50%       { box-shadow: 0 0 0 5px rgba(88,166,255,0); }
+    }
+
+    .stage-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+    }
+    .stage.done    .stage-card { box-shadow: var(--done-glow);   border-color: rgba(63,185,80,0.3);  }
+    .stage.active  .stage-card { box-shadow: var(--active-glow); border-color: rgba(88,166,255,0.4); }
+    .stage.future  .stage-card { opacity: 0.65; }
+
+    .stage-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+
+    .stage-header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      padding: 20px 24px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .stage-header:hover { background: rgba(255,255,255,0.02); }
+
+    .stage-num {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .stage.done    .stage-num { color: var(--green);  }
+    .stage.active  .stage-num { color: var(--accent);  }
+    .stage.planned .stage-num { color: var(--yellow); }
+    .stage.future  .stage-num { color: var(--purple); }
+
+    .stage-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .stage-subtitle {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .stage-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .status-badge.done    { background: rgba(63,185,80,0.15);  color: var(--green);  border: 1px solid rgba(63,185,80,0.4);  }
+    .status-badge.active  { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.4); }
+    .status-badge.planned { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.4); }
+    .status-badge.future  { background: rgba(188,140,255,0.1); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+
+    .effort-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* ── Expandable body ── */
+    .stage-body {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 20px 24px;
+    }
+    .stage-body.open { display: block; }
+
+    .stage-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .info-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .info-box .ib-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .info-box .ib-value {
+      font-size: 0.9rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .info-box .ib-value.green  { color: var(--green);  }
+    .info-box .ib-value.yellow { color: var(--yellow); }
+    .info-box .ib-value.orange { color: var(--orange); }
+    .info-box .ib-value.purple { color: var(--purple); }
+    .info-box .ib-value.muted  { color: var(--muted);  }
+
+    .deliverables {
+      margin-bottom: 14px;
+    }
+    .deliverables .dl-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .dl-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .dl-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 0.86rem;
+    }
+    .dl-item .check {
+      flex-shrink: 0;
+      margin-top: 2px;
+      font-size: 0.78rem;
+    }
+    .dl-item .check.ok      { color: var(--green);  }
+    .dl-item .check.pending { color: var(--yellow); }
+    .dl-item .check.future  { color: var(--purple); }
+    .dl-item .check.todo    { color: var(--border);  }
+
+    .test-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.78rem;
+      background: rgba(63,185,80,0.08);
+      color: var(--green);
+      border: 1px solid rgba(63,185,80,0.2);
+      border-radius: 6px;
+      padding: 2px 8px;
+      margin-top: 8px;
+    }
+
+    /* ── Q-timeline bar ── */
+    .q-timeline {
+      margin: 40px 0;
+    }
+    .q-track {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .q-cell {
+      padding: 16px 10px 12px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+      position: relative;
+      font-size: 0.78rem;
+      background: var(--surface);
+    }
+    .q-cell:last-child { border-right: none; }
+    .q-cell .q-label  { color: var(--muted); font-weight: 600; letter-spacing: 0.05em; margin-bottom: 8px; text-transform: uppercase; font-size: 0.68rem; }
+    .q-cell .q-stages { display: flex; flex-direction: column; gap: 4px; }
+    .q-bubble {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .q-bubble.done    { background: rgba(63,185,80,0.15);  color: var(--green);  }
+    .q-bubble.active  { background: rgba(88,166,255,0.15); color: var(--accent); }
+    .q-bubble.planned { background: rgba(210,153,34,0.12); color: var(--yellow); }
+    .q-bubble.future  { background: rgba(188,140,255,0.1); color: var(--purple); }
+    .q-bubble.launch  { background: rgba(248,81,73,0.12);  color: var(--red);    }
+    .q-cell.current   { background: rgba(88,166,255,0.04); }
+    .q-cell.current::after {
+      content: 'TODAY';
+      position: absolute;
+      top: 4px; left: 50%; transform: translateX(-50%);
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin: 40px 0;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 18px;
+      text-align: center;
+    }
+    .stat-card .sv { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .stat-card .sl { font-size: 0.75rem; color: var(--muted); margin-top: 5px; }
+    .stat-card .sv.green  { color: var(--green);  }
+    .stat-card .sv.accent { color: var(--accent); }
+    .stat-card .sv.yellow { color: var(--yellow); }
+    .stat-card .sv.purple { color: var(--purple); }
+    .stat-card .sv.cyan   { color: var(--cyan);   }
+
+    /* ── Expand toggle ── */
+    .expand-icon {
+      color: var(--muted);
+      transition: transform 0.2s;
+      font-size: 0.75rem;
+      margin-top: 24px;
+    }
+    .expand-icon.open { transform: rotate(90deg); }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 32px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    /* ── Feature candidate cards ── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+    }
+    .feature-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+    .feature-card.abandoned { opacity: 0.55; }
+    .feature-card-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .feature-card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .feature-card-title .ref {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      flex-shrink: 0;
+    }
+    .feature-card-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .feature-card-body {
+      padding: 14px 20px 18px;
+      font-size: 0.84rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .feature-card-body .note {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: rgba(248,81,73,0.08);
+      border-left: 3px solid var(--red);
+      border-radius: 0 4px 4px 0;
+      font-size: 0.79rem;
+      color: var(--orange);
+    }
+    .diff-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .diff-badge.high     { background: rgba(63,185,80,0.12);   color: var(--green);  border: 1px solid rgba(63,185,80,0.3);   }
+    .diff-badge.veryhigh { background: rgba(57,197,207,0.12);  color: var(--cyan);   border: 1px solid rgba(57,197,207,0.3);  }
+    .diff-badge.moderate { background: rgba(210,153,34,0.12);  color: var(--yellow); border: 1px solid rgba(210,153,34,0.3);  }
+    .diff-badge.critical { background: rgba(188,140,255,0.12); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+    .diff-badge.trust    { background: rgba(88,166,255,0.10);  color: var(--accent); border: 1px solid rgba(88,166,255,0.3);  }
+    .status-badge.abandoned { background: rgba(248,81,73,0.1); color: var(--red); border: 1px solid rgba(248,81,73,0.3); text-decoration: line-through; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .stage-header { grid-template-columns: 1fr; }
+      .stage-meta { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
+      .q-track { grid-template-columns: repeat(3, 1fr); }
+      header .logo { font-size: 2rem; }
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header>
+  <div class="logo">bAInder</div>
+  <div class="tagline">AI Chat Organizer · Chrome &amp; Edge Extension · Product Roadmap</div>
+  <div class="meta-row">
+    <div class="badge"><span class="dot green"></span> 6 of 11 stages complete</div>
+    <div class="badge"><span class="dot yellow"></span> Active development</div>
+    <div class="badge"><span class="dot purple"></span> v1.0.0 · March 2026</div>
+  </div>
+</header>
+
+<!-- ═══════════════ BODY ═══════════════ -->
+<div class="container">
+
+  <!-- ── Overview stats ── -->
+  <div class="stats-row">
+    <div class="stat-card"><div class="sv green">6</div><div class="sl">Stages Completed</div></div>
+    <div class="stat-card"><div class="sv yellow">5</div><div class="sl">Stages Remaining</div></div>
+    <div class="stat-card"><div class="sv accent">363</div><div class="sl">Tests Passing</div></div>
+    <div class="stat-card"><div class="sv cyan">55%</div><div class="sl">Overall Progress</div></div>
+    <div class="stat-card"><div class="sv purple">3</div><div class="sl">Platforms Supported</div></div>
+    <div class="stat-card"><div class="sv accent">Q4 2026</div><div class="sl">Store Launch Est.</div></div>
+  </div>
+
+  <!-- ── Overall progress ── -->
+  <div class="section-title">Overall Progress</div>
+  <div class="progress-section">
+    <div class="progress-header">
+      <span class="label">Development Progress — Stages 1–6 of 11</span>
+      <span class="pct">55%</span>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill"></div>
+    </div>
+    <div class="progress-legend">
+      <div class="item"><span class="swatch" style="background:var(--green)"></span>Completed (Stages 1–6)</div>
+      <div class="item"><span class="swatch" style="background:var(--yellow)"></span>Planned (Stages 7–10)</div>
+      <div class="item"><span class="swatch" style="background:var(--purple)"></span>Future / Advanced (Stage 11)</div>
+    </div>
+  </div>
+
+  <!-- ── Target audience ── -->
+  <div class="section-title">Target Audience</div>
+  <div class="audience-section">
+    <div class="audience-pills">
+      <div class="pill primary">🧑‍💻 Developers &amp; Engineers</div>
+      <div class="pill secondary">🔬 Researchers &amp; Academics</div>
+      <div class="pill tertiary">✍️ Content Creators &amp; Writers</div>
+      <div class="pill quaternary">📚 Knowledge Workers</div>
+      <div class="pill primary">🎓 Students</div>
+      <div class="pill secondary">💼 Business Professionals</div>
+      <div class="pill tertiary">⚡ AI Power Users</div>
+    </div>
+    <p style="margin-top:14px;font-size:0.83rem;color:var(--muted);">
+      Anyone who relies on multiple AI chat platforms (ChatGPT, Claude, Gemini, Copilot) and wants to organise,
+      search and revisit their conversation history in a structured, hierarchical notebook — primarily
+      <strong style="color:var(--text)">Chrome / Edge</strong> desktop users.
+    </p>
+  </div>
+
+  <!-- ── Quarterly timeline bar ── -->
+  <div class="section-title">Delivery Timeline</div>
+  <div class="q-timeline">
+    <div class="q-track">
+      <div class="q-cell">
+        <div class="q-label">Q4 2025</div>
+        <div class="q-stages">
+          <span class="q-bubble done">S1 Foundation</span>
+          <span class="q-bubble done">S2 Storage</span>
+          <span class="q-bubble done">S3 Data Models</span>
+        </div>
+      </div>
+      <div class="q-cell">
+        <div class="q-label">Q1 2026</div>
+        <div class="q-stages">
+          <span class="q-bubble done">S4 Tree UI</span>
+          <span class="q-bubble done">S5 Topic Mgmt</span>
+          <span class="q-bubble done">S6 Chat Detect</span>
+        </div>
+      </div>
+      <div class="q-cell current">
+        <div class="q-label">Q2 2026</div>
+        <div class="q-stages">
+          <span class="q-bubble active">S7 Assignment</span>
+          <span class="q-bubble planned">S8 Search</span>
+        </div>
+      </div>
+      <div class="q-cell">
+        <div class="q-label">Q3 2026</div>
+        <div class="q-stages">
+          <span class="q-bubble planned">S9 Export</span>
+          <span class="q-bubble planned">S10 Polish</span>
+        </div>
+      </div>
+      <div class="q-cell">
+        <div class="q-label">Q4 2026</div>
+        <div class="q-stages">
+          <span class="q-bubble launch">🚀 Store Launch</span>
+          <span class="q-bubble future">S11 Advanced</span>
+        </div>
+      </div>
+      <div class="q-cell">
+        <div class="q-label">2027+</div>
+        <div class="q-stages">
+          <span class="q-bubble future">Cloud Sync</span>
+          <span class="q-bubble future">NLP / AI</span>
+          <span class="q-bubble future">IndexedDB</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ STAGE CARDS ═══════════════ -->
+  <div class="section-title">Development Stages</div>
+  <div class="timeline">
+
+    <!-- ── Stage 1 ── -->
+    <div class="stage done">
+      <div class="stage-connector">✓</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 1</div>
+            <div class="stage-title">Foundation &amp; Project Setup</div>
+            <div class="stage-subtitle">Extension skeleton, manifest, icons, side panel boilerplate</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge done">✓ Completed</span>
+            <span class="effort-badge">⏱ 1–2 weeks</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Delivery</div><div class="ib-value green">Nov 2025</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Small — 1–2 weeks</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">All users (baseline)</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">None — independent</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check ok">✓</span><span>Manifest V3 with required permissions (storage, tabs, sidePanel)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Side panel HTML + modern light/dark/auto theme system</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Background service worker skeleton</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>SVG icons (16×16 → 128×128) + responsive design</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Content script placeholder; accessibility support</span></div>
+            </div>
+            <div class="test-count">🧪 17 tests passing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stage 2 ── -->
+    <div class="stage done">
+      <div class="stage-connector">✓</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 2</div>
+            <div class="stage-title">Storage Abstraction Layer</div>
+            <div class="stage-subtitle">Flexible storage interface, Chrome adapter, migration-ready design</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge done">✓ Completed</span>
+            <span class="effort-badge">⏱ 1–2 weeks</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Delivery</div><div class="ib-value green">Nov 2025</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Small — 1–2 weeks</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">All users</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stage 1</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check ok">✓</span><span>IStorageService interface (CRUD + search)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>ChromeStorageAdapter using chrome.storage.local</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>StorageService singleton factory + StorageUsageTracker</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Data validation &amp; error handling; IndexedDB migration path</span></div>
+            </div>
+            <div class="test-count">🧪 28 tests passing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stage 3 ── -->
+    <div class="stage done">
+      <div class="stage-connector">✓</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 3</div>
+            <div class="stage-title">Data Models &amp; Tree Structure</div>
+            <div class="stage-subtitle">Topic / ChatEntry models, hierarchical TopicTree with full CRUD</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge done">✓ Completed</span>
+            <span class="effort-badge">⏱ 2–3 weeks</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Delivery</div><div class="ib-value green">Dec 2025</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Medium — 2–3 weeks</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">All users (data layer)</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stage 2</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check ok">✓</span><span>Topic &amp; ChatEntry data models with UUID, timestamps, tags</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>TopicTree: add / delete / move / rename / merge topics</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Alphabetical sorting, circular reference prevention, orphan repair</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Date-range tracking per topic (firstChatDate / lastChatDate)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Full serialisation (toObject / fromObject) for storage persistence</span></div>
+            </div>
+            <div class="test-count">🧪 59 tests passing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stage 4 ── -->
+    <div class="stage done">
+      <div class="stage-connector">✓</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 4</div>
+            <div class="stage-title">Side Panel UI — Basic Tree View</div>
+            <div class="stage-subtitle">Interactive hierarchical tree with expand/collapse, badges, search highlighting</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge done">✓ Completed</span>
+            <span class="effort-badge">⏱ 2–3 weeks</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Delivery</div><div class="ib-value green">Dec 2025</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Medium — 2–3 weeks</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">Knowledge workers, researchers</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stages 2, 3</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check ok">✓</span><span>TreeRenderer class with hierarchical indentation (20 px/level)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Expand / collapse with persistent state in localStorage</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Timespan badges (e.g. "Jan 2025 – Mar 2026") and chat count badges</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>ARIA attributes &amp; keyboard navigation; search highlight + auto-expand</span></div>
+            </div>
+            <div class="test-count">🧪 48 tests passing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stage 5 ── -->
+    <div class="stage done">
+      <div class="stage-connector">✓</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 5</div>
+            <div class="stage-title">Topic Management UI</div>
+            <div class="stage-subtitle">Full CRUD dialogs, context menu, drag &amp; drop, form validation</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge done">✓ Completed</span>
+            <span class="effort-badge">⏱ 3–4 weeks</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Delivery</div><div class="ib-value green">Jan 2026</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Medium-Large — 3–4 weeks</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">All users (core UX)</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stage 4</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check ok">✓</span><span>DialogManager (alert, confirm, prompt, multi-field form)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Add / rename / move / delete / merge topics via modal UI</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Right-click context menu with boundary detection</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Drag &amp; drop for topics and chats; drop-target highlighting</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>CSP-complete: no inline event handlers; XSS prevention</span></div>
+            </div>
+            <div class="test-count">🧪 61 tests passing (dialogs + context menu)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stage 6 ── -->
+    <div class="stage done">
+      <div class="stage-connector">✓</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 6</div>
+            <div class="stage-title">Content Script — Chat Detection</div>
+            <div class="stage-subtitle">Auto-extract chats from ChatGPT, Claude, Gemini, Copilot; "Save to bAInder" button</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge done">✓ Completed</span>
+            <span class="effort-badge">⏱ 3–4 weeks</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Delivery</div><div class="ib-value green">Feb 2026</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Large — 3–4 weeks</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">All AI chat users</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stages 2, 3</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check ok">✓</span><span>Platform detection (ChatGPT, Claude, Gemini, Copilot) + SPA navigation hooks</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Site-specific DOM extractors with fallback selectors; HTML sanitisation</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>CSP-safe floating "Save to bAInder" button with status feedback</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Background save/validation handler, deduplication (5 s window)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Context-menu "Save selection to bAInder" for excerpts</span></div>
+            </div>
+            <div class="test-count">🧪 125 tests passing (extractor + save handler)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stage 7 ── -->
+    <div class="stage active">
+      <div class="stage-connector">→</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 7 — In Progress</div>
+            <div class="stage-title">Chat Assignment UI</div>
+            <div class="stage-subtitle">Assign saved chats to topics, chat list in tree, manage chat metadata</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge active">▶ In Progress</span>
+            <span class="effort-badge">⏱ 2–3 weeks</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Est. Delivery</div><div class="ib-value yellow">March 2026</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Medium — 2–3 weeks</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">Knowledge workers, researchers</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stages 5, 6</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Planned Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check pending">◐</span><span>"Assign Chat" dialog with hierarchical topic picker after save</span></div>
+              <div class="dl-item"><span class="check pending">◐</span><span>Chat items displayed under topics in tree view (click to open URL)</span></div>
+              <div class="dl-item"><span class="check pending">◐</span><span>Chat context menu: move, rename, delete, export</span></div>
+              <div class="dl-item"><span class="check todo">○</span><span>Auto-update topic date ranges &amp; chat count badges on assignment</span></div>
+              <div class="dl-item"><span class="check todo">○</span><span>Sticky Notes MVP: add annotate overlays to saved chats in reader view</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stage 8 ── -->
+    <div class="stage planned">
+      <div class="stage-connector">8</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 8</div>
+            <div class="stage-title">Search Functionality</div>
+            <div class="stage-subtitle">Full-text search across all chats; tag search; result navigation</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge planned">● Planned</span>
+            <span class="effort-badge">⏱ 2–3 weeks</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Est. Delivery</div><div class="ib-value yellow">April 2026</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Medium — 2–3 weeks</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">Researchers, developers, students</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stage 7</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Planned Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check todo">○</span><span>Real-time search input with result dropdown (title + snippet + breadcrumb)</span></div>
+              <div class="dl-item"><span class="check todo">○</span><span>SearchIndex class with relevance scoring (title matches boosted)</span></div>
+              <div class="dl-item"><span class="check todo">○</span><span>Tag-based search — coloured tag chips on results</span></div>
+              <div class="dl-item"><span class="check todo">○</span><span>Filters: date range, source platform, topic branch</span></div>
+              <div class="dl-item"><span class="check todo">○</span><span>Click result → auto-expand tree path, highlight selected chat</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stage 9 ── -->
+    <div class="stage planned">
+      <div class="stage-connector">9</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 9</div>
+            <div class="stage-title">Export &amp; Content Transformation</div>
+            <div class="stage-subtitle">Export to MD / HTML / PDF / ZIP; writing style templates; import from ZIP</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge planned">● Planned</span>
+            <span class="effort-badge">⏱ 4–6 weeks</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Est. Delivery</div><div class="ib-value yellow">Jun 2026</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Large — 4–6 weeks</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">Content creators, writers, researchers</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stage 7</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Planned Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check todo">○</span><span>Export dialog: format (MD, HTML, PDF, ZIP) × style (technical, blog, academic, LinkedIn, raw)</span></div>
+              <div class="dl-item"><span class="check todo">○</span><span>Export scope: single chat → single topic → full tree as folder hierarchy</span></div>
+              <div class="dl-item"><span class="check todo">○</span><span>ZIP archive export with mirrored folder structure + frontmatter markdown + _metadata.json</span></div>
+              <div class="dl-item"><span class="check todo">○</span><span>Import from ZIP: merge / replace / create-new-root strategies + conflict resolution</span></div>
+              <div class="dl-item"><span class="check todo">○</span><span>PDF via browser print API; progress indicator for large exports (JSZip)</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stage 10 ── -->
+    <div class="stage done">
+      <div class="stage-connector">✓</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 10</div>
+            <div class="stage-title">Polish &amp; Optimisation</div>
+            <div class="stage-subtitle">Performance, virtual scrolling, settings page, cross-platform QA, store prep</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge done">✓ Completed</span>
+            <span class="effort-badge">⏱ Mar 2026</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Delivered</div><div class="ib-value green">Mar 2026</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Medium — 3–4 weeks</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">All users (production quality)</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">All previous stages</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check ok">✓</span><span>Virtual scrolling for 1 000+ item trees; debounced search; lazy chat loading</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Toast notifications, loading spinners, keyboard shortcuts (Ctrl+F, etc.)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Settings page: storage monitor, auto-save prefs, clear data, logger utility</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Cross-platform testing: ChatGPT, Claude, Gemini, Copilot, Perplexity</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Edge port; console audit; Chrome Web Store listing &amp; screenshots</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stage 11 ── -->
+    <div class="stage future">
+      <div class="stage-connector">★</div>
+      <div class="stage-card">
+        <div class="stage-header" onclick="toggle(this)">
+          <div>
+            <div class="stage-num">Stage 11 — Future</div>
+            <div class="stage-title">Advanced Features</div>
+            <div class="stage-subtitle">NLP-powered auto-categorisation, cloud sync, IndexedDB, semantic search</div>
+          </div>
+          <div class="stage-meta">
+            <span class="status-badge future">◌ Future</span>
+            <span class="effort-badge">⏱ 8–12 weeks</span>
+            <span class="expand-icon">▶</span>
+          </div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-grid">
+            <div class="info-box"><div class="ib-label">Est. Delivery</div><div class="ib-value purple">2027+</div></div>
+            <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">X-Large — 8–12 weeks+</div></div>
+            <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">Power users, teams, heavy AI users</div></div>
+            <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stage 10 + Vite bundler migration</div></div>
+          </div>
+          <div class="deliverables">
+            <div class="dl-title">Potential Deliverables</div>
+            <div class="dl-list">
+              <div class="dl-item"><span class="check future">◌</span><span>IndexedDB adapter swap via storage abstraction (triggered at 500+ chats)</span></div>
+              <div class="dl-item"><span class="check future">◌</span><span>Local NLP (compromise + natural): keyword extraction, topic similarity, duplicate detection</span></div>
+              <div class="dl-item"><span class="check future">◌</span><span>Optional cloud AI (OpenAI / Claude API, user opt-in): auto-categorisation, summarisation</span></div>
+              <div class="dl-item"><span class="check future">◌</span><span>Semantic search via NLP embeddings; Boolean operators; saved searches</span></div>
+              <div class="dl-item"><span class="check future">◌</span><span>Optional Google Drive backup &amp; cross-device sync</span></div>
+              <div class="dl-item"><span class="check future">◌</span><span>Usage analytics dashboard; passive auto-capture option</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /timeline -->
+
+  <!-- ═══════════════ APPENDIX C — FEATURE CANDIDATES ═══════════════ -->
+  <div class="section-title" style="margin-top:48px">Feature Candidates — Appendix C</div>
+  <p style="font-size:0.84rem;color:var(--muted);margin-bottom:24px;max-width:780px">
+    Cross-referenced against the competitive landscape, existing codebase, and user workflow gaps (March 2, 2026).
+    Not yet assigned to a stage — candidates for v1.x and beyond.
+  </p>
+
+  <div class="feature-grid">
+
+    <!-- C.1 -->
+    <div class="feature-card abandoned">
+      <div class="feature-card-header">
+        <div class="feature-card-title">
+          <span class="ref">C.1</span>
+          <s>"Continue in AI" Button in Reader</s>
+        </div>
+        <div class="feature-card-badges">
+          <span class="status-badge abandoned">✕ Abandoned</span>
+          <span class="effort-badge">⏱ Low effort</span>
+          <span class="diff-badge moderate">Moderate diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        A button in the reader header that opens the original chat URL so users can resume the conversation.
+        <code>chat.url</code> is already captured and serialised to frontmatter — the reader simply does not surface it.
+        <div class="note">
+          ⚠️ <strong>Previously attempted and abandoned.</strong> Copilot (primary dev/test platform)
+          does not expose a stable conversation permalink — the saved URL redirects to a blank new chat
+          or produces inconsistent routing. Revisit only if a platform with stable deep-links
+          (e.g. <code>chatgpt.com/c/&lt;uuid&gt;</code>) becomes the primary target.
+        </div>
+      </div>
+    </div>
+
+    <!-- C.2 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.2</span> Obsidian Vault Export Format</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Medium effort</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        A dedicated export mode making the ZIP output directly importable into Obsidian as a vault:
+        <code>[[wikilink]]</code> back-references, YAML <code>tags:</code> mirroring bAInder topic names
+        (activates Obsidian's graph view), and an <code>_index.md</code> per topic folder.
+        No competitor offers this. New format variant in <code>export-engine.js</code> — no structural changes.
+      </div>
+    </div>
+
+    <!-- C.3 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.3</span> Search Filters</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Low–Medium</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Filter pills above the search field: <strong>Source</strong> (ChatGPT / Claude / Gemini / Copilot),
+        <strong>Date range</strong> (saved between X and Y), <strong>Topic scope</strong> (search within a subtree).
+        All operate on data already in storage — no new indexing needed. Note: Stage 8 already lists these;
+        this confirms they're the right priority for that stage.
+      </div>
+    </div>
+
+    <!-- C.4 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.4</span> Grok + DeepSeek Extractor Support</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Medium (per platform)</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        ConvoSnap supports Grok and DeepSeek; bAInder does not mention them in the extractor or manifests.
+        Both are surging in adoption and have relatively simple DOM structures.
+        Requires a new <code>case</code> in <code>chat-extractor.js</code> and new
+        <code>content_scripts.matches</code> entries — no architectural changes.
+      </div>
+    </div>
+
+    <!-- C.5 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.5</span> Passive / Background Auto-Save</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ High effort</span>
+          <span class="diff-badge veryhigh">Very High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Stage 11 mentions this but provides no design. A <code>MutationObserver</code> in the content script
+        detects when the assistant response settles, checks a configurable word-count threshold, runs duplicate
+        detection, then writes silently with a non-intrusive <em>"Chat auto-saved to [Inbox]. Undo."</em> toast.
+        User opt-in toggle in Settings (off by default). Chat Memo (9 K users, 4.7 ★) is the only competitor
+        doing this today.
+      </div>
+    </div>
+
+    <!-- C.6 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.6</span> Onboarding / First-Run Walkthrough</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Low effort</span>
+          <span class="diff-badge critical">Critical — retention</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        No first-run experience exists anywhere in the docs or codebase. New users see a blank side panel.
+        A three-step spotlight overlay (single <code>onboarding.js</code> + CSS mask, no library):
+        go to an AI chat page → right-click → Save to bAInder → it appears here, use search to find it.
+        Triggered once when storage has no tree data; <code>onboardingComplete: true</code> suppresses on future opens.
+        <strong>Highest ROI item for Chrome Web Store ratings.</strong>
+      </div>
+    </div>
+
+    <!-- C.7 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.7</span> In-Reader Per-Message Copy Button</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Low effort</span>
+          <span class="diff-badge moderate">Moderate diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Each message turn in the reader has no copy affordance. A <code>⎘</code> icon injected per message
+        block during <code>renderChat()</code> in <code>reader.js</code>, revealed on <code>:hover</code>,
+        calls <code>navigator.clipboard.writeText()</code> with the plain-text of that turn.
+        ~20 lines of JS + minimal CSS. High daily-use quality-of-life improvement.
+      </div>
+    </div>
+
+    <!-- C.8 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.8</span> Chat Cross-References / Backlinks</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ High effort</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Extends the existing <code>annotations.js</code> module to allow a highlight note to reference
+        another saved chat via <code>[[topic/chat title]]</code> syntax, resolved against the live tree on save.
+        A "Related chats" section at the bottom of the reader lists all backlinks to the current chat.
+        Creates a lightweight Zettelkasten / wiki layer. Pairs naturally with the Obsidian export (C.2).
+        No competitor has this.
+      </div>
+    </div>
+
+    <!-- C.9 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.9</span> Topic Sort Order Control</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Low–Medium</span>
+          <span class="diff-badge moderate">Moderate diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        No mechanism for controlling topic order beyond "pinned first." A sort selector in the tree header
+        (persisted to storage): <strong>A→Z</strong>, <strong>date of last activity</strong>,
+        <strong>chat count</strong>, <strong>manual drag order</strong>.
+        First three modes are a sort pass before <code>tree-renderer.js</code> renders — trivial.
+        Manual drag order is medium effort. Becomes important at 20+ topics.
+      </div>
+    </div>
+
+    <!-- C.10 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.10</span> Scheduled Backup Reminder</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Low effort</span>
+          <span class="diff-badge trust">Trust signal</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <code>chrome.storage.local</code> is wiped on profile reset or reinstall. After 30 days without
+        a ZIP export, show a dismissible banner: <em>"47 saved chats · Last exported 32 days ago · Export now."</em>
+        One click triggers the existing ZIP export. Tracks <code>lastExportTimestamp</code> in storage.
+        Addresses the known data-loss risk of local-only storage and signals production quality to new users.
+      </div>
+    </div>
+
+  </div><!-- /feature-grid -->
+
+</div><!-- /container -->
+
+<footer>
+  bAInder · AI Chat Organizer · Chrome &amp; Edge Extension &nbsp;|&nbsp;
+  MIT Licence &nbsp;|&nbsp; Roadmap generated March 2, 2026
+</footer>
+
+<script>
+  function toggle(header) {
+    const body = header.nextElementSibling;
+    const icon = header.querySelector('.expand-icon');
+    const isOpen = body.classList.toggle('open');
+    if (icon) icon.classList.toggle('open', isOpen);
+  }
+
+  // Auto-open the active stage
+  document.querySelectorAll('.stage.active .stage-header').forEach(h => toggle(h));
+</script>
+</body>
+</html>
