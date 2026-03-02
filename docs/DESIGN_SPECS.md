@@ -1942,7 +1942,9 @@ No competitor offers this. Obsidian's "second brain" user base overlaps heavily 
 
 ---
 
-### C.3 Search Filters (Source · Date Range · Topic Scope)
+### C.3 Search Filters (Source · Date Range · Topic Scope) ✅
+
+> **Status: Completed — March 2, 2026**
 
 Extend the existing full-text search with filter pills that narrow results before the text pass runs:
 
@@ -1951,6 +1953,12 @@ Extend the existing full-text search with filter pills that narrow results befor
 - **Topic scope:** search within a specific subtree only — traverse `tree.js` node children
 
 All three filters operate on data already in storage; no new indexing is needed. A small filter bar above the search input (collapsed by default) exposes them.
+
+**Implementation:**
+- `src/lib/search-utils.js` — `applySearchFilters(results, filters, tree)` pure function
+- `src/sidepanel/sidepanel.html` — filter toggle button + collapsible filter bar (source pills, date range, topic scope select)
+- `src/sidepanel/sidepanel.css` — filter bar, pill, and active-indicator styles
+- `src/sidepanel/sidepanel.js` — `setupFilterBar()`, `populateTopicScopeSelect()`, `updateFilterIndicator()` functions; `state.filters` tracks active filter state; filters applied in `runSearch()` via `applySearchFilters`
 
 **Effort:** Low–Medium. **Differentiates:** High (no competitor combines full-text + filters in a single panel).
 
@@ -1997,27 +2005,42 @@ Triggered once when `chrome.storage.local` contains no tree data. Dismissed perm
 
 ---
 
-### C.7 In-Reader Per-Message Copy Button
+### C.7 In-Reader Per-Message Copy Button ✅
+
+> **Status: Completed — March 2, 2026**
 
 Each message turn in the reader has no copy affordance. Users frequently want to copy a single AI response without selecting text manually. A `⎘` icon button rendered into each message block via `reader.js` that appears on `:hover` and calls `navigator.clipboard.writeText()` with the plain-text content of that turn.
 
 Implementation: ~20 lines in `reader.js` (inject button per message during `renderChat()`), minimal CSS for hover reveal.
 
+**Implementation:**
+- `src/reader/reader.js` — `renderChat()` injects `.turn-copy-btn` into every `.chat-turn` element after `wrapChatTurns()`
+- `src/reader/reader.css` — `.turn-copy-btn` absolute-positioned, opacity-0 default; visible on `.chat-turn:hover`; `.turn-copy-btn--copied` green confirmation state; always-visible on touch devices
+
 **Effort:** Low. **Impact:** High daily-use quality-of-life improvement.
 
 ---
 
-### C.8 Chat Cross-References / Backlinks
+### C.8 Chat Cross-References / Backlinks ✅
+
+> **Status: Completed — March 2, 2026**
 
 The annotations system (`src/lib/annotations.js`) is already built. Extend it to allow a highlight note to reference another saved chat using `[[topic/chat title]]` syntax, resolved against the live tree on save. Render a "Related chats" section at the bottom of the reader listing all backlinks to the current chat from other saved chats.
 
 This creates a lightweight Zettelkasten / wiki layer on top of bAInder's existing knowledge base. No competitor has this. Pairs naturally with the Obsidian export (C.2).
 
+**Implementation:**
+- `src/lib/annotations.js` — `parseBacklinks(note)` extracts `[[...]]` patterns from annotation note text
+- `src/reader/reader.js` — `renderBacklinksSection(chatId, chatTitle, chats, storage)` scans all other chats' annotation keys for `[[current chat title]]` references; appends a "Referenced by" section to `#reader-content`; called from `init()` after `setupAnnotations()`
+- `src/reader/reader.css` — `.backlinks-section`, `.backlinks-section__title`, `.backlinks-list`, `.backlinks-list__link` styles
+
 **Effort:** High. **Differentiates:** High — unique in the market.
 
 ---
 
-### C.9 Topic Sort Order Control
+### C.9 Topic Sort Order Control ✅
+
+> **Status: Completed — March 2, 2026** (sort modes implemented; manual drag deferred)
 
 There is no documented mechanism for controlling the order of topics within the tree beyond "pinned topics first" (implemented in B.4 U2). Once a user has 20+ topics, arbitrary insertion order becomes a pain point. Add a sort selector in the tree header (persisted to `chrome.storage.local`):
 
@@ -2028,11 +2051,19 @@ There is no documented mechanism for controlling the order of topics within the 
 
 The first three are a sort pass over the existing tree array before `tree-renderer.js` renders — trivial to implement. Manual drag order is medium effort but high value for power users.
 
+**Implementation:**
+- `src/lib/tree-renderer.js` — `setSortMode(mode)`, `_sortTopics(topics)` — applied in both `render()` and `_flattenVisible()`; pinned topics always float to top within any sort mode
+- `src/sidepanel/sidepanel.html` — `<select id="topicSortSelect">` in section header with four options
+- `src/sidepanel/sidepanel.css` — `.topic-sort-select` styles
+- `src/sidepanel/sidepanel.js` — `state.sortMode` persisted to `localStorage`; wired to select change event
+
 **Effort:** Low (sort modes) / Medium (manual drag). **Impact:** Moderate — becomes important at scale.
 
 ---
 
-### C.10 Scheduled Backup Reminder
+### C.10 Scheduled Backup Reminder ✅
+
+> **Status: Completed — March 2, 2026**
 
 `chrome.storage.local` is wiped on profile reset or extension reinstall. A periodic reminder to export is both a data-safety feature and a trust signal for new users:
 
@@ -2040,6 +2071,11 @@ The first three are a sort pass over the existing tree array before `tree-render
 - "Export now" triggers the existing ZIP export flow
 - "Remind me later" snoozes 7 days; "Don't remind me" suppresses permanently
 - Track `lastExportTimestamp` in `chrome.storage.local` (already partially available via export-engine metadata)
+
+**Implementation:**
+- `src/sidepanel/sidepanel.html` — `#backupReminderBanner` strip between header and main content
+- `src/sidepanel/sidepanel.css` — `.backup-reminder-banner` warning-colour styles
+- `src/sidepanel/sidepanel.js` — `initBackupReminder()` checks `lastExportTimestamp` / `nextReminderAt` / `backupReminderDisabled` in storage; `handleExportAll()` records `lastExportTimestamp: Date.now()` on success; "Later" / dismiss snooze 7 days via `nextReminderAt`
 
 **Effort:** Low. **Impact:** Trust signal — directly addresses the known risk of data loss from local-only storage.
 
@@ -2051,16 +2087,16 @@ The first three are a sort pass over the existing tree array before `tree-render
 |---|---|---|---|---|
 | C.1 | "Continue in AI" button | Low | Moderate | ~~Abandoned~~ — unstable URLs on Copilot |
 | C.2 | Obsidian vault export | Medium | High | Unique in market |
-| C.3 | Search filters (source / date / scope) | Low–Medium | High | Data already in storage |
+| C.3 | Search filters (source / date / scope) | Low–Medium | High | ✅ Completed |
 | C.4 | Grok + DeepSeek extractors | Medium | High | Per-platform extractor additions |
 | C.5 | Passive auto-save | High | Very High | Opt-in; MutationObserver approach |
 | C.6 | Onboarding walkthrough | Low | Critical | Highest retention ROI |
-| C.7 | Per-message copy button | Low | Moderate | ~20 lines in reader.js |
-| C.8 | Chat cross-references / backlinks | High | High | Extends annotations.js |
-| C.9 | Topic sort order control | Low–Medium | Moderate | Sort modes + optional drag |
-| C.10 | Scheduled backup reminder | Low | Trust signal | Addresses local-storage data-loss risk |
+| C.7 | Per-message copy button | Low | Moderate | ✅ Completed |
+| C.8 | Chat cross-references / backlinks | High | High | ✅ Completed |
+| C.9 | Topic sort order control | Low–Medium | Moderate | ✅ Completed (sort modes; drag deferred) |
+| C.10 | Scheduled backup reminder | Low | Trust signal | ✅ Completed |
 
 ---
 
-*Document Version: 1.4*  
+*Document Version: 1.5*  
 *Last Updated: March 2, 2026*

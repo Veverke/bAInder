@@ -15,7 +15,7 @@ import {
   updateChatInArray,
   removeChatFromArray
 } from '../lib/chat-manager.js';
-import { extractSnippet, highlightTerms, formatBreadcrumb, escapeHtml } from '../lib/search-utils.js';
+import { extractSnippet, highlightTerms, formatBreadcrumb, escapeHtml, applySearchFilters } from '../lib/search-utils.js';
 import { getTagColor } from '../lib/tree-renderer.js';
 import { ExportDialog } from '../lib/export-dialog.js';
 import { ImportDialog } from '../lib/import-dialog.js';
@@ -61,7 +61,23 @@ const elements = {
   saveBanner:   document.getElementById('saveBanner'),
   saveBtn:      document.getElementById('saveChatBtn'),
   saveBannerMsg:document.getElementById('saveBannerMsg'),
-  themeBtn:     document.getElementById('themeBtn')
+  themeBtn:     document.getElementById('themeBtn'),
+  // C.9 — sort selector
+  topicSortSelect: document.getElementById('topicSortSelect'),
+  // C.3 — search filter bar elements
+  filterToggleBtn:  document.getElementById('filterToggleBtn'),
+  searchFilterBar:  document.getElementById('searchFilterBar'),
+  filterSourcePills: document.getElementById('filterSourcePills'),
+  filterDateFrom:   document.getElementById('filterDateFrom'),
+  filterDateTo:     document.getElementById('filterDateTo'),
+  filterTopicScope: document.getElementById('filterTopicScope'),
+  filterClearBtn:   document.getElementById('filterClearBtn'),
+  // C.10 — backup reminder
+  backupReminderBanner: document.getElementById('backupReminderBanner'),
+  backupReminderMsg:    document.getElementById('backupReminderMsg'),
+  backupExportNowBtn:   document.getElementById('backupExportNowBtn'),
+  backupRemindLaterBtn: document.getElementById('backupRemindLaterBtn'),
+  backupDismissBtn:     document.getElementById('backupDismissBtn')
 };
 
 // Application State
@@ -78,7 +94,16 @@ const state = {
   searchQuery: '',
   _toastTimer: null, // setTimeout handle for auto-dismissing toast
   exportDialog: null, // ExportDialog instance (Stage 9)
-  importDialog: null  // ImportDialog instance (Stage 9)
+  importDialog: null,  // ImportDialog instance (Stage 9)
+  // C.9 — topic sort mode
+  sortMode: localStorage.getItem('topicSortMode') || 'alpha-asc',
+  // C.3 — search filters
+  filters: {
+    sources:  new Set(),   // active source keys (empty = all)
+    dateFrom: null,        // 'YYYY-MM-DD' string or null
+    dateTo:   null,        // 'YYYY-MM-DD' string or null
+    topicId:  ''           // '' = all topics
+  }
 };
 
 // Initialize the application
@@ -122,6 +147,9 @@ async function init() {
   // Detect current tab and show Save banner when on a supported AI chat page
   await initSaveBanner();
 
+  // C.10 — check if a backup reminder should be shown
+  await initBackupReminder();
+
   logger.log('Initialized successfully');
 }
 
@@ -130,7 +158,20 @@ function setupEventListeners() {
   // Search functionality
   elements.searchInput.addEventListener('input', handleSearch);
   elements.clearSearchBtn.addEventListener('click', clearSearch);
-  
+
+  // C.3 — search filter bar
+  setupFilterBar();
+
+  // C.9 — topic sort selector
+  if (elements.topicSortSelect) {
+    elements.topicSortSelect.value = state.sortMode;
+    elements.topicSortSelect.addEventListener('change', () => {
+      state.sortMode = elements.topicSortSelect.value;
+      localStorage.setItem('topicSortMode', state.sortMode);
+      if (state.renderer) state.renderer.setSortMode(state.sortMode);
+    });
+  }
+
   // Add topic button
   elements.addTopicBtn.addEventListener('click', handleAddTopic);
 
@@ -405,6 +446,9 @@ function initTreeRenderer() {
   // Set up pin/star handler (U2)
   state.renderer.onTopicPin = handleTopicPin;
 
+  // C.9 — apply saved sort mode
+  state.renderer.sortMode = state.sortMode;
+
   // Load expanded state from localStorage (UI preference)
   const savedExpanded = localStorage.getItem('expandedNodes');
   if (savedExpanded) {
@@ -419,6 +463,9 @@ function initTreeRenderer() {
   state.renderer.render();
   removeTreeSkeleton();
   state.renderer.updateTopicCount();
+
+  // C.3 — populate topic-scope dropdown now that tree is loaded
+  populateTopicScopeSelect();
 }
 
 // Save expanded state to localStorage
@@ -514,7 +561,9 @@ function runSearch(query) {
   state.storage.searchChats(query)
     .then(results => {
       searchContainer?.classList.remove('is-typing');
-      renderSearchResults(results, query);
+      // C.3 — apply active search filters before rendering results
+      const filtered = applySearchFilters(results, state.filters, state.tree);
+      renderSearchResults(filtered, query);
     })
     .catch(err => {
       searchContainer?.classList.remove('is-typing');
@@ -557,7 +606,163 @@ function clearSearch() {
   hideSearchResults();
 }
 
-// Render search results into the panel
+// ─── C.3 Search filter bar ────────────────────────────────────────────────────
+
+function setupFilterBar() {
+  // Toggle button opens/closes the filter bar
+  elements.filterToggleBtn?.addEventListener('click', () => {
+    const bar = elements.searchFilterBar;
+    if (!bar) return;
+    const isOpen = bar.classList.toggle('is-open');
+    elements.filterToggleBtn.setAttribute('aria-expanded', String(isOpen));
+    bar.setAttribute('aria-hidden', String(!isOpen));
+    if (isOpen) populateTopicScopeSelect();
+  });
+
+  // Source pill toggles
+  elements.filterSourcePills?.querySelectorAll('.filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const src = pill.dataset.source;
+      if (state.filters.sources.has(src)) {
+        state.filters.sources.delete(src);
+        pill.classList.remove('is-active');
+      } else {
+        state.filters.sources.add(src);
+        pill.classList.add('is-active');
+      }
+      updateFilterIndicator();
+      if (state.searchQuery) handleSearchDeferred(state.searchQuery);
+    });
+  });
+
+  // Date range inputs
+  elements.filterDateFrom?.addEventListener('change', () => {
+    state.filters.dateFrom = elements.filterDateFrom.value || null;
+    updateFilterIndicator();
+    if (state.searchQuery) handleSearchDeferred(state.searchQuery);
+  });
+  elements.filterDateTo?.addEventListener('change', () => {
+    state.filters.dateTo = elements.filterDateTo.value || null;
+    updateFilterIndicator();
+    if (state.searchQuery) handleSearchDeferred(state.searchQuery);
+  });
+
+  // Topic scope select
+  elements.filterTopicScope?.addEventListener('change', () => {
+    state.filters.topicId = elements.filterTopicScope.value;
+    updateFilterIndicator();
+    if (state.searchQuery) handleSearchDeferred(state.searchQuery);
+  });
+
+  // Clear all filters
+  elements.filterClearBtn?.addEventListener('click', () => {
+    state.filters.sources = new Set();
+    state.filters.dateFrom = null;
+    state.filters.dateTo   = null;
+    state.filters.topicId  = '';
+    // Reset UI
+    elements.filterSourcePills?.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('is-active'));
+    if (elements.filterDateFrom) elements.filterDateFrom.value = '';
+    if (elements.filterDateTo)   elements.filterDateTo.value   = '';
+    if (elements.filterTopicScope) elements.filterTopicScope.value = '';
+    updateFilterIndicator();
+    if (state.searchQuery) handleSearchDeferred(state.searchQuery);
+  });
+}
+
+/**
+ * Populate the topic-scope <select> with root topics from the current tree.
+ * Called when the filter bar opens or when the tree is first loaded.
+ */
+function populateTopicScopeSelect() {
+  const sel = elements.filterTopicScope;
+  if (!sel || !state.tree) return;
+  // Clear existing options except the "All topics" placeholder
+  sel.innerHTML = '<option value="">All topics</option>';
+  state.tree.getRootTopics().forEach(topic => {
+    const opt = document.createElement('option');
+    opt.value       = topic.id;
+    opt.textContent = topic.name;
+    sel.appendChild(opt);
+  });
+  sel.value = state.filters.topicId || '';
+}
+
+/**
+ * Toggle the filter-active indicator dot on the filter toggle button.
+ */
+function updateFilterIndicator() {
+  if (!elements.filterToggleBtn) return;
+  const hasFilters =
+    state.filters.sources.size > 0 ||
+    state.filters.dateFrom ||
+    state.filters.dateTo ||
+    state.filters.topicId;
+  elements.filterToggleBtn.classList.toggle('has-active-filters', Boolean(hasFilters));
+}
+
+// ─── C.10 Scheduled backup reminder ──────────────────────────────────────────
+
+const BACKUP_REMINDER_DAYS    = 30;
+const BACKUP_SNOOZE_DAYS      =  7;
+const BACKUP_REMINDER_MS      = BACKUP_REMINDER_DAYS * 24 * 60 * 60 * 1000;
+const BACKUP_SNOOZE_MS        = BACKUP_SNOOZE_DAYS  * 24 * 60 * 60 * 1000;
+
+async function initBackupReminder() {
+  const banner = elements.backupReminderBanner;
+  if (!banner) return;
+  try {
+    const data = await browser.storage.local.get([
+      'lastExportTimestamp', 'nextReminderAt', 'backupReminderDisabled'
+    ]);
+
+    // Permanently suppressed?
+    if (data.backupReminderDisabled) return;
+
+    // Snoozed?
+    if (data.nextReminderAt && Date.now() < data.nextReminderAt) return;
+
+    const lastExport = data.lastExportTimestamp || null;
+    const daysSince  = lastExport
+      ? Math.floor((Date.now() - lastExport) / (24 * 60 * 60 * 1000))
+      : null;
+
+    const overdue = !lastExport || (Date.now() - lastExport) > BACKUP_REMINDER_MS;
+    if (!overdue) return;
+
+    // Build message
+    const chatCount = state.chats.length;
+    const msg = lastExport
+      ? `${chatCount} saved chat${chatCount !== 1 ? 's' : ''} · Last exported ${daysSince} day${daysSince !== 1 ? 's' : ''} ago`
+      : `${chatCount} saved chat${chatCount !== 1 ? 's' : ''} · Never exported`;
+    if (elements.backupReminderMsg) elements.backupReminderMsg.textContent = msg;
+
+    banner.style.display = 'flex';
+
+    // "Export now" button
+    elements.backupExportNowBtn?.addEventListener('click', async () => {
+      banner.style.display = 'none';
+      handleExportAll();
+    }, { once: true });
+
+    // "Later" button — snooze 7 days
+    elements.backupRemindLaterBtn?.addEventListener('click', async () => {
+      banner.style.display = 'none';
+      await browser.storage.local.set({ nextReminderAt: Date.now() + BACKUP_SNOOZE_MS });
+    }, { once: true });
+
+    // Dismiss (×) — snooze 7 days (same as "Later")
+    elements.backupDismissBtn?.addEventListener('click', async () => {
+      banner.style.display = 'none';
+      await browser.storage.local.set({ nextReminderAt: Date.now() + BACKUP_SNOOZE_MS });
+    }, { once: true });
+
+  } catch (_) {
+    // Non-fatal — silently skip
+  }
+}
+
+
 function renderSearchResults(results, query) {
   elements.searchResults.style.display = 'block';
   const n = results.length;
@@ -926,6 +1131,9 @@ async function handleExportTopic() {
 async function handleExportAll() {
   try {
     await state.exportDialog.showExportTree(state.tree, state.chats);
+    // C.10 — record that an export was triggered; hide reminder banner
+    await browser.storage.local.set({ lastExportTimestamp: Date.now() });
+    if (elements.backupReminderBanner) elements.backupReminderBanner.style.display = 'none';
   } catch (err) {
     console.error('Export failed:', err);
     await state.dialog.alert(err.message || 'Export failed', 'Export Error');

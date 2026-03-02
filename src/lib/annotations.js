@@ -161,3 +161,25 @@ export function applyAnnotations(container, annotations) {
     highlightRange(container, ann);
   }
 }
+
+// ─── C.8 Backlink support ─────────────────────────────────────────────────────
+
+/**
+ * Extract all `[[...]]` backlink references from an annotation note string.
+ * Returns the inner text of each `[[...]]` pair, trimmed.
+ * E.g. "see [[My Other Chat]] and [[Topic / Review]]" → ["My Other Chat", "Topic / Review"]
+ *
+ * @param {string} note
+ * @returns {string[]}
+ */
+export function parseBacklinks(note) {
+  if (!note || typeof note !== 'string') return [];
+  const refs = [];
+  const re = /\[\[([^\]]+)\]\]/g;
+  let m;
+  while ((m = re.exec(note)) !== null) {
+    const trimmed = m[1].trim();
+    if (trimmed) refs.push(trimmed);
+  }
+  return refs;
+}

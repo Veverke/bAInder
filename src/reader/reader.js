@@ -8,7 +8,7 @@
 import { parseFrontmatter } from '../lib/markdown-serialiser.js';
 import {
   loadAnnotations, saveAnnotation, deleteAnnotation,
-  serializeRange,  applyAnnotations,
+  serializeRange,  applyAnnotations, parseBacklinks,
 } from '../lib/annotations.js';
 import { setupStickyNotes } from '../lib/sticky-notes-ui.js';
 import browser from '../lib/vendor/browser.js';
@@ -582,6 +582,75 @@ export function setupScrollFeatures() {
 
 // ─── Page initialisation ──────────────────────────────────────────────────────
 
+// ─── C.8 Backlinks ──────────────────────────────────────────────────────────
+
+/**
+ * Scan all other chats' annotations for `[[current chat title]]` references
+ * and render a "Referenced by" section at the bottom of reader-content.
+ *
+ * @param {string}   chatId      The currently displayed chat's id
+ * @param {string}   chatTitle   The currently displayed chat's title
+ * @param {Array}    chats       Full chat list (metadata only)
+ * @param {object}   storage     browser.storage.local-like API
+ */
+export async function renderBacklinksSection(chatId, chatTitle, chats, storage) {
+  const contentEl = document.getElementById('reader-content');
+  if (!contentEl || !chatTitle) return;
+
+  const otherChats = chats.filter(c => c.id !== chatId);
+  if (!otherChats.length) return;
+
+  const keys = otherChats.map(c => `annotations:${c.id}`);
+  let result;
+  try {
+    result = await storage.get(keys);
+  } catch (_) { return; }
+
+  const titleLower = chatTitle.toLowerCase();
+  const referrers = new Map(); // chatId → chat metadata
+
+  for (const chat of otherChats) {
+    const key = `annotations:${chat.id}`;
+    const annotations = result[key];
+    if (!Array.isArray(annotations)) continue;
+    for (const ann of annotations) {
+      if (!ann.note) continue;
+      const refs = parseBacklinks(ann.note);
+      if (refs.some(r => r.toLowerCase() === titleLower)) {
+        referrers.set(chat.id, chat);
+        break;
+      }
+    }
+  }
+
+  if (referrers.size === 0) return;
+
+  const section = document.createElement('section');
+  section.className = 'backlinks-section';
+
+  const heading = document.createElement('h4');
+  heading.className = 'backlinks-section__title';
+  heading.textContent = 'Referenced by';
+  section.appendChild(heading);
+
+  const list = document.createElement('ul');
+  list.className = 'backlinks-list';
+  list.setAttribute('role', 'list');
+
+  for (const [refId, refChat] of referrers) {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.className = 'backlinks-list__link';
+    a.href = `reader.html?chatId=${encodeURIComponent(refId)}`;
+    a.textContent = refChat.title || 'Untitled Chat';
+    li.appendChild(a);
+    list.appendChild(li);
+  }
+
+  section.appendChild(list);
+  contentEl.appendChild(section);
+}
+
 /**
  * Show the error state.
  * @param {string} message
@@ -645,6 +714,33 @@ export function renderChat(chat) {
 
   contentEl.innerHTML = renderMarkdown(content);
   wrapChatTurns(contentEl);
+
+  // ── C.7 — Per-message copy button ────────────────────────────────────────
+  contentEl.querySelectorAll('.chat-turn').forEach(turn => {
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'turn-copy-btn';
+    copyBtn.setAttribute('aria-label', 'Copy message');
+    copyBtn.title = 'Copy message';
+    copyBtn.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
+      '<path d="M7.09 3c.2-.58.76-1 1.41-1h3c.65 0 1.2.42 1.41 1h1.59c.83 0 1.5.67 1.5 1.5v12' +
+      'c0 .83-.67 1.5-1.5 1.5h-9A1.5 1.5 0 0 1 4 16.5v-12C4 3.67 4.67 3 5.5 3h1.59Z' +
+      'M8.5 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3Z"/></svg>';
+    copyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const text = (turn.querySelector('.chat-turn__body')?.textContent ?? turn.textContent).trim();
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.classList.add('turn-copy-btn--copied');
+        copyBtn.setAttribute('aria-label', 'Copied!');
+        setTimeout(() => {
+          copyBtn.classList.remove('turn-copy-btn--copied');
+          copyBtn.setAttribute('aria-label', 'Copy message');
+        }, 2000);
+      }).catch(() => {});
+    });
+    turn.appendChild(copyBtn);
+  });
+
   contentEl.hidden = false;
 
   // ── Prompts count + hover overlay ─────────────────────────────────────────
@@ -839,6 +935,8 @@ export async function init(storage) {
     setupScrollFeatures();
     setupAnnotations(chatId, storage);
     setupStickyNotes(chatId, storage, renderMarkdown);
+    // C.8 — render backlinks: chats that reference this one in annotation notes
+    await renderBacklinksSection(chatId, chat.title, chats, storage);
   } catch (err) {
     showError(`Failed to load conversation: ${err.message}`);
   }

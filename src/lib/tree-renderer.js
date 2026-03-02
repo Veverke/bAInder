@@ -52,6 +52,9 @@ export class TreeRenderer {
     // Stage 10: virtual scrolling
     this.virtualThreshold = 150;       // override for testing: renderer.virtualThreshold = N
     this._virtualScrollHandler = null; // stored so we can removeEventListener on re-render
+
+    // C.9 — topic sort mode: 'alpha-asc' | 'alpha-desc' | 'updated' | 'count'
+    this.sortMode = 'alpha-asc';
   }
 
   /**
@@ -67,6 +70,50 @@ export class TreeRenderer {
    */
   setChatData(chats) {
     this.chats = Array.isArray(chats) ? chats : [];
+  }
+
+  // ── C.9 Topic sort ────────────────────────────────────────────────────────
+
+  /**
+   * Set sort mode and re-render immediately.
+   * @param {'alpha-asc'|'alpha-desc'|'updated'|'count'} mode
+   */
+  setSortMode(mode) {
+    this.sortMode = mode;
+    this.render();
+  }
+
+  /**
+   * Sort an array of Topic objects according to the current sortMode.
+   * Pinned topics always float to the top regardless of sort mode.
+   * @param {Topic[]} topics
+   * @returns {Topic[]}
+   */
+  _sortTopics(topics) {
+    const pinFirst = (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+    switch (this.sortMode) {
+      case 'alpha-desc':
+        return [...topics].sort((a, b) => {
+          const p = pinFirst(a, b);
+          return p !== 0 ? p : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
+        });
+      case 'updated':
+        return [...topics].sort((a, b) => {
+          const p = pinFirst(a, b);
+          return p !== 0 ? p : (b.updatedAt || 0) - (a.updatedAt || 0);
+        });
+      case 'count':
+        return [...topics].sort((a, b) => {
+          const p = pinFirst(a, b);
+          return p !== 0 ? p : (b.chatIds?.length || 0) - (a.chatIds?.length || 0);
+        });
+      case 'alpha-asc':
+      default:
+        return [...topics].sort((a, b) => {
+          const p = pinFirst(a, b);
+          return p !== 0 ? p : a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        });
+    }
   }
 
   /**
@@ -106,11 +153,11 @@ export class TreeRenderer {
     ul.className = 'tree-root';
     ul.setAttribute('role', 'tree');
 
-    // U2: pinned topics float to top; A3: reset stagger counter each render
-    rootTopics.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+    // U2 + C.9: apply sort mode (pinned first is baked into _sortTopics)
+    const sortedRoot = this._sortTopics(rootTopics);
     this._nodeIndex = 0;
 
-    rootTopics.forEach(topic => {
+    sortedRoot.forEach(topic => {
       const li = this.renderNode(topic, 0);
       ul.appendChild(li);
     });
@@ -770,8 +817,8 @@ export class TreeRenderer {
     if (!this.tree) return result;
 
     const walk = (topics, depth) => {
-      // Mirror render() sort: pinned first
-      const sorted = [...topics].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+      // C.9: apply sort mode (pinned first is baked into _sortTopics)
+      const sorted = this._sortTopics(topics);
       for (const topic of sorted) {
         result.push({ type: 'topic', id: topic.id, depth, data: topic });
         if (this.expandedNodes.has(topic.id)) {
