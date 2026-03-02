@@ -268,6 +268,7 @@ body {
   margin-bottom: 20px;
   display: flex;
   flex-direction: column;
+  position: relative; /* needed for .turn-copy-btn absolute positioning */
 }
 
 .chat-turn__role {
@@ -315,6 +316,86 @@ body {
   border: none;
   border-top: 1px solid var(--hr-color);
   margin: 20px 0;
+}
+
+/* ── C.7 Per-message copy button ──────────────────────────────────────────── */
+.turn-copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border-primary, #e5e7eb);
+  border-radius: var(--radius-sm, 4px);
+  padding: 3px 5px;
+  cursor: pointer;
+  color: var(--text-secondary, #6b7280);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  line-height: 1;
+}
+
+.chat-turn:hover .turn-copy-btn,
+.turn-copy-btn:focus-visible {
+  opacity: 1;
+}
+
+.turn-copy-btn--copied {
+  color: #16a34a;
+  opacity: 1 !important;
+}
+
+@media (hover: none) {
+  /* touch devices: always show copy buttons */
+  .turn-copy-btn { opacity: 1; }
+}
+
+/* ── C.8 Chat backlinks / "Referenced by" section ────────────────────────── */
+.backlinks-section {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-primary, #e5e7eb);
+}
+
+.backlinks-section__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #6b7280);
+  margin-bottom: 10px;
+}
+
+.backlinks-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.backlinks-list__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: var(--primary, #2563eb);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.backlinks-list__link::before {
+  content: '⤴';
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.backlinks-list__link:hover {
+  text-decoration: underline;
+  color: var(--primary-hover, #1d4ed8);
 }
 
 /* ── Scroll progress bar ──────────────────────────────────────────────────── */

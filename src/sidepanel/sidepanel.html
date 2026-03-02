@@ -42,8 +42,52 @@
             <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
+        <!-- C.3 — filter toggle button -->
+        <button id="filterToggleBtn" class="btn-filter-toggle" title="Search filters" aria-label="Toggle search filters" aria-expanded="false">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- C.3 — Search filter bar (collapsed by default) -->
+      <div id="searchFilterBar" class="search-filter-bar" aria-hidden="true">
+        <div class="filter-group">
+          <span class="filter-group__label">Source</span>
+          <div class="filter-pills" id="filterSourcePills">
+            <button class="filter-pill" data-source="chatgpt">ChatGPT</button>
+            <button class="filter-pill" data-source="claude">Claude</button>
+            <button class="filter-pill" data-source="gemini">Gemini</button>
+            <button class="filter-pill" data-source="copilot">Copilot</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group__label">Date</span>
+          <div class="filter-dates">
+            <input type="date" id="filterDateFrom" class="filter-date" aria-label="From date">
+            <span class="filter-dates__sep">–</span>
+            <input type="date" id="filterDateTo" class="filter-date" aria-label="To date">
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group__label">Topic</span>
+          <select id="filterTopicScope" class="filter-select" aria-label="Limit search to topic">
+            <option value="">All topics</option>
+          </select>
+        </div>
+        <button id="filterClearBtn" class="filter-clear-btn">Clear filters</button>
       </div>
     </header>
+
+    <!-- C.10 — Scheduled backup reminder banner (hidden by default) -->
+    <div id="backupReminderBanner" class="backup-reminder-banner" style="display:none" role="status" aria-live="polite">
+      <span id="backupReminderMsg" class="backup-reminder-banner__msg"></span>
+      <div class="backup-reminder-banner__actions">
+        <button id="backupExportNowBtn" class="backup-reminder-banner__btn backup-reminder-banner__btn--primary">Export now</button>
+        <button id="backupRemindLaterBtn" class="backup-reminder-banner__btn">Later</button>
+        <button id="backupDismissBtn" class="backup-reminder-banner__dismiss" aria-label="Dismiss reminder">×</button>
+      </div>
+    </div>
 
     <!-- Main Content Area -->
     <main class="main-content">
@@ -62,6 +106,13 @@
             Saved Chats
           </h2>
           <div class="section-header__right">
+            <!-- C.9 — Topic sort selector -->
+            <select id="topicSortSelect" class="topic-sort-select" title="Sort topics" aria-label="Sort topics">
+              <option value="alpha-asc">A → Z</option>
+              <option value="alpha-desc">Z → A</option>
+              <option value="updated">Recently updated</option>
+              <option value="count">Most chats</option>
+            </select>
             <span id="itemCount" class="badge">0 topics</span>
             <button id="expandAllBtn" class="section-toggle" aria-label="Expand all topics" title="Expand all">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

@@ -95,3 +95,54 @@ export function formatBreadcrumb(path) {
   if (!Array.isArray(path) || path.length === 0) return 'Uncategorised';
   return path.map(p => p.name).join(' › ');
 }
+
+// ─── C.3 Search Filters ───────────────────────────────────────────────────────
+
+/**
+ * Apply source / date-range / topic-scope filters to an array of chat results.
+ * All filter fields are optional — an absent or empty filter matches everything.
+ *
+ * @param {Array}  results  Chat objects (must have .source, .timestamp, .topicId)
+ * @param {object} filters
+ *   @param {Set<string>}  [filters.sources]   Active source keys (empty = all)
+ *   @param {string|null}  [filters.dateFrom]  ISO date string "YYYY-MM-DD"
+ *   @param {string|null}  [filters.dateTo]    ISO date string "YYYY-MM-DD"
+ *   @param {string}       [filters.topicId]   Root topic id to scope to subtree
+ * @param {object|null}   tree   TopicTree instance (needed for topicId scope)
+ * @returns {Array}
+ */
+export function applySearchFilters(results, filters, tree = null) {
+  if (!filters) return results;
+  const { sources, dateFrom, dateTo, topicId } = filters;
+
+  let out = results;
+
+  // Source filter
+  if (sources && sources.size > 0) {
+    out = out.filter(c => sources.has(c.source));
+  }
+
+  // Date range filter
+  if (dateFrom || dateTo) {
+    const from = dateFrom ? new Date(dateFrom).getTime()                   : 0;
+    const to   = dateTo   ? new Date(dateTo + 'T23:59:59.999').getTime()   : Infinity;
+    out = out.filter(c => {
+      const ts = c.timestamp || 0;
+      return ts >= from && ts <= to;
+    });
+  }
+
+  // Topic scope filter — restrict to topics within the selected subtree
+  if (topicId && tree) {
+    const subtreeIds = new Set();
+    const collect = (tid) => {
+      subtreeIds.add(tid);
+      const topic = tree.topics[tid];
+      if (topic) topic.children.forEach(child => collect(child));
+    };
+    collect(topicId);
+    out = out.filter(c => c.topicId && subtreeIds.has(c.topicId));
+  }
+
+  return out;
+}
