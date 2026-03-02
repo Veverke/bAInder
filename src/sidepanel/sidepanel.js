@@ -22,7 +22,20 @@ import { ImportDialog } from '../lib/import-dialog.js';
 import { loadTheme, persistTheme } from '../lib/useTheme.js';
 import { BUNDLED_THEMES, BUNDLED_THEME_IDS } from './themes/index.js';
 import browser from '../lib/vendor/browser.js';
-console.log('bAInder Side Panel loaded');
+import { logger } from '../lib/logger.js';
+logger.log('Side Panel loaded');
+
+/** Simple debounce — delays `fn` by `ms` ms; resets timer on each call.
+ *  The returned function exposes `.cancel()` to abort a pending call. */
+function debounce(fn, ms) {
+  let timer;
+  const debounced = (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+  debounced.cancel = () => clearTimeout(timer);
+  return debounced;
+}
 
 // DOM Elements
 const elements = {
@@ -70,7 +83,7 @@ const state = {
 
 // Initialize the application
 async function init() {
-  console.log('Initializing bAInder...');
+  logger.log('Initializing bAInder...');
   
   // Initialize storage service
   state.storage = StorageService.getInstance('chrome');
@@ -109,7 +122,7 @@ async function init() {
   // Detect current tab and show Save banner when on a supported AI chat page
   await initSaveBanner();
 
-  console.log('bAInder initialized successfully');
+  logger.log('Initialized successfully');
 }
 
 // Set up event listeners
@@ -259,11 +272,31 @@ async function loadData() {
 async function loadChats() {
   try {
     const result = await browser.storage.local.get(['chats']);
-    state.chats = Array.isArray(result.chats) ? result.chats : [];
-    console.log(`Loaded ${state.chats.length} chats`);
+    const rawChats = Array.isArray(result.chats) ? result.chats : [];
+    // Strip heavy content field — only metadata is needed in the side-panel UI.
+    // Full content is loaded on-demand by the reader / searchChats().
+    state.chats = rawChats.map(({ content: _content, ...meta }) => meta);
+    logger.log(`Loaded ${state.chats.length} chats (metadata only)`);
   } catch (error) {
     console.error('Error loading chats:', error);
     state.chats = [];
+  }
+}
+
+/**
+ * Fetch the full content of a single chat on demand.
+ * @param {string} chatId
+ * @returns {Promise<string|null>}
+ */
+async function getChatContent(chatId) {
+  try {
+    const result = await browser.storage.local.get(['chats']);
+    const chats = Array.isArray(result.chats) ? result.chats : [];
+    const chat = chats.find(c => c.id === chatId);
+    return chat?.content ?? null;
+  } catch (err) {
+    console.error('Error fetching chat content:', err);
+    return null;
   }
 }
 
@@ -439,8 +472,11 @@ async function handleChatSaved(chatEntry) {
   if (result.tags !== undefined) {
     updatedChat.tags = result.tags;
   }
-  state.chats = updateChatInArray(chatEntry.id, updatedChat, state.chats);
-  await browser.storage.local.set({ chats: state.chats });
+  const { chats: _fullChatsForSave } = await browser.storage.local.get(['chats']);
+  const _fullChatsArr = Array.isArray(_fullChatsForSave) ? _fullChatsForSave : [];
+  const _updatedFullChats = updateChatInArray(chatEntry.id, updatedChat, _fullChatsArr);
+  await browser.storage.local.set({ chats: _updatedFullChats });
+  state.chats = _updatedFullChats.map(({ content: _c, ...meta }) => meta);
   await saveTree();
   state.renderer.setChatData(state.chats);
   renderTreeView();
@@ -467,41 +503,41 @@ function renderTreeView() {
   }
 }
 
+// Deferred (debounced) search work — storage query + tree highlighting
+function runSearch(query) {
+  const searchContainer = elements.searchInput?.closest('.search-container');
+  if (state.renderer) {
+    state.renderer.highlightSearch(query);
+    state.renderer.expandAll();
+    saveExpandedState();
+  }
+  state.storage.searchChats(query)
+    .then(results => {
+      searchContainer?.classList.remove('is-typing');
+      renderSearchResults(results, query);
+    })
+    .catch(err => {
+      searchContainer?.classList.remove('is-typing');
+      console.error('Search failed:', err);
+    });
+}
+const handleSearchDeferred = debounce(runSearch, 250);
+
 // Handle search input
 function handleSearch(event) {
   const query = event.target.value.trim();
   state.searchQuery = query;
 
-  // Show/hide clear button
+  // Immediate feedback
   elements.clearSearchBtn.style.display = query ? 'block' : 'none';
-
-  // A5 — show shimmer while keystrokes are in-flight
   const searchContainer = elements.searchInput?.closest('.search-container');
+
   if (query) {
     searchContainer?.classList.add('is-typing');
+    handleSearchDeferred(query);
   } else {
+    handleSearchDeferred.cancel();
     searchContainer?.classList.remove('is-typing');
-  }
-
-  if (query) {
-    // Highlight matching topics in tree
-    if (state.renderer) {
-      state.renderer.highlightSearch(query);
-      // Expand all to show matches
-      state.renderer.expandAll();
-      saveExpandedState();
-    }
-    // Full-text search across all saved chats
-    state.storage.searchChats(query)
-      .then(results => {
-        searchContainer?.classList.remove('is-typing');
-        renderSearchResults(results, query);
-      })
-      .catch(err => {
-        searchContainer?.classList.remove('is-typing');
-        console.error('Search failed:', err);
-      });
-  } else {
     if (state.renderer) {
       state.renderer.clearHighlight();
     }
@@ -511,6 +547,7 @@ function handleSearch(event) {
 
 // Clear search
 function clearSearch() {
+  handleSearchDeferred.cancel();
   elements.searchInput.value = '';
   state.searchQuery = '';
   elements.clearSearchBtn.style.display = 'none';
@@ -714,8 +751,11 @@ async function handleRenameChatAction() {
 
   const updates = { title: result.title };
   if (result.tags !== undefined) updates.tags = result.tags;
-  state.chats = updateChatInArray(state.contextMenuChat.id, updates, state.chats);
-  await browser.storage.local.set({ chats: state.chats });
+  const { chats: _fullRename } = await browser.storage.local.get(['chats']);
+  const _fullRenameArr = Array.isArray(_fullRename) ? _fullRename : [];
+  const _renamedFull = updateChatInArray(state.contextMenuChat.id, updates, _fullRenameArr);
+  await browser.storage.local.set({ chats: _renamedFull });
+  state.chats = _renamedFull.map(({ content: _c, ...meta }) => meta);
   state.renderer.setChatData(state.chats);
   renderTreeView();
 }
@@ -726,8 +766,11 @@ async function handleEditTagsAction() {
   const result = await state.chatDialogs.showEditTags(state.contextMenuChat);
   if (!result) return;
 
-  state.chats = updateChatInArray(state.contextMenuChat.id, { tags: result.tags }, state.chats);
-  await browser.storage.local.set({ chats: state.chats });
+  const { chats: _fullTags } = await browser.storage.local.get(['chats']);
+  const _fullTagsArr = Array.isArray(_fullTags) ? _fullTags : [];
+  const _taggedFull = updateChatInArray(state.contextMenuChat.id, { tags: result.tags }, _fullTagsArr);
+  await browser.storage.local.set({ chats: _taggedFull });
+  state.chats = _taggedFull.map(({ content: _c, ...meta }) => meta);
   state.renderer.setChatData(state.chats);
   renderTreeView();
 }
@@ -739,8 +782,11 @@ async function handleMoveChatAction() {
   if (!result) return;
 
   const movedChat = moveChatToTopic(state.contextMenuChat, result.topicId, state.tree);
-  state.chats = updateChatInArray(state.contextMenuChat.id, movedChat, state.chats);
-  await browser.storage.local.set({ chats: state.chats });
+  const { chats: _fullMove } = await browser.storage.local.get(['chats']);
+  const _fullMoveArr = Array.isArray(_fullMove) ? _fullMove : [];
+  const _movedFull = updateChatInArray(state.contextMenuChat.id, movedChat, _fullMoveArr);
+  await browser.storage.local.set({ chats: _movedFull });
+  state.chats = _movedFull.map(({ content: _c, ...meta }) => meta);
   await saveTree();
   state.renderer.setChatData(state.chats);
   renderTreeView();
@@ -759,8 +805,11 @@ async function handleDeleteChatAction() {
     removeChatFromTopic(chat.id, chat.topicId, state.tree);
     await saveTree();
   }
-  state.chats = removeChatFromArray(chat.id, state.chats);
-  await browser.storage.local.set({ chats: state.chats });
+  const { chats: _fullDel } = await browser.storage.local.get(['chats']);
+  const _fullDelArr = Array.isArray(_fullDel) ? _fullDel : [];
+  const _deletedFull = removeChatFromArray(chat.id, _fullDelArr);
+  await browser.storage.local.set({ chats: _deletedFull });
+  state.chats = _deletedFull.map(({ content: _c, ...meta }) => meta);
   state.renderer.setChatData(state.chats);
   renderTreeView();
 }
@@ -813,8 +862,11 @@ async function handleDeleteTopic() {
     // Remove all affected chats from the in-memory list and persist
     if (chatIdsToDelete.length > 0) {
       const deleteSet = new Set(chatIdsToDelete);
-      state.chats = state.chats.filter(c => !deleteSet.has(c.id));
-      await browser.storage.local.set({ chats: state.chats });
+      const { chats: _fullTopicDel } = await browser.storage.local.get(['chats']);
+      const _fullTopicDelArr = Array.isArray(_fullTopicDel) ? _fullTopicDel : [];
+      const _afterTopicDel = _fullTopicDelArr.filter(c => !deleteSet.has(c.id));
+      await browser.storage.local.set({ chats: _afterTopicDel });
+      state.chats = _afterTopicDel.map(({ content: _c, ...meta }) => meta);
       state.renderer.setChatData(state.chats);
       console.log(`Removed ${chatIdsToDelete.length} chat(s) belonging to deleted topic tree`);
     }
@@ -898,6 +950,7 @@ async function handleImport() {
         // Persist to storage
         await saveTree();
         await browser.storage.local.set({ chats: state.chats });
+        state.chats = state.chats.map(({ content: _c, ...meta }) => meta);
 
         // Refresh UI
         state.renderer.setTree(state.tree);
@@ -964,6 +1017,15 @@ function openSettingsPanel() {
   document.getElementById('settingsPanelClose')
     ?.addEventListener('click', closeSettingsPanel, { once: true });
 
+  // Wire debug-log toggle
+  const debugToggle = document.getElementById('debugLogToggle');
+  if (debugToggle && !debugToggle.dataset.loggerWired) {
+    debugToggle.dataset.loggerWired = '1';
+    debugToggle.checked = logger.isEnabled();
+    debugToggle.addEventListener('change', () => logger.setEnabled(debugToggle.checked));
+  } else if (debugToggle) {
+    debugToggle.checked = logger.isEnabled();
+  }
 }
 
 function closeSettingsPanel() {
@@ -1034,8 +1096,11 @@ async function handleChatDrop(chatId, targetTopicId) {
   if (chat.topicId === targetTopicId) return; // already there
 
   const movedChat = moveChatToTopic(chat, targetTopicId, state.tree);
-  state.chats = updateChatInArray(chatId, movedChat, state.chats);
-  await browser.storage.local.set({ chats: state.chats });
+  const { chats: _fullDrop } = await browser.storage.local.get(['chats']);
+  const _fullDropArr = Array.isArray(_fullDrop) ? _fullDrop : [];
+  const _droppedFull = updateChatInArray(chatId, movedChat, _fullDropArr);
+  await browser.storage.local.set({ chats: _droppedFull });
+  state.chats = _droppedFull.map(({ content: _c, ...meta }) => meta);
   await saveTree();
   state.renderer.setChatData(state.chats);
   renderTreeView();
