@@ -146,7 +146,7 @@
       height: 100%;
       border-radius: 99px;
       background: linear-gradient(90deg, var(--green), #56d479);
-      width: 55%;
+      width: 91%;
       transition: width 0.6s ease;
     }
     .progress-legend {
@@ -591,7 +591,7 @@
   <div class="logo">bAInder</div>
   <div class="tagline">AI Chat Organizer · Chrome &amp; Edge Extension · Product Roadmap</div>
   <div class="meta-row">
-    <div class="badge"><span class="dot green"></span> 6 of 11 stages complete</div>
+    <div class="badge"><span class="dot green"></span> 10 of 11 stages complete</div>
     <div class="badge"><span class="dot yellow"></span> Active development</div>
     <div class="badge"><span class="dot purple"></span> v1.0.0 · March 2026</div>
   </div>
@@ -602,10 +602,10 @@
 
   <!-- ── Overview stats ── -->
   <div class="stats-row">
-    <div class="stat-card"><div class="sv green">6</div><div class="sl">Stages Completed</div></div>
-    <div class="stat-card"><div class="sv yellow">5</div><div class="sl">Stages Remaining</div></div>
+    <div class="stat-card"><div class="sv green">10</div><div class="sl">Stages Completed</div></div>
+    <div class="stat-card"><div class="sv yellow">1</div><div class="sl">Stages Remaining</div></div>
     <div class="stat-card"><div class="sv accent">363</div><div class="sl">Tests Passing</div></div>
-    <div class="stat-card"><div class="sv cyan">55%</div><div class="sl">Overall Progress</div></div>
+    <div class="stat-card"><div class="sv cyan">91%</div><div class="sl">Overall Progress</div></div>
     <div class="stat-card"><div class="sv purple">3</div><div class="sl">Platforms Supported</div></div>
     <div class="stat-card"><div class="sv accent">Q4 2026</div><div class="sl">Store Launch Est.</div></div>
   </div>
@@ -614,15 +614,14 @@
   <div class="section-title">Overall Progress</div>
   <div class="progress-section">
     <div class="progress-header">
-      <span class="label">Development Progress — Stages 1–6 of 11</span>
-      <span class="pct">55%</span>
+      <span class="label">Development Progress — Stages 1–10 of 11</span>
+      <span class="pct">91%</span>
     </div>
     <div class="progress-bar-track">
       <div class="progress-bar-fill"></div>
     </div>
     <div class="progress-legend">
-      <div class="item"><span class="swatch" style="background:var(--green)"></span>Completed (Stages 1–6)</div>
-      <div class="item"><span class="swatch" style="background:var(--yellow)"></span>Planned (Stages 7–10)</div>
+      <div class="item"><span class="swatch" style="background:var(--green)"></span>Completed (Stages 1–10)</div>
       <div class="item"><span class="swatch" style="background:var(--purple)"></span>Future / Advanced (Stage 11)</div>
     </div>
   </div>
@@ -666,21 +665,21 @@
           <span class="q-bubble done">S6 Chat Detect</span>
         </div>
       </div>
-      <div class="q-cell current">
+      <div class="q-cell">
         <div class="q-label">Q2 2026</div>
         <div class="q-stages">
-          <span class="q-bubble active">S7 Assignment</span>
-          <span class="q-bubble planned">S8 Search</span>
+          <span class="q-bubble done">S7 Assignment</span>
+          <span class="q-bubble done">S8 Search</span>
         </div>
       </div>
       <div class="q-cell">
         <div class="q-label">Q3 2026</div>
         <div class="q-stages">
-          <span class="q-bubble planned">S9 Export</span>
-          <span class="q-bubble planned">S10 Polish</span>
+          <span class="q-bubble done">S9 Export</span>
+          <span class="q-bubble done">S10 Polish</span>
         </div>
       </div>
-      <div class="q-cell">
+      <div class="q-cell current">
         <div class="q-label">Q4 2026</div>
         <div class="q-stages">
           <span class="q-bubble launch">🚀 Store Launch</span>
@@ -929,36 +928,36 @@
     </div>
 
     <!-- ── Stage 7 ── -->
-    <div class="stage active">
-      <div class="stage-connector">→</div>
+    <div class="stage done">
+      <div class="stage-connector">✓</div>
       <div class="stage-card">
         <div class="stage-header" onclick="toggle(this)">
           <div>
-            <div class="stage-num">Stage 7 — In Progress</div>
+            <div class="stage-num">Stage 7</div>
             <div class="stage-title">Chat Assignment UI</div>
             <div class="stage-subtitle">Assign saved chats to topics, chat list in tree, manage chat metadata</div>
           </div>
           <div class="stage-meta">
-            <span class="status-badge active">▶ In Progress</span>
-            <span class="effort-badge">⏱ 2–3 weeks</span>
+            <span class="status-badge done">✓ Completed</span>
+            <span class="effort-badge">⏱ Mar 2026</span>
             <span class="expand-icon">▶</span>
           </div>
         </div>
         <div class="stage-body">
           <div class="stage-grid">
-            <div class="info-box"><div class="ib-label">Est. Delivery</div><div class="ib-value yellow">March 2026</div></div>
+            <div class="info-box"><div class="ib-label">Delivered</div><div class="ib-value green">Mar 2026</div></div>
             <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Medium — 2–3 weeks</div></div>
             <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">Knowledge workers, researchers</div></div>
             <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stages 5, 6</div></div>
           </div>
           <div class="deliverables">
-            <div class="dl-title">Planned Deliverables</div>
+            <div class="dl-title">Deliverables</div>
             <div class="dl-list">
-              <div class="dl-item"><span class="check pending">◐</span><span>"Assign Chat" dialog with hierarchical topic picker after save</span></div>
-              <div class="dl-item"><span class="check pending">◐</span><span>Chat items displayed under topics in tree view (click to open URL)</span></div>
-              <div class="dl-item"><span class="check pending">◐</span><span>Chat context menu: move, rename, delete, export</span></div>
-              <div class="dl-item"><span class="check todo">○</span><span>Auto-update topic date ranges &amp; chat count badges on assignment</span></div>
-              <div class="dl-item"><span class="check todo">○</span><span>Sticky Notes MVP: add annotate overlays to saved chats in reader view</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>"Assign Chat" dialog with hierarchical topic picker after save</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Chat items displayed under topics in tree view (click to open URL)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Chat context menu: move, rename, delete, export</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Auto-update topic date ranges &amp; chat count badges on assignment</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Sticky Notes MVP: add annotate overlays to saved chats in reader view</span></div>
             </div>
           </div>
         </div>
@@ -966,8 +965,8 @@
     </div>
 
     <!-- ── Stage 8 ── -->
-    <div class="stage planned">
-      <div class="stage-connector">8</div>
+    <div class="stage done">
+      <div class="stage-connector">✓</div>
       <div class="stage-card">
         <div class="stage-header" onclick="toggle(this)">
           <div>
@@ -976,26 +975,26 @@
             <div class="stage-subtitle">Full-text search across all chats; tag search; result navigation</div>
           </div>
           <div class="stage-meta">
-            <span class="status-badge planned">● Planned</span>
-            <span class="effort-badge">⏱ 2–3 weeks</span>
+            <span class="status-badge done">✓ Completed</span>
+            <span class="effort-badge">⏱ Mar 2026</span>
             <span class="expand-icon">▶</span>
           </div>
         </div>
         <div class="stage-body">
           <div class="stage-grid">
-            <div class="info-box"><div class="ib-label">Est. Delivery</div><div class="ib-value yellow">April 2026</div></div>
+            <div class="info-box"><div class="ib-label">Delivered</div><div class="ib-value green">Mar 2026</div></div>
             <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Medium — 2–3 weeks</div></div>
             <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">Researchers, developers, students</div></div>
             <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stage 7</div></div>
           </div>
           <div class="deliverables">
-            <div class="dl-title">Planned Deliverables</div>
+            <div class="dl-title">Deliverables</div>
             <div class="dl-list">
-              <div class="dl-item"><span class="check todo">○</span><span>Real-time search input with result dropdown (title + snippet + breadcrumb)</span></div>
-              <div class="dl-item"><span class="check todo">○</span><span>SearchIndex class with relevance scoring (title matches boosted)</span></div>
-              <div class="dl-item"><span class="check todo">○</span><span>Tag-based search — coloured tag chips on results</span></div>
-              <div class="dl-item"><span class="check todo">○</span><span>Filters: date range, source platform, topic branch</span></div>
-              <div class="dl-item"><span class="check todo">○</span><span>Click result → auto-expand tree path, highlight selected chat</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Real-time search input with result dropdown (title + snippet + breadcrumb)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>SearchIndex class with relevance scoring (title matches boosted)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Tag-based search — coloured tag chips on results</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Filters: date range, source platform, topic branch</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Click result → auto-expand tree path, highlight selected chat</span></div>
             </div>
           </div>
         </div>
@@ -1003,8 +1002,8 @@
     </div>
 
     <!-- ── Stage 9 ── -->
-    <div class="stage planned">
-      <div class="stage-connector">9</div>
+    <div class="stage done">
+      <div class="stage-connector">✓</div>
       <div class="stage-card">
         <div class="stage-header" onclick="toggle(this)">
           <div>
@@ -1013,26 +1012,26 @@
             <div class="stage-subtitle">Export to MD / HTML / PDF / ZIP; writing style templates; import from ZIP</div>
           </div>
           <div class="stage-meta">
-            <span class="status-badge planned">● Planned</span>
-            <span class="effort-badge">⏱ 4–6 weeks</span>
+            <span class="status-badge done">✓ Completed</span>
+            <span class="effort-badge">⏱ Mar 2026</span>
             <span class="expand-icon">▶</span>
           </div>
         </div>
         <div class="stage-body">
           <div class="stage-grid">
-            <div class="info-box"><div class="ib-label">Est. Delivery</div><div class="ib-value yellow">Jun 2026</div></div>
+            <div class="info-box"><div class="ib-label">Delivered</div><div class="ib-value green">Mar 2026</div></div>
             <div class="info-box"><div class="ib-label">Effort</div><div class="ib-value">Large — 4–6 weeks</div></div>
             <div class="info-box"><div class="ib-label">Primary Audience</div><div class="ib-value">Content creators, writers, researchers</div></div>
             <div class="info-box"><div class="ib-label">Dependencies</div><div class="ib-value muted">Stage 7</div></div>
           </div>
           <div class="deliverables">
-            <div class="dl-title">Planned Deliverables</div>
+            <div class="dl-title">Deliverables</div>
             <div class="dl-list">
-              <div class="dl-item"><span class="check todo">○</span><span>Export dialog: format (MD, HTML, PDF, ZIP) × style (technical, blog, academic, LinkedIn, raw)</span></div>
-              <div class="dl-item"><span class="check todo">○</span><span>Export scope: single chat → single topic → full tree as folder hierarchy</span></div>
-              <div class="dl-item"><span class="check todo">○</span><span>ZIP archive export with mirrored folder structure + frontmatter markdown + _metadata.json</span></div>
-              <div class="dl-item"><span class="check todo">○</span><span>Import from ZIP: merge / replace / create-new-root strategies + conflict resolution</span></div>
-              <div class="dl-item"><span class="check todo">○</span><span>PDF via browser print API; progress indicator for large exports (JSZip)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Export dialog: format (MD, HTML, PDF, ZIP) × style (technical, blog, academic, LinkedIn, raw)</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Export scope: single chat → single topic → full tree as folder hierarchy</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>ZIP archive export with mirrored folder structure + frontmatter markdown + _metadata.json</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>Import from ZIP: merge / replace / create-new-root strategies + conflict resolution</span></div>
+              <div class="dl-item"><span class="check ok">✓</span><span>PDF via browser print API; progress indicator for large exports (JSZip)</span></div>
             </div>
           </div>
         </div>

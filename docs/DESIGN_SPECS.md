@@ -636,7 +636,7 @@ Notes are stored as an array on (or alongside) the `ChatEntry` object and persis
 
 ## 3. Development Stages
 
-### Stage 1: Foundation & Project Setup
+### Stage 1: Foundation & Project Setup ✅ Complete
 **Goal:** Set up extension skeleton and development environment
 
 **Tasks:**
@@ -653,7 +653,7 @@ Notes are stored as an array on (or alongside) the `ChatEntry` object and persis
 
 ---
 
-### Stage 2: Storage Abstraction Layer
+### Stage 2: Storage Abstraction Layer ✅ Complete
 **Goal:** Create flexible storage interface for future-proofing
 
 **Tasks:**
@@ -683,7 +683,7 @@ Notes are stored as an array on (or alongside) the `ChatEntry` object and persis
 
 ---
 
-### Stage 3: Data Models & Tree Structure
+### Stage 3: Data Models & Tree Structure ✅ Complete
 **Goal:** Define data structures and tree management logic
 
 **Tasks:**
@@ -741,7 +741,7 @@ Notes are stored as an array on (or alongside) the `ChatEntry` object and persis
 
 ---
 
-### Stage 4: Side Panel UI - Basic Tree View
+### Stage 4: Side Panel UI - Basic Tree View ✅ Complete
 **Goal:** Display hierarchical topic tree
 
 **Tasks:**
@@ -775,7 +775,7 @@ Notes are stored as an array on (or alongside) the `ChatEntry` object and persis
 
 ---
 
-### Stage 5: Topic Management UI
+### Stage 5: Topic Management UI ✅ Complete
 **Goal:** Add/edit/delete topics through UI
 
 **Tasks:**
@@ -812,7 +812,7 @@ Notes are stored as an array on (or alongside) the `ChatEntry` object and persis
 
 ---
 
-### Stage 6: Content Script - Chat Detection
+### Stage 6: Content Script - Chat Detection ✅ Complete
 **Goal:** Detect and extract chat content from AI websites
 
 **Tasks:**
@@ -886,7 +886,7 @@ Notes are stored as an array on (or alongside) the `ChatEntry` object and persis
 
 ---
 
-### Stage 7: Chat Assignment UI
+### Stage 7: Chat Assignment UI ✅ Complete
 **Goal:** Allow users to assign saved chats to topics
 
 **Tasks:**
@@ -921,7 +921,7 @@ Notes are stored as an array on (or alongside) the `ChatEntry` object and persis
 
 ---
 
-### Stage 8: Search Functionality
+### Stage 8: Search Functionality ✅ Complete
 **Goal:** Full-text search across all chats
 
 **Tasks:**
@@ -959,7 +959,7 @@ Notes are stored as an array on (or alongside) the `ChatEntry` object and persis
 
 ---
 
-### Stage 9: Export & Content Transformation
+### Stage 9: Export & Content Transformation ✅ Complete
 **Goal:** Export chats in various formats with style transformation, plus folder structure export for local browsing
 
 **Tasks:**
