@@ -1316,6 +1316,70 @@
       </div>
     </div>
 
+    <!-- C.11 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.11</span> Multi-Platform AI Site Validation</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Medium (per platform)</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        The extractor declares support for ChatGPT, Claude, Gemini, and Copilot, but end-to-end testing and
+        day-to-day development have been conducted almost exclusively on <strong>Copilot</strong>.
+        Each platform has a distinct DOM structure that evolves over time; extractors for the other sites
+        are likely broken or partially degraded.
+        <br><br>
+        Work items:
+        <ul style="margin:8px 0 0 16px;line-height:1.7">
+          <li>Manual smoke-test each platform against the current extractor (<code>chat-extractor.js</code>).</li>
+          <li>Write platform-specific fixtures and regression tests (extend <code>chat-extractor.test.js</code>).</li>
+          <li>Fix any selector drift discovered for ChatGPT, Claude, Gemini.</li>
+          <li>Add CI artefacts (HTML snapshots) so future DOM changes are caught automatically.</li>
+          <li>Consider adding Perplexity, Grok, and DeepSeek (see C.4) in the same pass.</li>
+        </ul>
+        <div class="note">
+          ⚠️ <strong>Known gap.</strong> Until this is resolved, bAInder should be described as
+          "Copilot-tested" rather than "multi-platform" in store listings and marketing copy.
+        </div>
+      </div>
+    </div>
+
+    <!-- C.12 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.12</span> Firefox &amp; Edge Browser Support</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Medium–High effort</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        bAInder is built on <code>webextension-polyfill</code> which in principle supports Chrome, Edge,
+        and Firefox, but only Chrome has been meaningfully tested.
+        Shipping on Firefox and Edge unlocks a substantial user base with no additional AI-site work.
+        <br><br>
+        Work items:
+        <ul style="margin:8px 0 0 16px;line-height:1.7">
+          <li><strong>Edge:</strong> Chromium-based — likely works today; run smoke tests and fix any
+              Manifest V3 or side-panel API gaps. Publish to the Microsoft Add-ons Store.</li>
+          <li><strong>Firefox:</strong> Requires a separate MV2 (or MV3-beta) manifest variant; see
+              <code>docs/edge-porting-plan.md</code> for the porting strategy already drafted.
+              Key risks: <code>chrome.sidePanel</code> has no Firefox equivalent — a popup or
+              <code>browser_action</code> fallback is needed; service-worker vs. background-page difference.</li>
+          <li>Set up separate CI matrix jobs for Chrome, Edge, and Firefox (web-ext lint + unit tests).</li>
+          <li>Maintain separate manifests under <code>src/manifests/</code> per browser target.</li>
+        </ul>
+        <div class="note">
+          ℹ️ The <code>docs/edge-porting-plan.md</code> document describes the Edge path in detail.
+          Firefox adds meaningful scope; estimate 4–6 additional weeks on top of the Edge work.
+        </div>
+      </div>
+    </div>
+
   </div><!-- /feature-grid -->
 
 </div><!-- /container -->
