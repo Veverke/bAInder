@@ -1636,6 +1636,7 @@ Open questions and ideas to consider for v1.x and beyond:
 - [ ] **Duplicate detection** — warn when saving a chat that already exists in the tree
 - [ ] **Auto-save on navigate** — offer to save a chat automatically when the user leaves the page
 - [ ] **Statistics dashboard** — number of saved chats, storage used, most active platforms, etc.
+- ~~**"Continue in AI" button in reader** — a button that opens the original chat URL so users can resume the conversation. **Abandoned:** `chat.url` is captured at save time but proved unreliable in practice; Copilot (the primary dev/test platform) does not expose a stable, deep-linkable conversation URL — the saved URL either redirects to a blank new chat or produces inconsistent routing. Dropped until platforms provide reliable permalink APIs.~~
 
 > **Feedback welcome:** If you have additional suggestions, open an issue or discussion on the repository.
 
@@ -1917,5 +1918,155 @@ Track I is fully independent of F, G, and H (separate attribute, separate CSS fi
 
 ---
 
-*Document Version: 1.3*  
-*Last Updated: February 24, 2026*
+## Appendix C — Additional Feature Recommendations
+
+Generated: March 2, 2026. Features absent from all prior roadmap sections, identified by cross-referencing the competitive landscape, the existing codebase, and user workflow gaps.
+
+---
+
+### C.1 "Continue in AI" Button in Reader ~~(Abandoned)~~
+
+A button in the reader header that opens the original chat URL so users can resume the conversation without manually navigating back to the AI platform. `chat.url` is already captured at save time by `chat-extractor.js` and serialized to frontmatter by `export-engine.js` / `markdown-serialiser.js`, so no new storage work is required — the reader simply does not surface it yet.
+
+**⚠️ Previously attempted and abandoned.** Copilot (the primary dev/test platform) does not expose a stable, deep-linkable conversation URL — the saved URL either redirects to a blank new chat or produces inconsistent routing. The feature was dropped until AI platforms provide reliable permalink APIs. Revisit if/when ChatGPT-only mode is considered, as `chatgpt.com/c/<uuid>` URLs are stable.
+
+**Effort:** Low (reader change only) — blocked by platform limitation, not engineering cost.
+
+---
+
+### C.2 Obsidian Vault Export Format
+
+A dedicated export mode that makes the ZIP output directly importable into [Obsidian](https://obsidian.md/) as a vault:
+
+- Emit `[[wikilink]]` back-references between chats that mention the same topics
+- Write YAML frontmatter with `tags:` mirroring bAInder topic names (activates Obsidian's graph view)
+- Produce an `_index.md` per topic folder listing all child chats as wikilinks
+
+No competitor offers this. Obsidian's "second brain" user base overlaps heavily with power users of AI chat tools. Implementation adds a new export format variant to the existing `export-engine.js` format switch — no structural changes required.
+
+**Effort:** Medium. **Differentiates:** High.
+
+---
+
+### C.3 Search Filters (Source · Date Range · Topic Scope)
+
+Extend the existing full-text search with filter pills that narrow results before the text pass runs:
+
+- **Source filter:** ChatGPT | Claude | Gemini | Copilot — already stored as `chat.source`
+- **Date range:** saved between X and Y — already stored as `chat.timestamp`
+- **Topic scope:** search within a specific subtree only — traverse `tree.js` node children
+
+All three filters operate on data already in storage; no new indexing is needed. A small filter bar above the search input (collapsed by default) exposes them.
+
+**Effort:** Low–Medium. **Differentiates:** High (no competitor combines full-text + filters in a single panel).
+
+---
+
+### C.4 Grok + DeepSeek Extractor Support
+
+The competitive analysis identifies ConvoSnap as supporting Grok and DeepSeek. Neither platform is mentioned in the bAInder extractor or `manifest.json` match patterns. Both are growing rapidly and have relatively simple DOM structures:
+
+- **Grok** (`grok.com`) — X/Twitter's assistant; conversation markup is straightforward
+- **DeepSeek** (`chat.deepseek.com`) — Chinese frontier model with surging Western adoption
+
+Adding support requires a new `case` in `chat-extractor.js`'s `extractChat` switch and new `content_scripts.matches` entries in the manifests. No architectural changes.
+
+**Effort:** Medium (per platform). **Differentiates:** High — extends platform lead over all current competitors.
+
+---
+
+### C.5 Passive / Background Auto-Save
+
+The design specs note (Stage 11) that Chat Memo is the only competitor with passive capture and call it a "meaningful differentiator," but no concrete design exists. Proposed implementation:
+
+1. A `MutationObserver` in the content script watches the assistant message container for DOM settlement (final token rendered — detect via a short idle debounce after last mutation)
+2. Configurable threshold: only auto-save if the assistant response is > N words (default 50)
+3. Duplicate check against `chat-save-handler.js`'s existing URL-based deduplication before writing
+4. Non-intrusive toast: *"Chat auto-saved to [Inbox]. Undo."* with a 5-second undo window
+5. User opt-in toggle in Settings (off by default)
+
+**Effort:** High. **Differentiates:** Very High — transforms bAInder from a manual archival tool into a passive safety net.
+
+---
+
+### C.6 Onboarding / First-Run Walkthrough
+
+No first-run experience is documented anywhere. New users who install the extension see a blank side panel with no context. A three-step spotlight overlay (no library required — a single `onboarding.js` module with a `<div class="spotlight-overlay">` and CSS mask):
+
+1. *"Go to any AI chat page (ChatGPT, Copilot, Gemini, Claude)"*
+2. *"Right-click anywhere → Save to bAInder"*
+3. *"Your chat appears here. Use search to find it later."*
+
+Triggered once when `chrome.storage.local` contains no tree data. Dismissed permanently on completion or skip. Store `onboardingComplete: true` to suppress on subsequent opens.
+
+**Effort:** Low. **Impact:** Critical for new-user retention on the Chrome Web Store. This is arguably the highest ROI item on this list.
+
+---
+
+### C.7 In-Reader Per-Message Copy Button
+
+Each message turn in the reader has no copy affordance. Users frequently want to copy a single AI response without selecting text manually. A `⎘` icon button rendered into each message block via `reader.js` that appears on `:hover` and calls `navigator.clipboard.writeText()` with the plain-text content of that turn.
+
+Implementation: ~20 lines in `reader.js` (inject button per message during `renderChat()`), minimal CSS for hover reveal.
+
+**Effort:** Low. **Impact:** High daily-use quality-of-life improvement.
+
+---
+
+### C.8 Chat Cross-References / Backlinks
+
+The annotations system (`src/lib/annotations.js`) is already built. Extend it to allow a highlight note to reference another saved chat using `[[topic/chat title]]` syntax, resolved against the live tree on save. Render a "Related chats" section at the bottom of the reader listing all backlinks to the current chat from other saved chats.
+
+This creates a lightweight Zettelkasten / wiki layer on top of bAInder's existing knowledge base. No competitor has this. Pairs naturally with the Obsidian export (C.2).
+
+**Effort:** High. **Differentiates:** High — unique in the market.
+
+---
+
+### C.9 Topic Sort Order Control
+
+There is no documented mechanism for controlling the order of topics within the tree beyond "pinned topics first" (implemented in B.4 U2). Once a user has 20+ topics, arbitrary insertion order becomes a pain point. Add a sort selector in the tree header (persisted to `chrome.storage.local`):
+
+- **Alphabetical A→Z / Z→A** (default)
+- **Date of last activity** (most recently updated topic first)
+- **Chat count** (largest topic first)
+- **Manual** (drag-to-reorder, persist index array in storage)
+
+The first three are a sort pass over the existing tree array before `tree-renderer.js` renders — trivial to implement. Manual drag order is medium effort but high value for power users.
+
+**Effort:** Low (sort modes) / Medium (manual drag). **Impact:** Moderate — becomes important at scale.
+
+---
+
+### C.10 Scheduled Backup Reminder
+
+`chrome.storage.local` is wiped on profile reset or extension reinstall. A periodic reminder to export is both a data-safety feature and a trust signal for new users:
+
+- After 30 days without a ZIP export, show a dismissible banner in the side panel header: *"47 saved chats · Last exported 32 days ago · [Export now]"*
+- "Export now" triggers the existing ZIP export flow
+- "Remind me later" snoozes 7 days; "Don't remind me" suppresses permanently
+- Track `lastExportTimestamp` in `chrome.storage.local` (already partially available via export-engine metadata)
+
+**Effort:** Low. **Impact:** Trust signal — directly addresses the known risk of data loss from local-only storage.
+
+---
+
+### C.11 Summary Table
+
+| # | Feature | Effort | Differentiates | Notes |
+|---|---|---|---|---|
+| C.1 | "Continue in AI" button | Low | Moderate | ~~Abandoned~~ — unstable URLs on Copilot |
+| C.2 | Obsidian vault export | Medium | High | Unique in market |
+| C.3 | Search filters (source / date / scope) | Low–Medium | High | Data already in storage |
+| C.4 | Grok + DeepSeek extractors | Medium | High | Per-platform extractor additions |
+| C.5 | Passive auto-save | High | Very High | Opt-in; MutationObserver approach |
+| C.6 | Onboarding walkthrough | Low | Critical | Highest retention ROI |
+| C.7 | Per-message copy button | Low | Moderate | ~20 lines in reader.js |
+| C.8 | Chat cross-references / backlinks | High | High | Extends annotations.js |
+| C.9 | Topic sort order control | Low–Medium | Moderate | Sort modes + optional drag |
+| C.10 | Scheduled backup reminder | Low | Trust signal | Addresses local-storage data-loss risk |
+
+---
+
+*Document Version: 1.4*  
+*Last Updated: March 2, 2026*

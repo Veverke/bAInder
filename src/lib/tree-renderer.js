@@ -48,6 +48,10 @@ export class TreeRenderer {
 
     // A3: stagger counter — incremented per node/chat <li> during each render()
     this._nodeIndex = 0;
+
+    // Stage 10: virtual scrolling
+    this.virtualThreshold = 150;       // override for testing: renderer.virtualThreshold = N
+    this._virtualScrollHandler = null; // stored so we can removeEventListener on re-render
   }
 
   /**
@@ -80,6 +84,19 @@ export class TreeRenderer {
       this.renderEmpty();
       return;
     }
+
+    // Stage 10 — virtual scrolling gate
+    const flatNodes = this._flattenVisible();
+    if (flatNodes.length > this.virtualThreshold) {
+      this.renderVirtual(flatNodes);
+      return;
+    }
+    // Clean up any stale virtual state before normal render
+    if (this._virtualScrollHandler) {
+      this.container.removeEventListener('scroll', this._virtualScrollHandler);
+      this._virtualScrollHandler = null;
+    }
+    this.container.classList.remove('tree-virtual-container');
 
     // Clear container
     this.container.innerHTML = '';
@@ -741,5 +758,177 @@ export class TreeRenderer {
     });
 
     return svg;
+  }
+
+  /**
+   * Stage 10: Build a flat ordered array of all currently-visible nodes
+   * (topics + chats), respecting the expandedNodes set.
+   * @returns {Array<{type: string, id: string, depth: number, data: object}>}
+   */
+  _flattenVisible() {
+    const result = [];
+    if (!this.tree) return result;
+
+    const walk = (topics, depth) => {
+      // Mirror render() sort: pinned first
+      const sorted = [...topics].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+      for (const topic of sorted) {
+        result.push({ type: 'topic', id: topic.id, depth, data: topic });
+        if (this.expandedNodes.has(topic.id)) {
+          // chats under this topic
+          const chats = this.chats.filter(c => c.topicId === topic.id);
+          for (const chat of chats) {
+            result.push({ type: 'chat', id: chat.id, depth: depth + 1, data: chat });
+          }
+          // child topics
+          const children = this.tree.getChildren(topic.id);
+          if (children.length) walk(children, depth + 1);
+        }
+      }
+    };
+
+    walk(this.tree.getRootTopics(), 0);
+    return result;
+  }
+
+  /**
+   * Stage 10: Virtual-scroll render — only stamps visible rows into the DOM.
+   * @param {Array} flatNodes Output of _flattenVisible()
+   */
+  renderVirtual(flatNodes) {
+    const ITEM_HEIGHT = 36;
+    const BUFFER = 5;
+
+    // Remove stale scroll listener
+    if (this._virtualScrollHandler) {
+      this.container.removeEventListener('scroll', this._virtualScrollHandler);
+      this._virtualScrollHandler = null;
+    }
+
+    this.container.classList.add('tree-virtual-container');
+    this.container.innerHTML = '';
+
+    // Sizer — gives the scrollbar the correct total height
+    const sizer = document.createElement('div');
+    sizer.className = 'tree-virtual-sizer';
+    sizer.style.height = `${flatNodes.length * ITEM_HEIGHT}px`;
+    this.container.appendChild(sizer);
+
+    // Viewport slice container
+    const viewport = document.createElement('div');
+    viewport.className = 'tree-virtual-viewport';
+    this.container.appendChild(viewport);
+
+    const renderSlice = () => {
+      const scrollTop = this.container.scrollTop;
+      const clientHeight = this.container.clientHeight || 400;
+      const startIdx = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER);
+      const visibleCount = Math.ceil(clientHeight / ITEM_HEIGHT);
+      const endIdx = Math.min(flatNodes.length, startIdx + visibleCount + BUFFER * 2);
+
+      viewport.style.transform = `translateY(${startIdx * ITEM_HEIGHT}px)`;
+      viewport.innerHTML = '';
+      for (let i = startIdx; i < endIdx; i++) {
+        viewport.appendChild(this._renderVirtualRow(flatNodes[i]));
+      }
+    };
+
+    renderSlice();
+
+    this._virtualScrollHandler = renderSlice;
+    this.container.addEventListener('scroll', this._virtualScrollHandler, { passive: true });
+  }
+
+  /**
+   * Stage 10: Render a single lightweight row for virtual scrolling.
+   * @param {{type: string, id: string, depth: number, data: object}} item
+   * @returns {HTMLElement}
+   */
+  _renderVirtualRow(item) {
+    const INDENT_PX = 16;
+    const row = document.createElement('div');
+    row.className = `tree-virtual-row tree-virtual-row--${item.type}`;
+    if (item.id === this.selectedNodeId) row.classList.add('tree-virtual-row--selected');
+
+    // Indent spacer
+    const indent = document.createElement('span');
+    indent.className = 'tree-virtual-row__indent';
+    indent.style.width = `${item.depth * INDENT_PX}px`;
+    indent.style.display = 'inline-block';
+    row.appendChild(indent);
+
+    if (item.type === 'topic') {
+      const isExpanded = this.expandedNodes.has(item.id);
+      const children = this.tree ? this.tree.getChildren(item.id) : [];
+      const chats = this.chats.filter(c => c.topicId === item.id);
+      const hasChildren = children.length > 0 || chats.length > 0;
+
+      // Chevron
+      const chevron = document.createElement('span');
+      chevron.className = 'tree-virtual-row__chevron';
+      chevron.textContent = hasChildren ? (isExpanded ? '▼' : '▶') : ' ';
+      row.appendChild(chevron);
+
+      // Name
+      const name = document.createElement('span');
+      name.className = 'tree-virtual-row__name';
+      name.textContent = item.data.name || 'Untitled';
+      row.appendChild(name);
+
+      // Chat count badge
+      if (chats.length > 0) {
+        const count = document.createElement('span');
+        count.className = 'tree-virtual-row__count';
+        count.textContent = chats.length;
+        row.appendChild(count);
+      }
+
+      // Click: toggle expand/collapse, re-render virtual
+      row.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.selectedNodeId = item.id;
+        if (hasChildren) {
+          if (this.expandedNodes.has(item.id)) {
+            this.expandedNodes.delete(item.id);
+          } else {
+            this.expandedNodes.add(item.id);
+          }
+        }
+        if (this.onTopicClick) this.onTopicClick(item.id);
+        // Re-render with updated expand state
+        const newFlat = this._flattenVisible();
+        if (newFlat.length > this.virtualThreshold) {
+          this.renderVirtual(newFlat);
+        } else {
+          this.render();
+        }
+      });
+
+      // Context menu
+      row.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (this.onTopicContextMenu) this.onTopicContextMenu(e, item.id);
+      });
+
+    } else {
+      // Chat row — no chevron, just name
+      const name = document.createElement('span');
+      name.className = 'tree-virtual-row__name';
+      name.textContent = item.data.title || 'Untitled';
+      row.appendChild(name);
+
+      row.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.selectedNodeId = item.id;
+        if (this.onChatClick) this.onChatClick(item.id, item.data.topicId);
+      });
+
+      row.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (this.onChatContextMenu) this.onChatContextMenu(e, item.id);
+      });
+    }
+
+    return row;
   }
 }

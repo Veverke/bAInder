@@ -350,10 +350,17 @@
           </div>
         </section>
 
-        <!-- Stage 10 placeholder -->
+        <!-- Stage 10: Advanced settings -->
         <section class="settings-section">
-          <h3 class="settings-section__title">Advanced <span class="badge badge--coming">Stage 10</span></h3>
-          <p class="settings-coming-soon">Additional preferences (default export format, auto-save behaviour, storage quota alerts) will appear here in Stage 10.</p>
+          <h3 class="settings-section__title">Advanced</h3>
+          <div class="settings-row">
+            <label class="settings-row__label" for="debugLogToggle">Debug logging</label>
+            <label class="settings-toggle" aria-label="Toggle debug logging">
+              <input type="checkbox" id="debugLogToggle" class="settings-toggle__input" />
+              <span class="settings-toggle__track"></span>
+            </label>
+          </div>
+          <p class="settings-hint">Verbose console output for troubleshooting. Reload the panel after toggling.</p>
         </section>
 
       </div>

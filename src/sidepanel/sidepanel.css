@@ -833,6 +833,54 @@ mark.search-highlight {
   padding: var(--space-sm) var(--space-md);
 }
 
+/* Settings toggle (pill switch) */
+.settings-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.settings-toggle__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.settings-toggle__track {
+  display: block;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--border, #30363d);
+  transition: background 0.2s ease;
+}
+.settings-toggle__track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s ease;
+}
+.settings-toggle__input:checked + .settings-toggle__track {
+  background: var(--accent, #58a6ff);
+}
+.settings-toggle__input:checked + .settings-toggle__track::after {
+  transform: translateX(16px);
+}
+
+/* Settings hint text below a row */
+.settings-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin: 2px 0 var(--space-sm);
+  line-height: 1.4;
+}
+
 /* About block */
 .settings-about {
   display: flex;
@@ -2090,4 +2138,63 @@ ul.tree-root.drop-target {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* ── Stage 10: Virtual scroll tree ───────────────────────────── */
+.tree-virtual-container {
+  position: relative;
+  overflow-y: auto;
+}
+.tree-virtual-sizer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  pointer-events: none;
+}
+.tree-virtual-viewport {
+  position: absolute;
+  left: 0;
+  right: 0;
+  will-change: transform;
+}
+.tree-virtual-row {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+.tree-virtual-row:hover {
+  background: var(--hover-bg, rgba(255,255,255,0.05));
+}
+.tree-virtual-row--selected {
+  background: var(--selected-bg, rgba(88,166,255,0.15));
+}
+.tree-virtual-row__indent {
+  flex-shrink: 0;
+}
+.tree-virtual-row__chevron {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--muted, #8b949e);
+}
+.tree-virtual-row__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+.tree-virtual-row__count {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: var(--badge-bg, rgba(88,166,255,0.15));
+  color: var(--muted, #8b949e);
 }
