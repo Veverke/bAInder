@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { escapeHtml, extractSnippet, highlightTerms, formatBreadcrumb } from '../src/lib/search-utils.js';
+import { escapeHtml, extractSnippet, highlightTerms, formatBreadcrumb, applySearchFilters } from '../src/lib/search-utils.js';
 
 // ─── escapeHtml ───────────────────────────────────────────────────────────────
 
@@ -184,5 +184,52 @@ describe('formatBreadcrumb', () => {
       { id: 'b', name: 'Projects' }
     ];
     expect(formatBreadcrumb(path)).toBe('Work › Projects');
+  });
+});
+
+// ─── applySearchFilters — C.15 minRating ──────────────────────────────────────
+
+describe('applySearchFilters — minRating', () => {
+  const chats = [
+    { id: '1', source: 'chatgpt', timestamp: 1000, rating: 5  },
+    { id: '2', source: 'claude',  timestamp: 2000, rating: 3  },
+    { id: '3', source: 'gemini',  timestamp: 3000, rating: 1  },
+    { id: '4', source: 'copilot', timestamp: 4000, rating: null },
+    { id: '5', source: 'chatgpt', timestamp: 5000 },  // no rating field
+  ];
+
+  it('returns all results when minRating is null', () => {
+    const result = applySearchFilters(chats, { minRating: null });
+    expect(result).toHaveLength(5);
+  });
+
+  it('returns all results when minRating is 0', () => {
+    const result = applySearchFilters(chats, { minRating: 0 });
+    expect(result).toHaveLength(5);
+  });
+
+  it('filters to chats rated >= 3', () => {
+    const result = applySearchFilters(chats, { minRating: 3 });
+    expect(result.map(c => c.id)).toEqual(['1', '2']);
+  });
+
+  it('filters to chats rated >= 5', () => {
+    const result = applySearchFilters(chats, { minRating: 5 });
+    expect(result.map(c => c.id)).toEqual(['1']);
+  });
+
+  it('returns empty when no chats meet minimum', () => {
+    const result = applySearchFilters(chats, { minRating: 4 });
+    expect(result.map(c => c.id)).toEqual(['1']);
+  });
+
+  it('excludes chats with null or missing rating', () => {
+    const result = applySearchFilters(chats, { minRating: 1 });
+    expect(result.map(c => c.id)).toEqual(['1', '2', '3']);
+  });
+
+  it('works alongside source filter', () => {
+    const result = applySearchFilters(chats, { sources: new Set(['chatgpt']), minRating: 3 });
+    expect(result.map(c => c.id)).toEqual(['1']);
   });
 });

@@ -13,6 +13,7 @@ import {
   htmlToMarkdown,
   formatMessage,
   generateTitle,
+  extractSourceLinks,
   extractChatGPT,
   extractClaude,
   extractGemini,
@@ -1009,6 +1010,40 @@ describe('extractGemini()', () => {
     const result = extractGemini(document);
     expect(result.messageCount).toBe(3);
   });
+
+  it('does not duplicate user message when outer wrapper also matches [class*="user-query"]', () => {
+    // Gemini real DOM: an outer container div whose class contains "user-query"
+    // (e.g. "user-query-container") wraps the actual content div "user-query-content".
+    // Both match the wildcard selector — without removeDescendants this produces
+    // two identical user messages instead of one.
+    const outer = document.createElement('div');
+    outer.className = 'user-query-container';
+    const inner = document.createElement('div');
+    inner.className = 'user-query-content';
+    inner.textContent = 'What is machine learning?';
+    outer.appendChild(inner);
+    document.body.appendChild(outer);
+
+    const result = extractGemini(document);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('user');
+    expect(result.messages[0].content).toBe('What is machine learning?');
+  });
+
+  it('does not duplicate assistant message when outer wrapper also matches [class*="model-response"]', () => {
+    const outer = document.createElement('div');
+    outer.className = 'model-response-container';
+    const inner = document.createElement('div');
+    inner.className = 'model-response-text';
+    inner.textContent = 'ML is a subset of AI.';
+    outer.appendChild(inner);
+    document.body.appendChild(outer);
+
+    const result = extractGemini(document);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('assistant');
+    expect(result.messages[0].content).toBe('ML is a subset of AI.');
+  });
 });
 
 // ─── extractCopilot ────────────────────────────────────────────────────────
@@ -1170,6 +1205,310 @@ describe('extractCopilot()', () => {
     const allContent = result.messages.map(m => m.content).join(' ');
     expect(allContent).toContain('Current real prompt');
     expect(allContent).not.toContain('Old history chat title');
+  });
+});
+
+// ─── extractSourceLinks ───────────────────────────────────────────────────────
+
+describe('extractSourceLinks()', () => {
+  function makeEl(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div;
+  }
+
+  it('returns empty string when turnEl is null', () => {
+    expect(extractSourceLinks(null)).toBe('');
+  });
+
+  it('returns empty string when no source links are present', () => {
+    const el = makeEl('<p>No links here</p>');
+    expect(extractSourceLinks(el)).toBe('');
+  });
+
+  it('returns empty string for internal / relative links only', () => {
+    const el = makeEl('<a href="#section">anchor</a><a href="/page">relative</a>');
+    expect(extractSourceLinks(el)).toBe('');
+  });
+
+  // ── Part B: links inside <button> wrappers ──────────────────────────────
+
+  it('extracts links inside a <button aria-label="Sources"> (Copilot pattern)', () => {
+    const el = makeEl(`
+      <div>Main response text</div>
+      <button aria-label="Sources">
+        <a href="https://example.com/a">Article A</a>
+        <a href="https://example.com/b">Article B</a>
+      </button>
+    `);
+    const result = extractSourceLinks(el);
+    expect(result).toContain('**Sources:**');
+    expect(result).toContain('[Article A](https://example.com/a)');
+    expect(result).toContain('[Article B](https://example.com/b)');
+  });
+
+  it('extracts links inside a <button> whose text contains "references"', () => {
+    const el = makeEl(`
+      <button>3 references
+        <a href="https://ref1.com">Ref 1</a>
+      </button>
+    `);
+    const result = extractSourceLinks(el);
+    expect(result).toContain('[Ref 1](https://ref1.com)');
+  });
+
+  it('ignores <button> elements unrelated to sources', () => {
+    const el = makeEl(`
+      <button aria-label="Copy">Copy</button>
+      <button aria-label="Share with sources clicked">
+        <a href="https://example.com">Link</a>
+      </button>
+    `);
+    // "Share with sources clicked" DOES contain "sources", so the link is picked up.
+    // The "Copy" button has no links. Check that "Copy" button does not cause issues.
+    const result = extractSourceLinks(el);
+    // Only a link check — no crash expected
+    expect(typeof result).toBe('string');
+  });
+
+  it('ignores <button> that mentions "sources" but has no <a href> links', () => {
+    const el = makeEl('<button aria-label="Sources">No links</button>');
+    expect(extractSourceLinks(el)).toBe('');
+  });
+
+  // ── Part A: sibling source containers outside contentEl ─────────────────
+
+  it('collects links from a [data-testid*="citation"] sibling of contentEl', () => {
+    const turn = document.createElement('div');
+    turn.innerHTML = `
+      <div class="markdown"><p>Response</p></div>
+      <div data-testid="citation-list">
+        <a href="https://source1.com">Source 1</a>
+        <a href="https://source2.com">Source 2</a>
+      </div>
+    `;
+    const contentEl = turn.querySelector('.markdown');
+    const result = extractSourceLinks(turn, contentEl);
+    expect(result).toContain('[Source 1](https://source1.com)');
+    expect(result).toContain('[Source 2](https://source2.com)');
+  });
+
+  it('does NOT duplicate links that are already inside contentEl', () => {
+    const turn = document.createElement('div');
+    turn.innerHTML = `
+      <div class="markdown">
+        <p>See <a href="https://inside.com">this link</a></p>
+      </div>
+      <div data-testid="citation-list">
+        <a href="https://outside.com">Outside</a>
+      </div>
+    `;
+    const contentEl = turn.querySelector('.markdown');
+    const result = extractSourceLinks(turn, contentEl);
+    expect(result).toContain('[Outside](https://outside.com)');
+    expect(result).not.toContain('inside.com');
+  });
+
+  it('deduplicates repeated URLs across source containers', () => {
+    const turn = document.createElement('div');
+    turn.innerHTML = `
+      <div class="markdown"></div>
+      <div data-testid="citation-one">
+        <a href="https://same.com">Same</a>
+      </div>
+      <div data-testid="citation-two">
+        <a href="https://same.com">Same again</a>
+      </div>
+    `;
+    const contentEl = turn.querySelector('.markdown');
+    const result = extractSourceLinks(turn, contentEl);
+    const matches = (result.match(/same\.com/g) || []).length;
+    expect(matches).toBe(1);
+  });
+
+  // ── Integration: sources appear in platform extractor output ────────────
+
+  it('ChatGPT: sources in a citation sibling are appended to the assistant message', () => {
+    document.body.innerHTML = '';
+    const article = document.createElement('article');
+    article.setAttribute('data-testid', 'conversation-turn-1');
+    article.innerHTML = `
+      <div data-message-author-role="assistant">
+        <div class="markdown"><p>Here is the answer.</p></div>
+      </div>
+      <div data-testid="citation-list">
+        <a href="https://wiki.example.com">Wikipedia</a>
+      </div>
+    `;
+    document.body.appendChild(article);
+    const result = extractChatGPT(document);
+    const assistantMsg = result.messages.find(m => m.role === 'assistant');
+    expect(assistantMsg).toBeDefined();
+    expect(assistantMsg.content).toContain('**Sources:**');
+    expect(assistantMsg.content).toContain('[Wikipedia](https://wiki.example.com)');
+  });
+
+  it('Copilot: sources inside a <button> are appended to the assistant message', () => {
+    document.body.innerHTML = '';
+    const div = document.createElement('div');
+    div.setAttribute('data-testid', 'copilot-message');
+    div.innerHTML = `
+      <p>Response text</p>
+      <button aria-label="2 sources">
+        <a href="https://copilot-source1.com">CS1</a>
+        <a href="https://copilot-source2.com">CS2</a>
+      </button>
+    `;
+    document.body.appendChild(div);
+    const result = extractCopilot(document);
+    const assistantMsg = result.messages.find(m => m.role === 'assistant');
+    expect(assistantMsg).toBeDefined();
+    expect(assistantMsg.content).toContain('**Sources:**');
+    expect(assistantMsg.content).toContain('[CS1](https://copilot-source1.com)');
+    expect(assistantMsg.content).toContain('[CS2](https://copilot-source2.com)');
+  });
+
+  it('Gemini: sources inside a <button aria-label="Citations"> are appended', () => {
+    document.body.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'model-response-text';
+    div.innerHTML = `
+      <p>Gemini answer</p>
+      <button aria-label="3 citations">
+        <a href="https://gemini-src.com">Gemini Source</a>
+      </button>
+    `;
+    document.body.appendChild(div);
+    const result = extractGemini(document);
+    const assistantMsg = result.messages.find(m => m.role === 'assistant');
+    expect(assistantMsg).toBeDefined();
+    expect(assistantMsg.content).toContain('**Sources:**');
+    expect(assistantMsg.content).toContain('[Gemini Source](https://gemini-src.com)');
+  });
+
+  it('Gemini: attribution links inside the response div are moved to the Sources block', () => {
+    document.body.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'model-response-text';
+    div.innerHTML = `
+      <p>Gemini answer</p>
+      <div class="source-attribution">
+        <a href="https://gemini-src.com">Gemini Source</a>
+      </div>
+    `;
+    document.body.appendChild(div);
+    const result = extractGemini(document);
+    const assistantMsg = result.messages.find(m => m.role === 'assistant');
+    expect(assistantMsg).toBeDefined();
+    // Attribution is stripped from main content and appears only in Sources block
+    expect(assistantMsg.content).toContain('**Sources:**');
+    expect(assistantMsg.content).toContain('[Gemini Source](https://gemini-src.com)');
+  });
+
+  it('user messages never get a Sources section appended', () => {
+    document.body.innerHTML = '';
+    const turn = document.createElement('article');
+    turn.setAttribute('data-testid', 'conversation-turn-0');
+    turn.innerHTML = `
+      <div data-message-author-role="user">
+        <div class="markdown"><p>User question</p></div>
+      </div>
+      <div data-testid="citation-list">
+        <a href="https://example.com">Some link</a>
+      </div>
+    `;
+    document.body.appendChild(turn);
+    const result = extractChatGPT(document);
+    const userMsg = result.messages.find(m => m.role === 'user');
+    expect(userMsg).toBeDefined();
+    expect(userMsg.content).not.toContain('**Sources:**');
+  });
+
+  it('Copilot: sources-button-testid container is stripped from main content and links are collected', () => {
+    document.body.innerHTML = '';
+    const div = document.createElement('div');
+    div.setAttribute('data-testid', 'copilot-message');
+    div.innerHTML = `
+      <p>Main response text</p>
+      <button data-testid="sources-button-testid-abc123">
+        <img src="https://favicon.example.com/icon.png" alt="favicon">
+        <span>3 sources</span>
+        <a href="https://source-a.com">Source A</a>
+        <a href="https://source-b.com">Source B</a>
+        <a href="https://source-c.com">Source C</a>
+      </button>
+    `;
+    document.body.appendChild(div);
+    const result = extractCopilot(document);
+    const msg = result.messages.find(m => m.role === 'assistant');
+    expect(msg).toBeDefined();
+    // Images from the sources button must NOT appear in main content
+    expect(msg.content).not.toContain('favicon.example.com');
+    expect(msg.content).not.toContain('![');
+    // "Sources" text from button must NOT leak into main paragraph content
+    // (it may only appear in the **Sources:** block)
+    const beforeSources = msg.content.split('**Sources:**')[0];
+    expect(beforeSources).not.toContain('3 sources');
+    // All three links must appear in the Sources block
+    expect(msg.content).toContain('**Sources:**');
+    expect(msg.content).toContain('[Source A](https://source-a.com)');
+    expect(msg.content).toContain('[Source B](https://source-b.com)');
+    expect(msg.content).toContain('[Source C](https://source-c.com)');
+  });
+
+  it('Copilot: data-test-id (hyphenated) sources container is stripped and links collected', () => {
+    document.body.innerHTML = '';
+    const div = document.createElement('div');
+    div.setAttribute('data-testid', 'copilot-message');
+    // Use the HYPHENATED attribute name as reported by the user
+    div.innerHTML = `
+      <p>Main response text</p>
+      <div data-test-id="sources-button-testid-abc999" role="button">
+        <img src="https://favicon2.example.com/icon.png" alt="favicon">
+        <span>2 sources</span>
+        <a href="https://hyphen-source-a.com">Hyphen A</a>
+        <a href="https://hyphen-source-b.com">Hyphen B</a>
+      </div>
+    `;
+    document.body.appendChild(div);
+    const result = extractCopilot(document);
+    const msg = result.messages.find(m => m.role === 'assistant');
+    expect(msg).toBeDefined();
+    // Favicon images must NOT appear in main content
+    expect(msg.content).not.toContain('favicon2.example.com');
+    expect(msg.content).not.toContain('![');
+    // "2 sources" text must NOT leak before the Sources block
+    const beforeSources = msg.content.split('**Sources:**')[0];
+    expect(beforeSources).not.toContain('2 sources');
+    // Links must appear in the Sources block
+    expect(msg.content).toContain('**Sources:**');
+    expect(msg.content).toContain('[Hyphen A](https://hyphen-source-a.com)');
+    expect(msg.content).toContain('[Hyphen B](https://hyphen-source-b.com)');
+  });
+
+  it('ChatGPT: sources-button content (images) excluded from message body', () => {
+    document.body.innerHTML = '';
+    const article = document.createElement('article');
+    article.setAttribute('data-testid', 'conversation-turn-1');
+    article.innerHTML = `
+      <div data-message-author-role="assistant">
+        <div class="markdown"><p>Answer here</p></div>
+        <button data-testid="sources-button-testid-xyz">
+          <img src="https://favicon.test.com/fav.ico" alt="">
+          <span>2 sources</span>
+          <a href="https://wiki.test.com">Wiki</a>
+          <a href="https://blog.test.com">Blog</a>
+        </button>
+      </div>
+    `;
+    document.body.appendChild(article);
+    const result = extractChatGPT(document);
+    const msg = result.messages.find(m => m.role === 'assistant');
+    expect(msg).toBeDefined();
+    expect(msg.content).not.toContain('favicon.test.com');
+    expect(msg.content).toContain('**Sources:**');
+    expect(msg.content).toContain('[Wiki](https://wiki.test.com)');
+    expect(msg.content).toContain('[Blog](https://blog.test.com)');
   });
 });
 

@@ -189,6 +189,32 @@ export class ChatDialogs {
   }
 
   /**
+   * C.19 — Show dialog to set or clear a review date on a chat.
+   *
+   * @param {Object} chat
+   * @returns {Promise<{reviewDate: string|null}|null>}
+   */
+  async showSetReviewDate(chat) {
+    if (!chat) throw new Error('Chat is required');
+
+    const result = await this.dialog.form(
+      [
+        {
+          name:  'reviewDate',
+          label: 'Review Date',
+          type:  'date',
+          value: chat.reviewDate || '',
+        }
+      ],
+      chat.reviewDate ? 'Update Review Date' : 'Set Review Date',
+      'Save'
+    );
+
+    if (!result) return null;
+    return { reviewDate: result.reviewDate || null };
+  }
+
+  /**
    * Show confirmation dialog to delete a chat.
    *
    * @param {Object} chat

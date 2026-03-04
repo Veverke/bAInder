@@ -546,6 +546,293 @@ or merge your chat history on another device.
 `;
 }
 
+// ─── C.17 — Digest (multi-chat) export ───────────────────────────────────────
+
+/**
+ * C.17 — Build a single Markdown document from multiple chats, each under its
+ * own `## <title>` heading and preceded by an optional table of contents.
+ *
+ * @param {Object[]} chats     - chat entries (each may contain `messages` array)
+ * @param {Object}   topicsMap - tree.topics flat map used for breadcrumb paths
+ * @param {{ includeToc?: boolean }} [options]
+ * @returns {string}
+ */
+export function buildDigestMarkdown(chats, topicsMap, options = {}) {
+  if (!Array.isArray(chats) || chats.length === 0) return '';
+
+  const includeToc = options.includeToc !== false; // default true
+  const exportedAt = Date.now();
+  const topics     = topicsMap || {};
+  const lines      = [];
+
+  // ── Frontmatter ────────────────────────────────────────────────────────────
+  lines.push('---');
+  lines.push(`title: "bAInder Digest — ${chats.length} chats"`);
+  lines.push(`exported: ${new Date(exportedAt).toISOString()}`);
+  lines.push(`chat_count: ${chats.length}`);
+  lines.push('contentFormat: digest-markdown-v1');
+  lines.push('---');
+  lines.push('');
+
+  // ── Title heading ──────────────────────────────────────────────────────────
+  lines.push('# bAInder Digest');
+  lines.push('');
+  lines.push(`*${chats.length} chat${chats.length !== 1 ? 's' : ''} compiled on ${_formatDateHuman(exportedAt)}*`);
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+
+  // ── Table of contents ──────────────────────────────────────────────────────
+  if (includeToc) {
+    lines.push('## Contents');
+    lines.push('');
+    chats.forEach((chat, idx) => {
+      const title  = (chat.title || 'Untitled Chat').trim();
+      const anchor = _digestAnchor(title, idx);
+      lines.push(`${idx + 1}. [${title}](#${anchor})`);
+    });
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+  }
+
+  // ── Chat sections ──────────────────────────────────────────────────────────
+  chats.forEach((chat, idx) => {
+    const title       = (chat.title || 'Untitled Chat').trim();
+    const topicPath   = buildTopicPath(chat.topicId, topics);
+    const sourceLabel = _sourceLabel(chat.source || 'unknown');
+    const dateStr     = chat.timestamp ? _formatDateHuman(chat.timestamp) : '';
+    const messages    = Array.isArray(chat.messages) ? chat.messages : [];
+    const anchor      = _digestAnchor(title, idx);
+
+    lines.push(`## ${title}`);
+    // HTML anchor comment so IntelliJ/Obsidian TOC links resolve
+    lines.push(`<!-- id: ${anchor} -->`);
+    lines.push('');
+
+    lines.push(`**Source:** ${sourceLabel}  `);
+    if (dateStr) lines.push(`**Date:** ${dateStr}  `);
+    lines.push(`**Topic:** ${topicPath}  `);
+    lines.push('');
+
+    if (messages.length > 0) {
+      messages.forEach((msg, mIdx) => {
+        const role = msg.role === 'user' ? 'User'
+          : msg.role === 'assistant' ? 'Assistant'
+          : _cap(msg.role || 'Unknown');
+        lines.push(`### ${role}`);
+        lines.push('');
+        lines.push((msg.content || '').trim());
+        lines.push('');
+        if (mIdx < messages.length - 1) {
+          lines.push('---');
+          lines.push('');
+        }
+      });
+    } else {
+      const body = _stripFrontmatter(chat.content || '');
+      lines.push(body.trim());
+      lines.push('');
+    }
+
+    if (idx < chats.length - 1) {
+      lines.push('');
+      lines.push('═══');
+      lines.push('');
+    }
+  });
+
+  // ── Footer ─────────────────────────────────────────────────────────────────
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+  lines.push(`*Digest exported from bAInder on ${_formatDateHuman(Date.now())}*`);
+
+  return lines.join('\n');
+}
+
+/**
+ * C.17 — Build a single, standalone HTML document from multiple chats.
+ *
+ * @param {Object[]} chats
+ * @param {Object}   topicsMap
+ * @param {{ style?: string, includeToc?: boolean }} [options]
+ * @returns {string}
+ */
+export function buildDigestHtml(chats, topicsMap, options = {}) {
+  if (!Array.isArray(chats) || chats.length === 0) return '<html><body></body></html>';
+
+  const style      = options.style || 'raw';
+  const includeToc = options.includeToc !== false;
+  const topics     = topicsMap || {};
+  const exportedAt = Date.now();
+  const count      = chats.length;
+
+  const isSerif   = style === 'academic' || style === 'blog';
+  const fontStack = isSerif
+    ? 'Georgia, "Times New Roman", serif'
+    : 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+  const css = `
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: ${fontStack};
+      font-size: 16px;
+      line-height: 1.7;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    header.doc-header {
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    h1 { font-size: 1.8rem; line-height: 1.3; margin-bottom: .5rem; }
+    .meta { color: #6b7280; font-size: .875rem; margin-bottom: .25rem; }
+    .toc { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: .5rem; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+    .toc h2 { font-size: 1rem; margin-bottom: .75rem; color: #374151; }
+    .toc ol { padding-left: 1.25rem; }
+    .toc li { margin-bottom: .3rem; font-size: .9rem; }
+    .toc a { color: #4f46e5; text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    .chat-section { margin-bottom: 3rem; padding-top: 2rem; border-top: 2px solid #e5e7eb; }
+    .chat-section:first-child { border-top: none; padding-top: 0; }
+    .chat-title { font-size: 1.35rem; font-weight: 700; margin-bottom: .5rem; color: #111827; }
+    .chat-meta { display: flex; flex-wrap: wrap; gap: .5rem .75rem; margin-bottom: 1.25rem; align-items: center; }
+    .source-badge {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #075985;
+      border-radius: 9999px;
+      padding: .15rem .65rem;
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .conversation {}
+    .turn { margin-bottom: 1.25rem; }
+    .turn-user {
+      border-left: 4px solid #6366f1;
+      background: #f8f7ff;
+      border-radius: 0 .375rem .375rem 0;
+      padding: .65rem 1rem;
+    }
+    .turn-assistant {
+      border-left: 4px solid #10b981;
+      background: #f0fdf4;
+      border-radius: 0 .375rem .375rem 0;
+      padding: .65rem 1rem;
+    }
+    .turn-label {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: .3rem;
+      opacity: .6;
+    }
+    .turn-user .turn-label   { color: #4f46e5; }
+    .turn-assistant .turn-label { color: #059669; }
+    .turn-content { white-space: pre-wrap; word-break: break-word; }
+    pre { background: #1e1e2e; color: #cdd6f4; padding: 1rem 1.25rem; border-radius: .5rem; overflow-x: auto; margin: .75rem 0; }
+    code { font-family: "Cascadia Code", "Fira Code", monospace; font-size: .875em; }
+    :not(pre) > code { background: #f3f4f6; padding: .1em .3em; border-radius: .25rem; }
+    blockquote { border-left: 3px solid #d1d5db; padding-left: 1rem; color: #6b7280; margin: .75rem 0; }
+    h2 { font-size: 1.2rem; margin: 1.25rem 0 .5rem; }
+    h3 { font-size: 1rem; margin: 1rem 0 .4rem; }
+    ul, ol { padding-left: 1.5rem; margin: .5rem 0; }
+    li { margin-bottom: .2rem; }
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5rem 0; }
+    footer.doc-footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e5e7eb;
+      color: #9ca3af;
+      font-size: .8rem;
+      font-style: italic;
+    }
+  `;
+
+  // ── TOC ────────────────────────────────────────────────────────────────────
+  let tocHtml = '';
+  if (includeToc) {
+    const items = chats.map((chat, idx) => {
+      const title  = _esc((chat.title || 'Untitled Chat').trim());
+      const anchor = _digestAnchor(chat.title || 'Untitled Chat', idx);
+      return `<li><a href="#${anchor}">${title}</a></li>`;
+    }).join('\n      ');
+    tocHtml = `
+    <nav class="toc">
+      <h2>Contents</h2>
+      <ol>
+        ${items}
+      </ol>
+    </nav>`;
+  }
+
+  // ── Chat sections ──────────────────────────────────────────────────────────
+  const sectionsHtml = chats.map((chat, idx) => {
+    const title       = _esc((chat.title || 'Untitled Chat').trim());
+    const topicPath   = _esc(buildTopicPath(chat.topicId, topics));
+    const sourceLabel = _esc(_sourceLabel(chat.source || 'unknown'));
+    const dateStr     = chat.timestamp ? _esc(_formatDateHuman(chat.timestamp)) : '';
+    const messages    = Array.isArray(chat.messages) ? chat.messages : [];
+    const anchor      = _digestAnchor(chat.title || 'Untitled Chat', idx);
+
+    let bodyHtml = '';
+    if (messages.length > 0) {
+      bodyHtml = messages.map(msg => {
+        const cls   = msg.role === 'user' ? 'turn-user' : 'turn-assistant';
+        const label = msg.role === 'user' ? 'User' : 'Assistant';
+        const html  = _mdToHtml((msg.content || '').trim());
+        return `<div class="turn ${_esc(cls)}"><div class="turn-label">${_esc(label)}</div><div class="turn-content">${html}</div></div>`;
+      }).join('\n');
+    } else {
+      const body = _stripFrontmatter(chat.content || '');
+      bodyHtml   = `<div class="turn"><div class="turn-content">${_mdToHtml(body)}</div></div>`;
+    }
+
+    return `
+    <section class="chat-section" id="${anchor}">
+      <h2 class="chat-title">${title}</h2>
+      <div class="chat-meta">
+        <span class="source-badge">${sourceLabel}</span>
+        <span class="meta">📁 ${topicPath}</span>
+        ${dateStr ? `<span class="meta">📅 ${dateStr}</span>` : ''}
+      </div>
+      <div class="conversation">
+        ${bodyHtml}
+      </div>
+    </section>`;
+  }).join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>bAInder Digest — ${count} chats</title>
+  <style>${css}</style>
+</head>
+<body>
+  <div class="container">
+    <header class="doc-header">
+      <h1>bAInder Digest</h1>
+      <p class="meta">${count} chat${count !== 1 ? 's' : ''} compiled on ${_esc(_formatDateHuman(exportedAt))}</p>
+    </header>
+    ${tocHtml}
+    ${sectionsHtml}
+    <footer class="doc-footer">
+      Exported from bAInder on ${_esc(_formatDateHuman(Date.now()))}
+    </footer>
+  </div>
+</body>
+</html>`;
+}
+
 // ─── Download trigger ─────────────────────────────────────────────────────────
 
 /**
@@ -828,4 +1115,19 @@ function _guessMime(filename) {
   if (filename.endsWith('.json')) return 'application/json';
   if (filename.endsWith('.pdf'))  return 'application/pdf';
   return 'text/markdown;charset=utf-8';
+}
+
+/**
+ * Build a stable HTML anchor id for a chat in a digest document.
+ * e.g. "My Chat Title" at index 2 → "my-chat-title-3"
+ * @param {string} title
+ * @param {number} idx  0-based position
+ * @returns {string}
+ */
+function _digestAnchor(title, idx) {
+  const base = String(title || 'untitled')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'chat';
+  return `${base}-${idx + 1}`;
 }

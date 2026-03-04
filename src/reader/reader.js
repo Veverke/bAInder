@@ -438,6 +438,188 @@ export function wrapChatTurns(contentEl) {
 }
 
 /**
+ * Post-process rendered markdown to replace each **Sources:** + list block
+ * with a compact `.sources-trigger` chip button that opens the sources panel.
+ *
+ * `renderMarkdown` turns the serialiser's output of:
+ *   **Sources:**
+ *   - [Title](url)
+ * into `<p><strong>Sources:</strong></p><ul><li><a href="…">…</a></li></ul>`.
+ * This function replaces that `<p>` + `<ul>` pair with a single button whose
+ * `data-sources` attribute carries the JSON-serialised link list.
+ *
+ * @param {Element} contentEl
+ */
+export function processSources(contentEl) {
+  if (!contentEl) return;
+
+  Array.from(contentEl.querySelectorAll('p')).forEach(p => {
+    if (!/^sources:?$/i.test((p.textContent || '').trim())) return;
+
+    const ul = p.nextElementSibling;
+    if (!ul || ul.tagName !== 'UL') return;
+
+    const links = Array.from(ul.querySelectorAll('a[href]'))
+      .map(a => ({ href: a.getAttribute('href'), text: (a.textContent || '').trim() || a.getAttribute('href') }))
+      .filter(l => l.href);
+
+    if (links.length === 0) return;
+
+    const n     = links.length;
+    const label = `${n} source${n !== 1 ? 's' : ''}`;
+
+    const chip  = document.createElement('button');
+    chip.type   = 'button';
+    chip.className = 'sources-trigger';
+    chip.setAttribute('aria-label', `Show ${label}`);
+    chip.dataset.sources = JSON.stringify(links);
+    chip.innerHTML =
+      `<svg class="sources-trigger__icon" width="12" height="12" viewBox="0 0 16 16" ` +
+      `fill="currentColor" aria-hidden="true">` +
+      `<path d="M3 4h10v1.5H3V4Zm0 3.25h10v1.5H3V7.25ZM3 10.5h7v1.5H3v-1.5Z"/></svg>` +
+      `<span>${label}</span>`;
+
+    p.replaceWith(chip);
+    ul.remove();
+  });
+}
+
+/**
+ * Create the sources side-panel singleton and wire all interactions:
+ *   – clicking any `.sources-trigger` button populates and opens the panel
+ *   – the close button, overlay click, and Escape key all close it
+ *
+ * Idempotent: safe to call multiple times (returns early after first call).
+ */
+export function setupSourcesPanel() {
+  if (document.getElementById('sources-panel')) return;
+
+  // ── Panel ──────────────────────────────────────────────────────────────────
+  const panel = document.createElement('aside');
+  panel.id        = 'sources-panel';
+  panel.className = 'sources-panel';
+  panel.setAttribute('aria-label', 'Sources');
+  panel.setAttribute('aria-hidden', 'true');
+  panel.innerHTML =
+    `<div class="sources-panel__header">` +
+      `<div class="sources-panel__title-group">` +
+        `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" ` +
+             `stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" ` +
+             `aria-hidden="true" style="color:var(--text-secondary);flex-shrink:0">` +
+          `<circle cx="8" cy="8" r="7"/>` +
+          `<path d="M8 1c-2 2.5-3 4.5-3 7s1 4.5 3 7M8 1c2 2.5 3 4.5 3 7s-1 4.5-3 7M1 8h14"/>` +
+        `</svg>` +
+        `<span class="sources-panel__title">Sources</span>` +
+        `<span class="sources-panel__count" id="sources-panel-count" aria-live="polite"></span>` +
+      `</div>` +
+      `<button class="sources-panel__close" id="sources-panel-close" ` +
+              `aria-label="Close sources panel" type="button">` +
+        `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">` +
+          `<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708` +
+          `L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708` +
+          `-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708Z"/>` +
+        `</svg>` +
+      `</button>` +
+    `</div>` +
+    `<ul class="sources-panel__list" id="sources-panel-list" role="list"></ul>`;
+  document.body.appendChild(panel);
+
+  // ── Dim overlay — clicking outside closes the panel ────────────────────────
+  const overlay   = document.createElement('div');
+  overlay.id        = 'sources-overlay';
+  overlay.className = 'sources-overlay';
+  document.body.appendChild(overlay);
+
+  function openPanel(links) {
+    const list  = document.getElementById('sources-panel-list');
+    const count = document.getElementById('sources-panel-count');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (count) count.textContent = links.length || '';
+
+    if (links.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'sources-panel__empty';
+      empty.textContent = 'No sources recorded for this response.';
+      list.appendChild(empty);
+    } else {
+      links.forEach(({ href, text }) => {
+        let domain = text;
+        try { domain = new URL(href).hostname.replace(/^www\./, ''); } catch (_) {}
+
+        const li = document.createElement('li');
+        li.className = 'sources-panel__item';
+
+        const a  = document.createElement('a');
+        a.href   = href;
+        a.target = '_blank';
+        a.rel    = 'noopener noreferrer';
+        a.className = 'sources-panel__link';
+        a.title  = href;
+
+        // Favicon
+        const fav = document.createElement('img');
+        fav.className = 'sources-panel__favicon';
+        fav.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32`;
+        fav.alt = '';
+        fav.addEventListener('error', () => fav.setAttribute('data-error', '1'));
+
+        // Text body
+        const body = document.createElement('span');
+        body.className = 'sources-panel__link-body';
+
+        const domainEl = document.createElement('span');
+        domainEl.className = 'sources-panel__link-domain';
+        domainEl.textContent = domain;
+
+        const urlEl = document.createElement('span');
+        urlEl.className = 'sources-panel__link-url';
+        urlEl.textContent = href;
+
+        body.appendChild(domainEl);
+        body.appendChild(urlEl);
+
+        // Arrow icon
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        arrow.setAttribute('width', '12'); arrow.setAttribute('height', '12');
+        arrow.setAttribute('viewBox', '0 0 16 16'); arrow.setAttribute('fill', 'none');
+        arrow.setAttribute('stroke', 'currentColor'); arrow.setAttribute('stroke-width', '2');
+        arrow.setAttribute('stroke-linecap', 'round'); arrow.setAttribute('stroke-linejoin', 'round');
+        arrow.setAttribute('aria-hidden', 'true'); arrow.className = 'sources-panel__link-arrow';
+        arrow.innerHTML = '<path d="M3 13L13 3M7 3h6v6"/>';
+
+        a.appendChild(fav);
+        a.appendChild(body);
+        a.appendChild(arrow);
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+    }
+    panel.classList.add('sources-panel--open');
+    panel.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('sources-overlay--visible');
+  }
+
+  function closePanel() {
+    panel.classList.remove('sources-panel--open');
+    panel.setAttribute('aria-hidden', 'true');
+    overlay.classList.remove('sources-overlay--visible');
+  }
+
+  // Trigger clicks — event delegation so dynamically added chips work too
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('.sources-trigger');
+    if (!trigger) return;
+    try { openPanel(JSON.parse(trigger.dataset.sources || '[]')); } catch (_) {}
+  });
+
+  document.getElementById('sources-panel-close')?.addEventListener('click', closePanel);
+  overlay.addEventListener('click', closePanel);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePanel(); });
+}
+
+/**
  * Set up the text-selection annotation toolbar (R2).
  * Safe no-op when annotation elements are absent (e.g. unit tests).
  * @param {string} chatId
@@ -714,6 +896,8 @@ export function renderChat(chat) {
 
   contentEl.innerHTML = renderMarkdown(content);
   wrapChatTurns(contentEl);
+  processSources(contentEl);
+  setupSourcesPanel();
 
   // ── C.7 — Per-message copy button ────────────────────────────────────────
   contentEl.querySelectorAll('.chat-turn').forEach(turn => {
@@ -906,6 +1090,86 @@ export function watchReaderSettings() {
 }
 
 /**
+ * C.15 — Set up the interactive star-rating widget in the reader header.
+ * Renders 5 clickable stars into #reader-rating and persists changes to storage.
+ *
+ * @param {string} chatId         ID of the currently displayed chat
+ * @param {number|null} initRating Current rating (1–5) or null/0
+ * @param {Object} storage        browser.storage.local-like object
+ */
+/**
+ * C.19 — Show a dismissible stale-review banner when a chat is overdue.
+ * Banner renders inside #stale-banner and lets the user mark as reviewed.
+ *
+ * @param {string} chatId
+ * @param {Object} chat     chat metadata (needs flaggedAsStale, reviewDate)
+ * @param {Object} storage  browser.storage.local-like API
+ */
+export function setupStaleBanner(chatId, chat, storage) {
+  const banner = document.getElementById('stale-banner');
+  if (!banner || !chat || !chat.flaggedAsStale) return;
+
+  const dateText = chat.reviewDate
+    ? `This content was due for review on ${chat.reviewDate}`
+    : 'This content has been flagged as stale';
+
+  banner.innerHTML =
+    `<span class="stale-banner__icon" aria-hidden="true">⚠</span>` +
+    `<span class="stale-banner__text">${dateText}.</span>` +
+    `<button class="stale-banner__dismiss" type="button">Mark as reviewed</button>`;
+  banner.hidden = false;
+
+  banner.querySelector('.stale-banner__dismiss')?.addEventListener('click', async () => {
+    banner.hidden = true;
+    try {
+      const result  = await storage.get(['chats']);
+      const chats   = result.chats || [];
+      const updated = chats.map(c =>
+        c.id === chatId ? { ...c, flaggedAsStale: false } : c
+      );
+      await storage.set({ chats: updated });
+    } catch (err) {
+      console.error('Failed to mark chat as reviewed:', err);
+    }
+  });
+}
+
+export function setupRating(chatId, initRating, storage) {
+  const el = document.getElementById('reader-rating');
+  if (!el || !chatId || !storage) return;
+
+  let rating = initRating || 0;
+
+  function renderStars() {
+    el.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const btn = document.createElement('button');
+      btn.className = `reader-star-btn${i <= rating ? ' is-set' : ''}`;
+      btn.textContent = '\u2605';
+      btn.setAttribute('aria-label', `${i} star${i > 1 ? 's' : ''}`);
+      btn.setAttribute('aria-pressed', i <= rating ? 'true' : 'false');
+      btn.addEventListener('click', async () => {
+        // Toggle off when clicking the current top star
+        rating = (rating === i) ? 0 : i;
+        renderStars();
+        try {
+          const result = await storage.get(['chats']);
+          const chats  = result.chats || [];
+          const updated = chats.map(c => c.id === chatId ? { ...c, rating: rating || null } : c);
+          await storage.set({ chats: updated });
+        } catch (err) {
+          console.error('Failed to save rating:', err);
+        }
+      });
+      el.appendChild(btn);
+    }
+    el.hidden = false;
+  }
+
+  renderStars();
+}
+
+/**
  * Main entry point — reads chatId from URL, loads from storage, renders.
  * @param {Object} storage  Object with a `.get(keys)` method — injectable for testing
  */
@@ -932,6 +1196,8 @@ export async function init(storage) {
     }
 
     renderChat(chat);
+    setupRating(chatId, chat.rating, storage);
+    setupStaleBanner(chatId, chat, storage);
     setupScrollFeatures();
     setupAnnotations(chatId, storage);
     setupStickyNotes(chatId, storage, renderMarkdown);

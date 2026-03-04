@@ -55,6 +55,11 @@ export class TreeRenderer {
 
     // C.9 — topic sort mode: 'alpha-asc' | 'alpha-desc' | 'updated' | 'count'
     this.sortMode = 'alpha-asc';
+
+    // C.17 — multi-select mode
+    this.multiSelectMode = false;        // whether checkboxes are visible
+    this.selectedChatIds = new Set();   // IDs of currently checked chats
+    this.onSelectionChange = null;       // (selectedChatIds: Set, selectedChats: Object[]) => void
   }
 
   /**
@@ -82,6 +87,76 @@ export class TreeRenderer {
     this.sortMode = mode;
     this.render();
   }
+
+  // ── C.17 Multi-select ─────────────────────────────────────────────────────
+
+  /**
+   * Enter multi-select mode — show checkboxes on all chat items.
+   */
+  enterMultiSelectMode() {
+    if (this.multiSelectMode) return;
+    this.multiSelectMode = true;
+    this.selectedChatIds = new Set();
+    this.render();
+  }
+
+  /**
+   * Exit multi-select mode — hide checkboxes and clear selection.
+   */
+  exitMultiSelectMode() {
+    if (!this.multiSelectMode) return;
+    this.multiSelectMode = false;
+    this.selectedChatIds = new Set();
+    this.render();
+  }
+
+  /**
+   * Toggle the checked state of a single chat.
+   * Fires `onSelectionChange` with the updated Set and matching chat objects.
+   * @param {string} chatId
+   */
+  toggleChatSelection(chatId) {
+    if (this.selectedChatIds.has(chatId)) {
+      this.selectedChatIds.delete(chatId);
+    } else {
+      this.selectedChatIds.add(chatId);
+    }
+    // Update checkbox DOM without a full re-render for responsiveness
+    const li = this.container.querySelector(`[data-chat-id="${CSS.escape(chatId)}"]`);
+    if (li) {
+      const cb = li.querySelector('.tree-chat-checkbox');
+      if (cb) cb.checked = this.selectedChatIds.has(chatId);
+      li.classList.toggle('tree-chat-item--selected', this.selectedChatIds.has(chatId));
+    }
+    if (this.onSelectionChange) {
+      this.onSelectionChange(new Set(this.selectedChatIds), this.getSelectedChats());
+    }
+  }
+
+  /**
+   * Clear all selections without exiting multi-select mode.
+   */
+  clearSelection() {
+    this.selectedChatIds = new Set();
+    this.container.querySelectorAll('.tree-chat-item--selected').forEach(el => {
+      el.classList.remove('tree-chat-item--selected');
+      const cb = el.querySelector('.tree-chat-checkbox');
+      if (cb) cb.checked = false;
+    });
+    if (this.onSelectionChange) {
+      this.onSelectionChange(new Set(), []);
+    }
+  }
+
+  /**
+   * Return the full chat objects for every currently selected chat ID.
+   * @returns {Object[]}
+   */
+  getSelectedChats() {
+    return this.chats.filter(c => this.selectedChatIds.has(c.id));
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   /**
    * Sort an array of Topic objects according to the current sortMode.
@@ -132,9 +207,9 @@ export class TreeRenderer {
       return;
     }
 
-    // Stage 10 — virtual scrolling gate
+    // Stage 10 — virtual scrolling gate (bypassed during C.17 multi-select)
     const flatNodes = this._flattenVisible();
-    if (flatNodes.length > this.virtualThreshold) {
+    if (flatNodes.length > this.virtualThreshold && !this.multiSelectMode) {
       this.renderVirtual(flatNodes);
       return;
     }
@@ -144,6 +219,7 @@ export class TreeRenderer {
       this._virtualScrollHandler = null;
     }
     this.container.classList.remove('tree-virtual-container');
+    this.container.classList.toggle('tree-multiselect-active', this.multiSelectMode);
 
     // Clear container
     this.container.innerHTML = '';
@@ -430,6 +506,11 @@ export class TreeRenderer {
     li.setAttribute('data-chat-id', chat.id);
     li.style.setProperty('--node-index', this._nodeIndex++); // A3 stagger
 
+    // C.17 — mark selected items
+    if (this.multiSelectMode && this.selectedChatIds.has(chat.id)) {
+      li.classList.add('tree-chat-item--selected');
+    }
+
     // Source attribute drives the CSS left-border accent colour
     const source = chat.source || 'unknown';
     li.setAttribute('data-source', source);
@@ -439,10 +520,24 @@ export class TreeRenderer {
     content.style.paddingLeft = `${level * 20}px`;
     content.tabIndex = 0; // U6 keyboard navigation
 
-    // Spacer (no expand button – chats are leaf items)
-    const spacer = document.createElement('span');
-    spacer.className = 'tree-expand-spacer';
-    content.appendChild(spacer);
+    // C.17 — checkbox in multi-select mode (replaces spacer)
+    if (this.multiSelectMode) {
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'tree-chat-checkbox';
+      cb.checked = this.selectedChatIds.has(chat.id);
+      cb.setAttribute('aria-label', `Select "${chat.title || 'Untitled Chat'}"`);
+      cb.addEventListener('change', (e) => {
+        e.stopPropagation();
+        this.toggleChatSelection(chat.id);
+      });
+      content.appendChild(cb);
+    } else {
+      // Spacer (no expand button – chats are leaf items)
+      const spacer = document.createElement('span');
+      spacer.className = 'tree-expand-spacer';
+      content.appendChild(spacer);
+    }
 
     // Icon: excerpt vs full chat
     const icon = document.createElement('span');
@@ -476,6 +571,26 @@ export class TreeRenderer {
         'en-US', { month: 'short', day: 'numeric', year: 'numeric' }
       );
       label.appendChild(dateBadge);
+    }
+
+    // C.15 — Star rating badge
+    if (chat.rating) {
+      const ratingBadge = document.createElement('span');
+      ratingBadge.className = 'tree-rating-badge';
+      ratingBadge.textContent = '★'.repeat(chat.rating);
+      ratingBadge.title = `${chat.rating} star${chat.rating > 1 ? 's' : ''}`;
+      label.appendChild(ratingBadge);
+    }
+
+    // C.19 — Stale review badge
+    if (chat.flaggedAsStale) {
+      const staleBadge = document.createElement('span');
+      staleBadge.className = 'tree-stale-badge';
+      staleBadge.textContent = '⚠';
+      staleBadge.title = chat.reviewDate
+        ? `Review was due ${chat.reviewDate}`
+        : 'Flagged as stale — consider reviewing this chat';
+      label.appendChild(staleBadge);
     }
 
     // Tag chips
@@ -536,11 +651,16 @@ export class TreeRenderer {
     });
     content.appendChild(chatMoreBtn);
 
-    // Click → open saved chat in reader (A6)
+    // Click → open saved chat in reader (A6) or toggle selection (C.17)
     // Listen on `li` (the entire row) so any click within the row fires —
     // including clicks on the label text, date badge, tags, or any padding area.
     // The ⋮ more-btn calls e.stopPropagation() so it never reaches here.
     li.addEventListener('click', (e) => {
+      // C.17 — in multi-select mode, row clicks toggle selection
+      if (this.multiSelectMode) {
+        this.toggleChatSelection(chat.id);
+        return;
+      }
       const ripple = document.createElement('span');
       ripple.className = 'tree-ripple';
       const rect  = content.getBoundingClientRect();
