@@ -9,6 +9,8 @@
  * - Click backdrop to close
  */
 
+import { escapeHtml as _escHtml } from './search-utils.js';
+
 export class DialogManager {
   constructor(containerElement) {
     this.container = containerElement || document.getElementById('modalContainer');
@@ -175,56 +177,72 @@ export class DialogManager {
   }
 
   /**
-   * Show a form dialog with custom fields
+   * Render the HTML string for a single form field.
+   * Pure: no DOM reads/writes — only produces an HTML string.
+   * @param {Object} field  — field descriptor ({ type, name, label, value, placeholder, hint, required, options })
+   * @param {number} index  — positional index used to generate a unique `id` attribute
+   * @returns {string}
    */
-  form(fields, title = 'Form', submitLabel = 'Submit') {
-    let fieldHTML = fields.map((field, index) => {
-      const id = `field-${index}`;
-      const required = field.required ? 'required' : '';
-      
-      if (field.type === 'select') {
-        const options = field.options.map(opt => {
-          const optValue = opt.value !== undefined ? opt.value : opt;
-          const optLabel = opt.label || opt;
-          const isSelected = opt.selected || (field.value !== undefined && optValue == field.value);
-          return `<option value="${this.escapeHtml(optValue)}"${isSelected ? ' selected' : ''}>
-            ${this.escapeHtml(optLabel)}
-          </option>`;
-        }).join('');
-        
-        return `
+  _renderFieldHtml(field, index) {
+    const id       = `field-${index}`;
+    const required = field.required ? 'required' : '';
+    const hint     = field.hint
+      ? `<span class="form-hint">${this.escapeHtml(field.hint)}</span>`
+      : '';
+
+    if (field.type === 'select') {
+      const options = (field.options || []).map(opt => {
+        const optValue   = opt.value !== undefined ? opt.value : opt;
+        const optLabel   = opt.label || opt;
+        const isSelected = opt.selected || (field.value !== undefined && optValue == field.value);
+        return `<option value="${this.escapeHtml(optValue)}"${isSelected ? ' selected' : ''}>${this.escapeHtml(optLabel)}</option>`;
+      }).join('');
+      return `
           <div class="form-group">
             <label for="${id}">${this.escapeHtml(field.label)}</label>
             <select id="${id}" class="form-select" data-field="${field.name}" ${required}>
               ${options}
             </select>
-            ${field.hint ? `<span class="form-hint">${this.escapeHtml(field.hint)}</span>` : ''}
+            ${hint}
           </div>
         `;
-      } else if (field.type === 'textarea') {
-        return `
+    }
+
+    if (field.type === 'textarea') {
+      return `
           <div class="form-group">
             <label for="${id}">${this.escapeHtml(field.label)}</label>
-            <textarea id="${id}" class="form-textarea" data-field="${field.name}" 
+            <textarea id="${id}" class="form-textarea" data-field="${field.name}"
               placeholder="${this.escapeHtml(field.placeholder || '')}" ${required}>${this.escapeHtml(field.value || '')}</textarea>
-            ${field.hint ? `<span class="form-hint">${this.escapeHtml(field.hint)}</span>` : ''}
+            ${hint}
           </div>
         `;
-      } else {
-        return `
+    }
+
+    // Default: text, number, date, and all other input types
+    return `
           <div class="form-group">
             <label for="${id}">${this.escapeHtml(field.label)}</label>
-            <input type="${field.type || 'text'}" id="${id}" class="form-input" 
-              data-field="${field.name}" 
+            <input type="${field.type || 'text'}" id="${id}" class="form-input"
+              data-field="${field.name}"
               value="${this.escapeHtml(field.value || '')}"
               placeholder="${this.escapeHtml(field.placeholder || '')}" ${required}>
-            ${field.hint ? `<span class="form-hint">${this.escapeHtml(field.hint)}</span>` : ''}
+            ${hint}
           </div>
         `;
-      }
-    }).join('');
+  }
 
-    const html = `
+  /**
+   * Assemble the complete form dialog HTML (header + body + footer).
+   * Pure: no DOM reads/writes — delegates per-field rendering to _renderFieldHtml.
+   * @param {Object[]} fields
+   * @param {string}   title
+   * @param {string}   submitLabel
+   * @returns {string}
+   */
+  _renderFormHtml(fields, title, submitLabel) {
+    const fieldHTML = fields.map((field, i) => this._renderFieldHtml(field, i)).join('');
+    return `
       <div class="modal-header">
         <h2>${this.escapeHtml(title)}</h2>
       </div>
@@ -238,62 +256,93 @@ export class DialogManager {
         <button class="btn-primary" data-action="submit">${this.escapeHtml(submitLabel)}</button>
       </div>
     `;
+  }
+
+  /**
+   * Read the current trimmed value for every field from the live form DOM.
+   * @param {HTMLElement} formEl  — the <form> element containing [data-field] inputs
+   * @param {Object[]}    fields
+   * @returns {Object}  plain object keyed by field.name
+   */
+  _collectFormData(formEl, fields) {
+    const formData = {};
+    fields.forEach(field => {
+      const input = formEl.querySelector(`[data-field="${field.name}"]`);
+      formData[field.name] = input ? input.value.trim() : '';
+    });
+    return formData;
+  }
+
+  /**
+   * Validate required fields and toggle the `.error` CSS class on each input.
+   * Single responsibility: DOM mutation only — does not collect or return data.
+   * @param {HTMLElement} formEl
+   * @param {Object[]}    fields
+   * @returns {boolean} true when every required field has a non-empty value
+   */
+  _validateForm(formEl, fields) {
+    let isValid = true;
+    fields.forEach(field => {
+      const input = formEl.querySelector(`[data-field="${field.name}"]`);
+      if (!input) return;
+      if (field.required && !input.value.trim()) {
+        input.classList.add('error');
+        isValid = false;
+      } else {
+        input.classList.remove('error');
+      }
+    });
+    return isValid;
+  }
+
+  /**
+   * Show a form dialog with custom fields.
+   * Orchestrates: render HTML → show → wire events → validate → resolve Promise.
+   * @param {Object[]} fields       — array of field descriptors
+   * @param {string}   title
+   * @param {string}   submitLabel
+   * @returns {Promise<Object|null>} resolves with formData on submit, null on cancel
+   */
+  form(fields, title = 'Form', submitLabel = 'Submit') {
+    const html = this._renderFormHtml(fields, title, submitLabel);
 
     return new Promise((resolve) => {
       this.show(html);
-      
-      const form = this.container.querySelector('[data-dialog-form]');
+
+      const formEl    = this.container.querySelector('[data-dialog-form]');
       const submitBtn = this.container.querySelector('[data-action="submit"]');
       const cancelBtn = this.container.querySelector('[data-action="cancel"]');
-      
-      // Handle submit
+
+      // Handle submit: collect data first, then validate and resolve
       const handleSubmit = () => {
-        const formData = {};
-        let isValid = true;
-        
-        fields.forEach(field => {
-          const input = form.querySelector(`[data-field="${field.name}"]`);
-          const value = input.value.trim();
-          
-          if (field.required && !value) {
-            input.classList.add('error');
-            isValid = false;
-          } else {
-            input.classList.remove('error');
-          }
-          
-          formData[field.name] = value;
-        });
-        
-        if (isValid) {
+        const formData = this._collectFormData(formEl, fields);
+        if (this._validateForm(formEl, fields)) {
           this.close(formData);
           resolve(formData);
         }
       };
-      
+
       // Handle cancel
       const handleCancel = () => {
         this.close(null);
         resolve(null);
       };
-      
+
       // Wire up buttons
       submitBtn.addEventListener('click', handleSubmit);
       cancelBtn.addEventListener('click', handleCancel);
-      
-      // Enter key submits (for single-field forms)
-      form.addEventListener('keydown', (e) => {
+
+      // Enter key submits (except in textareas and with Shift held)
+      formEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA') {
           e.preventDefault();
           handleSubmit();
         }
       });
-      
-      // Remove error class on input
-      form.querySelectorAll('input, select, textarea').forEach(input => {
-        input.addEventListener('input', () => {
-          input.classList.remove('error');
-        });
+
+      // Clear error styling on user input
+      formEl.querySelectorAll('input, select, textarea').forEach(input => {
+        input.addEventListener('input', () => input.classList.remove('error'));
       });
     });
   }
@@ -319,12 +368,10 @@ export class DialogManager {
   }
 
   /**
-   * Escape HTML to prevent XSS
+   * Escape HTML to prevent XSS.
+   * Delegates to the shared escapeHtml utility from search-utils.js.
    */
   escapeHtml(text) {
-    if (text === null || text === undefined) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return _escHtml(text);
   }
 }

@@ -7,6 +7,7 @@
  */
 
 import { messagesToMarkdown } from '../lib/markdown-serialiser.js';
+import { generateId } from '../lib/search-utils.js';
 
 /**
  * Detect the AI source platform from a URL string.
@@ -24,10 +25,12 @@ export function detectSource(url) {
 
 /**
  * Generate a simple unique ID for a chat entry.
+ * Delegates to the shared generateId() utility from search-utils.js.
+ * Format: `{timestamp}-{random}` (no prefix — backwards-compatible).
  * @returns {string}
  */
 export function generateChatId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  return generateId();
 }
 
 /**

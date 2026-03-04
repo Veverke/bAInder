@@ -6,12 +6,15 @@
  */
 
 import { parseFrontmatter } from '../lib/markdown-serialiser.js';
+import { loadTheme } from '../lib/useTheme.js';
 import {
   loadAnnotations, saveAnnotation, deleteAnnotation,
   serializeRange,  applyAnnotations, parseBacklinks,
 } from '../lib/annotations.js';
 import { setupStickyNotes } from '../lib/sticky-notes-ui.js';
 import browser from '../lib/vendor/browser.js';
+import { escapeHtml, generateId } from '../lib/search-utils.js';
+export { escapeHtml };  // re-export: callers that import escapeHtml from reader.js continue to work
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -60,20 +63,6 @@ export function formatDate(isoStr) {
   } catch (_) {
     return isoStr;
   }
-}
-
-/**
- * Escape a string for safe insertion as HTML text content.
- * @param {string} str
- * @returns {string}
- */
-export function escapeHtml(str) {
-  if (!str) return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 /**
@@ -136,6 +125,11 @@ export function applyInline(escaped) {
 
   // Inline links [text](url)
   s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
+    // Internal navigation: select a chat in the sidepanel tree
+    if (href.startsWith('bainder://select-chat?id=')) {
+      const chatId = href.slice('bainder://select-chat?id='.length);
+      return protect(`<a href="#" class="source-chat-link" data-select-chat="${chatId}" title="Select this chat in the tree">${text}</a>`);
+    }
     return protect(`<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`);
   });
 
@@ -195,11 +189,16 @@ export function renderMarkdown(markdown) {
   const htmlParts  = [];
   let i = 0;
 
-  /** Flush a paragraph buffer as a <p> element. */
+  /** Flush a paragraph buffer as a <p> element.
+   * Lines joined with '\n' (from soft-break detection) become <br> elements.
+   */
   function flushPara(buf) {
     const trimmed = buf.trim();
     if (!trimmed) return;
-    htmlParts.push(`<p>${applyInline(escapeHtml(trimmed))}</p>`);
+    // Soft-break segments (each was a line ending with '  ') → <br>
+    const segments = trimmed.split('\n');
+    const html = segments.map(seg => applyInline(escapeHtml(seg))).join('<br>');
+    htmlParts.push(`<p>${html}</p>`);
   }
 
   let paraBuf     = '';
@@ -346,9 +345,18 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
+    // ── HTML comment — skip silently (e.g. TOC anchor comments in digests) ──
+    if (/^\s*<!--.*-->\s*$/.test(line)) {
+      i++;
+      continue;
+    }
+
     // ── Regular text — accumulate into paragraph ───────────────────────────
     flushList();
-    paraBuf += (paraBuf ? ' ' : '') + line;
+    // Markdown soft break: line ending with two spaces → insert \n as <br> marker
+    const softBreak = line.endsWith('  ');
+    const cleanLine = softBreak ? line.slice(0, -2) : line;
+    paraBuf += (paraBuf ? (softBreak ? '\n' : ' ') : '') + cleanLine;
     i++;
   }
 
@@ -631,12 +639,47 @@ export async function setupAnnotations(chatId, storage) {
   const contentEl = document.getElementById('reader-content');
   if (!toolbar || !contentEl) return;
 
-  let selectedColor = '#fef08a';
-  let pendingRange  = null;
+  let selectedColor  = '#fef08a';
+  let pendingRange   = null;
+  let allAnnotations = [];
+
+  // ── Annotation count summary in header — built synchronously, before any
+  //    await, so it lands in the DOM on every load regardless of timing. ────
+  const readerHeader = document.getElementById('reader-header');
+  let annWrapper     = document.getElementById('ann-summary-wrapper');
+  let annBtn         = document.getElementById('ann-summary-btn');
+  let annDropdown    = document.getElementById('ann-summary-dropdown');
+
+  if (!annWrapper && readerHeader) {
+    annWrapper = document.createElement('div');
+    annWrapper.id        = 'ann-summary-wrapper';
+    annWrapper.className = 'ann-summary-wrapper';
+
+    annBtn = document.createElement('button');
+    annBtn.id        = 'ann-summary-btn';
+    annBtn.className = 'ann-summary-btn';
+    annBtn.setAttribute('aria-label', 'Highlighted sections');
+    annBtn.type = 'button';
+    annBtn.hidden = true;   // hidden until we know the count
+
+    annDropdown = document.createElement('div');
+    annDropdown.id        = 'ann-summary-dropdown';
+    annDropdown.className = 'ann-summary-dropdown';
+    annDropdown.setAttribute('role', 'menu');
+    annDropdown.hidden = true;
+
+    annWrapper.appendChild(annBtn);
+    annWrapper.appendChild(annDropdown);
+
+    const metaRow = readerHeader.querySelector('.reader-header__meta');
+    if (metaRow) metaRow.appendChild(annWrapper);
+    else readerHeader.querySelector('.reader-header__inner')?.appendChild(annWrapper);
+  }
 
   // ── Re-apply stored annotations ──────────────────────────────────────────
   try {
     const existing = await loadAnnotations(chatId, storage);
+    allAnnotations = existing;
     applyAnnotations(contentEl, existing);
   } catch (_) {}
 
@@ -650,6 +693,84 @@ export async function setupAnnotations(chatId, storage) {
     });
   });
 
+  // ── Render / update the header summary ───────────────────────────────────
+  function renderAnnSummary() {
+    if (!annBtn || !annDropdown) return;
+    const count = allAnnotations.length;
+    annBtn.hidden = count === 0;
+    annBtn.textContent = `\uD83D\uDD0D ${count} ${count === 1 ? 'highlight' : 'highlights'}`;
+
+    annDropdown.innerHTML = '';
+    if (!count) return;
+    const sorted = [...allAnnotations].sort((a, b) => a.start - b.start);
+    for (const ann of sorted) {
+      const item = document.createElement('button');
+      item.className = 'ann-summary-dropdown__item';
+      item.setAttribute('role', 'menuitem');
+      item.type = 'button';
+
+      const swatch = document.createElement('span');
+      swatch.className = 'ann-summary-dropdown__swatch';
+      swatch.style.background = ann.color || '#fef08a';
+
+      const textEl = document.createElement('span');
+      textEl.className = 'ann-summary-dropdown__text';
+      const snippet = (ann.text || '').replace(/\s+/g, ' ').trim();
+      textEl.textContent = snippet.length > 60 ? snippet.slice(0, 60) + '\u2026' : (snippet || '(empty)');
+
+      item.appendChild(swatch);
+      item.appendChild(textEl);
+
+      if (ann.note) {
+        const noteEl = document.createElement('span');
+        noteEl.className = 'ann-summary-dropdown__note';
+        noteEl.textContent = ann.note.length > 50 ? ann.note.slice(0, 50) + '\u2026' : ann.note;
+        item.appendChild(noteEl);
+      }
+
+      item.addEventListener('click', () => {
+        annDropdown.hidden = true;
+        const markEl = contentEl.querySelector(`[data-annotation-id="${ann.id}"]`);
+        if (markEl) markEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+
+      annDropdown.appendChild(item);
+    }
+  }
+
+  renderAnnSummary();
+
+  // ── Summary dropdown hover wiring ─────────────────────────────────────────
+  let _annHideTimer = null;
+  function _showAnnDropdown() {
+    if (!allAnnotations.length) return;
+    clearTimeout(_annHideTimer);
+    annDropdown.hidden = false;
+  }
+  function _scheduleAnnHide() {
+    _annHideTimer = setTimeout(() => { annDropdown.hidden = true; }, 150);
+  }
+  if (annBtn) {
+    annBtn.addEventListener('mouseenter', _showAnnDropdown);
+    annBtn.addEventListener('mouseleave', _scheduleAnnHide);
+  }
+  if (annDropdown) {
+    annDropdown.addEventListener('mouseenter', () => clearTimeout(_annHideTimer));
+    annDropdown.addEventListener('mouseleave', _scheduleAnnHide);
+  }
+
+  // ── Prevent toolbar interactions from clearing the text selection ────────
+  // preventDefault on ALL toolbar mousedowns stops the browser from clearing
+  // the document text selection (which it does as part of the default focus
+  // handling on mousedown).  For the note <input> we then call .focus()
+  // manually — programmatic focus does NOT clear the document selection.
+  toolbar.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    if (e.target === noteInput || noteInput?.contains(e.target)) {
+      noteInput.focus();
+    }
+  });
+
   // ── Show toolbar on text selection ───────────────────────────────────────
   document.addEventListener('mouseup', (e) => {
     // Clicks inside the toolbar should not dismiss it
@@ -661,6 +782,14 @@ export async function setupAnnotations(chatId, storage) {
       pendingRange   = null;
       return;
     }
+
+    // Ignore selections that contain only whitespace (e.g. accidental double-clicks)
+    if (!sel.toString().trim()) {
+      toolbar.hidden = true;
+      pendingRange   = null;
+      return;
+    }
+
     const range = sel.getRangeAt(0);
     if (!contentEl.contains(range.commonAncestorContainer)) {
       toolbar.hidden = true;
@@ -698,19 +827,21 @@ export async function setupAnnotations(chatId, storage) {
     saveBtn.addEventListener('click', async () => {
       if (!pendingRange) return;
       const ann = {
-        id:    `ann-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        id:    generateId('ann'),
         ...pendingRange,
         color: selectedColor,
         note:  noteInput?.value.trim() || '',
       };
       try {
-        await saveAnnotation(chatId, ann, storage);
+        const updatedList = await saveAnnotation(chatId, ann, storage);
+        allAnnotations = updatedList;
         applyAnnotations(contentEl, [ann]);
       } catch (_) {}
       toolbar.hidden = true;
       pendingRange   = null;
       window.getSelection()?.removeAllRanges();
       if (noteInput) noteInput.value = '';
+      renderAnnSummary();
     });
   }
 
@@ -724,11 +855,15 @@ export async function setupAnnotations(chatId, storage) {
     /* c8 ignore next */
     if (!window.confirm('Delete this annotation?')) return;
 
-    try { await deleteAnnotation(chatId, annId, storage); } catch (_) {}
+    try {
+      const updatedList = await deleteAnnotation(chatId, annId, storage);
+      allAnnotations = updatedList;
+    } catch (_) {}
     // Unwrap: replace <mark> with its children
     const parent = mark.parentNode;
     while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
     parent.removeChild(mark);
+    renderAnnSummary();
   });
 }
 
@@ -1049,6 +1184,55 @@ export function renderChat(chat) {
     }
   }
 
+  // ── Assembled-chats header consolidation ──────────────────────────────
+  // When the chat was created by assembling multiple source chats, show a
+  // header badge listing each source section with a click-to-scroll link.
+  const assembledEl = document.getElementById('meta-assembled');
+  if (assembledEl) {
+    assembledEl.innerHTML = '';
+    const isAssembled = Boolean(meta.isAssembled);
+    if (isAssembled) {
+      // The digest markdown emits `## <title>` for each source section.
+      // We skip the optional "Contents" TOC heading.
+      const sectionHeadings = Array.from(contentEl.querySelectorAll('h2')).filter(
+        h => h.textContent.trim().toLowerCase() !== 'contents'
+      );
+
+      if (sectionHeadings.length > 0) {
+        sectionHeadings.forEach((h, i) => { h.id = `assembled-section-${i}`; });
+
+        const n = sectionHeadings.length;
+        const trigger = document.createElement('span');
+        trigger.className = 'meta-assembled__trigger';
+        trigger.textContent = `🔗 ${n} chat${n !== 1 ? 's' : ''} assembled`;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'assembled-overlay';
+        overlay.setAttribute('role', 'list');
+
+        sectionHeadings.forEach((h, i) => {
+          const title   = h.textContent.trim();
+          const snippet = title.length > 68 ? title.slice(0, 65) + '…' : title;
+          const a = document.createElement('a');
+          a.href      = `#assembled-section-${i}`;
+          a.className = 'assembled-overlay__item';
+          a.setAttribute('role', 'listitem');
+          a.title     = title;
+          a.innerHTML = `<span class="assembled-overlay__num">${i + 1}.</span> ${escapeHtml(snippet)}`;
+          overlay.appendChild(a);
+        });
+
+        assembledEl.appendChild(trigger);
+        assembledEl.appendChild(overlay);
+        assembledEl.hidden = false;
+      } else {
+        assembledEl.hidden = true;
+      }
+    } else {
+      assembledEl.hidden = true;
+    }
+  }
+
   // ── Copy-code button wiring ─────────────────────────────────────────
   // Use event delegation on the content container so no per-button listeners.
   contentEl.addEventListener('click', (e) => {
@@ -1066,59 +1250,77 @@ export function renderChat(chat) {
       }, 2000);
     }).catch(() => {});
   });
+
+  // ── Source-chat link wiring — select originating chat in sidepanel tree ──
+  contentEl.addEventListener('click', (e) => {
+    const link = e.target.closest('.source-chat-link');
+    if (!link) return;
+    e.preventDefault();
+    const chatId = link.dataset.selectChat;
+    if (!chatId) return;
+    browser.runtime.sendMessage({ type: 'SELECT_CHAT', chatId }).catch(() => {});
+  });
 }
 
 /**
- * Apply theme / skin / accent values directly to <html>.
- * Shared by the initial load path and the live-update listener.
+ * Apply theme / skin / accent values to <html>.
+ * Resolves special theme IDs (oled → dark, auto → light|dark), then delegates
+ * CSS variable injection to loadTheme() — the same SDK used by the sidepanel.
  * @param {{ theme?: string, skin?: string, accent?: string }} values
+ * @returns {Promise<void>}
  */
-export function applySettingsFromValues({ theme, skin, accent } = {}) {
+export async function applySettingsFromValues({ theme, skin, accent } = {}) {
   const html = document.documentElement;
 
-  // ─ Theme ─────────────────────────────────────────────────────
-  const t = theme || 'light';
-  if (t === 'oled') {
-    html.setAttribute('data-theme', 'dark');
+  // ─ Resolve theme to a concrete loadable ID ───────────────────
+  let resolvedId = theme || 'light';
+  if (resolvedId === 'oled') {
     html.setAttribute('data-oled', '');
+    resolvedId = 'dark';
   } else {
     html.removeAttribute('data-oled');
-    if (t === 'auto') {
+    if (resolvedId === 'auto') {
       const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-      html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    } else {
-      html.setAttribute('data-theme', t);
+      resolvedId = prefersDark ? 'dark' : 'light';
     }
   }
 
-  // ─ Skin ──────────────────────────────────────────────────────
+  // ─ Skin / Accent ─────────────────────────────────────────────
+  // Set synchronously so attribute-based CSS (skins, accents) is active
+  // immediately, independently of the async theme load below.
   if (skin) html.setAttribute('data-skin', skin);
   else      html.removeAttribute('data-skin');
 
-  // ─ Accent ───────────────────────────────────────────────────
   if (accent) html.setAttribute('data-accent', accent);
   else        html.removeAttribute('data-accent');
+
+  // ─ Theme ─────────────────────────────────────────────────────
+  // Delegate to the shared useTheme SDK (same path as the sidepanel).
+  // applyCustomTheme() injects CSS custom properties inline so all
+  // var(--token) references in reader.css pick up the active theme.
+  await loadTheme(resolvedId);
 }
 
 /**
- * Apply the stored theme / skin / accent to <html> so themes.css and skins.css
- * tokens are active before the first render pass.
+ * Apply the stored theme to <html> before the first render.
+ * Reads the 'themeId' key from storage (matching useTheme.js / persistTheme)
+ * and delegates to applySettingsFromValues() → loadTheme().
  * Injectable storage object is the same one used by init().
  * @param {Object} storage
  */
 export async function applyReaderSettings(storage) {
   try {
-    const result = await storage.get(['theme', 'skin', 'accent']);
-    applySettingsFromValues(result);
+    const result = await storage.get('themeId');
+    await applySettingsFromValues({ theme: result.themeId });
   } catch (_) {
     // Non-fatal — fall back to :root defaults
   }
 }
 
 /**
- * Register a browser.storage.onChanged listener so if the user changes the
- * theme / skin / accent in the sidepanel settings while a reader tab is open,
- * the reader page updates instantly without a reload.
+ * Register a browser.storage.onChanged listener so the reader page updates
+ * instantly when the user changes the theme in the sidepanel.
+ * Listens for 'themeId' — the key written by persistTheme() in useTheme.js.
  *
  * Safe no-op when browser.storage.onChanged is unavailable (unit tests).
  */
@@ -1128,25 +1330,11 @@ export function watchReaderSettings() {
 
   browser.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    if (!('theme' in changes) && !('skin' in changes) && !('accent' in changes)) return;
+    // 'themeId' is the key written by persistTheme() in useTheme.js.
+    // skin / accent are part of the theme JSON — not separate storage keys.
+    if (!('themeId' in changes)) return;
 
-    // Build a partial values object from only the keys that changed
-    const updated = {};
-    if ('theme'  in changes) updated.theme  = changes.theme.newValue;
-    if ('skin'   in changes) updated.skin   = changes.skin.newValue;
-    if ('accent' in changes) updated.accent = changes.accent.newValue;
-
-    // For unchanged keys we keep the current attribute value so we don’t
-    // accidentally reset e.g. skin when only theme changed.
-    if (!('theme' in updated)) {
-      updated.theme = document.documentElement.getAttribute('data-theme') || 'light';
-      // Restore 'oled' label when the special data-oled attr is set
-      if (document.documentElement.hasAttribute('data-oled')) updated.theme = 'oled';
-    }
-    if (!('skin'   in updated)) updated.skin   = document.documentElement.getAttribute('data-skin')   || '';
-    if (!('accent' in updated)) updated.accent = document.documentElement.getAttribute('data-accent') || '';
-
-    applySettingsFromValues(updated);
+    applySettingsFromValues({ theme: changes.themeId.newValue });
   });
 }
 

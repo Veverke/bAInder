@@ -1,8 +1,10 @@
 /**
  * @file style-transformer.js
  * @description Transforms chat objects into styled document structures for export.
- * Pure ES module — no side effects, no DOM access, no imports.
+ * Pure ES module — no side effects, no DOM access.
  */
+
+import { escapeHtml } from './search-utils.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -449,32 +451,18 @@ export function styledToHtmlBody(styledChat) {
   if (!styledChat || typeof styledChat !== 'object') return '';
 
   /**
-   * Minimal HTML escaping for plain-text content.
-   * @param {string} str
-   * @returns {string}
-   */
-  function _escapeHtml(str) {
-    return (str || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  /**
    * Wraps newlines in content as <br> tags and escapes HTML.
    * @param {string} str
    * @returns {string}
    */
   function _contentToHtml(str) {
-    return _escapeHtml(str || '').replace(/\n/g, '<br>\n');
+    return escapeHtml(str || '').replace(/\n/g, '<br>\n');
   }
 
   const htmlParts = [];
 
   if (styledChat.title) {
-    htmlParts.push(`<h1>${_escapeHtml(styledChat.title)}</h1>`);
+    htmlParts.push(`<h1>${escapeHtml(styledChat.title)}</h1>`);
   }
 
   if (styledChat.introduction) {
@@ -484,7 +472,7 @@ export function styledToHtmlBody(styledChat) {
   const sections = Array.isArray(styledChat.sections) ? styledChat.sections : [];
   for (const section of sections) {
     const headingHtml = section.heading
-      ? `\n  <h2>${_escapeHtml(section.heading)}</h2>`
+      ? `\n  <h2>${escapeHtml(section.heading)}</h2>`
       : '';
     const contentHtml = `\n  <p>${_contentToHtml(section.content)}</p>`;
     htmlParts.push(`<section>${headingHtml}${contentHtml}\n</section>`);

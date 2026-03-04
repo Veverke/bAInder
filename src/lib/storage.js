@@ -103,43 +103,83 @@ export class ChromeStorageAdapter extends IStorageService {
   }
 
   /**
-   * Search chats by query
+   * Search chats by query string.
+   * Orchestrates: load → filter → rank.
+   * @param {string} query
+   * @returns {Promise<Object[]>} Ranked array of matching chats
    */
   async searchChats(query) {
     try {
       const result = await browser.storage.local.get(this.KEYS.CHATS);
-      const chats = result[this.KEYS.CHATS] || [];
-
+      const chats  = result[this.KEYS.CHATS] || [];
       const lowerQuery = query.toLowerCase();
-      const matches = [];
-
-      for (const chat of chats) {
-        if (!chat) continue;
-        // Build searchable text: title + content + tags
-        const tagText = (chat.tags || []).join(' ');
-        const searchText = `${chat.title || ''} ${chat.content || ''} ${tagText}`.toLowerCase();
-
-        if (searchText.includes(lowerQuery)) {
-          matches.push(chat);
-        }
-      }
-
-      // Sort by relevance (title/tag matches first, then by timestamp)
-      return matches.sort((a, b) => {
-        const aTitle = (a.title || '').toLowerCase().includes(lowerQuery);
-        const bTitle = (b.title || '').toLowerCase().includes(lowerQuery);
-        const aTag   = (a.tags || []).some(t => t.toLowerCase().includes(lowerQuery));
-        const bTag   = (b.tags || []).some(t => t.toLowerCase().includes(lowerQuery));
-        const aTop = aTitle || aTag;
-        const bTop = bTitle || bTag;
-        if (aTop && !bTop) return -1;
-        if (!aTop && bTop) return  1;
-        return (b.timestamp || 0) - (a.timestamp || 0);
-      });
+      const matches = chats.filter(chat => chat && this._matchesQuery(chat, lowerQuery));
+      return this._rankChats(matches, lowerQuery);
     } catch (error) {
       console.error('Error searching chats:', error);
       throw new Error(`Failed to search chats: ${error.message}`);
     }
+  }
+
+  /**
+   * Build the full searchable text for one chat.
+   * Concatenates title, content, and tags so the caller can do a single
+   * `.includes()` check instead of probing each field individually.
+   * @param {Object} chat
+   * @returns {string} Lower-cased, space-joined text
+   */
+  _buildSearchableText(chat) {
+    const tagText = (chat.tags || []).join(' ');
+    return `${chat.title || ''} ${chat.content || ''} ${tagText}`.toLowerCase();
+  }
+
+  /**
+   * Return true when `chat` contains `lowerQuery` in any searchable field.
+   * @param {Object} chat
+   * @param {string} lowerQuery — already lower-cased query string
+   * @returns {boolean}
+   */
+  _matchesQuery(chat, lowerQuery) {
+    return this._buildSearchableText(chat).includes(lowerQuery);
+  }
+
+  /**
+   * Sort an array of matching chats by relevance:
+   *   1. Title or tag match  (highest priority)
+   *   2. Content-only match  (lower priority, falls through to…)
+   *   3. Most-recent timestamp (tie-breaker)
+   *
+   * Uses a Schwartzian transform (decorate → sort → undecorate) so that
+   * `_isTopResult` is called exactly once per element — O(n×k) — rather than
+   * once per comparator invocation — O(n log n × k).  The sort itself only
+   * touches cheap boolean and numeric comparisons.
+   *
+   * @param {Object[]} matches  — already-filtered chats
+   * @param {string}   lowerQuery
+   * @returns {Object[]} new sorted array (original is not mutated)
+   */
+  _rankChats(matches, lowerQuery) {
+    return matches
+      .map(chat => ({ chat, isTop: this._isTopResult(chat, lowerQuery) }))
+      .sort((a, b) => {
+        if (a.isTop && !b.isTop) return -1;
+        if (!a.isTop && b.isTop) return  1;
+        return (b.chat.timestamp || 0) - (a.chat.timestamp || 0);
+      })
+      .map(({ chat }) => chat);
+  }
+
+  /**
+   * Return true when `lowerQuery` appears in the chat's title or any tag.
+   * These matches are considered higher-relevance than content-only matches.
+   * @param {Object} chat
+   * @param {string} lowerQuery
+   * @returns {boolean}
+   */
+  _isTopResult(chat, lowerQuery) {
+    const titleMatch = (chat.title || '').toLowerCase().includes(lowerQuery);
+    const tagMatch   = (chat.tags  || []).some(t => t.toLowerCase().includes(lowerQuery));
+    return titleMatch || tagMatch;
   }
 
   /**

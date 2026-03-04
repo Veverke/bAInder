@@ -5,10 +5,14 @@
 
 /**
  * Escape HTML special characters in a string.
+ * Canonical implementation — imported by reader.js, style-transformer.js,
+ * dialog-manager.js, and export/format-helpers.js instead of each defining
+ * their own copy.
  * @param {string} text
  * @returns {string}
  */
 export function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
   return String(text)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -151,4 +155,21 @@ export function applySearchFilters(results, filters, tree = null) {
   }
 
   return out;
+}
+
+/**
+ * Generate a unique, time-based ID.
+ *
+ * Canonical implementation — previously copy-pasted in Topic, ChatEntry,
+ * chat-save-handler.js, and reader.js as four independent inline expressions.
+ *
+ * @param {string} [prefix]  Optional prefix (e.g. 'topic', 'chat', 'ann').
+ *   With prefix:  `{prefix}_{timestamp}_{9 random chars}`
+ *   Without:      `{timestamp}-{9 random chars}`  (backwards-compat for generateChatId)
+ * @returns {string}
+ */
+export function generateId(prefix) {
+  const ts  = Date.now();
+  const rnd = Math.random().toString(36).slice(2, 11);
+  return prefix ? `${prefix}_${ts}_${rnd}` : `${ts}-${rnd}`;
 }

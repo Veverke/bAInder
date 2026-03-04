@@ -1,98 +1,91 @@
 /**
- * TreeRenderer - Renders hierarchical topic tree in the side panel
- * 
- * Features:
- * - Hierarchical display with indentation
- * - Expand/collapse functionality
- * - Timespan badges for topics with chats
- * - Lazy loading for performance
- * - Keyboard navigation support
+ * tree-renderer.js — thin orchestrator for the topic-tree UI
+ *
+ * The 1,102-line monolith has been decomposed into 8 focused modules under
+ * src/lib/renderer/ (resolves Code Quality issue 2.4):
+ *
+ *   tag-color.js          — getTagColor() — deterministic hue hash
+ *   tree-sort.js          — sortTopics()  — sort strategies; fixes issue 5.4
+ *   sparkline.js          — buildSparklineEl() — weekly-activity SVG
+ *   search-highlight.js   — highlightSearch(), clearHighlight()
+ *   flatten.js            — flattenVisible()   — pure tree traversal
+ *   virtual-scroll.js     — startVirtualScroll(), renderVirtualRow()
+ *   chat-item-builder.js  — buildChatItem()    — DOM factory
+ *   topic-node-builder.js — buildTopicNode()   — DOM factory
+ *
+ * This file keeps the full public API (TreeRenderer class + getTagColor export)
+ * so all callers and tests remain unchanged.
  */
 
-/**
- * Deterministic HSL hue (0-359) from a tag string via djb2 hash.
- * Same tag always yields the same hue across all renders.
- * @param {string} tag
- * @returns {number} hue in [0, 359]
- */
-export function getTagColor(tag) {
-  let h = 5381;
-  for (let i = 0; i < tag.length; i++) h = (Math.imul(33, h) ^ tag.charCodeAt(i)) >>> 0;
-  return h % 360;
-}
+import { getTagColor as _getTagColor }    from './renderer/tag-color.js';
+import { sortTopics }                      from './renderer/tree-sort.js';
+import { buildSparklineEl }                from './renderer/sparkline.js';
+import { highlightSearch as _hl,
+         clearHighlight  as _clr }        from './renderer/search-highlight.js';
+import { flattenVisible }                  from './renderer/flatten.js';
+import { startVirtualScroll,
+         renderVirtualRow }               from './renderer/virtual-scroll.js';
+import { buildTopicNode }                  from './renderer/topic-node-builder.js';
+import { buildChatItem }                   from './renderer/chat-item-builder.js';
+
+// Re-export for backward compatibility (callers import getTagColor from here)
+export { _getTagColor as getTagColor };
+
+// ---------------------------------------------------------------------------
 
 export class TreeRenderer {
   constructor(container, topicTree = null) {
     this.container = container;
-    this.tree = topicTree;
-    this.expandedNodes = new Set(); // Track which nodes are expanded
-    this.selectedNodeId = null; // Track selected node
-    this.chats = []; // Flat chats array (Stage 7)
+    this.tree      = topicTree;
+    this.expandedNodes  = new Set();
+    this.selectedNodeId = null;
+    this.chats          = [];
 
-    // Event handlers (can be overridden)
-    this.onTopicClick = null;
+    // Event handler callbacks (can be overridden by the caller)
+    this.onTopicClick       = null;
     this.onTopicContextMenu = null;
-    this.onChatClick = null;        // Stage 7
-    this.onChatContextMenu = null;  // Stage 7
-    this.onTopicPin = null;         // U2 (Round 2) — (topicId, pinned) => void
-
-    // Drag-and-drop callbacks
-    // onTopicDrop(draggedTopicId, targetTopicId | null)
-    //   targetTopicId === null means "drop to root level"
-    this.onTopicDrop = null;
-    // onChatDrop(chatId, targetTopicId)
-    this.onChatDrop = null;
+    this.onChatClick        = null;
+    this.onChatContextMenu  = null;
+    this.onTopicPin         = null;
+    this.onTopicDrop        = null;
+    this.onChatDrop         = null;
 
     // Internal drag state
-    this._drag = null; // { type: 'topic'|'chat', id: string }
+    this._drag = null; // { type: 'topic'|'chat', id: string } | null
 
-    // A3: stagger counter — incremented per node/chat <li> during each render()
+    // A3: stagger animation counter
     this._nodeIndex = 0;
 
     // Stage 10: virtual scrolling
-    this.virtualThreshold = 150;       // override for testing: renderer.virtualThreshold = N
-    this._virtualScrollHandler = null; // stored so we can removeEventListener on re-render
+    this.virtualThreshold      = 150;
+    this._virtualScrollHandler = null;
 
-    // C.9 — topic sort mode: 'alpha-asc' | 'alpha-desc' | 'updated' | 'count'
+    // C.9 topic sort mode
     this.sortMode = 'alpha-asc';
 
-    // C.17 — multi-select mode
-    this.multiSelectMode = false;        // whether checkboxes are visible
-    this.selectedChatIds = new Set();   // IDs of currently checked chats
-    this.onSelectionChange = null;       // (selectedChatIds: Set, selectedChats: Object[]) => void
+    // C.17 multi-select mode
+    this.multiSelectMode   = false;
+    this.selectedChatIds   = new Set();
+    this.onSelectionChange = null;
   }
 
-  /**
-   * Set the topic tree to render
-   */
-  setTree(topicTree) {
-    this.tree = topicTree;
-  }
+  // ---- Data setters -------------------------------------------------------
 
-  /**
-   * Set the flat chats array so the renderer can display chat items (Stage 7).
-   * @param {Array} chats
-   */
+  setTree(topicTree) { this.tree = topicTree; }
+
   setChatData(chats) {
     this.chats = Array.isArray(chats) ? chats : [];
   }
 
-  // ── C.9 Topic sort ────────────────────────────────────────────────────────
+  // ---- C.9 Sort -----------------------------------------------------------
 
-  /**
-   * Set sort mode and re-render immediately.
-   * @param {'alpha-asc'|'alpha-desc'|'updated'|'count'} mode
-   */
   setSortMode(mode) {
     this.sortMode = mode;
     this.render();
   }
 
-  // ── C.17 Multi-select ─────────────────────────────────────────────────────
+  // ---- C.17 Multi-select --------------------------------------------------
 
-  /**
-   * Enter multi-select mode — show checkboxes on all chat items.
-   */
   enterMultiSelectMode() {
     if (this.multiSelectMode) return;
     this.multiSelectMode = true;
@@ -100,9 +93,6 @@ export class TreeRenderer {
     this.render();
   }
 
-  /**
-   * Exit multi-select mode — hide checkboxes and clear selection.
-   */
   exitMultiSelectMode() {
     if (!this.multiSelectMode) return;
     this.multiSelectMode = false;
@@ -110,18 +100,12 @@ export class TreeRenderer {
     this.render();
   }
 
-  /**
-   * Toggle the checked state of a single chat.
-   * Fires `onSelectionChange` with the updated Set and matching chat objects.
-   * @param {string} chatId
-   */
   toggleChatSelection(chatId) {
     if (this.selectedChatIds.has(chatId)) {
       this.selectedChatIds.delete(chatId);
     } else {
       this.selectedChatIds.add(chatId);
     }
-    // Update checkbox DOM without a full re-render for responsiveness
     const li = this.container.querySelector(`[data-chat-id="${CSS.escape(chatId)}"]`);
     if (li) {
       const cb = li.querySelector('.tree-chat-checkbox');
@@ -133,9 +117,6 @@ export class TreeRenderer {
     }
   }
 
-  /**
-   * Clear all selections without exiting multi-select mode.
-   */
   clearSelection() {
     this.selectedChatIds = new Set();
     this.container.querySelectorAll('.tree-chat-item--selected').forEach(el => {
@@ -148,100 +129,119 @@ export class TreeRenderer {
     }
   }
 
-  /**
-   * Return the full chat objects for every currently selected chat ID.
-   * @returns {Object[]}
-   */
   getSelectedChats() {
     return this.chats.filter(c => this.selectedChatIds.has(c.id));
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // ---- Expand / collapse --------------------------------------------------
 
-  /**
-   * Sort an array of Topic objects according to the current sortMode.
-   * Pinned topics always float to the top regardless of sort mode.
-   * @param {Topic[]} topics
-   * @returns {Topic[]}
-   */
-  _sortTopics(topics) {
-    const pinFirst = (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-    switch (this.sortMode) {
-      case 'alpha-desc':
-        return [...topics].sort((a, b) => {
-          const p = pinFirst(a, b);
-          return p !== 0 ? p : b.name.toLowerCase().localeCompare(a.name.toLowerCase());
-        });
-      case 'updated':
-        return [...topics].sort((a, b) => {
-          const p = pinFirst(a, b);
-          return p !== 0 ? p : (b.updatedAt || 0) - (a.updatedAt || 0);
-        });
-      case 'count':
-        return [...topics].sort((a, b) => {
-          const p = pinFirst(a, b);
-          return p !== 0 ? p : (b.chatIds?.length || 0) - (a.chatIds?.length || 0);
-        });
-      case 'alpha-asc':
-      default:
-        return [...topics].sort((a, b) => {
-          const p = pinFirst(a, b);
-          return p !== 0 ? p : a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-        });
+  toggleNode(topicId) {
+    if (this.expandedNodes.has(topicId)) {
+      this.expandedNodes.delete(topicId);
+    } else {
+      this.expandedNodes.add(topicId);
+    }
+    this.render();
+  }
+
+  expandNode(topicId) {
+    if (!this.expandedNodes.has(topicId)) {
+      this.expandedNodes.add(topicId);
+      this.render();
     }
   }
 
-  /**
-   * Render the entire tree
-   */
-  render() {
-    if (!this.tree) {
-      this.renderEmpty();
-      return;
+  collapseNode(topicId) {
+    if (this.expandedNodes.has(topicId)) {
+      this.expandedNodes.delete(topicId);
+      this.render();
     }
+  }
+
+  expandAll() {
+    if (!this.tree) return;
+    this.tree.getAllTopics().forEach(topic => {
+      if (topic.children.length > 0 || this.chats.some(c => c.topicId === topic.id)) {
+        this.expandedNodes.add(topic.id);
+      }
+    });
+    this.render();
+  }
+
+  collapseAll() {
+    this.expandedNodes.clear();
+    this.render();
+  }
+
+  expandToTopic(topicId) {
+    if (!this.tree) return;
+    const path = this.tree.getTopicPath(topicId);
+    path.forEach(item => {
+      if (item.id !== topicId) this.expandedNodes.add(item.id);
+    });
+    this.render();
+  }
+
+  getExpandedState() { return Array.from(this.expandedNodes); }
+
+  setExpandedState(expandedIds) {
+    this.expandedNodes = new Set(expandedIds);
+    this.render();
+  }
+
+  // ---- Node selection -----------------------------------------------------
+
+  selectNode(topicId) {
+    this.selectedNodeId = topicId;
+    this.container.querySelectorAll('.tree-node').forEach(node => {
+      node.classList.toggle('selected', node.dataset.topicId === topicId);
+    });
+  }
+
+  deselectNode() {
+    this.selectedNodeId = null;
+    this.container.querySelectorAll('.tree-node').forEach(node => {
+      node.classList.remove('selected');
+    });
+  }
+
+  getSelectedNode() { return this.selectedNodeId; }
+
+  // ---- Main render --------------------------------------------------------
+
+  render() {
+    if (!this.tree) { this.renderEmpty(); return; }
 
     const rootTopics = this.tree.getRootTopics();
-    
-    if (rootTopics.length === 0) {
-      this.renderEmpty();
-      return;
-    }
+    if (rootTopics.length === 0) { this.renderEmpty(); return; }
 
-    // Stage 10 — virtual scrolling gate (bypassed during C.17 multi-select)
     const flatNodes = this._flattenVisible();
     if (flatNodes.length > this.virtualThreshold && !this.multiSelectMode) {
       this.renderVirtual(flatNodes);
       return;
     }
-    // Clean up any stale virtual state before normal render
+
     if (this._virtualScrollHandler) {
       this.container.removeEventListener('scroll', this._virtualScrollHandler);
       this._virtualScrollHandler = null;
     }
     this.container.classList.remove('tree-virtual-container');
     this.container.classList.toggle('tree-multiselect-active', this.multiSelectMode);
-
-    // Clear container
     this.container.innerHTML = '';
-    
-    // Render root topics
+
     const ul = document.createElement('ul');
     ul.className = 'tree-root';
     ul.setAttribute('role', 'tree');
 
-    // U2 + C.9: apply sort mode (pinned first is baked into _sortTopics)
-    const sortedRoot = this._sortTopics(rootTopics);
-    this._nodeIndex = 0;
+    const nodeIndex = { value: 0 };
+    const ctx       = this._makeCtx(nodeIndex);
 
-    sortedRoot.forEach(topic => {
-      const li = this.renderNode(topic, 0);
-      ul.appendChild(li);
-    });
+    this._sortTopics(rootTopics).forEach(topic => ul.appendChild(buildTopicNode(topic, 0, ctx)));
+    this._nodeIndex = nodeIndex.value;
 
-    // Root-level drop zone: dropping here re-parents a topic to root
+    // Root-level drop zone (drop here to re-parent a topic to root)
     ul.addEventListener('dragover', (e) => {
       if (!this._drag || this._drag.type !== 'topic') return;
-      // Only accept if the direct target is the ul itself (not a child)
       if (e.target !== ul) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
@@ -256,578 +256,55 @@ export class TreeRenderer {
       if (!this._drag || this._drag.type !== 'topic') return;
       e.preventDefault();
       e.stopPropagation();
-      if (this.onTopicDrop) this.onTopicDrop(this._drag.id, null); // null = root
+      if (this.onTopicDrop) this.onTopicDrop(this._drag.id, null);
       this._drag = null;
     });
 
     this.container.appendChild(ul);
-    
-    // Update empty state visibility
+
     const emptyState = document.getElementById('emptyState');
-    if (emptyState) {
-      emptyState.style.display = 'none';
-    }
+    if (emptyState) emptyState.style.display = 'none';
   }
 
-  /**
-   * Render empty state
-   */
   renderEmpty() {
     this.container.innerHTML = '';
     const emptyState = document.getElementById('emptyState');
-    if (emptyState) {
-      emptyState.style.display = 'flex';
-    }
+    if (emptyState) emptyState.style.display = 'flex';
   }
 
-  /**
-   * Render a single tree node (topic)
-   */
+  renderVirtual(flatNodes) {
+    this._virtualScrollHandler = startVirtualScroll(
+      this.container, flatNodes, this._virtualScrollHandler, this._makeVirtualCtx()
+    );
+  }
+
+  // ---- Node builder delegates (for direct-call compatibility) -------------
+
   renderNode(topic, level) {
-    const li = document.createElement('li');
-    li.className = level === 0 ? 'tree-node tree-node--card' : 'tree-node';
-    li.setAttribute('role', 'treeitem');
-    li.setAttribute('aria-level', level + 1);
-    li.dataset.topicId = topic.id;
-    li.style.setProperty('--node-index', this._nodeIndex++); // A3 stagger
-
-    const hasChildren = topic.children.length > 0 ||
-      this.chats.some(c => c.topicId === topic.id);
-    const isExpanded = this.expandedNodes.has(topic.id);
-    const isSelected = this.selectedNodeId === topic.id;
-    
-    if (hasChildren) {
-      li.setAttribute('aria-expanded', isExpanded);
-    }
-    
-    if (isSelected) {
-      li.classList.add('selected');
-    }
-
-    // Create node content
-    const nodeContent = document.createElement('div');
-    nodeContent.className = 'tree-node-content';
-    nodeContent.style.paddingLeft = `${level * 20}px`;
-    nodeContent.tabIndex = 0; // U6 keyboard navigation
-
-    // Expand/collapse button
-    if (hasChildren) {
-      const expandBtn = document.createElement('button');
-      expandBtn.className = 'tree-expand-btn';
-      expandBtn.setAttribute('aria-label', isExpanded ? 'Collapse' : 'Expand');
-      expandBtn.innerHTML = isExpanded ? '▼' : '▶';
-      expandBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.toggleNode(topic.id);
-      });
-      nodeContent.appendChild(expandBtn);
-    } else {
-      // Spacer for alignment
-      const spacer = document.createElement('span');
-      spacer.className = 'tree-expand-spacer';
-      nodeContent.appendChild(spacer);
-    }
-    
-    // Icon
-    const icon = document.createElement('span');
-    icon.className = 'tree-icon';
-    icon.textContent = hasChildren ? '📁' : '📄';
-    nodeContent.appendChild(icon);
-    
-    // Label with timespan
-    const label = document.createElement('span');
-    label.className = 'tree-label';
-    
-    const labelText = document.createElement('span');
-    labelText.className = 'tree-label-text';
-    labelText.textContent = topic.name;
-    label.appendChild(labelText);
-    
-    // Add timespan badge if topic has chats
-    const timespan = topic.getDateRangeString();
-    if (timespan) {
-      const badge = document.createElement('span');
-      badge.className = 'tree-timespan';
-      badge.textContent = timespan;
-      label.appendChild(badge);
-    }
-    
-    // Chat count badge
-    if (topic.chatIds.length > 0) {
-      const chatBadge = document.createElement('span');
-      chatBadge.className = 'tree-chat-count';
-      chatBadge.textContent = topic.chatIds.length;
-      chatBadge.setAttribute('title', `${topic.chatIds.length} chat${topic.chatIds.length !== 1 ? 's' : ''}`);
-      label.appendChild(chatBadge);
-    }
-
-    nodeContent.appendChild(label);
-
-    // ── Sparkline — weekly activity for last 6 weeks (U3) ─────────────────
-    if (level === 0 && topic.chatIds.length > 0) {
-      nodeContent.appendChild(this._buildSparklineEl(topic.id));
-    }
-
-    // ── Star / pin button (level-0 topics only, U2) ───────────────────────
-    if (level === 0) {
-      const starBtn = document.createElement('button');
-      starBtn.className = `tree-star-btn${topic.pinned ? ' tree-star-btn--active' : ''}`;
-      starBtn.setAttribute('aria-label', topic.pinned ? 'Unpin topic' : 'Pin topic');
-      starBtn.setAttribute('title',       topic.pinned ? 'Unpin'        : 'Pin to top');
-      starBtn.textContent = '\u2605'; // ★
-      starBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (this.onTopicPin) this.onTopicPin(topic.id, !topic.pinned);
-      });
-      nodeContent.appendChild(starBtn);
-    }
-
-    // ── ⋮ more-actions button (visible on hover) ──────────────────────────
-    const topicMoreBtn = document.createElement('button');
-    topicMoreBtn.className = 'tree-more-btn';
-    topicMoreBtn.setAttribute('aria-label', 'More actions');
-    topicMoreBtn.textContent = '⋮';
-    topicMoreBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (this.onTopicContextMenu) {
-        this.onTopicContextMenu(topic, e);
-      }
-    });
-    nodeContent.appendChild(topicMoreBtn);
-
-    // Click handler for selection + expand/collapse
-    nodeContent.addEventListener('click', () => {
-      this.selectNode(topic.id);
-      if (hasChildren) {
-        this.toggleNode(topic.id);
-      }
-      if (this.onTopicClick) {
-        this.onTopicClick(topic);
-      }
-    });
-
-    // Context menu handler
-    nodeContent.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      if (this.onTopicContextMenu) {
-        this.onTopicContextMenu(topic, e);
-      }
-    });
-
-    // ── Drag source (topic) ───────────────────────────────────────────────
-    nodeContent.draggable = true;
-    nodeContent.addEventListener('dragstart', (e) => {
-      this._drag = { type: 'topic', id: topic.id };
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', topic.id);
-      // Custom drag ghost pill (A2)
-      const ghost = document.createElement('div');
-      ghost.className = 'tree-drag-ghost';
-      ghost.textContent = `\uD83D\uDCC1 ${topic.name}`;
-      document.body.appendChild(ghost);
-      e.dataTransfer.setDragImage(ghost, 0, 14);
-      requestAnimationFrame(() => ghost.remove());
-      // Slight delay so the drag image captures the element before opacity changes
-      setTimeout(() => nodeContent.classList.add('dragging'), 0);
-    });
-    nodeContent.addEventListener('dragend', () => {
-      nodeContent.classList.remove('dragging');
-      this._drag = null;
-      // Remove any leftover drop-target highlights
-      this.container.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
-    });
-
-    // ── Drop target (topic) ───────────────────────────────────────────────
-    nodeContent.addEventListener('dragover', (e) => {
-      if (!this._drag) return;
-      // Prevent dropping a topic onto itself
-      if (this._drag.type === 'topic' && this._drag.id === topic.id) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      nodeContent.classList.add('drop-target');
-    });
-    nodeContent.addEventListener('dragleave', (e) => {
-      if (!nodeContent.contains(e.relatedTarget)) {
-        nodeContent.classList.remove('drop-target');
-      }
-    });
-    nodeContent.addEventListener('drop', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      nodeContent.classList.remove('drop-target');
-      if (!this._drag) return;
-      if (this._drag.type === 'topic' && this._drag.id !== topic.id) {
-        if (this.onTopicDrop) this.onTopicDrop(this._drag.id, topic.id);
-      } else if (this._drag.type === 'chat') {
-        if (this.onChatDrop) this.onChatDrop(this._drag.id, topic.id);
-      }
-      this._drag = null;
-    });
-
-    li.appendChild(nodeContent);
-
-    // Render children and chats if expanded
-    const topicChats = this.chats.filter(c => c.topicId === topic.id);
-    if (hasChildren && isExpanded) {
-      const childrenUl = document.createElement('ul');
-      childrenUl.className = 'tree-children';
-      childrenUl.setAttribute('role', 'group');
-
-      topic.children.forEach(childId => {
-        const childTopic = this.tree.topics[childId];
-        if (childTopic) {
-          const childLi = this.renderNode(childTopic, level + 1);
-          childrenUl.appendChild(childLi);
-        }
-      });
-
-      // Render chat items after child topics
-      topicChats.forEach(chat => {
-        const chatLi = this._renderChatItem(chat, level + 1);
-        childrenUl.appendChild(chatLi);
-      });
-
-      li.appendChild(childrenUl);
-    }
-
-    return li;
+    const nodeIndex = { value: this._nodeIndex };
+    const el        = buildTopicNode(topic, level, this._makeCtx(nodeIndex));
+    this._nodeIndex = nodeIndex.value;
+    return el;
   }
 
-  /**
-   * Return a single rendered <li> element for a chat entry.
-   * @param {Object} chat
-   * @param {number} level  Indentation level
-   * @returns {HTMLElement}
-   */
   _renderChatItem(chat, level) {
-    const li = document.createElement('li');
-    li.className = 'tree-node tree-chat-item';
-    li.setAttribute('role', 'treeitem');
-    li.setAttribute('data-chat-id', chat.id);
-    li.style.setProperty('--node-index', this._nodeIndex++); // A3 stagger
-
-    // C.17 — mark selected items
-    if (this.multiSelectMode && this.selectedChatIds.has(chat.id)) {
-      li.classList.add('tree-chat-item--selected');
-    }
-
-    // Source attribute drives the CSS left-border accent colour
-    const source = chat.source || 'unknown';
-    li.setAttribute('data-source', source);
-
-    const content = document.createElement('div');
-    content.className = 'tree-node-content';
-    content.style.paddingLeft = `${level * 20}px`;
-    content.tabIndex = 0; // U6 keyboard navigation
-
-    // C.17 — checkbox in multi-select mode (replaces spacer)
-    if (this.multiSelectMode) {
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.className = 'tree-chat-checkbox';
-      cb.checked = this.selectedChatIds.has(chat.id);
-      cb.setAttribute('aria-label', `Select "${chat.title || 'Untitled Chat'}"`);
-      cb.addEventListener('change', (e) => {
-        e.stopPropagation();
-        this.toggleChatSelection(chat.id);
-      });
-      content.appendChild(cb);
-    } else {
-      // Spacer (no expand button – chats are leaf items)
-      const spacer = document.createElement('span');
-      spacer.className = 'tree-expand-spacer';
-      content.appendChild(spacer);
-    }
-
-    // Icon: excerpt vs full chat
-    const icon = document.createElement('span');
-    icon.className = 'tree-icon';
-    icon.textContent = chat.metadata?.isExcerpt ? '✂️' : '💬';
-    content.appendChild(icon);
-
-    // Label
-    const label = document.createElement('span');
-    label.className = 'tree-label';
-
-    // Source badge chip
-    if (!chat.metadata?.isExcerpt) {
-      const SOURCE_LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Copilot' };
-      const sourceChip = document.createElement('span');
-      sourceChip.className = `tree-source-chip tree-source-chip--${source}`;
-      sourceChip.textContent = SOURCE_LABELS[source] || source;
-      label.appendChild(sourceChip);
-    }
-
-    const labelText = document.createElement('span');
-    labelText.className = 'tree-label-text';
-    labelText.textContent = chat.title || 'Untitled Chat';
-    label.appendChild(labelText);
-
-    // Date badge
-    if (chat.timestamp) {
-      const dateBadge = document.createElement('span');
-      dateBadge.className = 'tree-timespan';
-      dateBadge.textContent = new Date(chat.timestamp).toLocaleDateString(
-        'en-US', { month: 'short', day: 'numeric', year: 'numeric' }
-      );
-      label.appendChild(dateBadge);
-    }
-
-    // C.15 — Star rating badge
-    if (chat.rating) {
-      const ratingBadge = document.createElement('span');
-      ratingBadge.className = 'tree-rating-badge';
-      ratingBadge.textContent = '★'.repeat(chat.rating);
-      ratingBadge.title = `${chat.rating} star${chat.rating > 1 ? 's' : ''}`;
-      label.appendChild(ratingBadge);
-    }
-
-    // C.19 — Stale review badge
-    if (chat.flaggedAsStale) {
-      const staleBadge = document.createElement('span');
-      staleBadge.className = 'tree-stale-badge';
-      staleBadge.textContent = '⚠';
-      staleBadge.title = chat.reviewDate
-        ? `Review was due ${chat.reviewDate}`
-        : 'Flagged as stale — consider reviewing this chat';
-      label.appendChild(staleBadge);
-    }
-
-    // Tag chips
-    const tags = chat.tags || [];
-    if (tags.length > 0) {
-      const tagsEl = document.createElement('span');
-      tagsEl.className = 'tree-chat-tags';
-      tags.forEach(tag => {
-        const chip = document.createElement('span');
-        chip.className = 'tree-tag-chip';
-        chip.style.setProperty('--tag-hue', getTagColor(tag));
-        chip.textContent = tag;
-        tagsEl.appendChild(chip);
-      });
-      label.appendChild(tagsEl);
-
-      // ── Tag hover overlay ──────────────────────────────────────────────
-      // Shows a floating card with coloured pills separated by " | " when
-      // the user hovers over the tags area (or anywhere on the row).
-      let _overlay = null;
-      const _showOverlay = (anchorRect) => {
-        if (_overlay) return;
-        _overlay = document.createElement('div');
-        _overlay.className = 'tree-tag-hover-overlay';
-        tags.forEach((tag) => {
-          const pill = document.createElement('span');
-          pill.className = 'tree-tag-chip tree-tag-chip--overlay';
-          pill.style.setProperty('--tag-hue', getTagColor(tag));
-          pill.textContent = tag;
-          _overlay.appendChild(pill);
-        });
-        document.body.appendChild(_overlay);
-        // Position below the row, left-aligned
-        const left = Math.min(anchorRect.left, window.innerWidth - 240);
-        const top  = anchorRect.bottom + 4;
-        _overlay.style.left = `${left}px`;
-        _overlay.style.top  = `${top}px`;
-      };
-      const _hideOverlay = () => {
-        if (_overlay) { _overlay.remove(); _overlay = null; }
-      };
-      content.addEventListener('mouseenter', () => {
-        _showOverlay(content.getBoundingClientRect());
-      });
-      content.addEventListener('mouseleave', _hideOverlay);
-    }
-
-    content.appendChild(label);
-
-    // ── ⋮ more-actions button (visible on hover) ──────────────────────────
-    const chatMoreBtn = document.createElement('button');
-    chatMoreBtn.className = 'tree-more-btn';
-    chatMoreBtn.setAttribute('aria-label', 'More actions');
-    chatMoreBtn.textContent = '⋮';
-    chatMoreBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (this.onChatContextMenu) this.onChatContextMenu(chat, e);
-    });
-    content.appendChild(chatMoreBtn);
-
-    // Click → open saved chat in reader (A6) or toggle selection (C.17)
-    // Listen on `li` (the entire row) so any click within the row fires —
-    // including clicks on the label text, date badge, tags, or any padding area.
-    // The ⋮ more-btn calls e.stopPropagation() so it never reaches here.
-    li.addEventListener('click', (e) => {
-      // C.17 — in multi-select mode, row clicks toggle selection
-      if (this.multiSelectMode) {
-        this.toggleChatSelection(chat.id);
-        return;
-      }
-      const ripple = document.createElement('span');
-      ripple.className = 'tree-ripple';
-      const rect  = content.getBoundingClientRect();
-      const size  = Math.max(rect.width, rect.height);
-      ripple.style.cssText = `width:${size}px;height:${size}px;top:${e.clientY - rect.top - size / 2}px;left:${e.clientX - rect.left - size / 2}px`;
-      content.appendChild(ripple);
-      ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
-      if (this.onChatClick) this.onChatClick(chat);
-    });
-
-    // Right-click → chat context menu
-    content.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      if (this.onChatContextMenu) this.onChatContextMenu(chat, e);
-    });
-
-    // ── Drag source (chat item) ───────────────────────────────────────────
-    content.draggable = true;
-    content.addEventListener('dragstart', (e) => {
-      this._drag = { type: 'chat', id: chat.id };
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', chat.id);
-      // Custom drag ghost pill (A2)
-      const ghost = document.createElement('div');
-      ghost.className = 'tree-drag-ghost';
-      ghost.textContent = `\uD83D\uDCAC ${chat.title || 'Untitled Chat'}`;
-      document.body.appendChild(ghost);
-      e.dataTransfer.setDragImage(ghost, 0, 14);
-      requestAnimationFrame(() => ghost.remove());
-      setTimeout(() => content.classList.add('dragging'), 0);
-    });
-    content.addEventListener('dragend', () => {
-      content.classList.remove('dragging');
-      this._drag = null;
-      this.container.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
-    });
-
-    li.appendChild(content);
-    return li;
+    const nodeIndex = { value: this._nodeIndex };
+    const el        = buildChatItem(chat, level, this._makeCtx(nodeIndex));
+    this._nodeIndex = nodeIndex.value;
+    return el;
   }
 
-  /**
-   * Toggle expand/collapse state of a node
-   */
-  toggleNode(topicId) {
-    if (this.expandedNodes.has(topicId)) {
-      this.expandedNodes.delete(topicId);
-    } else {
-      this.expandedNodes.add(topicId);
-    }
-    this.render(); // Re-render tree
-  }
-
-  /**
-   * Expand a node
-   */
-  expandNode(topicId) {
-    if (!this.expandedNodes.has(topicId)) {
-      this.expandedNodes.add(topicId);
-      this.render();
-    }
-  }
-
-  /**
-   * Collapse a node
-   */
-  collapseNode(topicId) {
-    if (this.expandedNodes.has(topicId)) {
-      this.expandedNodes.delete(topicId);
-      this.render();
-    }
-  }
-
-  /**
-   * Expand all nodes
-   */
-  expandAll() {
-    if (!this.tree) return;
-    
-    const allTopics = this.tree.getAllTopics();
-    allTopics.forEach(topic => {
-      if (topic.children.length > 0 || this.chats.some(c => c.topicId === topic.id)) {
-        this.expandedNodes.add(topic.id);
-      }
-    });
-    this.render();
-  }
-
-  /**
-   * Collapse all nodes
-   */
-  collapseAll() {
-    this.expandedNodes.clear();
-    this.render();
-  }
-
-  /**
-   * Select a node
-   */
-  selectNode(topicId) {
-    this.selectedNodeId = topicId;
-    
-    // Update DOM
-    const allNodes = this.container.querySelectorAll('.tree-node');
-    allNodes.forEach(node => {
-      if (node.dataset.topicId === topicId) {
-        node.classList.add('selected');
-      } else {
-        node.classList.remove('selected');
-      }
-    });
-  }
-
-  /**
-   * Deselect current node
-   */
-  deselectNode() {
-    this.selectedNodeId = null;
-    const allNodes = this.container.querySelectorAll('.tree-node');
-    allNodes.forEach(node => {
-      node.classList.remove('selected');
-    });
-  }
-
-  /**
-   * Get selected node ID
-   */
-  getSelectedNode() {
-    return this.selectedNodeId;
-  }
-
-  /**
-   * Expand path to a specific topic (makes it visible)
-   */
-  expandToTopic(topicId) {
-    if (!this.tree) return;
-    
-    const path = this.tree.getTopicPath(topicId);
-    path.forEach(item => {
-      if (item.id !== topicId) { // Don't expand the target itself
-        this.expandedNodes.add(item.id);
-      }
-    });
-    this.render();
-  }
-
-  /**
-   * Refresh a specific node (after data change)
-   */
   refreshNode(topicId) {
     const node = this.container.querySelector(`[data-topic-id="${topicId}"]`);
     if (!node || !this.tree) return;
-    
     const topic = this.tree.topics[topicId];
     if (!topic) return;
-    
-    // Get level from node
-    const level = parseInt(node.getAttribute('aria-level')) - 1;
-    
-    // Replace node
-    const newNode = this.renderNode(topic, level);
-    node.replaceWith(newNode);
+    const level   = parseInt(node.getAttribute('aria-level')) - 1;
+    node.replaceWith(this.renderNode(topic, level));
   }
 
-  /**
-   * Update topic count badge in header
-   */
+  // ---- Utility ------------------------------------------------------------
+
   updateTopicCount() {
     const itemCount = document.getElementById('itemCount');
     if (itemCount && this.tree) {
@@ -836,266 +313,88 @@ export class TreeRenderer {
     }
   }
 
-  /**
-   * Get all expanded node IDs (for persistence)
-   */
-  getExpandedState() {
-    return Array.from(this.expandedNodes);
+  highlightSearch(searchTerm) { _hl(this.container, searchTerm);  }
+  clearHighlight()             { _clr(this.container); }
+
+  // ---- Internal delegates -------------------------------------------------
+
+  _sortTopics(topics) {
+    return sortTopics(topics, this.sortMode);
   }
 
-  /**
-   * Restore expanded state (from persistence)
-   */
-  setExpandedState(expandedIds) {
-    this.expandedNodes = new Set(expandedIds);
-    this.render();
-  }
-
-  /**
-   * Search and highlight topics
-   */
-  highlightSearch(searchTerm) {
-    if (!searchTerm) {
-      this.clearHighlight();
-      return;
-    }
-    
-    const allNodes = this.container.querySelectorAll('.tree-label-text');
-    const term = searchTerm.toLowerCase();
-    
-    allNodes.forEach(node => {
-      const text = node.textContent.toLowerCase();
-      if (text.includes(term)) {
-        node.parentElement.parentElement.parentElement.classList.add('search-match');
-      }
-    });
-  }
-
-  /**
-   * Clear search highlighting
-   */
-  clearHighlight() {
-    const allNodes = this.container.querySelectorAll('.tree-node');
-    allNodes.forEach(node => {
-      node.classList.remove('search-match');
-    });
-  }
-
-  /**
-   * Build a sparkline SVG element showing how many chats were saved per week
-   * over the last 6 weeks (U3).
-   * @param {string} topicId
-   * @returns {SVGElement}
-   */
-  _buildSparklineEl(topicId) {
-    const WEEKS   = 6;
-    const BAR_W   = 6;
-    const GAP     = 2;
-    const HEIGHT  = 16;
-    const now     = Date.now();
-    const weekMs  = 7 * 24 * 60 * 60 * 1000;
-    const counts  = new Array(WEEKS).fill(0);
-
-    this.chats
-      .filter(c => c.topicId === topicId && c.timestamp)
-      .forEach(c => {
-        const age = Math.floor((now - new Date(c.timestamp).getTime()) / weekMs);
-        if (age >= 0 && age < WEEKS) counts[WEEKS - 1 - age]++;
-      });
-
-    const max   = Math.max(...counts, 1);
-    const WIDTH = WEEKS * (BAR_W + GAP) - GAP;
-    const ns    = 'http://www.w3.org/2000/svg';
-    const svg   = document.createElementNS(ns, 'svg');
-    svg.setAttribute('class',   'tree-sparkline');
-    svg.setAttribute('width',   WIDTH);
-    svg.setAttribute('height',  HEIGHT);
-    svg.setAttribute('viewBox', `0 0 ${WIDTH} ${HEIGHT}`);
-    svg.setAttribute('aria-hidden', 'true');
-
-    counts.forEach((count, i) => {
-      const h = Math.max(Math.round((count / max) * HEIGHT), 2);
-      const rect = document.createElementNS(ns, 'rect');
-      rect.setAttribute('x',      i * (BAR_W + GAP));
-      rect.setAttribute('y',      HEIGHT - h);
-      rect.setAttribute('width',  BAR_W);
-      rect.setAttribute('height', h);
-      rect.setAttribute('rx',     '1');
-      svg.appendChild(rect);
-    });
-
-    return svg;
-  }
-
-  /**
-   * Stage 10: Build a flat ordered array of all currently-visible nodes
-   * (topics + chats), respecting the expandedNodes set.
-   * @returns {Array<{type: string, id: string, depth: number, data: object}>}
-   */
   _flattenVisible() {
-    const result = [];
-    if (!this.tree) return result;
-
-    const walk = (topics, depth) => {
-      // C.9: apply sort mode (pinned first is baked into _sortTopics)
-      const sorted = this._sortTopics(topics);
-      for (const topic of sorted) {
-        result.push({ type: 'topic', id: topic.id, depth, data: topic });
-        if (this.expandedNodes.has(topic.id)) {
-          // chats under this topic
-          const chats = this.chats.filter(c => c.topicId === topic.id);
-          for (const chat of chats) {
-            result.push({ type: 'chat', id: chat.id, depth: depth + 1, data: chat });
-          }
-          // child topics
-          const children = this.tree.getChildren(topic.id);
-          if (children.length) walk(children, depth + 1);
-        }
-      }
-    };
-
-    walk(this.tree.getRootTopics(), 0);
-    return result;
+    if (!this.tree) return [];
+    return flattenVisible(
+      this.tree,
+      this.expandedNodes,
+      this.chats,
+      topics => this._sortTopics(topics)
+    );
   }
 
-  /**
-   * Stage 10: Virtual-scroll render — only stamps visible rows into the DOM.
-   * @param {Array} flatNodes Output of _flattenVisible()
-   */
-  renderVirtual(flatNodes) {
-    const ITEM_HEIGHT = 36;
-    const BUFFER = 5;
-
-    // Remove stale scroll listener
-    if (this._virtualScrollHandler) {
-      this.container.removeEventListener('scroll', this._virtualScrollHandler);
-      this._virtualScrollHandler = null;
-    }
-
-    this.container.classList.add('tree-virtual-container');
-    this.container.innerHTML = '';
-
-    // Sizer — gives the scrollbar the correct total height
-    const sizer = document.createElement('div');
-    sizer.className = 'tree-virtual-sizer';
-    sizer.style.height = `${flatNodes.length * ITEM_HEIGHT}px`;
-    this.container.appendChild(sizer);
-
-    // Viewport slice container
-    const viewport = document.createElement('div');
-    viewport.className = 'tree-virtual-viewport';
-    this.container.appendChild(viewport);
-
-    const renderSlice = () => {
-      const scrollTop = this.container.scrollTop;
-      const clientHeight = this.container.clientHeight || 400;
-      const startIdx = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER);
-      const visibleCount = Math.ceil(clientHeight / ITEM_HEIGHT);
-      const endIdx = Math.min(flatNodes.length, startIdx + visibleCount + BUFFER * 2);
-
-      viewport.style.transform = `translateY(${startIdx * ITEM_HEIGHT}px)`;
-      viewport.innerHTML = '';
-      for (let i = startIdx; i < endIdx; i++) {
-        viewport.appendChild(this._renderVirtualRow(flatNodes[i]));
-      }
-    };
-
-    renderSlice();
-
-    this._virtualScrollHandler = renderSlice;
-    this.container.addEventListener('scroll', this._virtualScrollHandler, { passive: true });
+  _buildSparklineEl(topicId) {
+    return buildSparklineEl(topicId, this.chats);
   }
 
-  /**
-   * Stage 10: Render a single lightweight row for virtual scrolling.
-   * @param {{type: string, id: string, depth: number, data: object}} item
-   * @returns {HTMLElement}
-   */
   _renderVirtualRow(item) {
-    const INDENT_PX = 16;
-    const row = document.createElement('div');
-    row.className = `tree-virtual-row tree-virtual-row--${item.type}`;
-    if (item.id === this.selectedNodeId) row.classList.add('tree-virtual-row--selected');
+    return renderVirtualRow(item, this._makeVirtualCtx());
+  }
 
-    // Indent spacer
-    const indent = document.createElement('span');
-    indent.className = 'tree-virtual-row__indent';
-    indent.style.width = `${item.depth * INDENT_PX}px`;
-    indent.style.display = 'inline-block';
-    row.appendChild(indent);
+  // ---- Context factories --------------------------------------------------
 
-    if (item.type === 'topic') {
-      const isExpanded = this.expandedNodes.has(item.id);
-      const children = this.tree ? this.tree.getChildren(item.id) : [];
-      const chats = this.chats.filter(c => c.topicId === item.id);
-      const hasChildren = children.length > 0 || chats.length > 0;
+  /**
+   * Renderer context for normal (non-virtual) DOM building.
+   * Callbacks are lambdas so they always read the current handler from `this`.
+   */
+  _makeCtx(nodeIndex) {
+    return {
+      expandedNodes:   this.expandedNodes,
+      selectedNodeId:  this.selectedNodeId,
+      multiSelectMode: this.multiSelectMode,
+      selectedChatIds: this.selectedChatIds,
+      chats:           this.chats,
+      tree:            this.tree,
+      nodeIndex,
+      getDrag:  ()  => this._drag,
+      setDrag:  (d) => { this._drag = d; },
+      onTopicClick:        (t)       => this.onTopicClick?.(t),
+      onTopicContextMenu:  (t, e)    => this.onTopicContextMenu?.(t, e),
+      onTopicPin:          (id, p)   => this.onTopicPin?.(id, p),
+      onTopicDrop:         (d, tgt)  => this.onTopicDrop?.(d, tgt),
+      onChatDrop:          (id, tgt) => this.onChatDrop?.(id, tgt),
+      onChatClick:         (c)       => this.onChatClick?.(c),
+      onChatContextMenu:   (c, e)    => this.onChatContextMenu?.(c, e),
+      onSelectionChange:   (...a)    => this.onSelectionChange?.(...a),
+      toggleNode:          (id) => this.toggleNode(id),
+      selectNode:          (id) => this.selectNode(id),
+      toggleChatSelection: (id) => this.toggleChatSelection(id),
+      getSelectedChats:    ()   => this.getSelectedChats(),
+      container: this.container,
+    };
+  }
 
-      // Chevron
-      const chevron = document.createElement('span');
-      chevron.className = 'tree-virtual-row__chevron';
-      chevron.textContent = hasChildren ? (isExpanded ? '▼' : '▶') : ' ';
-      row.appendChild(chevron);
-
-      // Name
-      const name = document.createElement('span');
-      name.className = 'tree-virtual-row__name';
-      name.textContent = item.data.name || 'Untitled';
-      row.appendChild(name);
-
-      // Chat count badge
-      if (chats.length > 0) {
-        const count = document.createElement('span');
-        count.className = 'tree-virtual-row__count';
-        count.textContent = chats.length;
-        row.appendChild(count);
-      }
-
-      // Click: toggle expand/collapse, re-render virtual
-      row.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.selectedNodeId = item.id;
-        if (hasChildren) {
-          if (this.expandedNodes.has(item.id)) {
-            this.expandedNodes.delete(item.id);
-          } else {
-            this.expandedNodes.add(item.id);
-          }
-        }
-        if (this.onTopicClick) this.onTopicClick(item.id);
-        // Re-render with updated expand state
-        const newFlat = this._flattenVisible();
-        if (newFlat.length > this.virtualThreshold) {
-          this.renderVirtual(newFlat);
-        } else {
-          this.render();
-        }
-      });
-
-      // Context menu
-      row.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        if (this.onTopicContextMenu) this.onTopicContextMenu(e, item.id);
-      });
-
-    } else {
-      // Chat row — no chevron, just name
-      const name = document.createElement('span');
-      name.className = 'tree-virtual-row__name';
-      name.textContent = item.data.title || 'Untitled';
-      row.appendChild(name);
-
-      row.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.selectedNodeId = item.id;
-        if (this.onChatClick) this.onChatClick(item.id, item.data.topicId);
-      });
-
-      row.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        if (this.onChatContextMenu) this.onChatContextMenu(e, item.id);
-      });
-    }
-
-    return row;
+  /** Context for the virtual-scroll path. */
+  _makeVirtualCtx() {
+    return {
+      expandedNodes:   this.expandedNodes,
+      selectedNodeId:  this.selectedNodeId,
+      chats:           this.chats,
+      tree:            this.tree,
+      virtualThreshold: this.virtualThreshold,
+      toggleExpand:    (id) => {
+        if (this.expandedNodes.has(id)) this.expandedNodes.delete(id);
+        else this.expandedNodes.add(id);
+      },
+      setSelectedNode: (id) => { this.selectedNodeId = id; },
+      rerenderVirtual: (newFlat) => {
+        if (newFlat.length > this.virtualThreshold) this.renderVirtual(newFlat);
+        else this.render();
+      },
+      flattenVisible:  () => this._flattenVisible(),
+      onTopicClick:        (id)       => this.onTopicClick?.(id),
+      onTopicContextMenu:  (e, id)    => this.onTopicContextMenu?.(e, id),
+      onChatClick:         (id, tid)  => this.onChatClick?.(id, tid),
+      onChatContextMenu:   (e, id)    => this.onChatContextMenu?.(e, id),
+    };
   }
 }
