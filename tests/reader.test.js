@@ -2,6 +2,16 @@
  * Tests for src/reader/reader.js
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Mock useTheme so loadTheme is a spy (no real SDK or chrome.storage calls).
+// vi.mock is hoisted above imports by Vitest's transformer.
+vi.mock('../src/lib/useTheme.js', () => ({
+  loadTheme: vi.fn().mockResolvedValue(undefined),
+  persistTheme: vi.fn().mockResolvedValue(undefined),
+  restoreTheme: vi.fn().mockResolvedValue(undefined),
+  BUNDLED_THEME_IDS: [],
+}));
+
 import {
   formatDate,
   escapeHtml,
@@ -21,6 +31,7 @@ import {
   saveScrollPosition,
   restoreScrollPosition,
 } from '../src/reader/reader.js';
+import { loadTheme } from '../src/lib/useTheme.js';
 import { messagesToMarkdown } from '../src/lib/markdown-serialiser.js';
 
 // ─── DOM fixture ─────────────────────────────────────────────────────────────
@@ -714,78 +725,79 @@ describe('applySettingsFromValues', () => {
   const html = () => document.documentElement;
 
   beforeEach(() => {
+    loadTheme.mockClear();
     html().removeAttribute('data-theme');
     html().removeAttribute('data-skin');
     html().removeAttribute('data-accent');
     html().removeAttribute('data-oled');
   });
 
-  it('sets data-theme for a named theme', () => {
-    applySettingsFromValues({ theme: 'dark' });
-    expect(html().getAttribute('data-theme')).toBe('dark');
+  it('calls loadTheme with the named theme', async () => {
+    await applySettingsFromValues({ theme: 'dark' });
+    expect(loadTheme).toHaveBeenCalledWith('dark');
   });
 
-  it('defaults to light when theme is absent', () => {
-    applySettingsFromValues({});
-    expect(html().getAttribute('data-theme')).toBe('light');
+  it('defaults to light when theme is absent', async () => {
+    await applySettingsFromValues({});
+    expect(loadTheme).toHaveBeenCalledWith('light');
   });
 
-  it('sets data-theme=dark and data-oled for oled theme', () => {
-    applySettingsFromValues({ theme: 'oled' });
-    expect(html().getAttribute('data-theme')).toBe('dark');
+  it('calls loadTheme with "dark" and sets data-oled for oled theme', async () => {
+    await applySettingsFromValues({ theme: 'oled' });
+    expect(loadTheme).toHaveBeenCalledWith('dark');
     expect(html().hasAttribute('data-oled')).toBe(true);
   });
 
-  it('removes data-oled when switching away from oled', () => {
+  it('removes data-oled when switching away from oled', async () => {
     html().setAttribute('data-oled', '');
-    applySettingsFromValues({ theme: 'light' });
+    await applySettingsFromValues({ theme: 'light' });
     expect(html().hasAttribute('data-oled')).toBe(false);
-    expect(html().getAttribute('data-theme')).toBe('light');
+    expect(loadTheme).toHaveBeenCalledWith('light');
   });
 
-  it('applies auto theme based on prefers-color-scheme (mocked light)', () => {
+  it('applies auto theme based on prefers-color-scheme (mocked light)', async () => {
     vi.stubGlobal('matchMedia', q => ({ matches: false, media: q }));
-    applySettingsFromValues({ theme: 'auto' });
-    expect(html().getAttribute('data-theme')).toBe('light');
+    await applySettingsFromValues({ theme: 'auto' });
+    expect(loadTheme).toHaveBeenCalledWith('light');
   });
 
-  it('applies auto theme based on prefers-color-scheme (mocked dark)', () => {
+  it('applies auto theme based on prefers-color-scheme (mocked dark)', async () => {
     vi.stubGlobal('matchMedia', q => ({ matches: true, media: q }));
-    applySettingsFromValues({ theme: 'auto' });
-    expect(html().getAttribute('data-theme')).toBe('dark');
+    await applySettingsFromValues({ theme: 'auto' });
+    expect(loadTheme).toHaveBeenCalledWith('dark');
   });
 
-  it('sets data-skin when skin is provided', () => {
-    applySettingsFromValues({ theme: 'light', skin: 'rounded' });
+  it('sets data-skin when skin is provided', async () => {
+    await applySettingsFromValues({ theme: 'light', skin: 'rounded' });
     expect(html().getAttribute('data-skin')).toBe('rounded');
   });
 
-  it('removes data-skin when skin is empty string', () => {
+  it('removes data-skin when skin is empty string', async () => {
     html().setAttribute('data-skin', 'sharp');
-    applySettingsFromValues({ theme: 'light', skin: '' });
+    await applySettingsFromValues({ theme: 'light', skin: '' });
     expect(html().hasAttribute('data-skin')).toBe(false);
   });
 
-  it('removes data-skin when skin is absent', () => {
+  it('removes data-skin when skin is absent', async () => {
     html().setAttribute('data-skin', 'sharp');
-    applySettingsFromValues({ theme: 'light' });
+    await applySettingsFromValues({ theme: 'light' });
     expect(html().hasAttribute('data-skin')).toBe(false);
   });
 
-  it('sets data-accent when provided', () => {
-    applySettingsFromValues({ theme: 'light', accent: 'teal' });
+  it('sets data-accent when provided', async () => {
+    await applySettingsFromValues({ theme: 'light', accent: 'teal' });
     expect(html().getAttribute('data-accent')).toBe('teal');
   });
 
-  it('removes data-accent when absent', () => {
+  it('removes data-accent when absent', async () => {
     html().setAttribute('data-accent', 'teal');
-    applySettingsFromValues({ theme: 'light' });
+    await applySettingsFromValues({ theme: 'light' });
     expect(html().hasAttribute('data-accent')).toBe(false);
   });
 
-  it('sets all three attributes at once', () => {
-    applySettingsFromValues({ theme: 'terminal', skin: 'sharp', accent: 'green' });
-    expect(html().getAttribute('data-theme')).toBe('terminal');
+  it('calls loadTheme with theme and sets skin and accent', async () => {
+    await applySettingsFromValues({ theme: 'terminal', skin: 'sharp', accent: 'green' });
+    expect(loadTheme).toHaveBeenCalledWith('terminal');
     expect(html().getAttribute('data-skin')).toBe('sharp');
     expect(html().getAttribute('data-accent')).toBe('green');
   });
@@ -798,19 +810,15 @@ describe('watchReaderSettings', () => {
 
   beforeEach(() => {
     listener = null;
+    loadTheme.mockClear();
     html().removeAttribute('data-theme');
     html().removeAttribute('data-skin');
     html().removeAttribute('data-accent');
     html().removeAttribute('data-oled');
 
-    // Provide a stub chrome.storage.onChanged that captures the listener
-    vi.stubGlobal('chrome', {
-      storage: {
-        onChanged: {
-          addListener: vi.fn(fn => { listener = fn; }),
-        },
-      },
-    });
+    // Wire the real chrome mock's onChanged.addListener to capture the listener.
+    // vi.clearAllMocks() (setup.js) already ran so we re-assign here.
+    global.chrome.storage.onChanged.addListener = vi.fn(fn => { listener = fn; });
   });
 
   function fire(changes, area = 'local') {
@@ -819,72 +827,39 @@ describe('watchReaderSettings', () => {
 
   it('registers exactly one listener', () => {
     watchReaderSettings();
-    expect(chrome.storage.onChanged.addListener).toHaveBeenCalledTimes(1);
+    expect(global.chrome.storage.onChanged.addListener).toHaveBeenCalledTimes(1);
   });
 
-  it('updates data-theme when theme changes', () => {
-    html().setAttribute('data-theme', 'light');
+  it('calls loadTheme when themeId changes', () => {
     watchReaderSettings();
-    fire({ theme: { oldValue: 'light', newValue: 'dark' } });
-    expect(html().getAttribute('data-theme')).toBe('dark');
+    fire({ themeId: { oldValue: 'light', newValue: 'dark' } });
+    expect(loadTheme).toHaveBeenCalledWith('dark');
   });
 
-  it('updates data-skin when skin changes', () => {
-    html().setAttribute('data-theme', 'light');
+  it('calls loadTheme with "dark" and sets data-oled when themeId changes to oled', () => {
     watchReaderSettings();
-    fire({ skin: { oldValue: '', newValue: 'rounded' } });
-    expect(html().getAttribute('data-skin')).toBe('rounded');
-  });
-
-  it('removes data-skin when skin is cleared', () => {
-    html().setAttribute('data-theme', 'light');
-    html().setAttribute('data-skin', 'sharp');
-    watchReaderSettings();
-    fire({ skin: { oldValue: 'sharp', newValue: undefined } });
-    expect(html().hasAttribute('data-skin')).toBe(false);
-  });
-
-  it('updates data-accent when accent changes', () => {
-    html().setAttribute('data-theme', 'light');
-    watchReaderSettings();
-    fire({ accent: { oldValue: '', newValue: 'teal' } });
-    expect(html().getAttribute('data-accent')).toBe('teal');
-  });
-
-  it('does nothing for sync area changes', () => {
-    html().setAttribute('data-theme', 'light');
-    watchReaderSettings();
-    fire({ theme: { oldValue: 'light', newValue: 'dark' } }, 'sync');
-    expect(html().getAttribute('data-theme')).toBe('light'); // unchanged
-  });
-
-  it('does nothing when only unrelated keys change', () => {
-    html().setAttribute('data-theme', 'light');
-    watchReaderSettings();
-    fire({ unrelated: { oldValue: 'a', newValue: 'b' } });
-    expect(html().getAttribute('data-theme')).toBe('light'); // unchanged
-  });
-
-  it('preserves existing skin when only theme changes', () => {
-    html().setAttribute('data-theme', 'light');
-    html().setAttribute('data-skin', 'elevated');
-    watchReaderSettings();
-    fire({ theme: { oldValue: 'light', newValue: 'neon' } });
-    expect(html().getAttribute('data-theme')).toBe('neon');
-    expect(html().getAttribute('data-skin')).toBe('elevated');
-  });
-
-  it('sets oled attribute when theme changes to oled', () => {
-    html().setAttribute('data-theme', 'light');
-    watchReaderSettings();
-    fire({ theme: { oldValue: 'light', newValue: 'oled' } });
-    expect(html().getAttribute('data-theme')).toBe('dark');
+    fire({ themeId: { oldValue: 'light', newValue: 'oled' } });
+    expect(loadTheme).toHaveBeenCalledWith('dark');
     expect(html().hasAttribute('data-oled')).toBe(true);
   });
 
-  it('is a no-op when chrome.storage.onChanged is unavailable', () => {
-    vi.stubGlobal('chrome', undefined);
+  it('does nothing for sync area changes', () => {
+    watchReaderSettings();
+    fire({ themeId: { oldValue: 'light', newValue: 'dark' } }, 'sync');
+    expect(loadTheme).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when only unrelated keys change', () => {
+    watchReaderSettings();
+    fire({ unrelated: { oldValue: 'a', newValue: 'b' } });
+    expect(loadTheme).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op when storage.onChanged is unavailable', () => {
+    const orig = global.chrome.storage.onChanged;
+    global.chrome.storage.onChanged = undefined;
     expect(() => watchReaderSettings()).not.toThrow();
+    global.chrome.storage.onChanged = orig;
   });
 });
 

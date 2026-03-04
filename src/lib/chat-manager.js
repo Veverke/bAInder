@@ -129,6 +129,8 @@ export function removeChatFromArray(chatId, chats) {
  */
 export function buildChatDisplayTitle(chat) {
   if (!chat) return '';
-  const prefix = chat.metadata?.isExcerpt ? '✂️ ' : '💬 ';
+  const prefix = chat.metadata?.isAssembled ? '🔗 '
+    : chat.metadata?.isExcerpt ? '✂️ '
+    : '💬 ';
   return prefix + (chat.title || 'Untitled Chat');
 }

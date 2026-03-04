@@ -102,17 +102,13 @@
 
 ## C.18 — Model Comparison View (Side-by-Side Diff)
 
-**Idea:** Side-by-side reader view for two saved chats answering the same (or similar) question, with structural diff highlighting to compare how different models responded.
+**Idea:** Side-by-side reader view for two or more saved chats answering the same (or similar) question, with structured analysis highlighting how different models responded.
 
-**Value:** Researchers and power users who query multiple models need to compare outputs. A visual diff view without leaving the extension is a compelling capability.
+**Value:** Researchers and power users who query multiple models need to compare outputs. A visual compare view without leaving the extension is a compelling capability.
 
-**Implementation sketch:**
-- "Compare with…" option in the chat context menu → opens a topic/chat picker → opens a split-pane reader with both chats rendered side by side.
-- Use a lightweight diff library (e.g. `diff-match-patch`, ~50 KB) to highlight added/removed words between the two assistant responses.
-- No NLP required — pure string diff is sufficient for the MVP version.
-- Keyboard: `Tab` / `Shift+Tab` to jump between highlighted delta regions.
+**Detailed work plan:** see [Compare-Feature-Work-Plan.md](Compare-Feature-Work-Plan.md).
 
-**Effort:** Medium. **Differentiator:** High — unique in the extension market.
+**Effort:** Medium (phased). **Differentiator:** Very High — unique in the extension market.
 
 ---
 

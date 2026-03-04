@@ -95,6 +95,7 @@
       <div class="backup-reminder-banner__actions">
         <button id="backupExportNowBtn" class="backup-reminder-banner__btn backup-reminder-banner__btn--primary">Export now</button>
         <button id="backupRemindLaterBtn" class="backup-reminder-banner__btn">Later</button>
+        <button id="backupNeverRemindBtn" class="backup-reminder-banner__btn">Don't remind me</button>
         <button id="backupDismissBtn" class="backup-reminder-banner__dismiss" aria-label="Dismiss reminder">×</button>
       </div>
     </div>
@@ -258,11 +259,18 @@
     <div id="selectionBar" class="selection-bar" style="display:none" role="status" aria-live="polite">
       <span id="selectionCount" class="selection-bar__count">0 selected</span>
       <div class="selection-bar__actions">
-        <button id="exportDigestBtn" class="selection-bar__btn selection-bar__btn--primary" disabled title="Select at least 2 chats to export a digest">
+        <button id="assembleBtn" class="selection-bar__btn selection-bar__btn--primary" disabled title="Select at least 2 chats to assemble into a new chat">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M6.5 9.5a3.5 3.5 0 0 0 4.95 0l2-2a3.5 3.5 0 0 0-4.95-4.95l-1.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9.5 6.5a3.5 3.5 0 0 0-4.95 0l-2 2a3.5 3.5 0 0 0 4.95 4.95l1.5-1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Assemble
+        </button>
+        <button id="exportDigestBtn" class="selection-bar__btn" disabled title="Select at least 2 chats to export a digest">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
             <path d="M8 11V3M8 3L5 6M8 3L11 6M3 13H13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          Export Digest
+          Export
         </button>
         <button id="selectionClearBtn" class="selection-bar__btn" title="Clear selection">Clear</button>
         <button id="multiSelectCancelBtn" class="selection-bar__btn selection-bar__btn--cancel" aria-label="Exit multi-select mode">✕</button>
@@ -455,6 +463,29 @@
               <p class="settings-about__tagline">Your AI conversations, organised.</p>
             </div>
           </div>
+        </section>
+
+        <!-- Notifications -->
+        <section class="settings-section">
+          <h3 class="settings-section__title">Notifications</h3>
+          <div class="settings-row">
+            <label class="settings-row__label" for="backupReminderToggle">Backup reminder</label>
+            <label class="settings-toggle" aria-label="Enable periodic backup reminder">
+              <input type="checkbox" class="settings-toggle__input" id="backupReminderToggle" checked>
+              <span class="settings-toggle__track"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <label class="settings-row__label" for="backupReminderIntervalSelect">Reminder interval</label>
+            <select id="backupReminderIntervalSelect" class="settings-select" aria-label="Backup reminder interval">
+              <option value="7">Every 7 days</option>
+              <option value="14">Every 14 days</option>
+              <option value="30" selected>Every 30 days</option>
+              <option value="60">Every 60 days</option>
+              <option value="90">Every 90 days</option>
+            </select>
+          </div>
+          <p class="settings-hint">Show a banner at the chosen interval prompting you to export your saved chats as a backup.</p>
         </section>
 
         <!-- Advanced / Logging settings -->

@@ -197,7 +197,7 @@ function buildToolbar(ta, onPreview) {
  * @param {Function}     onDelete — called with () to trigger a full re-render
  * @returns {HTMLElement}
  */
-export function buildNoteOverlay(cluster, chatId, storage, onDelete, renderFn) {
+export function buildNoteOverlay(cluster, chatId, storage, onDelete, renderFn, onUpdate) {
   const _render = renderFn || plainTextRender;
   let activeIdx       = 0;
   let lastRenderedIdx = -1;   // tracks which note index was last rendered
@@ -382,6 +382,7 @@ export function buildNoteOverlay(cluster, chatId, storage, onDelete, renderFn) {
         note.updatedAt = Date.now();
         ts.textContent = fmtTs(note.updatedAt);
         await updateStickyNote(chatId, note.id, { content: ta.value }, storage);
+        onUpdate?.();
       });
 
       body.appendChild(buildToolbar(ta, () => { isPreview = true; refresh(); }));
@@ -455,17 +456,32 @@ export async function setupStickyNotes(chatId, storage, renderFn) {
     document.body.appendChild(layer);
   }
 
-  // ── Visibility toggle in header ──────────────────────────────────────────
+  // ── Visibility toggle + hover-dropdown in header ──────────────────────────
+  let wrapper   = document.getElementById('sticky-notes-toggle-wrapper');
   let toggleBtn = document.getElementById('sticky-notes-toggle');
-  if (!toggleBtn) {
+  let dropdown  = document.getElementById('sticky-notes-dropdown');
+  if (!wrapper) {
+    wrapper = document.createElement('div');
+    wrapper.id = 'sticky-notes-toggle-wrapper';
+    wrapper.className = 'sticky-notes-toggle-wrapper';
+
     toggleBtn = document.createElement('button');
     toggleBtn.id = 'sticky-notes-toggle';
     toggleBtn.className = 'sticky-notes-toggle';
     toggleBtn.setAttribute('aria-label', 'Show/hide sticky notes');
-    // Insert into header meta row
+
+    dropdown = document.createElement('div');
+    dropdown.id = 'sticky-notes-dropdown';
+    dropdown.className = 'sticky-notes-dropdown';
+    dropdown.setAttribute('role', 'menu');
+    dropdown.hidden = true;
+
+    wrapper.appendChild(toggleBtn);
+    wrapper.appendChild(dropdown);
+
     const metaRow = header.querySelector('.reader-header__meta');
-    if (metaRow) metaRow.appendChild(toggleBtn);
-    else header.querySelector('.reader-header__inner')?.appendChild(toggleBtn);
+    if (metaRow) metaRow.appendChild(wrapper);
+    else header.querySelector('.reader-header__inner')?.appendChild(wrapper);
   }
 
   // ── Load initial state ───────────────────────────────────────────────────
@@ -485,14 +501,54 @@ export async function setupStickyNotes(chatId, storage, renderFn) {
     layer.innerHTML = '';
     const clusters = clusterNotes(notes);
     for (const cluster of clusters) {
-      const overlay = buildNoteOverlay(cluster, chatId, storage, reloadAndRender, renderFn);
+      const overlay = buildNoteOverlay(cluster, chatId, storage, reloadAndRender, renderFn, renderDropdown);
       layer.appendChild(overlay);
     }
     // Update toggle button label and visibility
     const count = notes.length;
     toggleBtn.hidden = count === 0;
-    toggleBtn.textContent = `📌 ${count || ''} ${count === 1 ? 'note' : 'notes'}`.trim();
-    toggleBtn.title = `${visible ? 'Hide' : 'Show'} sticky notes (${count})`;
+    toggleBtn.textContent = `📌 ${count} ${count === 1 ? 'note' : 'notes'}`;
+    renderDropdown();
+  }
+
+  // ── Helper: populate the hover dropdown ──────────────────────────────────
+  function renderDropdown() {
+    dropdown.innerHTML = '';
+    if (!notes.length) return;
+    const sorted = [...notes].sort((a, b) => a.anchorPageY - b.anchorPageY);
+    for (const note of sorted) {
+      const item = document.createElement('button');
+      item.className = 'sticky-notes-dropdown__item';
+      item.setAttribute('role', 'menuitem');
+      item.type = 'button';
+
+      const tsEl = document.createElement('span');
+      tsEl.className = 'sticky-notes-dropdown__ts';
+      tsEl.textContent = fmtTs(note.updatedAt || note.createdAt);
+
+      const raw = note.content
+        ? note.content.replace(/\s+/g, ' ').trim()
+        : '';
+      const preview = raw.length > 60 ? raw.slice(0, 60) + '\u2026' : (raw || '(empty note)');
+      const previewEl = document.createElement('span');
+      previewEl.className = 'sticky-notes-dropdown__preview';
+      previewEl.textContent = preview;
+
+      item.appendChild(tsEl);
+      item.appendChild(previewEl);
+      item.addEventListener('click', () => {
+        dropdown.hidden = true;
+        // Ensure notes are visible before scrolling
+        if (!visible) {
+          visible = true;
+          applyVisibility();
+          saveNotesVisible(chatId, visible, storage);
+        }
+        // Scroll to anchor — offset by ~80 px to clear the sticky header
+        window.scrollTo({ top: Math.max(0, note.anchorPageY - 80), behavior: 'smooth' });
+      });
+      dropdown.appendChild(item);
+    }
   }
 
   // ── Apply visibility ─────────────────────────────────────────────────────
@@ -507,10 +563,29 @@ export async function setupStickyNotes(chatId, storage, renderFn) {
 
   // ── Toggle button handler ────────────────────────────────────────────────
   toggleBtn.addEventListener('click', async () => {
+    dropdown.hidden = true;  // dismiss dropdown on deliberate toggle click
     visible = !visible;
     applyVisibility();
     await saveNotesVisible(chatId, visible, storage);
   });
+
+  // ── Dropdown hover wiring ─────────────────────────────────────────────────
+  let _dropdownHideTimer = null;
+
+  function _showDropdown() {
+    if (!notes.length) return;
+    clearTimeout(_dropdownHideTimer);
+    dropdown.hidden = false;
+  }
+
+  function _scheduleHide() {
+    _dropdownHideTimer = setTimeout(() => { dropdown.hidden = true; }, 150);
+  }
+
+  toggleBtn.addEventListener('mouseenter', _showDropdown);
+  toggleBtn.addEventListener('mouseleave', _scheduleHide);
+  dropdown.addEventListener('mouseenter', () => clearTimeout(_dropdownHideTimer));
+  dropdown.addEventListener('mouseleave', _scheduleHide);
 
   // ── Custom context menu ──────────────────────────────────────────────────
   const ctxMenu  = createContextMenu();

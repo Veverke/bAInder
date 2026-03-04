@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>bAInder — Chat Reader</title>
   <link rel="stylesheet" href="reader.css" />
-  <!-- Theme + skin tokens — must load after reader.css so [data-theme] rules
-       override the :root fallbacks defined in reader.css.                  -->
-  <link rel="stylesheet" href="../sidepanel/themes.css" />
-  <link rel="stylesheet" href="../sidepanel/skins.css" />
 </head>
 <body>
   <!-- Scroll progress bar (fixed, top of viewport) -->
@@ -22,6 +18,7 @@
         <span id="meta-date"          class="meta-date"></span>
         <span id="meta-count"         class="meta-count"></span>
         <span id="meta-prompts"        class="meta-prompts" hidden></span>
+        <span id="meta-assembled"       class="meta-assembled" hidden></span>
         <span id="meta-reading-time"  class="meta-reading-time" hidden></span>
       </div>
       <h1 id="reader-title" class="reader-title"></h1>

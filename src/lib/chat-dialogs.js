@@ -36,9 +36,7 @@ export class ChatDialogs {
       return null;
     }
 
-    const displayTitle = chatEntry.title.length > 50
-      ? chatEntry.title.slice(0, 47) + '...'
-      : chatEntry.title;
+    const displayTitle = this._truncate(chatEntry.title, 50);
 
     const result = await this.dialog.form(
       [
@@ -70,10 +68,7 @@ export class ChatDialogs {
     );
 
     if (!result) return null;
-    const tags = (result.tags || '')
-      .split(',')
-      .map(t => t.trim().toLowerCase())
-      .filter(t => t.length > 0);
+    const tags = this._parseTags(result.tags);
     return { topicId: result.topicId, title: result.title.trim(), tags };
   }
 
@@ -96,16 +91,11 @@ export class ChatDialogs {
           placeholder: 'e.g. react, performance, debugging'
         }
       ],
-      `Edit Tags: "${chat.title.length > 40 ? chat.title.slice(0, 37) + '...' : chat.title}"`,
-      'Save Tags'
+      `Edit Tags: "${this._truncate(chat.title, 40)}"`,      'Save Tags'
     );
 
     if (!result) return null;
-    const tags = (result.tags || '')
-      .split(',')
-      .map(t => t.trim().toLowerCase())
-      .filter(t => t.length > 0);
-    return { tags };
+    return { tags: this._parseTags(result.tags) };
   }
 
   /**
@@ -141,10 +131,7 @@ export class ChatDialogs {
 
     if (!result) return null;
     const newTitle = result.title.trim();
-    const tags = (result.tags || '')
-      .split(',')
-      .map(t => t.trim().toLowerCase())
-      .filter(t => t.length > 0);
+    const tags = this._parseTags(result.tags);
     if (newTitle === chat.title.trim() &&
         JSON.stringify(tags) === JSON.stringify(chat.tags || [])) return null;
     return { title: newTitle, tags };
@@ -166,9 +153,7 @@ export class ChatDialogs {
       return null;
     }
 
-    const truncatedTitle = chat.title.length > 40
-      ? chat.title.slice(0, 37) + '...'
-      : chat.title;
+    const truncatedTitle = this._truncate(chat.title, 40);
 
     const result = await this.dialog.form(
       [
@@ -229,6 +214,36 @@ export class ChatDialogs {
     );
 
     return confirmed ? { chatId: chat.id } : null;
+  }
+
+  /**
+   * Truncate a title to `maxLength` characters, appending '…' if clipped.
+   * Extracted to eliminate the identical ternary that previously appeared
+   * in showAssignChat (50-char limit), showEditTags and showMoveChat (40-char).
+   *
+   * @param {string} title
+   * @param {number} maxLength
+   * @returns {string}
+   */
+  _truncate(title, maxLength) {
+    return title.length > maxLength
+      ? title.slice(0, maxLength - 3) + '...'
+      : title;
+  }
+
+  /**
+   * Parse a comma-separated tag string into a normalised lowercase array.
+   * Extracted to eliminate an identical `.split/map/filter` chain that
+   * previously appeared in showAssignChat, showEditTags, and showRenameChat.
+   *
+   * @param {string|undefined} raw  — e.g. "React, Performance, debugging"
+   * @returns {string[]}            — e.g. ["react", "performance", "debugging"]
+   */
+  _parseTags(raw) {
+    return (raw || '')
+      .split(',')
+      .map(t => t.trim().toLowerCase())
+      .filter(t => t.length > 0);
   }
 
   /**
