@@ -1568,23 +1568,26 @@
     </div>
 
     <!-- C.22 -->
-    <div class="feature-card">
+    <div class="feature-card feature-card--done">
       <div class="feature-card-header">
         <div class="feature-card-title"><span class="ref">C.22</span> Reading Progress Persistence</div>
         <div class="feature-card-badges">
-          <span class="status-badge future">◌ Candidate</span>
+          <span class="status-badge done">✓ Completed</span>
           <span class="effort-badge">⏱ Low effort</span>
           <span class="diff-badge moderate">Moderate diff.</span>
         </div>
       </div>
       <div class="feature-card-body">
-        Remember the scroll position per chat across sessions in the reader view, so returning to a
-        long technical conversation resumes where you left off.
+        Scroll position is now remembered per chat across sessions. Returning to a long technical
+        conversation resumes where you left off.
         <br><br>
-        On <code>scroll</code> (debounced 500 ms), write <code>scrollPositions[chatId] = scrollY</code>
-        to <code>localStorage</code>. On load, restore position after content renders.
-        Cap to the 100 most-recent entries (LRU eviction). The existing "Return to top" button
-        remains unchanged. Trivial to implement; immediately noticeable quality improvement.
+        <strong>Completed March 4, 2026.</strong> Three exported pure helpers —
+        <code>getScrollPositions()</code>, <code>saveScrollPosition(chatId, scrollY)</code> (LRU-evicting
+        at 100 entries), and <code>restoreScrollPosition(chatId)</code> — added to
+        <code>reader.js</code>. <code>setupScrollFeatures(chatId)</code> debounce-saves (500 ms) on
+        every scroll event. <code>init()</code> restores position immediately after
+        <code>renderChat()</code>. The existing "Return to top" button is unchanged.
+        11 new unit tests.
       </div>
     </div>
 

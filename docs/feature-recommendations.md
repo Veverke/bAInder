@@ -19,7 +19,7 @@
 | C.19 | Review-by date / expiry flag | Low | Moderate | ✅ Completed (March 4, 2026) |
 | C.20 | JSONL fine-tuning export | Low–Medium | Very High (unique) | Candidate |
 | C.21 | Direct Obsidian push (Local REST API) | Medium | High | Candidate |
-| C.22 | Reading progress persistence | Low | Moderate | Candidate |
+| C.22 | Reading progress persistence | Low | Moderate | ✅ Completed (March 4, 2026) |
 
 ---
 
@@ -170,17 +170,13 @@
 
 ---
 
-## C.22 — Reading Progress Persistence
+## C.22 — Reading Progress Persistence ✅ Completed
 
 **Idea:** Remember the scroll position per chat across sessions in the reader view, so returning to a long technical chat resumes where you left off.
 
 **Value:** Long code-heavy chats (debugging sessions, architecture discussions) are frequently revisited. The current behaviour resets to the top on every open — subtle but noticeably frustrating.
 
-**Implementation sketch:**
-- On reader `scroll` event (debounced 500 ms), write `scrollPositions[chatId] = scrollY` to `localStorage`.
-- On reader load, after content renders, `window.scrollTo(0, scrollPositions[chatId] ?? 0)`.
-- Cap stored entries to the 100 most recent chat IDs to avoid unbounded `localStorage` growth (LRU eviction).
-- "Return to top" button already exists — behaviour unchanged.
+**Status:** Completed March 4, 2026. Implemented: three exported pure helpers in `reader.js` — `getScrollPositions()`, `saveScrollPosition(chatId, scrollY)` (LRU-evicting at 100 entries), and `restoreScrollPosition(chatId)`; `setupScrollFeatures(chatId)` now debounce-saves (500 ms) on scroll; `init()` calls `restoreScrollPosition` immediately after `renderChat`. 11 new tests (3 getScrollPositions + 5 saveScrollPosition + 3 restoreScrollPosition).
 
 **Effort:** Low. **Differentiator:** Moderate — small touch, immediately noticeable quality improvement.
 

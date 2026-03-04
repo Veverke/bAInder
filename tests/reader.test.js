@@ -17,6 +17,9 @@ import {
   applySettingsFromValues,
   watchReaderSettings,
   setupRating,
+  getScrollPositions,
+  saveScrollPosition,
+  restoreScrollPosition,
 } from '../src/reader/reader.js';
 import { messagesToMarkdown } from '../src/lib/markdown-serialiser.js';
 
@@ -952,5 +955,102 @@ describe('setupRating', () => {
   it('is a no-op when #reader-rating element is absent', () => {
     document.body.innerHTML = '';
     expect(() => setupRating('chat1', 3, storageWith([]))).not.toThrow();
+  });
+});
+
+// ─── C.22 — Reading Progress Persistence ─────────────────────────────────────
+
+describe('getScrollPositions', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('returns empty object when nothing stored', () => {
+    expect(getScrollPositions()).toEqual({});
+  });
+
+  it('returns stored positions', () => {
+    localStorage.setItem('bAInder_scrollPositions', JSON.stringify({ abc: 350 }));
+    expect(getScrollPositions()).toEqual({ abc: 350 });
+  });
+
+  it('returns empty object when localStorage contains invalid JSON', () => {
+    localStorage.setItem('bAInder_scrollPositions', '{not json}');
+    expect(getScrollPositions()).toEqual({});
+  });
+});
+
+describe('saveScrollPosition', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('persists a new position', () => {
+    saveScrollPosition('chat1', 200);
+    expect(getScrollPositions()).toEqual({ chat1: 200 });
+  });
+
+  it('updates an existing position', () => {
+    saveScrollPosition('chat1', 100);
+    saveScrollPosition('chat1', 500);
+    expect(getScrollPositions()['chat1']).toBe(500);
+  });
+
+  it('is a no-op when chatId is falsy', () => {
+    saveScrollPosition('', 100);
+    saveScrollPosition(null, 100);
+    expect(getScrollPositions()).toEqual({});
+  });
+
+  it('evicts the oldest entry when cap is exceeded', () => {
+    // Fill the store with 100 entries
+    const existing = {};
+    for (let i = 0; i < 100; i++) existing[`chat${i}`] = i * 10;
+    localStorage.setItem('bAInder_scrollPositions', JSON.stringify(existing));
+
+    saveScrollPosition('chat_new', 999);
+
+    const stored = getScrollPositions();
+    expect(Object.keys(stored)).toHaveLength(100);
+    expect(stored['chat_new']).toBe(999);
+    // The very first inserted key should have been evicted
+    expect(stored['chat0']).toBeUndefined();
+  });
+
+  it('re-inserting an existing id moves it to the end (no eviction size change)', () => {
+    const existing = {};
+    for (let i = 0; i < 100; i++) existing[`chat${i}`] = i * 10;
+    localStorage.setItem('bAInder_scrollPositions', JSON.stringify(existing));
+
+    // Update chat0 (already present) — should not grow past 100 or evict chat1
+    saveScrollPosition('chat0', 999);
+
+    const stored = getScrollPositions();
+    expect(Object.keys(stored)).toHaveLength(100);
+    expect(stored['chat0']).toBe(999);
+    expect(stored['chat1']).toBeDefined();
+  });
+});
+
+describe('restoreScrollPosition', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('calls window.scrollTo with the stored Y value', () => {
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    saveScrollPosition('chat1', 420);
+    restoreScrollPosition('chat1');
+    expect(scrollTo).toHaveBeenCalledWith(0, 420);
+  });
+
+  it('does not call window.scrollTo when no position stored', () => {
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    restoreScrollPosition('chat_unknown');
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op when chatId is falsy', () => {
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    restoreScrollPosition('');
+    restoreScrollPosition(null);
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 });

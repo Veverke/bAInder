@@ -732,14 +732,70 @@ export async function setupAnnotations(chatId, storage) {
   });
 }
 
+// ─── C.22 — Reading Progress Persistence ─────────────────────────────────────
+
+const SCROLL_STORAGE_KEY   = 'bAInder_scrollPositions';
+const SCROLL_MAX_ENTRIES   = 100;
+
+/**
+ * Read the full scroll-position map from localStorage.
+ * Always returns a plain object (never throws).
+ * @returns {{ [chatId: string]: number }}
+ */
+export function getScrollPositions() {
+  try {
+    return JSON.parse(localStorage.getItem(SCROLL_STORAGE_KEY) || '{}');
+  } catch (_) {
+    return {};
+  }
+}
+
+/**
+ * Persist the scroll position for a chat, evicting the oldest entry when the
+ * store exceeds SCROLL_MAX_ENTRIES.
+ * @param {string} chatId
+ * @param {number} scrollY
+ */
+export function saveScrollPosition(chatId, scrollY) {
+  if (!chatId) return;
+  const positions = getScrollPositions();
+  // Remove first to re-insert at end (LRU ordering by key-insertion)
+  delete positions[chatId];
+  positions[chatId] = scrollY;
+  // Evict oldest entries beyond the cap
+  const keys = Object.keys(positions);
+  if (keys.length > SCROLL_MAX_ENTRIES) {
+    const excess = keys.slice(0, keys.length - SCROLL_MAX_ENTRIES);
+    for (const k of excess) delete positions[k];
+  }
+  try {
+    localStorage.setItem(SCROLL_STORAGE_KEY, JSON.stringify(positions));
+  } catch (_) { /* storage quota exceeded — skip silently */ }
+}
+
+/**
+ * Restore a previously saved scroll position for a chat.
+ * No-op when no position has been stored.
+ * @param {string} chatId
+ */
+export function restoreScrollPosition(chatId) {
+  if (!chatId) return;
+  const y = getScrollPositions()[chatId];
+  if (y) window.scrollTo(0, y);
+}
+
 /**
  * Wire up the scroll-progress bar and jump-to-top button.
+ * When chatId is supplied, also persists scroll position (C.22).
  * Safe to call in environments where the elements don't exist (tests).
+ * @param {string} [chatId]
  */
-export function setupScrollFeatures() {
+export function setupScrollFeatures(chatId) {
   const progressEl = document.getElementById('scroll-progress');
   const jumpBtn    = document.getElementById('jump-top');
   if (!progressEl && !jumpBtn) return;
+
+  let scrollSaveTimer;
 
   function onScroll() {
     const scrollTop  = window.scrollY || document.documentElement.scrollTop;
@@ -750,6 +806,11 @@ export function setupScrollFeatures() {
     }
     if (jumpBtn) {
       jumpBtn.classList.toggle('jump-top--visible', scrollTop > 300);
+    }
+    // C.22 — debounced persistence (500 ms)
+    if (chatId) {
+      clearTimeout(scrollSaveTimer);
+      scrollSaveTimer = setTimeout(() => saveScrollPosition(chatId, scrollTop), 500);
     }
   }
 
@@ -1196,9 +1257,10 @@ export async function init(storage) {
     }
 
     renderChat(chat);
+    restoreScrollPosition(chatId);        // C.22
     setupRating(chatId, chat.rating, storage);
     setupStaleBanner(chatId, chat, storage);
-    setupScrollFeatures();
+    setupScrollFeatures(chatId);          // C.22 — pass chatId for persistence
     setupAnnotations(chatId, storage);
     setupStickyNotes(chatId, storage, renderMarkdown);
     // C.8 — render backlinks: chats that reference this one in annotation notes
