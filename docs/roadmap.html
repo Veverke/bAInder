@@ -1379,13 +1379,222 @@
       </div>
     </div>
 
+    <!-- C.13 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.13</span> Prompt Library</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Medium effort</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Extract all user-turn prompts from every saved chat and surface them in a dedicated
+        "Prompt Library" panel. One-click to copy or re-fire any prompt on any supported AI platform
+        (ChatGPT, Claude, Copilot via <code>?q=</code> deep links; Gemini via clipboard + tab).
+        Elevates bAInder from a passive archive into an active prompt-management tool — no other
+        mainstream extension does this today.
+      </div>
+    </div>
+
+    <!-- C.14 -->
+    <div class="feature-card done">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.14</span> Per-message / Q&amp;A Clipping</div>
+        <div class="feature-card-badges">
+          <span class="status-badge done">✓ Completed</span>
+          <span class="effort-badge">⏱ Low effort</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Save just a specific user + assistant exchange from a long conversation as a standalone entry,
+        rather than the full chat. Implemented as the context-menu <strong>"Save selection to bAInder"</strong>
+        option (Stage 6): select any text on the page, right-click, and save it as a clipping under
+        any topic.
+      </div>
+    </div>
+
+    <!-- C.15 -->
+    <div class="feature-card done">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.15</span> Chat Star Rating (1–5)</div>
+        <div class="feature-card-badges">
+          <span class="status-badge done">✓ Completed</span>
+          <span class="effort-badge">⏱ Low effort</span>
+          <span class="diff-badge moderate">Moderate diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        A 1–5 star rating on any saved chat, with filter-by-rating in search results and a star badge
+        in the tree view. Surfaces gold-standard responses without digging through topics.
+        <br><br>
+        Implemented: <code>rating: number | null</code> on <code>ChatEntry</code>; inline star widget
+        in the chat context menu (toggle-to-clear); interactive 5-star widget in the reader header;
+        amber star badge on rated tree items; min-rating filter pills in the search filter bar;
+        star display in search result cards. 14 new tests added.
+      </div>
+    </div>
+
+    <!-- C.16 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.16</span> Cross-Platform Prompt Launch</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Medium effort</span>
+          <span class="diff-badge veryhigh">Very High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        From any saved chat, open the same first user prompt on a <em>different</em> AI platform with
+        one click — enabling rapid model comparison without manual copy-paste.
+        <br><br>
+        A "Launch on…" dropdown in the reader header and context menu encodes the prompt into
+        platform-specific deep-link URLs: <code>chat.openai.com/?q=</code>,
+        <code>claude.ai/new?q=</code>, <code>copilot.microsoft.com/?q=</code>; Gemini falls back to
+        clipboard copy + new tab. Genuinely unique in the AI extension space.
+      </div>
+    </div>
+
+    <!-- C.17 -->
+    <div class="feature-card feature-card--done">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.17</span> Multi-Chat Assembly / Digest Export</div>
+        <div class="feature-card-badges">
+          <span class="status-badge done">✅ Completed</span>
+          <span class="effort-badge">⏱ Medium effort</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Select multiple saved chats (across different topics) and merge them into a single exported
+        document with per-chat headings — ideal for research summaries and handoff documents.
+        <br><br>
+        <strong>Shipped:</strong> A <strong>☑ Select chats</strong> toolbar button activates
+        multi-select mode; checkboxes appear on every chat item in the tree. A sticky
+        <em>selection action bar</em> shows the count and enables <strong>Export Digest</strong>
+        once ≥ 2 chats are checked. Export dialog offers Markdown, HTML and PDF with Style options
+        and an optional generated table of contents. Full chat content is loaded on demand at export
+        time. Virtual scrolling is suspended while multi-select is active.
+      </div>
+    </div>
+
+    <!-- C.18 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.18</span> Model Comparison (Side-by-Side Diff)</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Medium effort</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Side-by-side reader view for two saved chats answering the same question, with word-level
+        diff highlighting to compare how different models responded.
+        <br><br>
+        "Compare with…" in chat context menu → topic/chat picker → split-pane reader.
+        Lightweight word-diff via <code>diff-match-patch</code> (~50 KB) — no NLP required for
+        MVP. <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> jump between delta regions.
+        Unique in the consumer extension market.
+      </div>
+    </div>
+
+    <!-- C.19 -->
+    <div class="feature-card done">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.19</span> Review-by Date / Expiry Flag</div>
+        <div class="feature-card-badges">
+          <span class="status-badge done">✓ Completed</span>
+          <span class="effort-badge">⏱ Low effort</span>
+          <span class="diff-badge moderate">Moderate diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Mark any saved chat as time-sensitive with an optional review date. A badge or banner appears
+        when the date is past, signalling the information may be stale — useful for chats about
+        library versions, API docs, or rapidly-evolving topics.
+        <br><br>
+        Implemented: <code>reviewDate</code> + <code>flaggedAsStale</code> on <code>ChatEntry</code>;
+        <code>stale-check.js</code> module with daily <code>chrome.alarms</code> + startup check;
+        "Set review date" date-picker in the chat context menu; <code>⚠</code> badge on stale tree
+        items; dismissible stale banner in reader header with "Mark as reviewed" button. 19 new tests.
+      </div>
+    </div>
+
+    <!-- C.20 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.20</span> JSONL Fine-Tuning Export</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Low–Medium effort</span>
+          <span class="diff-badge veryhigh">Very High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Export any topic branch or selected chats as an <strong>OpenAI-format JSONL</strong> file —
+        one <code>{"messages":[...]}</code> object per line — producing training-ready data for
+        fine-tuning or RAG pipelines with a single click.
+        <br><br>
+        New export format option <em>JSONL (Fine-tuning)</em> alongside MD / HTML / PDF / ZIP;
+        optional configurable system message; strips platform-injected turns.
+        No other consumer AI chat manager offers this — strong differentiator for the
+        developer/researcher segment.
+      </div>
+    </div>
+
+    <!-- C.21 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.21</span> Direct Obsidian Push (Local REST API)</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Medium effort</span>
+          <span class="diff-badge high">High diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Complement the Obsidian ZIP export (C.2) with a live push to a running vault via the
+        <a href="https://github.com/coddingtonbear/obsidian-local-rest-api" target="_blank">Obsidian
+        Local REST API plugin</a> — creating or updating notes without any file management.
+        <br><br>
+        Settings page: REST base URL + API key. "Send to Obsidian" in chat context menu; "Push topic
+        to Obsidian" for bulk push. Graceful failure toast if Obsidian is not running; falls back to
+        suggesting ZIP export. Targets the large Obsidian / second-brain user overlap.
+      </div>
+    </div>
+
+    <!-- C.22 -->
+    <div class="feature-card">
+      <div class="feature-card-header">
+        <div class="feature-card-title"><span class="ref">C.22</span> Reading Progress Persistence</div>
+        <div class="feature-card-badges">
+          <span class="status-badge future">◌ Candidate</span>
+          <span class="effort-badge">⏱ Low effort</span>
+          <span class="diff-badge moderate">Moderate diff.</span>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        Remember the scroll position per chat across sessions in the reader view, so returning to a
+        long technical conversation resumes where you left off.
+        <br><br>
+        On <code>scroll</code> (debounced 500 ms), write <code>scrollPositions[chatId] = scrollY</code>
+        to <code>localStorage</code>. On load, restore position after content renders.
+        Cap to the 100 most-recent entries (LRU eviction). The existing "Return to top" button
+        remains unchanged. Trivial to implement; immediately noticeable quality improvement.
+      </div>
+    </div>
+
   </div><!-- /feature-grid -->
 
 </div><!-- /container -->
 
 <footer>
   bAInder · AI Chat Organizer · Chrome &amp; Edge Extension &nbsp;|&nbsp;
-  MIT Licence &nbsp;|&nbsp; Roadmap generated March 2, 2026
+  MIT Licence &nbsp;|&nbsp; Roadmap generated March 3, 2026
 </footer>
 
 <script>
@@ -1401,3 +1610,4 @@
 </script>
 </body>
 </html>
+

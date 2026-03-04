@@ -71,13 +71,21 @@ const elements = {
   filterDateFrom:   document.getElementById('filterDateFrom'),
   filterDateTo:     document.getElementById('filterDateTo'),
   filterTopicScope: document.getElementById('filterTopicScope'),
-  filterClearBtn:   document.getElementById('filterClearBtn'),
+  filterClearBtn:     document.getElementById('filterClearBtn'),
+  filterRatingPills:  document.getElementById('filterRatingPills'),
   // C.10 — backup reminder
   backupReminderBanner: document.getElementById('backupReminderBanner'),
   backupReminderMsg:    document.getElementById('backupReminderMsg'),
   backupExportNowBtn:   document.getElementById('backupExportNowBtn'),
   backupRemindLaterBtn: document.getElementById('backupRemindLaterBtn'),
-  backupDismissBtn:     document.getElementById('backupDismissBtn')
+  backupDismissBtn:     document.getElementById('backupDismissBtn'),
+  // C.17 — multi-select / digest export
+  multiSelectToggleBtn: document.getElementById('multiSelectToggleBtn'),
+  selectionBar:         document.getElementById('selectionBar'),
+  selectionCount:       document.getElementById('selectionCount'),
+  exportDigestBtn:      document.getElementById('exportDigestBtn'),
+  selectionClearBtn:    document.getElementById('selectionClearBtn'),
+  multiSelectCancelBtn: document.getElementById('multiSelectCancelBtn')
 };
 
 // Application State
@@ -99,10 +107,11 @@ const state = {
   sortMode: localStorage.getItem('topicSortMode') || 'alpha-asc',
   // C.3 — search filters
   filters: {
-    sources:  new Set(),   // active source keys (empty = all)
-    dateFrom: null,        // 'YYYY-MM-DD' string or null
-    dateTo:   null,        // 'YYYY-MM-DD' string or null
-    topicId:  ''           // '' = all topics
+    sources:   new Set(),   // active source keys (empty = all)
+    dateFrom:  null,        // 'YYYY-MM-DD' string or null
+    dateTo:    null,        // 'YYYY-MM-DD' string or null
+    topicId:   '',          // '' = all topics
+    minRating: null         // C.15 — 1–5 or null (all)
   }
 };
 
@@ -199,6 +208,20 @@ function setupEventListeners() {
   // Export entire tree button (Stage 9)
   if (elements.exportAllBtn) {
     elements.exportAllBtn.addEventListener('click', handleExportAll);
+  }
+
+  // C.17 — multi-select / digest export wiring
+  if (elements.multiSelectToggleBtn) {
+    elements.multiSelectToggleBtn.addEventListener('click', handleMultiSelectToggle);
+  }
+  if (elements.exportDigestBtn) {
+    elements.exportDigestBtn.addEventListener('click', handleExportDigest);
+  }
+  if (elements.selectionClearBtn) {
+    elements.selectionClearBtn.addEventListener('click', () => state.renderer?.clearSelection());
+  }
+  if (elements.multiSelectCancelBtn) {
+    elements.multiSelectCancelBtn.addEventListener('click', exitMultiSelectMode);
   }
 
   // Clear all button
@@ -446,6 +469,9 @@ function initTreeRenderer() {
   // Set up pin/star handler (U2)
   state.renderer.onTopicPin = handleTopicPin;
 
+  // C.17 — multi-select selection change
+  state.renderer.onSelectionChange = handleSelectionChange;
+
   // C.9 — apply saved sort mode
   state.renderer.sortMode = state.sortMode;
 
@@ -499,7 +525,50 @@ function handleChatContextMenu(chat, event) {
   event.preventDefault();
   state.contextMenuChat = chat;
   console.log('Chat context menu opened for:', chat.title);
+  updateChatRatingWidget(chat.rating || 0);
+  // C.19 — Update review date label
+  const reviewSpan = document.getElementById('chatReviewDateSpan');
+  if (reviewSpan) {
+    if (chat.flaggedAsStale) {
+      reviewSpan.textContent = chat.reviewDate
+        ? `⚠ Review due: ${chat.reviewDate}`
+        : '⚠ Update review date';
+    } else if (chat.reviewDate) {
+      reviewSpan.textContent = `Review: ${chat.reviewDate}`;
+    } else {
+      reviewSpan.textContent = 'Set review date';
+    }
+  }
   showChatContextMenu(event.clientX, event.clientY);
+}
+
+// C.15 — Sync the star widget in the context menu to a given rating
+function updateChatRatingWidget(rating) {
+  const widget = document.getElementById('chatRatingWidget');
+  if (!widget) return;
+  widget.querySelectorAll('.star-btn').forEach(btn => {
+    const val = parseInt(btn.dataset.value, 10);
+    btn.classList.toggle('is-active', val <= rating);
+    btn.setAttribute('aria-pressed', val <= rating ? 'true' : 'false');
+  });
+}
+
+// C.15 — Persist a new rating for the context-menu chat
+async function handleRateChatAction(value) {
+  const chat = state.contextMenuChat;
+  if (!chat) return;
+  // Toggle off if clicking the same star twice
+  const newRating = chat.rating === value ? null : value;
+  const { chats: _fullRate } = await browser.storage.local.get(['chats']);
+  const _fullRateArr = Array.isArray(_fullRate) ? _fullRate : [];
+  const _ratedFull = updateChatInArray(chat.id, { rating: newRating }, _fullRateArr);
+  await browser.storage.local.set({ chats: _ratedFull });
+  state.chats = _ratedFull.map(({ content: _c, ...meta }) => meta);
+  // Keep reference fresh so subsequent clicks within same menu session work
+  state.contextMenuChat = { ...chat, rating: newRating };
+  updateChatRatingWidget(newRating || 0);
+  state.renderer.setChatData(state.chats);
+  renderTreeView();
 }
 
 // Handle incoming CHAT_SAVED message from background
@@ -510,7 +579,11 @@ async function handleChatSaved(chatEntry) {
 
   // Prompt user to assign the new chat to a topic
   const result = await state.chatDialogs.showAssignChat(chatEntry);
-  if (!result) return;
+  if (!result) {
+    // User cancelled the dialog — revert the button without showing "Saved!"
+    setSaveBtnState('default');
+    return;
+  }
 
   const updatedChat = assignChatToTopic(chatEntry, result.topicId, state.tree);
   if (result.title && result.title !== chatEntry.title) {
@@ -528,6 +601,9 @@ async function handleChatSaved(chatEntry) {
   state.renderer.setChatData(state.chats);
   renderTreeView();
   state.renderer.expandToTopic(result.topicId);
+
+  // Now that the user has confirmed the dialog, mark the save as successful
+  setSaveBtnState('success');
 
   // A1 — flash pop on the newly added chat node
   requestAnimationFrame(() => {
@@ -654,14 +730,33 @@ function setupFilterBar() {
     if (state.searchQuery) handleSearchDeferred(state.searchQuery);
   });
 
+  // C.15 — min-rating pills
+  elements.filterRatingPills?.querySelectorAll('[data-min-rating]').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const val = parseInt(pill.dataset.minRating, 10);
+      if (state.filters.minRating === val) {
+        state.filters.minRating = null;
+        pill.classList.remove('is-active');
+      } else {
+        state.filters.minRating = val;
+        elements.filterRatingPills.querySelectorAll('[data-min-rating]').forEach(p => p.classList.remove('is-active'));
+        pill.classList.add('is-active');
+      }
+      updateFilterIndicator();
+      if (state.searchQuery) handleSearchDeferred(state.searchQuery);
+    });
+  });
+
   // Clear all filters
   elements.filterClearBtn?.addEventListener('click', () => {
-    state.filters.sources = new Set();
-    state.filters.dateFrom = null;
-    state.filters.dateTo   = null;
-    state.filters.topicId  = '';
+    state.filters.sources   = new Set();
+    state.filters.dateFrom  = null;
+    state.filters.dateTo    = null;
+    state.filters.topicId   = '';
+    state.filters.minRating = null;
     // Reset UI
     elements.filterSourcePills?.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('is-active'));
+    elements.filterRatingPills?.querySelectorAll('[data-min-rating]').forEach(p => p.classList.remove('is-active'));
     if (elements.filterDateFrom) elements.filterDateFrom.value = '';
     if (elements.filterDateTo)   elements.filterDateTo.value   = '';
     if (elements.filterTopicScope) elements.filterTopicScope.value = '';
@@ -697,7 +792,8 @@ function updateFilterIndicator() {
     state.filters.sources.size > 0 ||
     state.filters.dateFrom ||
     state.filters.dateTo ||
-    state.filters.topicId;
+    state.filters.topicId ||
+    state.filters.minRating != null;
   elements.filterToggleBtn.classList.toggle('has-active-filters', Boolean(hasFilters));
 }
 
@@ -829,10 +925,16 @@ function buildResultCard(query, chat) {
       }).join('')}</div>`
     : '';
 
+  // C.15 — star rating badge
+  const ratingHtml = chat.rating
+    ? `<span class="result-rating" title="${chat.rating} star${chat.rating > 1 ? 's' : ''}">${'★'.repeat(chat.rating)}${'☆'.repeat(5 - chat.rating)}</span>`
+    : '';
+
   return (
     `<article class="result-card" role="button" tabindex="0" aria-label="${escapeHtml(title)}">
       <div class="result-header">
         <span class="result-title">${titleHtml}</span>
+        ${ratingHtml}
         <span class="${badgeCls}">${escapeHtml(sourceText)}</span>
       </div>
       ${snippetEl}
@@ -913,12 +1015,23 @@ function setupChatContextMenuActions() {
   if (!elements.chatContextMenu) return;
 
   const actions = {
-    open:        handleOpenChatAction,
-    rename:      handleRenameChatAction,
-    'edit-tags': handleEditTagsAction,
-    move:        handleMoveChatAction,
-    delete:      handleDeleteChatAction
+    open:              handleOpenChatAction,
+    rename:            handleRenameChatAction,
+    'edit-tags':       handleEditTagsAction,
+    move:              handleMoveChatAction,
+    delete:            handleDeleteChatAction,
+    'set-review-date': handleSetReviewDateAction  // C.19
   };
+
+  // C.15 — wire star buttons directly (don't close the menu on click)
+  const ratingWidget = elements.chatContextMenu.querySelector('#chatRatingWidget');
+  ratingWidget?.querySelectorAll('.star-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const value = parseInt(btn.dataset.value, 10);
+      await handleRateChatAction(value);
+    });
+  });
 
   elements.chatContextMenu.querySelectorAll('[data-chat-action]').forEach(item => {
     item.addEventListener('click', async (e) => {
@@ -1015,6 +1128,22 @@ async function handleDeleteChatAction() {
   const _deletedFull = removeChatFromArray(chat.id, _fullDelArr);
   await browser.storage.local.set({ chats: _deletedFull });
   state.chats = _deletedFull.map(({ content: _c, ...meta }) => meta);
+  state.renderer.setChatData(state.chats);
+  renderTreeView();
+}
+
+// C.19 — Handle "Set review date" chat action
+async function handleSetReviewDateAction() {
+  if (!state.contextMenuChat) return;
+  const result = await state.chatDialogs.showSetReviewDate(state.contextMenuChat);
+  if (!result) return;
+
+  const updates = { reviewDate: result.reviewDate, flaggedAsStale: false };
+  const { chats: _fullReview } = await browser.storage.local.get(['chats']);
+  const _reviewArr = Array.isArray(_fullReview) ? _fullReview : [];
+  const _updatedReview = updateChatInArray(state.contextMenuChat.id, updates, _reviewArr);
+  await browser.storage.local.set({ chats: _updatedReview });
+  state.chats = _updatedReview.map(({ content: _c, ...meta }) => meta);
   state.renderer.setChatData(state.chats);
   renderTreeView();
 }
@@ -1140,6 +1269,87 @@ async function handleExportAll() {
   }
 }
 
+// ── C.17 — Multi-select + Digest Export ──────────────────────────────────────
+
+/** Toggle the tree renderer into / out of multi-select mode. */
+function handleMultiSelectToggle() {
+  if (!state.renderer) return;
+  if (state.renderer.multiSelectMode) {
+    exitMultiSelectMode();
+  } else {
+    state.renderer.enterMultiSelectMode();
+    if (elements.multiSelectToggleBtn) {
+      elements.multiSelectToggleBtn.classList.add('section-toggle--active');
+      elements.multiSelectToggleBtn.setAttribute('aria-pressed', 'true');
+      elements.multiSelectToggleBtn.title = 'Exit selection mode';
+    }
+    if (elements.selectionBar) elements.selectionBar.style.display = 'flex';
+    updateSelectionBar(0);
+  }
+}
+
+/** Exit multi-select mode and clean up UI. */
+function exitMultiSelectMode() {
+  if (!state.renderer) return;
+  state.renderer.exitMultiSelectMode();
+  if (elements.multiSelectToggleBtn) {
+    elements.multiSelectToggleBtn.classList.remove('section-toggle--active');
+    elements.multiSelectToggleBtn.setAttribute('aria-pressed', 'false');
+    elements.multiSelectToggleBtn.title = 'Select chats';
+  }
+  if (elements.selectionBar) elements.selectionBar.style.display = 'none';
+}
+
+/** Called by TreeRenderer when the set of selected chats changes. */
+function handleSelectionChange(selectedIds, _selectedChats) {
+  updateSelectionBar(selectedIds.size);
+}
+
+/** Update the selection bar label and button state. */
+function updateSelectionBar(count) {
+  if (elements.selectionCount) {
+    elements.selectionCount.textContent = count === 1 ? '1 chat selected' : `${count} chats selected`;
+  }
+  if (elements.exportDigestBtn) {
+    elements.exportDigestBtn.disabled = count < 2;
+    elements.exportDigestBtn.title = count < 2
+      ? 'Select at least 2 chats to export a digest'
+      : `Export digest of ${count} chats`;
+  }
+}
+
+/** Trigger the digest export dialog for the currently selected chats. */
+async function handleExportDigest() {
+  if (!state.renderer) return;
+  const metaChats = state.renderer.getSelectedChats();
+  if (metaChats.length < 2) {
+    showNotification('Select at least 2 chats to export a digest', 'error');
+    return;
+  }
+
+  // Load full chat content on demand (sidepanel strips content at load time)
+  let fullChats;
+  try {
+    const result = await browser.storage.local.get(['chats']);
+    const allFull = Array.isArray(result.chats) ? result.chats : [];
+    const selectedIds = new Set(metaChats.map(c => c.id));
+    // Preserve the user-chosen order (order of selection isn't tracked, so use
+    // the order they appear in the tree / allFull list for now)
+    fullChats = allFull.filter(c => selectedIds.has(c.id));
+  } catch (err) {
+    console.error('Failed to load full chat content for digest export:', err);
+    showNotification('Failed to load chats for export', 'error');
+    return;
+  }
+
+  try {
+    await state.exportDialog.showExportDigest(fullChats, state.tree);
+  } catch (err) {
+    console.error('Digest export failed:', err);
+    await state.dialog.alert(err.message || 'Digest export failed', 'Export Error');
+  }
+}
+
 // Handle import from ZIP (Stage 9)
 async function handleImport() {
   try {
@@ -1225,14 +1435,15 @@ function openSettingsPanel() {
   document.getElementById('settingsPanelClose')
     ?.addEventListener('click', closeSettingsPanel, { once: true });
 
-  // Wire debug-log toggle
-  const debugToggle = document.getElementById('debugLogToggle');
-  if (debugToggle && !debugToggle.dataset.loggerWired) {
-    debugToggle.dataset.loggerWired = '1';
-    debugToggle.checked = logger.isEnabled();
-    debugToggle.addEventListener('change', () => logger.setEnabled(debugToggle.checked));
-  } else if (debugToggle) {
-    debugToggle.checked = logger.isEnabled();
+  // Wire log-level selector
+  const logLevelSelect = document.getElementById('logLevelSelect');
+  if (logLevelSelect) {
+    // Sync displayed value to the current runtime level each time the panel opens
+    logLevelSelect.value = logger.getLevel();
+    if (!logLevelSelect.dataset.loggerWired) {
+      logLevelSelect.dataset.loggerWired = '1';
+      logLevelSelect.addEventListener('change', () => logger.setLevel(logLevelSelect.value));
+    }
   }
 }
 
@@ -1524,8 +1735,8 @@ async function handlePanelSave() {
       throw new Error(saveResponse?.error || 'Save failed');
     }
 
-    setSaveBtnState('success');
-
+    // setSaveBtnState('success') is deferred to handleChatSaved() so the button
+    // only shows "Saved!" AFTER the user confirms the assign-to-topic dialog.
     // State refresh is handled by handleChatSaved (triggered by the CHAT_SAVED
     // broadcast from background) — which also shows the assign-to-topic dialog,
     // saves the topicId, and re-renders. Calling loadTree() here concurrently

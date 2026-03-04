@@ -350,13 +350,16 @@ const browser = chrome;
         turn.querySelector('[class*="prose"]') ||
         turn.querySelector('[class*="whitespace-pre"]') ||
         roleEl;
-      const content = htmlToMarkdown(contentEl);
+      const processEl = role === 'assistant' ? stripSourceContainers(contentEl) : contentEl;
+      let content = htmlToMarkdown(processEl);
+      if (role === 'assistant') content += extractSourceLinks(turn, contentEl);
       if (content) messages.push(formatMessage(role, content));
     });
     if (messages.length === 0) {
       doc.querySelectorAll('[data-message-author-role]').forEach(el => {
         const role = el.getAttribute('data-message-author-role') === 'user' ? 'user' : 'assistant';
-        const content = htmlToMarkdown(el);
+        const processEl = role === 'assistant' ? stripSourceContainers(el) : el;
+        const content = htmlToMarkdown(processEl);
         if (content) messages.push(formatMessage(role, content));
       });
     }
@@ -372,7 +375,9 @@ const browser = chrome;
       ...aiTurns.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
     allTurns.forEach(({ el, role }) => {
-      const content = htmlToMarkdown(el);
+      const processEl = role === 'assistant' ? stripSourceContainers(el) : el;
+      let content = htmlToMarkdown(processEl);
+      if (role === 'assistant') content += extractSourceLinks(el);
       if (content) messages.push(formatMessage(role, content));
     });
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
@@ -380,25 +385,198 @@ const browser = chrome;
 
   function extractGemini(doc) {
     const messages = [];
-    const userEls  = Array.from(doc.querySelectorAll('.user-query-content, .query-text, [class*="user-query"]'));
-    const modelEls = Array.from(doc.querySelectorAll('.model-response-text, .response-text, [class*="model-response"]'));
+    const userEls  = removeDescendants(Array.from(doc.querySelectorAll('.user-query-content, .query-text, [class*="user-query"]')));
+    const modelEls = removeDescendants(Array.from(doc.querySelectorAll('.model-response-text, .response-text, [class*="model-response"]')));
     const allEls   = [
       ...userEls.map(el => ({ el, role: 'user' })),
       ...modelEls.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
     allEls.forEach(({ el, role }) => {
-      const content = htmlToMarkdown(el);
+      const processEl = role === 'assistant' ? stripSourceContainers(el) : el;
+      let content = htmlToMarkdown(processEl);
+      if (role === 'assistant') content += extractSourceLinks(el);
       if (content) messages.push(formatMessage(role, content));
     });
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
   }
 
-  // Strips Copilot UI role-label lines ("You said:", "Copilot said:") from markdown.
+  // Removes elements that are descendants of another element in the same list.
+  // Prevents wildcard selectors (e.g. [class*="user-query"]) from matching both
+  // an outer wrapper and its inner content child, which would duplicate messages.
+  // Used by extractGemini and extractCopilot.
+  function removeDescendants(els) {
+    return els.filter(el => !els.some(other => other !== el && other.contains(el)));
+  }
+
+  // Strips Copilot UI role-label lines ("You said:", "Copilot said:") and
+  // BizChat / M365 feedback UI noise from markdown content.
   // Defined at IIFE scope so it is available in the contextmenu handler and
   // EXTRACT_EXCERPT message handler, not just inside extractCopilot.
   const LABEL_RE = /^#{0,6}\s*(you said|i said|copilot said|copilot):?\s*$/i;
+  const UI_NOISE_RE = /^(provide your feedback on (bizchat|copilot|m365|microsoft 365|bing)|was this (response|answer) helpful\??|helpful\s*not helpful|thumbs up|thumbs down|report a concern|give feedback|feedback on this response|like\s*dislike)\s*$/i;
   function stripRoleLabels(content) {
-    return content.split('\n').filter(line => !LABEL_RE.test(line.trim())).join('\n').replace(/^\s+/, '');
+    return content
+      .split('\n')
+      .filter(line => {
+        const t = line.trim();
+        return !LABEL_RE.test(t) && !UI_NOISE_RE.test(t);
+      })
+      .join('\n')
+      .replace(/^\s+/, '');
+  }
+
+  // CSS selectors for source / citation containers across all supported platforms.
+  const SOURCE_CONTAINER_SELECTORS = [
+    '[data-testid*="citation"]', '[class*="CitationBubble"]',
+    '[class*="SearchResult"]',   '[class*="citation-list"]',
+    '[class*="attribution"]',    'source-citation',
+    '[class*="source-chip"]',    '[class*="SourceCard"]',
+    '[class*="sourceCard"]',     '[class*="ReferenceCard"]',
+    '[class*="referenceCard"]',  '[class*="CitationCard"]',
+    '[class*="citationCard"]',   '[data-testid*="source-card"]',
+    '[data-testid*="sources"]',  '[data-testid^="sources-button"]',
+    '[data-test-id*="sources"]', '[data-test-id^="sources-button"]', // hyphenated variant
+    '[data-testid="foot-note-div"]',  // Copilot footnote bar that shows "Sources" text
+    '[aria-label="Sources"]',    '[aria-label="References"]', '[aria-label="Citations"]',
+  ].join(', ');
+
+  // Clone `el` and remove source/citation containers and source-labelled buttons
+  // so htmlToMarkdown does not render them as part of the message content.
+  // Links are extracted separately by extractSourceLinks on the ORIGINAL element.
+  function stripSourceContainers(el) {
+    const clone = el.cloneNode(true);
+    try { clone.querySelectorAll(SOURCE_CONTAINER_SELECTORS).forEach(n => n.remove()); } catch (_) {}
+    // Also strip any descendant whose data-testid OR data-test-id contains "source"
+    try {
+      clone.querySelectorAll('[data-testid],[data-test-id]').forEach(n => {
+        const id = (n.getAttribute('data-testid') || n.getAttribute('data-test-id') || '').toLowerCase();
+        if (id.includes('source')) n.remove();
+      });
+    } catch (_) {}
+    try {
+      const SOURCES_RE = /\b(source|sources|reference|references|citation|citations)\b/i;
+      clone.querySelectorAll('button,[role="button"]').forEach(btn => {
+        if (SOURCES_RE.test((btn.getAttribute('aria-label') || btn.textContent || '').trim())) btn.remove();
+      });
+    } catch (_) {}
+    // Strip Copilot M365 feedback / rating banners ("Provide your feedback on BizChat")
+    try {
+      const FEEDBACK_RE = /provide\s+your\s+feedback|bizchat/i;
+      clone.querySelectorAll(
+        '[class*="feedback" i],[class*="Feedback"],[aria-label*="feedback" i],' +
+        'button,[role="button"],[role="complementary"]'
+      ).forEach(n => {
+        const text = (n.getAttribute('aria-label') || n.textContent || '').trim();
+        if (FEEDBACK_RE.test(text)) n.remove();
+      });
+      // Also catch any remaining element whose sole visible text is the feedback prompt
+      clone.querySelectorAll('*').forEach(n => {
+        if (n.children.length === 0 && FEEDBACK_RE.test(n.textContent || '')) n.remove();
+      });
+    } catch (_) {}
+    // Strip Copilot M365 UI chrome: role-label headings, logo, action bar containers
+    // These are accessibility/UI scaffolding, not message content.
+    try {
+      clone.querySelectorAll([
+        '[class*="accessibleHeading"]',      // h5/h6 "Copilot said:" / "You said:"
+        '[data-testid="messageAttributionIcon"]', // Copilot logo
+        '[data-testid="CopyButtonContainerTestId"]', // "Provide your feedback on BizChat"
+        '[data-testid="FeedbackContainerTestId"]',   // feedback thumbs up/down
+        '[data-testid="feedback-button-testid"]',
+        '[data-testid="CopyButtonTestId"]',
+        '[data-testid="pages-split-button-primary"]',
+        '[data-testid="pages-split-button-menu"]',
+        '[data-testid="overflow-menu-button"]',
+        '[data-testid="chat-response-message-disclaimer"]',
+        // NOTE: do NOT strip loading-message — it contains the actual reply text
+      ].join(', ')).forEach(n => n.remove());
+    } catch (_) {}
+    return clone;
+  }
+
+  /**
+   * Append external source / citation links found in `turnEl` that are not
+   * already present in the extracted `content` string.
+   *
+   * Part A – sibling source containers: when `contentEl` is a specific child of
+   *   `turnEl`, source cards living outside `contentEl` are harvested.
+   * Part B – button-hidden links: htmlToMarkdown skips <button> content; any
+   *   <button> whose label/text mentions "sources/references/citations" is
+   *   scanned for <a href> links.
+   *
+   * @param {Element}      turnEl     Outer turn / article element
+   * @param {Element|null} contentEl  Sub-element already processed (or null)
+   * @returns {string}
+   */
+  function extractSourceLinks(turnEl, contentEl) {
+    if (!turnEl) return '';
+    const seen  = new Set();
+    const lines = [];
+    const recordLink = (a) => {
+      const href = (a.getAttribute('href') || '').trim();
+      if (!href || seen.has(href)) return;
+      if (!/^https?:\/\//i.test(href) && !href.startsWith('//')) return;
+      seen.add(href);
+      const text = (a.textContent || '').replace(/\s+/g, ' ').trim() || href;
+      lines.push(`- [${text}](${href})`);
+    };
+    // Part A
+    if (contentEl && contentEl !== turnEl) {
+      // Sibling path (ChatGPT): look for containers OUTSIDE the already-processed contentEl.
+      try {
+        for (const c of Array.from(turnEl.querySelectorAll(SOURCE_CONTAINER_SELECTORS))) {
+          if (contentEl.contains(c)) continue;
+          Array.from(c.querySelectorAll('a[href]')).forEach(recordLink);
+        }
+      } catch (_) {}
+    } else {
+      // Full-element path (Claude/Gemini/Copilot): source containers are inside
+      // turnEl — stripped from the clone before htmlToMarkdown, extracted here.
+      try {
+        for (const c of Array.from(turnEl.querySelectorAll(SOURCE_CONTAINER_SELECTORS))) {
+          Array.from(c.querySelectorAll('a[href]')).forEach(recordLink);
+        }
+      } catch (_) {}
+    }
+    // Part B
+    try {
+      const SOURCES_RE = /\b(source|sources|reference|references|citation|citations)\b/i;
+      const scope = contentEl || turnEl;
+      for (const btn of Array.from(scope.querySelectorAll('button'))) {
+        const lbl = (btn.getAttribute('aria-label') || btn.textContent || '').trim();
+        if (!SOURCES_RE.test(lbl)) continue;
+        Array.from(btn.querySelectorAll('a[href]')).forEach(recordLink);
+      }
+      // Directly match by data-testid OR data-test-id containing "source"
+      for (const container of Array.from(turnEl.querySelectorAll('[data-testid],[data-test-id]'))) {
+        const id = (container.getAttribute('data-testid') || container.getAttribute('data-test-id') || '').toLowerCase();
+        if (id.includes('source')) Array.from(container.querySelectorAll('a[href]')).forEach(recordLink);
+      }
+    } catch (_) {}
+
+    // ── Part C: Copilot favicon-based source URLs ─────────────────────────────
+    // Copilot's sources panel is collapsed at save time — no <a href> links exist.
+    // The collapsed button contains <img src="https://services.bingapis.com/favicon?url=DOMAIN">
+    // for each source.  Extract the domain from each favicon URL to build a real link.
+    if (lines.length === 0) {
+      try {
+        turnEl.querySelectorAll('[data-testid="sources-button-testid"]').forEach(btn => {
+          btn.querySelectorAll('img[src*="bingapis.com/favicon"]').forEach(img => {
+            const src = img.getAttribute('src') || '';
+            const m = src.match(/[?&]url=([^&]+)/);
+            if (!m) return;
+            const domain = decodeURIComponent(m[1]).replace(/^https?:\/\//, '').replace(/\/$/, '');
+            const url = 'https://' + domain;
+            if (!seen.has(url)) {
+              seen.add(url);
+              lines.push(`- [${domain}](${url})`);
+            }
+          });
+        });
+      } catch (_) {}
+    }
+    if (lines.length === 0) return '';
+    return '\n\n**Sources:**\n\n' + lines.join('\n');
   }
 
   function extractCopilot(doc) {
@@ -411,13 +589,8 @@ const browser = chrome;
       doc.querySelector('[class*="conversation"][class*="container"]') ||
       doc;
 
-    // Helper: true when an element lives inside a history side-panel / nav drawer.
     const inHistoryPanel = el =>
       !!el.closest('aside, [role="complementary"], [role="navigation"], [class*="history"], [class*="sidebar"]');
-
-    // Helper: keep only outermost elements (remove descendants of other matches).
-    const removeDescendants = els =>
-      els.filter(el => !els.some(other => other !== el && other.contains(el)));
 
     const userSelectors = [
       '[data-testid="user-message"]',
@@ -445,20 +618,18 @@ const browser = chrome;
     const userEls    = removeDescendants(rawUserEls);
     const copilotEls = removeDescendants(rawCopilotEls);
 
-    console.log(`bAInder: extractCopilot found ${userEls.length} user, ${copilotEls.length} assistant elements`);
-    if (userEls.length === 0 && copilotEls.length === 0) {
-      console.warn('bAInder: no messages found. Body classes:', doc.body && doc.body.className);
-    }
-
     const allEls = [
       ...userEls.map(el => ({ el, role: 'user' })),
       ...copilotEls.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
 
     allEls.forEach(({ el, role }) => {
-      const content = stripRoleLabels(htmlToMarkdown(el));
+      const processEl = role === 'assistant' ? stripSourceContainers(el) : el;
+      let content = stripRoleLabels(htmlToMarkdown(processEl));
+      if (role === 'assistant') content += extractSourceLinks(el);
       if (content) messages.push(formatMessage(role, content));
     });
+
     return { title: generateTitle(messages, doc.location?.href || ''), messages, messageCount: messages.length };
   }
 

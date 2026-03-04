@@ -9,11 +9,14 @@ import {
   badgeClass,
   applyInline,
   renderMarkdown,
+  processSources,
+  setupSourcesPanel,
   showError,
   renderChat,
   init,
   applySettingsFromValues,
   watchReaderSettings,
+  setupRating,
 } from '../src/reader/reader.js';
 import { messagesToMarkdown } from '../src/lib/markdown-serialiser.js';
 
@@ -378,6 +381,175 @@ describe('renderMarkdown', () => {
   });
 });
 
+// ─── processSources ───────────────────────────────────────────────────────────
+
+describe('processSources', () => {
+  function makeContent(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    document.body.innerHTML = '';
+    document.body.appendChild(div);
+    return div;
+  }
+
+  it('returns early for null input', () => {
+    expect(() => processSources(null)).not.toThrow();
+  });
+
+  it('replaces a Sources <p>+<ul> pair with a .sources-trigger button', () => {
+    const el = makeContent(
+      `<p><strong>Sources:</strong></p>` +
+      `<ul><li><a href="https://example.com">Example</a></li></ul>`
+    );
+    processSources(el);
+    expect(el.querySelector('.sources-trigger')).not.toBeNull();
+    expect(el.querySelector('ul')).toBeNull();
+    expect(el.querySelector('p')).toBeNull();
+  });
+
+  it('stores link data in data-sources attribute as JSON', () => {
+    const el = makeContent(
+      `<p><strong>Sources:</strong></p>` +
+      `<ul>` +
+        `<li><a href="https://a.com">Alpha</a></li>` +
+        `<li><a href="https://b.com">Beta</a></li>` +
+      `</ul>`
+    );
+    processSources(el);
+    const btn = el.querySelector('.sources-trigger');
+    const links = JSON.parse(btn.dataset.sources);
+    expect(links).toHaveLength(2);
+    expect(links[0]).toEqual({ href: 'https://a.com', text: 'Alpha' });
+    expect(links[1]).toEqual({ href: 'https://b.com', text: 'Beta' });
+  });
+
+  it('chip label uses singular "source" for one link', () => {
+    const el = makeContent(
+      `<p><strong>Sources:</strong></p>` +
+      `<ul><li><a href="https://x.com">X</a></li></ul>`
+    );
+    processSources(el);
+    expect(el.querySelector('.sources-trigger').textContent).toContain('1 source');
+    expect(el.querySelector('.sources-trigger').textContent).not.toContain('sources');
+  });
+
+  it('chip label uses plural "sources" for multiple links', () => {
+    const el = makeContent(
+      `<p><strong>Sources:</strong></p>` +
+      `<ul>` +
+        `<li><a href="https://a.com">A</a></li>` +
+        `<li><a href="https://b.com">B</a></li>` +
+      `</ul>`
+    );
+    processSources(el);
+    expect(el.querySelector('.sources-trigger').textContent).toContain('2 sources');
+  });
+
+  it('does nothing when the <p> is not empty. and has no following <ul>', () => {
+    const el = makeContent(`<p><strong>Sources:</strong></p><p>No list here</p>`);
+    processSources(el);
+    // No chip should be created
+    expect(el.querySelector('.sources-trigger')).toBeNull();
+  });
+
+  it('does nothing to <p> elements that are not "Sources:"', () => {
+    const el = makeContent(
+      `<p>Regular paragraph</p>` +
+      `<ul><li><a href="https://a.com">A</a></li></ul>`
+    );
+    processSources(el);
+    expect(el.querySelector('.sources-trigger')).toBeNull();
+    expect(el.querySelector('ul')).not.toBeNull();
+  });
+
+  it('does nothing when the <ul> has no links', () => {
+    const el = makeContent(
+      `<p><strong>Sources:</strong></p>` +
+      `<ul><li>No links here</li></ul>`
+    );
+    processSources(el);
+    expect(el.querySelector('.sources-trigger')).toBeNull();
+  });
+});
+
+// ─── setupSourcesPanel ────────────────────────────────────────────────────────
+
+describe('setupSourcesPanel', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('injects #sources-panel and #sources-overlay into the DOM', () => {
+    setupSourcesPanel();
+    expect(document.getElementById('sources-panel')).not.toBeNull();
+    expect(document.getElementById('sources-overlay')).not.toBeNull();
+  });
+
+  it('is idempotent — calling twice does not create a second panel', () => {
+    setupSourcesPanel();
+    setupSourcesPanel();
+    expect(document.querySelectorAll('#sources-panel').length).toBe(1);
+  });
+
+  it('panel starts with aria-hidden="true"', () => {
+    setupSourcesPanel();
+    expect(document.getElementById('sources-panel').getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('clicking a .sources-trigger opens the panel and populates the list', () => {
+    setupSourcesPanel();
+    const btn = document.createElement('button');
+    btn.className = 'sources-trigger';
+    btn.dataset.sources = JSON.stringify([{ href: 'https://test.com', text: 'Test Link' }]);
+    document.body.appendChild(btn);
+
+    btn.click();
+
+    const panel = document.getElementById('sources-panel');
+    expect(panel.classList.contains('sources-panel--open')).toBe(true);
+    expect(panel.getAttribute('aria-hidden')).toBe('false');
+    const listItem = document.querySelector('#sources-panel-list a');
+    expect(listItem).not.toBeNull();
+    expect(listItem.href).toContain('test.com');
+    expect(listItem.textContent).toBe('Test Link');
+    expect(listItem.target).toBe('_blank');
+    expect(listItem.rel).toContain('noopener');
+  });
+
+  it('close button hides the panel', () => {
+    setupSourcesPanel();
+    const panel = document.getElementById('sources-panel');
+    panel.classList.add('sources-panel--open');
+    panel.setAttribute('aria-hidden', 'false');
+
+    document.getElementById('sources-panel-close').click();
+
+    expect(panel.classList.contains('sources-panel--open')).toBe(false);
+    expect(panel.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('Escape key closes an open panel', () => {
+    setupSourcesPanel();
+    const panel = document.getElementById('sources-panel');
+    panel.classList.add('sources-panel--open');
+    panel.setAttribute('aria-hidden', 'false');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(panel.classList.contains('sources-panel--open')).toBe(false);
+  });
+
+  it('links in the panel open in a new tab', () => {
+    setupSourcesPanel();
+    const btn = document.createElement('button');
+    btn.className = 'sources-trigger';
+    btn.dataset.sources = JSON.stringify([{ href: 'https://newsite.com', text: 'New Site' }]);
+    document.body.appendChild(btn);
+    btn.click();
+
+    const a = document.querySelector('#sources-panel-list a');
+    expect(a.target).toBe('_blank');
+  });
+});
+
 // ─── showError ────────────────────────────────────────────────────────────────
 
 describe('showError', () => {
@@ -710,5 +882,75 @@ describe('watchReaderSettings', () => {
   it('is a no-op when chrome.storage.onChanged is unavailable', () => {
     vi.stubGlobal('chrome', undefined);
     expect(() => watchReaderSettings()).not.toThrow();
+  });
+});
+
+// ─── C.15 setupRating ─────────────────────────────────────────────────────────
+
+describe('setupRating', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="reader-rating" hidden></div>';
+  });
+
+  function storageWith(chats) {
+    return {
+      get: async () => ({ chats }),
+      set: vi.fn(async () => {}),
+    };
+  }
+
+  it('renders 5 star buttons', () => {
+    setupRating('chat1', null, storageWith([]));
+    const btns = document.querySelectorAll('.reader-star-btn');
+    expect(btns).toHaveLength(5);
+  });
+
+  it('marks stars up to currentRating as is-set', () => {
+    setupRating('chat1', 3, storageWith([]));
+    const btns = [...document.querySelectorAll('.reader-star-btn')];
+    expect(btns.filter(b => b.classList.contains('is-set'))).toHaveLength(3);
+    expect(btns.filter(b => !b.classList.contains('is-set'))).toHaveLength(2);
+  });
+
+  it('shows no stars filled when rating is 0/null', () => {
+    setupRating('chat1', 0, storageWith([]));
+    const active = document.querySelectorAll('.reader-star-btn.is-set');
+    expect(active).toHaveLength(0);
+  });
+
+  it('makes the container visible', () => {
+    const el = document.getElementById('reader-rating');
+    expect(el.hidden).toBe(true);
+    setupRating('chat1', 2, storageWith([]));
+    expect(el.hidden).toBe(false);
+  });
+
+  it('clicking a star saves the new rating to storage', async () => {
+    const chat = { id: 'chat1', title: 'Test', rating: null };
+    const storage = storageWith([chat]);
+    setupRating('chat1', null, storage);
+    const btns = document.querySelectorAll('.reader-star-btn');
+    btns[2].click(); // click 3rd star
+    await new Promise(r => setTimeout(r, 0));
+    expect(storage.set).toHaveBeenCalledWith({
+      chats: [{ id: 'chat1', title: 'Test', rating: 3 }]
+    });
+  });
+
+  it('clicking the same star twice clears the rating', async () => {
+    const chat = { id: 'chat1', title: 'Test', rating: 4 };
+    const storage = storageWith([chat]);
+    setupRating('chat1', 4, storage);
+    const btns = document.querySelectorAll('.reader-star-btn');
+    btns[3].click(); // click 4th star (toggle off)
+    await new Promise(r => setTimeout(r, 0));
+    expect(storage.set).toHaveBeenCalledWith({
+      chats: [{ id: 'chat1', title: 'Test', rating: null }]
+    });
+  });
+
+  it('is a no-op when #reader-rating element is absent', () => {
+    document.body.innerHTML = '';
+    expect(() => setupRating('chat1', 3, storageWith([]))).not.toThrow();
   });
 });

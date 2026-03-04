@@ -2081,7 +2081,136 @@ The first three are a sort pass over the existing tree array before `tree-render
 
 ---
 
-### C.11 Summary Table
+---
+
+### C.13 Prompt Library
+
+Extract all user-turn prompts from every saved chat into a dedicated "Prompt Library" panel. One-click copy or re-fire on any supported AI platform.
+
+- On save, extract `userMessages[]` and store alongside `ChatEntry`.
+- Side panel "Prompt Library" section lists prompts with source topic, date, and platform badge.
+- "Copy" copies raw text; "Re-fire" opens the platform URL with the prompt pre-filled (ChatGPT, Claude, Copilot all accept `?q=` deep links; Gemini falls back to clipboard + open tab).
+
+**Effort:** Medium. **Impact:** High — turns bAInder into an active productivity tool, not just an archive.
+
+---
+
+### C.14 Per-message / Q&A Clipping ✅
+
+> **Status: Completed** — implemented as context-menu **"Save selection to bAInder"** (Stage 6).
+
+Save just a specific user + assistant exchange from a long chat as a standalone entry by manually selecting text on the page.
+
+---
+
+### C.15 Chat Star Rating (1–5)
+
+Simple 1–5 star rating on any saved chat; filter and sort by rating in search and tree view.
+
+- Add `rating: number | null` to `ChatEntry` model.
+- Star widget in chat context menu and reader header.
+- Search filter chip: "min rating"; tree badge for rated chats.
+- Sort option: "Best rated" within a topic.
+
+**Effort:** Low. **Impact:** Moderate.
+
+---
+
+### C.16 Cross-Platform Prompt Launch
+
+From any saved chat, open the same first user prompt on a *different* AI platform with one click — enabling rapid model comparison.
+
+- Extract `firstUserPrompt` from `ChatEntry` at save time.
+- "Launch on…" dropdown in reader header / context menu.
+- Platform deep links: `chat.openai.com/?q=`, `claude.ai/new?q=`, `copilot.microsoft.com/?q=`; Gemini falls back to clipboard + tab.
+
+**Effort:** Medium. **Impact:** Very High — unique feature in the space.
+
+---
+
+### C.17 Multi-Chat Assembly / Digest Export
+
+Select multiple chats (across topics) and merge them into a single export document with per-chat headings.
+
+- Checkbox multi-select mode in tree view (toggle via toolbar button).
+- "Export selection" button when ≥ 2 chats checked.
+- Assembles all selected chats under `## <chat title>` headings; optional generated table of contents.
+- Reuses existing format × style export options.
+
+**Effort:** Medium. **Impact:** High — research summaries and handoff docs.
+
+---
+
+### C.18 Model Comparison View (Side-by-Side Diff)
+
+Side-by-side reader for two saved chats with structural diff highlighting.
+
+- "Compare with…" in chat context menu → topic/chat picker → split-pane reader.
+- Lightweight word-diff via `diff-match-patch` (~50 KB) highlights added/removed words in assistant responses.
+- No NLP required — pure string diff for MVP.
+- `Tab` / `Shift+Tab` to jump between delta regions.
+
+**Effort:** Medium. **Impact:** High — unique in the extension market.
+
+---
+
+### C.19 Review-by Date / Expiry Flag ✅ Completed
+
+Mark a saved chat as time-sensitive with an optional review date; a badge appears when overdue.
+
+- `reviewDate: string | null` + `flaggedAsStale: boolean` on `ChatEntry`.
+- "Set review date" in chat context menu → date picker dialog (clears stale flag on save).
+- `src/background/stale-check.js`: `checkStaleChats()` sets `flaggedAsStale = true` for overdue entries.
+- Background service worker calls on startup + registers a daily `chrome.alarms` event.
+- Tree view: `⚠` badge on stale chats with tooltip showing overdue date.
+- Reader: dismissible stale banner with "Mark as reviewed" button that persists `flaggedAsStale = false`.
+- 19 new tests in `tests/review-date.test.js`.
+
+**Effort:** Low. **Impact:** Moderate — transforms bAInder into a knowledge-maintenance tool.
+
+---
+
+### C.20 JSONL Fine-Tuning Export
+
+Export any topic branch or selection as an **OpenAI-format JSONL** file — one `{"messages":[...]}` object per line — for fine-tuning or RAG pipelines.
+
+- New export format option: `JSONL (Fine-tuning)` alongside MD, HTML, PDF, ZIP.
+- `export-engine.js`: serialise `ChatEntry.messages` into OpenAI chat completion format.
+- Optional configurable system message; strip platform-injected system turns.
+- Single chat → one `.jsonl`; topic/bulk → one file per topic or merged (user choice).
+
+**Effort:** Low–Medium. **Impact:** Very High — unique in the consumer extension market; strong developer/researcher appeal.
+
+---
+
+### C.21 Direct Obsidian Push (Local REST API)
+
+Complement the Obsidian ZIP export (C.2) with a live push to a running vault via the [Obsidian Local REST API plugin](https://github.com/coddingtonbear/obsidian-local-rest-api).
+
+- Settings page: "Obsidian integration" — REST base URL + API key; stored in `chrome.storage.local`.
+- `export-engine.js`: `pushToObsidian()` → `PUT /vault/<topic-path>/<chat-title>.md` using existing Markdown serialiser.
+- Chat context menu: "Send to Obsidian" (shown only when integration configured).
+- Topic context menu: "Push topic to Obsidian" — bulk push.
+- Graceful failure toast; falls back to suggesting ZIP export if Obsidian is not running.
+
+**Effort:** Medium. **Impact:** High — targets the large Obsidian / second-brain user overlap.
+
+---
+
+### C.22 Reading Progress Persistence
+
+Remember scroll position per chat across sessions in the reader view using `localStorage`.
+
+- On `scroll` (debounced 500 ms), write `scrollPositions[chatId] = scrollY` to `localStorage`.
+- On reader load, after content renders: `window.scrollTo(0, scrollPositions[chatId] ?? 0)`.
+- Cap to 100 most-recent entries (LRU eviction) to bound `localStorage` growth.
+- "Return to top" button behaviour unchanged.
+
+**Effort:** Low. **Impact:** Moderate — immediately noticeable quality improvement for long revisited chats.
+
+---
+
+### C.23 Summary Table
 
 | # | Feature | Effort | Differentiates | Notes |
 |---|---|---|---|---|
@@ -2095,8 +2224,20 @@ The first three are a sort pass over the existing tree array before `tree-render
 | C.8 | Chat cross-references / backlinks | High | High | ✅ Completed |
 | C.9 | Topic sort order control | Low–Medium | Moderate | ✅ Completed (sort modes; drag deferred) |
 | C.10 | Scheduled backup reminder | Low | Trust signal | ✅ Completed |
+| C.11 | Multi-platform AI site validation | Medium | High | Known gap — Copilot-tested only |
+| C.12 | Firefox & Edge browser support | Medium–High | High | Edge path documented in edge-porting-plan.md |
+| C.13 | Prompt Library | Medium | High | Active productivity layer |
+| C.14 | Per-message / Q&A clipping | Low | High | ✅ Completed (context-menu save selection) |
+| C.15 | Chat star rating (1–5) | Low | Moderate | Filter/sort by rating |
+| C.16 | Cross-platform prompt launch | Medium | Very High | Unique; model comparison enabler |
+| C.17 | Multi-chat assembly / digest export | Medium | High | Research summaries, handoff docs |
+| C.18 | Model comparison (side-by-side diff) | Medium | High | Unique in extension market |
+| C.19 | Review-by date / expiry flag | Low | Moderate | ✅ Completed (March 4, 2026) |
+| C.20 | JSONL fine-tuning export | Low–Medium | Very High | Unique; dev/researcher segment |
+| C.21 | Direct Obsidian push (Local REST API) | Medium | High | Complements C.2; second-brain users |
+| C.22 | Reading progress persistence | Low | Moderate | Low effort, immediately noticeable |
 
 ---
 
-*Document Version: 1.5*  
-*Last Updated: March 2, 2026*
+*Document Version: 1.6*  
+*Last Updated: March 3, 2026*

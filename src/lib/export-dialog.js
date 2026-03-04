@@ -16,6 +16,8 @@ import {
   buildTopicPath,
   triggerDownload,
   sanitizeFilename,
+  buildDigestMarkdown,
+  buildDigestHtml,
 } from './export-engine.js';
 import { STYLES, STYLE_LABELS } from './style-transformer.js';
 
@@ -142,6 +144,30 @@ export class ExportDialog {
 
     this.dialog.show(html, { size: 'large' });
     this._wireDialogEvents({ mode: 'chat', chat, tree });
+  }
+
+  /**
+   * C.17 — Show the export dialog for a multi-chat digest.
+   *
+   * Presents Format (Markdown / HTML / PDF) and Style options, plus a
+   * "Include table of contents" toggle.  On confirmation all selected chats
+   * are merged into a single digest document.
+   *
+   * @param {Object[]} selectedChats  - array of full chat entries (with messages)
+   * @param {Object}   tree           - TopicTree instance
+   * @returns {Promise<void>}
+   */
+  async showExportDigest(selectedChats, tree) {
+    if (!Array.isArray(selectedChats) || selectedChats.length < 2) {
+      await this.dialog.alert('Select at least 2 chats to create a digest.', 'Export Digest');
+      return;
+    }
+
+    const n    = selectedChats.length;
+    const html = this._buildDigestDialogHtml(n);
+
+    this.dialog.show(html, { size: 'large' });
+    this._wireDialogEvents({ mode: 'digest', chats: selectedChats, tree });
   }
 
   // ── Private: HTML builder ──────────────────────────────────────────────────
@@ -308,6 +334,84 @@ export class ExportDialog {
       </div>`;
   }
 
+  /**
+   * C.17 — Build the inner HTML for the digest export dialog.
+   *
+   * @private
+   * @param {number} count  number of selected chats
+   * @returns {string}
+   */
+  _buildDigestDialogHtml(count) {
+    const formatRadios = CHAT_FORMATS.map(({ value, label }, i) => /* html */`
+      <label class="radio-label">
+        <input type="radio" name="export-format" value="${value}"${i === 0 ? ' checked' : ''}>
+        ${label}
+      </label>`).join('');
+
+    const styleRadios = Object.entries(STYLE_LABELS).map(([value, label], i) => /* html */`
+      <label class="radio-label">
+        <input type="radio" name="export-style" value="${value}"${i === 0 ? ' checked' : ''}>
+        ${label}
+      </label>`).join('');
+
+    return /* html */`
+      <style>
+        /* reuse export-dialog scoped styles */
+        .export-dialog { font-size: 0.92rem; }
+        .export-form { display: grid; grid-template-columns: 110px 1fr; gap: 20px 0; align-items: start; padding: 4px 0; }
+        .export-fieldset { display: contents; border: none; padding: 0; margin: 0; }
+        .export-legend { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted, #888); padding-top: 5px; white-space: nowrap; }
+        .radio-group { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+        .radio-group.vertical { flex-direction: column; align-items: flex-start; gap: 6px; }
+        .radio-label { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 5px; cursor: pointer; transition: background 0.12s; line-height: 1.3; white-space: nowrap; }
+        .radio-label:hover { background: var(--hover-bg, rgba(0,0,0,0.05)); }
+        .radio-label:has(input[type="radio"]:checked) { background: var(--accent-light, rgba(99,102,241,0.12)); color: var(--accent, #6366f1); font-weight: 500; }
+        .radio-label input[type="radio"] { accent-color: var(--accent, #6366f1); width: 14px; height: 14px; flex-shrink: 0; }
+        .export-toc-row { display: contents; }
+        .toc-toggle-label { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 0.9rem; }
+        .toc-toggle-label:hover { background: var(--hover-bg, rgba(0,0,0,0.05)); }
+        .toc-toggle-label input[type="checkbox"] { accent-color: var(--accent, #6366f1); width: 14px; height: 14px; }
+      </style>
+
+      <div class="modal-header">
+        <h2>Export Digest — ${count} chats</h2>
+        <button class="modal-close-btn" data-action="close" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal-body export-dialog">
+        <div class="export-form">
+
+          <fieldset class="export-fieldset" id="export-format-group">
+            <legend class="export-legend">Format</legend>
+            <div class="radio-group" id="format-radios">
+              ${formatRadios}
+            </div>
+          </fieldset>
+
+          <fieldset class="export-fieldset" id="export-style-group">
+            <legend class="export-legend">Style</legend>
+            <div class="radio-group vertical" id="style-radios">
+              ${styleRadios}
+            </div>
+          </fieldset>
+
+          <div class="export-toc-row">
+            <legend class="export-legend">Options</legend>
+            <label class="toc-toggle-label">
+              <input type="checkbox" id="digest-include-toc" checked>
+              Include table of contents
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" data-action="cancel">Cancel</button>
+        <button class="btn-primary" data-action="export">Export Digest ▼</button>
+      </div>`;
+  }
+
   // ── Private: event wiring ──────────────────────────────────────────────────
 
   /**
@@ -360,7 +464,10 @@ export class ExportDialog {
       const scope  = container.querySelector('input[name="export-scope"]:checked')?.value  || 'this-topic';
       const style  = container.querySelector('input[name="export-style"]:checked')?.value  || STYLES.RAW;
 
-      if (ctx.mode === 'chat') {
+      if (ctx.mode === 'digest') {
+        const includeToc = container.querySelector('#digest-include-toc')?.checked !== false;
+        await this._doExportDigest(ctx.chats, ctx.tree, format, style, includeToc);
+      } else if (ctx.mode === 'chat') {
         await this._doExportChat(ctx.chat, ctx.tree, format, style);
       } else {
         await this._doExportTopic(ctx.topic, ctx.tree, ctx.chats, format, scope, style);
@@ -401,6 +508,54 @@ export class ExportDialog {
       this.dialog.close(null);
     } catch (err) {
       await this.dialog.alert(`Export failed: ${err.message}`, 'Export Error');
+    }
+  }
+
+  /**
+   * C.17 — Execute a digest export over multiple chats.
+   *
+   * @private
+   * @param {Object[]} chats
+   * @param {Object}   tree
+   * @param {string}   format     — 'markdown' | 'html' | 'pdf'
+   * @param {string}   style
+   * @param {boolean}  includeToc
+   * @returns {Promise<void>}
+   */
+  async _doExportDigest(chats, tree, format, style, includeToc) {
+    try {
+      if (!Array.isArray(chats) || chats.length === 0) {
+        await this.dialog.alert('No chats to export.', 'Export');
+        return;
+      }
+
+      const topicsMap = tree?.topics || {};
+      const date      = new Date().toISOString().slice(0, 10);
+      const filename  = `bAInder-digest-${date}`;
+
+      if (format === 'pdf') {
+        this._openPrintWindow(buildDigestHtml(chats, topicsMap, { style, includeToc }));
+        this.dialog.close(null);
+        return;
+      }
+
+      if (format === 'markdown') {
+        triggerDownload(
+          `${filename}.md`,
+          buildDigestMarkdown(chats, topicsMap, { includeToc }),
+          'text/markdown'
+        );
+      } else {
+        triggerDownload(
+          `${filename}.html`,
+          buildDigestHtml(chats, topicsMap, { style, includeToc }),
+          'text/html'
+        );
+      }
+
+      this.dialog.close(null);
+    } catch (err) {
+      await this.dialog.alert(`Digest export failed: ${err.message}`, 'Export Error');
     }
   }
 

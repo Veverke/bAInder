@@ -108,12 +108,13 @@ export function formatBreadcrumb(path) {
  *   @param {string|null}  [filters.dateFrom]  ISO date string "YYYY-MM-DD"
  *   @param {string|null}  [filters.dateTo]    ISO date string "YYYY-MM-DD"
  *   @param {string}       [filters.topicId]   Root topic id to scope to subtree
+ *   @param {number|null}  [filters.minRating] Minimum star rating (1–5), null = all
  * @param {object|null}   tree   TopicTree instance (needed for topicId scope)
  * @returns {Array}
  */
 export function applySearchFilters(results, filters, tree = null) {
   if (!filters) return results;
-  const { sources, dateFrom, dateTo, topicId } = filters;
+  const { sources, dateFrom, dateTo, topicId, minRating } = filters;
 
   let out = results;
 
@@ -142,6 +143,11 @@ export function applySearchFilters(results, filters, tree = null) {
     };
     collect(topicId);
     out = out.filter(c => c.topicId && subtreeIds.has(c.topicId));
+  }
+
+  // C.15 — Min-rating filter
+  if (minRating != null && minRating > 0) {
+    out = out.filter(c => (c.rating || 0) >= minRating);
   }
 
   return out;

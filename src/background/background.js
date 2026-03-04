@@ -5,6 +5,7 @@
 
 
 import { handleSaveChat as _handleSaveChat, detectSource, buildExcerptPayload } from './chat-save-handler.js';
+import { checkStaleChats } from './stale-check.js';
 import browser from '../lib/vendor/browser.js';
 
 console.log('bAInder Background Service Worker initialized');
@@ -245,6 +246,22 @@ async function getStorageUsage() {
 // Keep service worker alive (optional, for debugging)
 browser.runtime.onStartup.addListener(() => {
   console.log('Browser started, service worker active');
+  // C.19 — Run stale-check on every browser startup
+  checkStaleChats(browser.storage.local).catch(err =>
+    console.warn('[bAInder] Stale check failed on startup:', err.message)
+  );
+});
+
+// C.19 — Register a daily alarm to keep stale flags current even when the
+// browser isn't restarted.  The alarm is created idempotently: Chrome
+// ignores duplicate creates for an alarm that already exists.
+browser.alarms.create('staleCheck', { periodInMinutes: 1440 });
+browser.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'staleCheck') {
+    checkStaleChats(browser.storage.local).catch(err =>
+      console.warn('[bAInder] Stale check alarm failed:', err.message)
+    );
+  }
 });
 
 console.log('Background service worker setup complete');
