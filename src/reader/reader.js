@@ -5,15 +5,17 @@
  * Pure functions are exported so they can be unit tested independently.
  */
 
-import { parseFrontmatter } from '../lib/markdown-serialiser.js';
-import { loadTheme } from '../lib/useTheme.js';
+import { parseFrontmatter } from '../lib/io/markdown-serialiser.js';
+import { loadTheme } from '../lib/theme/useTheme.js';
 import {
   loadAnnotations, saveAnnotation, deleteAnnotation,
   serializeRange,  applyAnnotations, parseBacklinks,
-} from '../lib/annotations.js';
-import { setupStickyNotes } from '../lib/sticky-notes-ui.js';
+} from '../lib/chat/annotations.js';
+import { setupStickyNotes } from '../lib/sticky-notes/sticky-notes-ui.js';
 import browser from '../lib/vendor/browser.js';
-import { escapeHtml, generateId } from '../lib/search-utils.js';
+import { escapeHtml, generateId } from '../lib/utils/search-utils.js';
+import { logger } from '../lib/utils/logger.js';
+import { HOVER_OUT_DISMISS_MS } from '../lib/utils/constants.js';
 export { escapeHtml };  // re-export: callers that import escapeHtml from reader.js continue to work
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -748,7 +750,7 @@ export async function setupAnnotations(chatId, storage) {
     annDropdown.hidden = false;
   }
   function _scheduleAnnHide() {
-    _annHideTimer = setTimeout(() => { annDropdown.hidden = true; }, 150);
+    _annHideTimer = setTimeout(() => { annDropdown.hidden = true; }, HOVER_OUT_DISMISS_MS);
   }
   if (annBtn) {
     annBtn.addEventListener('mouseenter', _showAnnDropdown);
@@ -1378,7 +1380,7 @@ export function setupStaleBanner(chatId, chat, storage) {
       );
       await storage.set({ chats: updated });
     } catch (err) {
-      console.error('Failed to mark chat as reviewed:', err);
+      logger.error('Failed to mark chat as reviewed:', err);
     }
   });
 }
@@ -1407,7 +1409,7 @@ export function setupRating(chatId, initRating, storage) {
           const updated = chats.map(c => c.id === chatId ? { ...c, rating: rating || null } : c);
           await storage.set({ chats: updated });
         } catch (err) {
-          console.error('Failed to save rating:', err);
+          logger.error('Failed to save rating:', err);
         }
       });
       el.appendChild(btn);

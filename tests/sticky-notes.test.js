@@ -9,7 +9,7 @@ import {
   deleteStickyNote,
   loadNotesVisible,
   saveNotesVisible,
-} from '../src/lib/sticky-notes.js';
+} from '../src/lib/sticky-notes/sticky-notes.js';
 
 // ─── Mock storage factory ─────────────────────────────────────────────────────
 

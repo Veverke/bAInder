@@ -11,8 +11,17 @@
  */
 
 import { state, elements } from '../app-context.js';
+import { logger } from '../../lib/utils/logger.js';
 import browser from '../../lib/vendor/browser.js';
 import { updateStorageUsage } from './storage-usage.js';
+let _state = state;
+// ---------------------------------------------------------------------------
+// Test injection hook - lets unit tests provide a mock app context instead of
+// mutating the real singleton.  Never call from production code.
+// ---------------------------------------------------------------------------
+/** @internal */
+export function _setContext(ctx) { _state = ctx; }
+
 
 // ─── Save-button topic helper ─────────────────────────────────────────────────
 
@@ -25,9 +34,9 @@ import { updateStorageUsage } from './storage-usage.js';
  *  2. Most recently used topic for saving (lastUsedTopicId)
  */
 function _saveBtnTopicName() {
-  const topicId = state.lastCreatedTopicId || state.lastUsedTopicId;
-  if (!topicId || !state.tree) return null;
-  const topic = state.tree.topics[topicId];
+  const topicId = _state.lastCreatedTopicId || _state.lastUsedTopicId;
+  if (!topicId || !_state.tree) return null;
+  const topic = _state.tree.topics[topicId];
   if (!topic) return null;
   // Truncate long names so the button stays compact
   const name = topic.name;
@@ -66,7 +75,7 @@ export async function initSaveBanner() {
       elements.saveBanner.style.display = 'none';
     }
   } catch (err) {
-    console.warn('bAInder: initSaveBanner error', err);
+    logger.warn('bAInder: initSaveBanner error', err);
     if (elements.saveBanner) elements.saveBanner.style.display = 'none';
   }
 }
@@ -138,6 +147,6 @@ export async function handlePanelSave() {
     } else {
       setSaveBtnState('error');
     }
-    console.error('bAInder: Panel save failed', err);
+    logger.error('bAInder: Panel save failed', err);
   }
 }

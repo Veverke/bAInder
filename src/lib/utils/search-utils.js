@@ -158,18 +158,24 @@ export function applySearchFilters(results, filters, tree = null) {
 }
 
 /**
- * Generate a unique, time-based ID.
+ * Generate a unique, time-based ID with a cryptographically random component.
  *
  * Canonical implementation — previously copy-pasted in Topic, ChatEntry,
  * chat-save-handler.js, and reader.js as four independent inline expressions.
  *
+ * The random segment is produced with `crypto.getRandomValues` (6 bytes →
+ * 12 hex chars, 48 bits of entropy) instead of `Math.random()`, making IDs
+ * non-predictable even when the timestamp is known.
+ *
  * @param {string} [prefix]  Optional prefix (e.g. 'topic', 'chat', 'ann').
- *   With prefix:  `{prefix}_{timestamp}_{9 random chars}`
- *   Without:      `{timestamp}-{9 random chars}`  (backwards-compat for generateChatId)
+ *   With prefix:  `{prefix}_{timestamp}_{12 hex chars}`
+ *   Without:      `{timestamp}-{12 hex chars}`  (backwards-compat for generateChatId)
  * @returns {string}
  */
 export function generateId(prefix) {
   const ts  = Date.now();
-  const rnd = Math.random().toString(36).slice(2, 11);
+  const buf = new Uint8Array(6);
+  crypto.getRandomValues(buf);
+  const rnd = Array.from(buf, b => b.toString(16).padStart(2, '0')).join('');
   return prefix ? `${prefix}_${ts}_${rnd}` : `${ts}-${rnd}`;
 }

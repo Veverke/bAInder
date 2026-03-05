@@ -4,8 +4,10 @@
 // You may freely edit everything below. Delete this file and re-run the plugin to regenerate.
 
 import { validateTheme, resolveThemeDependencies, applyCustomTheme, mergeWithDefaults } from './theme-sdk.js';
-import { BUNDLED_THEMES, BUNDLED_THEME_IDS } from '../sidepanel/themes/index.js';
+import { BUNDLED_THEMES, BUNDLED_THEME_IDS } from '../../sidepanel/themes/index.js';
 import { THEME_DEFAULTS } from './theme-defaults.js';
+import { logger } from '../utils/logger.js';
+import browser from '../vendor/browser.js';
 
 export { BUNDLED_THEME_IDS };
 
@@ -19,12 +21,12 @@ const FALLBACK_ID = 'light';
 export async function loadTheme(id) {
   const theme = BUNDLED_THEMES[id];
   if (!theme) {
-    console.warn(`[useTheme] Unknown theme "${id}", falling back to "${FALLBACK_ID}"`);
+    logger.warn(`[useTheme] Unknown theme "${id}", falling back to "${FALLBACK_ID}"`);
     return loadTheme(FALLBACK_ID);
   }
   const error = validateTheme(theme);
   if (error) {
-    console.error(`[useTheme] Invalid theme "${id}": ${error}`);
+    logger.error(`[useTheme] Invalid theme "${id}": ${error}`);
     return;
   }
   const merged = mergeWithDefaults(theme, THEME_DEFAULTS);
@@ -34,13 +36,13 @@ export async function loadTheme(id) {
 
 
 /**
- * Persist the user's theme choice. Uses chrome.storage.local so the
+ * Persist the user's theme choice. Uses browser.storage.local so the
  * selection survives extension reloads and is shared across all contexts.
  */
 export async function persistTheme(id) {
   // Also mirror to localStorage for synchronous FOUC guard reads
   try { localStorage.setItem(STORAGE_KEY, id); } catch { /* non-fatal */ }
-  await chrome.storage.local.set({ [STORAGE_KEY]: id });
+  await browser.storage.local.set({ [STORAGE_KEY]: id });
 }
 
 /**
@@ -49,7 +51,7 @@ export async function persistTheme(id) {
  */
 export async function restoreTheme() {
   try {
-    const result = await chrome.storage.local.get(STORAGE_KEY);
+    const result = await browser.storage.local.get(STORAGE_KEY);
     const id = result[STORAGE_KEY] ?? FALLBACK_ID;
     await loadTheme(id);
   } catch {
@@ -57,7 +59,4 @@ export async function restoreTheme() {
   }
 }
 
-// ── Auto-restore on module load ─────────────────────────────────────────────
-// Runs as a module-level side effect the instant this file is imported.
-// Import this file in your entry point — the stored theme is applied automatically.
-restoreTheme();
+

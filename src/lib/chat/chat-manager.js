@@ -46,7 +46,11 @@ export function assignChatToTopic(chat, topicId, tree) {
   const topic = tree.topics[topicId];
   if (!topic) throw new Error(`Topic not found: ${topicId}`);
 
-  if (!topic.chatIds.includes(chat.id)) {
+  // O(1) deduplication via the shadow Set (Topic instances);
+  // safe fallback for plain-object stubs used in older tests.
+  if (typeof topic.addChatId === 'function') {
+    topic.addChatId(chat.id);
+  } else if (!topic.chatIds.includes(chat.id)) {
     topic.chatIds.push(chat.id);
   }
 
@@ -70,7 +74,12 @@ export function removeChatFromTopic(chatId, topicId, tree) {
   if (!topicId || !tree) return;
   const topic = tree.topics[topicId];
   if (!topic) return;
-  topic.chatIds = topic.chatIds.filter(id => id !== chatId);
+  // O(1) Set removal (Topic instances); safe fallback for plain-object stubs.
+  if (typeof topic.removeChatId === 'function') {
+    topic.removeChatId(chatId);
+  } else {
+    topic.chatIds = topic.chatIds.filter(id => id !== chatId);
+  }
 }
 
 /**

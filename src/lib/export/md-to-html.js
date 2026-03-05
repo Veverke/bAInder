@@ -109,14 +109,23 @@ export function mdToHtml(md) {
 /**
  * Apply inline Markdown rules to an already-HTML-escaped string.
  * Handles: **bold**, *italic*, `code`, ~~strikethrough~~, [link](url)
+ *
+ * Link URLs are scheme-checked: only https?:, mailto:, relative paths, and
+ * fragment-only hrefs are permitted. Any other scheme (javascript:, data:,
+ * vbscript:, …) is replaced with '#' so the link is inert in exported HTML.
+ *
  * @param {string} s  HTML-escaped input
  * @returns {string}
  */
 export function inlineMd(s) {
+  const SAFE_HREF = /^(https?:|mailto:|\/|#|[^:]*$)/i;
   return s
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g,     '<em>$1</em>')
     .replace(/`([^`]+)`/g,     '<code>$1</code>')
     .replace(/~~(.+?)~~/g,     '<del>$1</del>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" rel="noopener">$1</a>');
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
+      const safe = SAFE_HREF.test(href.trim()) ? href : '#';
+      return `<a href="${safe}" rel="noopener">${text}</a>`;
+    });
 }

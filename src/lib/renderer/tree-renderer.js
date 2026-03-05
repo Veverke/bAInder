@@ -17,16 +17,16 @@
  * so all callers and tests remain unchanged.
  */
 
-import { getTagColor as _getTagColor }    from './renderer/tag-color.js';
-import { sortTopics }                      from './renderer/tree-sort.js';
-import { buildSparklineEl }                from './renderer/sparkline.js';
+import { getTagColor as _getTagColor }    from './tag-color.js';
+import { sortTopics }                      from './tree-sort.js';
+import { buildSparklineEl }                from './sparkline.js';
 import { highlightSearch as _hl,
-         clearHighlight  as _clr }        from './renderer/search-highlight.js';
-import { flattenVisible }                  from './renderer/flatten.js';
+         clearHighlight  as _clr }        from './search-highlight.js';
+import { flattenVisible }                  from './flatten.js';
 import { startVirtualScroll,
-         renderVirtualRow }               from './renderer/virtual-scroll.js';
-import { buildTopicNode }                  from './renderer/topic-node-builder.js';
-import { buildChatItem }                   from './renderer/chat-item-builder.js';
+         renderVirtualRow }               from './virtual-scroll.js';
+import { buildTopicNode }                  from './topic-node-builder.js';
+import { buildChatItem }                   from './chat-item-builder.js';
 
 // Re-export for backward compatibility (callers import getTagColor from here)
 export { _getTagColor as getTagColor };

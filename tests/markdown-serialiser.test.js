@@ -8,7 +8,7 @@ import {
   formatTimestamp,
   messagesToMarkdown,
   parseFrontmatter,
-} from '../src/lib/markdown-serialiser.js';
+} from '../src/lib/io/markdown-serialiser.js';
 
 // ─── escapeYaml ──────────────────────────────────────────────────────────────
 

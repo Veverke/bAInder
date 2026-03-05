@@ -3,25 +3,33 @@
  *
  * Responsibility: populate the "Recently saved" horizontal chip rail (U4).
  *
- * Reads metadata from state.chats, sorts by save time, and builds DOM chips
+ * Reads metadata from _state.chats, sorts by save time, and builds DOM chips
  * that open the chat reader on click.
  *
  * NOT responsible for: chat storage or tree rendering.
  */
 
 import { state } from '../app-context.js';
+let _state = state;
+// ---------------------------------------------------------------------------
+// Test injection hook - lets unit tests provide a mock app context instead of
+// mutating the real singleton.  Never call from production code.
+// ---------------------------------------------------------------------------
+/** @internal */
+export function _setContext(ctx) { _state = ctx; }
 
 /**
  * Populate the "Recently saved" horizontal chip rail (U4).
- * @param {Function} [onChatClick]  Click handler; defaults to a no-op.
+ * @param {Function} [onChatClick]    Click handler; defaults to a no-op.
+ * @param {Function} [isOverflowing]  Overflow detector; defaults to scrollWidth check.
  */
-export function updateRecentRail(onChatClick = () => {}) {
+export function updateRecentRail(onChatClick = () => {}, isOverflowing = (rail) => rail.scrollWidth > rail.clientWidth) {
   const rail = document.getElementById('recentRail');
   if (!rail) return;
 
-  const sorted = [...state.chats]
+  const sorted = [..._state.chats]
     .filter(c => c.savedAt || c.timestamp)
-    .sort((a, b) => ((b.savedAt || b.timestamp) || 0) - ((a.savedAt || a.timestamp) || 0))
+    .sort((a, b) => (b.savedAt || b.timestamp) - (a.savedAt || a.timestamp))
     .slice(0, 8);
 
   if (sorted.length < 3) {
@@ -56,7 +64,7 @@ export function updateRecentRail(onChatClick = () => {}) {
     chip.addEventListener('click', () => onChatClick(c));
     rail.appendChild(chip);
 
-    if (rail.scrollWidth > rail.clientWidth) {
+    if (isOverflowing(rail)) {
       rail.removeChild(chip);
       break;
     }

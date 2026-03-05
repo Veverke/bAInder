@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock useTheme so loadTheme is a spy (no real SDK or chrome.storage calls).
 // vi.mock is hoisted above imports by Vitest's transformer.
-vi.mock('../src/lib/useTheme.js', () => ({
+vi.mock('../src/lib/theme/useTheme.js', () => ({
   loadTheme: vi.fn().mockResolvedValue(undefined),
   persistTheme: vi.fn().mockResolvedValue(undefined),
   restoreTheme: vi.fn().mockResolvedValue(undefined),
@@ -31,8 +31,8 @@ import {
   saveScrollPosition,
   restoreScrollPosition,
 } from '../src/reader/reader.js';
-import { loadTheme } from '../src/lib/useTheme.js';
-import { messagesToMarkdown } from '../src/lib/markdown-serialiser.js';
+import { loadTheme } from '../src/lib/theme/useTheme.js';
+import { messagesToMarkdown } from '../src/lib/io/markdown-serialiser.js';
 
 // ─── DOM fixture ─────────────────────────────────────────────────────────────
 // Mirrors the essential elements from reader.html
@@ -523,7 +523,8 @@ describe('setupSourcesPanel', () => {
     const listItem = document.querySelector('#sources-panel-list a');
     expect(listItem).not.toBeNull();
     expect(listItem.href).toContain('test.com');
-    expect(listItem.textContent).toBe('Test Link');
+    // The panel renders a domain span + URL span inside the link (not the 'text' field verbatim)
+    expect(listItem.querySelector('.sources-panel__link-domain').textContent).toBe('test.com');
     expect(listItem.target).toBe('_blank');
     expect(listItem.rel).toContain('noopener');
   });

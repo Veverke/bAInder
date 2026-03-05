@@ -4,7 +4,7 @@
  * Pure ES module — no side effects, no DOM access.
  */
 
-import { escapeHtml } from './search-utils.js';
+import { escapeHtml } from '../utils/search-utils.js';
 
 // ---------------------------------------------------------------------------
 // Constants

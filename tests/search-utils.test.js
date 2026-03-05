@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { escapeHtml, extractSnippet, highlightTerms, formatBreadcrumb, applySearchFilters } from '../src/lib/search-utils.js';
+import { escapeHtml, extractSnippet, highlightTerms, formatBreadcrumb, applySearchFilters, generateId } from '../src/lib/utils/search-utils.js';
 
 // ─── escapeHtml ───────────────────────────────────────────────────────────────
 
@@ -231,5 +231,228 @@ describe('applySearchFilters — minRating', () => {
   it('works alongside source filter', () => {
     const result = applySearchFilters(chats, { sources: new Set(['chatgpt']), minRating: 3 });
     expect(result.map(c => c.id)).toEqual(['1']);
+  });
+});
+
+// ─── applySearchFilters — date range filter (lines 132-136) ──────────────────
+
+describe('applySearchFilters — date range filter', () => {
+  const chats = [
+    { id: '1', timestamp: new Date('2024-01-10').getTime() },
+    { id: '2', timestamp: new Date('2024-03-15').getTime() },
+    { id: '3', timestamp: new Date('2024-06-20').getTime() },
+    { id: '4', timestamp: 0 },
+  ];
+
+  it('filters by dateFrom only', () => {
+    const result = applySearchFilters(chats, { dateFrom: '2024-03-01' });
+    expect(result.map(c => c.id)).toContain('2');
+    expect(result.map(c => c.id)).toContain('3');
+    expect(result.map(c => c.id)).not.toContain('1');
+  });
+
+  it('filters by dateTo only', () => {
+    const result = applySearchFilters(chats, { dateTo: '2024-03-31' });
+    expect(result.map(c => c.id)).toContain('1');
+    expect(result.map(c => c.id)).toContain('2');
+    expect(result.map(c => c.id)).not.toContain('3');
+  });
+
+  it('filters by dateFrom and dateTo range', () => {
+    const result = applySearchFilters(chats, { dateFrom: '2024-01-01', dateTo: '2024-04-30' });
+    expect(result.map(c => c.id)).toContain('1');
+    expect(result.map(c => c.id)).toContain('2');
+    expect(result.map(c => c.id)).not.toContain('3');
+  });
+
+  it('returns all when no date filter set', () => {
+    const result = applySearchFilters(chats, {});
+    expect(result).toHaveLength(4);
+  });
+
+  it('handles chat with no timestamp (treats as 0)', () => {
+    // timestamp 0 is Jan 1 1970 — before any 2024 dateFrom
+    const result = applySearchFilters(chats, { dateFrom: '2024-01-01' });
+    expect(result.map(c => c.id)).not.toContain('4');
+  });
+
+  it('covers the to = Infinity branch (no dateTo)', () => {
+    // dateFrom set, dateTo absent → to = Infinity, any future timestamps included
+    const result = applySearchFilters(chats, { dateFrom: '2024-06-01' });
+    expect(result.map(c => c.id)).toEqual(['3']);
+  });
+
+  it('covers the from = 0 branch (no dateFrom)', () => {
+    // dateTo set, dateFrom absent → from = 0, everything up to cutoff included
+    const result = applySearchFilters(chats, { dateTo: '2024-01-31' });
+    expect(result.map(c => c.id)).toContain('1');
+    expect(result.map(c => c.id)).toContain('4'); // ts 0 <= cutoff
+  });
+});
+
+// ─── applySearchFilters — topic scope filter (lines 142-149) ─────────────────
+
+describe('applySearchFilters — topic scope filter', () => {
+  const tree = {
+    topics: {
+      'root': { id: 'root',   name: 'Root',  children: ['child1'] },
+      'child1': { id: 'child1', name: 'Child', children: ['grand1'] },
+      'grand1': { id: 'grand1', name: 'Grand', children: [] },
+      'other':  { id: 'other',  name: 'Other', children: [] },
+    },
+  };
+
+  const chats = [
+    { id: 'c1', topicId: 'root' },
+    { id: 'c2', topicId: 'child1' },
+    { id: 'c3', topicId: 'grand1' },
+    { id: 'c4', topicId: 'other' },
+    { id: 'c5', topicId: null },
+  ];
+
+  it('restricts results to topic and its descendants', () => {
+    const result = applySearchFilters(chats, { topicId: 'root' }, tree);
+    expect(result.map(c => c.id)).toContain('c1');
+    expect(result.map(c => c.id)).toContain('c2');
+    expect(result.map(c => c.id)).toContain('c3');
+    expect(result.map(c => c.id)).not.toContain('c4');
+    expect(result.map(c => c.id)).not.toContain('c5');
+  });
+
+  it('restricts to subtopic only', () => {
+    const result = applySearchFilters(chats, { topicId: 'child1' }, tree);
+    expect(result.map(c => c.id)).toEqual(['c2', 'c3']);
+  });
+
+  it('does not apply topic filter when topicId is absent', () => {
+    const result = applySearchFilters(chats, {}, tree);
+    expect(result).toHaveLength(5);
+  });
+
+  it('does not apply topic filter when tree is null', () => {
+    const result = applySearchFilters(chats, { topicId: 'root' }, null);
+    // tree is null → subtreeIds not built → filter not applied
+    expect(result).toHaveLength(5);
+  });
+
+  it('collects recursive subtree via collect() helper', () => {
+    // child1 → grand1; ensure recursive collection works
+    const result = applySearchFilters(chats, { topicId: 'child1' }, tree);
+    expect(result.map(c => c.id)).toContain('c3'); // grand1 is a descendant
+  });
+
+  it('excludes chats with no topicId even if topic filter is set', () => {
+    const result = applySearchFilters(chats, { topicId: 'root' }, tree);
+    expect(result.map(c => c.id)).not.toContain('c5');
+  });
+});
+
+// ─── generateId ───────────────────────────────────────────────────────────────
+
+describe('generateId', () => {
+  it('returns a string', () => {
+    expect(typeof generateId()).toBe('string');
+  });
+
+  it('without prefix uses timestamp-hex format', () => {
+    const id = generateId();
+    expect(id).toMatch(/^\d{13}-[0-9a-f]{12}$/);
+  });
+
+  it('with prefix uses prefix_timestamp_hex format', () => {
+    const id = generateId('topic');
+    expect(id).toMatch(/^topic_\d{13}_[0-9a-f]{12}$/);
+  });
+
+  it('two calls produce different IDs', () => {
+    const a = generateId();
+    const b = generateId();
+    expect(a).not.toBe(b);
+  });
+
+  it('prefix is included in the result', () => {
+    expect(generateId('chat')).toContain('chat_');
+    expect(generateId('ann')).toContain('ann_');
+  });
+
+  it('without prefix separator is a hyphen', () => {
+    const id = generateId();
+    expect(id).toContain('-');
+  });
+
+  it('with prefix separator is an underscore', () => {
+    const id = generateId('x');
+    expect(id.split('_')).toHaveLength(3);
+  });
+});
+
+// ─── Branch-gap coverage ─────────────────────────────────────────────────────
+
+describe('escapeHtml – branch gaps', () => {
+  it('returns empty string for undefined input', () => {
+    expect(escapeHtml(undefined)).toBe('');
+  });
+
+  it('returns empty string for null input', () => {
+    expect(escapeHtml(null)).toBe('');
+  });
+});
+
+describe('extractSnippet – branch gaps', () => {
+  it('does not append ellipsis when opening text equals full content length', () => {
+    // Short content where opening === full body (no trailing ellipsis)
+    const short = 'hello world';
+    const result = extractSnippet(short, 'zzz');
+    // query not found; opening returned without trailing '…'
+    expect(result).toBe('hello world');
+    expect(result.endsWith('…')).toBe(false);
+  });
+
+  it('strips frontmatter with no closing delimiter (stripFrontmatter line 32)', () => {
+    // Frontmatter that starts with --- but has no closing ---  
+    // extractSnippet uses stripFrontmatter internally
+    const content = '---\ntitle: Test\nThis is the body without a closing delimiter';
+    // stripFrontmatter: end === -1 → returns original content
+    const result = extractSnippet(content, 'body');
+    expect(result).toContain('body');
+  });
+});
+
+describe('applySearchFilters – branch gaps', () => {
+  const chats = [
+    { id: 'c1', source: 'chatgpt', timestamp: new Date('2024-03-01').getTime(), topicId: 't1', rating: 4 },
+    { id: 'c2', source: 'claude',  timestamp: new Date('2024-06-01').getTime(), topicId: 't2', rating: 2 },
+  ];
+
+  it('returns all results when sources Set is empty (size 0)', () => {
+    const result = applySearchFilters(chats, { sources: new Set() });
+    expect(result).toHaveLength(2);
+  });
+
+  it('does not apply topicId filter when tree is null', () => {
+    const result = applySearchFilters(chats, { topicId: 't1' }, null);
+    expect(result).toHaveLength(2);
+  });
+
+  it('minRating of 0 returns all chats', () => {
+    const result = applySearchFilters(chats, { minRating: 0 });
+    expect(result).toHaveLength(2);
+  });
+
+  it('minRating of null returns all chats', () => {
+    const result = applySearchFilters(chats, { minRating: null });
+    expect(result).toHaveLength(2);
+  });
+
+  it('applies only dateFrom when dateTo is absent', () => {
+    const result = applySearchFilters(chats, { dateFrom: '2024-04-01' });
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('c2');
+  });
+
+  it('applies only dateTo when dateFrom is absent', () => {
+    const result = applySearchFilters(chats, { dateTo: '2024-04-30' });
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('c1');
   });
 });

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Topic, ChatEntry, TopicTree } from '../src/lib/tree.js';
+import { Topic, ChatEntry, TopicTree } from '../src/lib/tree/tree.js';
 
 describe('Topic Model', () => {
   it('should create a topic with required fields', () => {
@@ -938,5 +938,72 @@ describe('TopicTree – repairTree() orphan NOT in rootTopicIds', () => {
     expect(count).toBe(1);
     expect(tree.rootTopicIds).toContain(childId);
     expect(tree.topics[childId].parentId).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tree-traversal.js – branch gaps: isDescendant, getStatistics, getTopicPath
+// ---------------------------------------------------------------------------
+
+describe('TopicTree – _isDescendant() with non-existent topic ids', () => {
+  it('returns false immediately when possibleDescendantId does not exist', () => {
+    const tree = new TopicTree();
+    tree.addTopic('Root');
+    // 'ghost' is not in topics → topics['ghost'] = undefined → break → false
+    expect(tree._isDescendant('ghost', 'anything')).toBe(false);
+  });
+
+  it('returns false when topic chain leads to a missing parent', () => {
+    const tree = new TopicTree();
+    const parentId = tree.addTopic('Parent');
+    const childId  = tree.addTopic('Child', parentId);
+    // Remove parent from map — child.parentId points to a non-existent entry
+    delete tree.topics[parentId];
+    // Walking up from childId: childId → parentId (not in map) → break → false
+    expect(tree._isDescendant(childId, 'totally-different')).toBe(false);
+  });
+});
+
+describe('TopicTree – getStatistics() with ghost root IDs', () => {
+  it('skipps root IDs not present in topics (walk returns early)', () => {
+    const tree = new TopicTree();
+    const realId = tree.addTopic('Real Topic');
+    tree.topics[realId].chatIds = ['c1', 'c2'];
+    // Inject a bogus root ID
+    tree.rootTopicIds.push('ghost-root');
+
+    const stats = tree.getStatistics();
+    expect(stats.totalTopics).toBe(1);   // only the real topic
+    expect(stats.totalChats).toBe(2);
+    expect(stats.rootTopics).toBe(2);    // rootTopicIds.length is still 2
+  });
+});
+
+describe('TopicTree – getTopicPath() with non-existent topic', () => {
+  it('returns empty array for a non-existent topic id', () => {
+    const tree = new TopicTree();
+    expect(tree.getTopicPath('nonexistent')).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// models.js – function gap: Topic._generateId and ChatEntry._generateId
+// ---------------------------------------------------------------------------
+
+describe('Topic – _generateId() legacy method', () => {
+  it('returns a string starting with "topic_"', () => {
+    const topic = new Topic('Legacy');
+    const id = topic._generateId();
+    expect(typeof id).toBe('string');
+    expect(id).toMatch(/^topic_/);
+  });
+});
+
+describe('ChatEntry – _generateId() legacy method', () => {
+  it('returns a string starting with "chat_"', () => {
+    const chat = new ChatEntry('T', 'C', 'url', 'chatgpt');
+    const id = chat._generateId();
+    expect(typeof id).toBe('string');
+    expect(id).toMatch(/^chat_/);
   });
 });

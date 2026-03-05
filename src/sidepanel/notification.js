@@ -8,6 +8,8 @@
  */
 
 import { state } from './app-context.js';
+import { logger } from '../lib/utils/logger.js';
+import { TOAST_DISMISS_MS } from '../lib/utils/constants.js';
 
 /**
  * Show a toast notification.
@@ -17,7 +19,7 @@ import { state } from './app-context.js';
  *   Pass `'loading'` for a persistent spinner that stays until the next call.
  */
 export function showNotification(message, type = 'info') {
-  console.log(`[${type.toUpperCase()}] ${message}`);
+  logger.trace('Toast:', type, message);
   const toast = document.getElementById('toast');
   if (!toast) return;
   toast.textContent = message;
@@ -26,6 +28,6 @@ export function showNotification(message, type = 'info') {
   if (type !== 'loading') {
     state._toastTimer = setTimeout(() => {
       toast.className = 'toast';
-    }, 3000);
+    }, TOAST_DISMISS_MS);
   }
 }

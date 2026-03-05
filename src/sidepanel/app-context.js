@@ -77,12 +77,14 @@ export const state = {
   dialog:       null,   // DialogManager
   topicDialogs: null,   // TopicDialogs
   chatDialogs:  null,   // ChatDialogs
-  chatRepo:     null,   // ChatRepository (set by init)
-  exportDialog: null,   // ExportDialog
-  importDialog: null,   // ImportDialog
+  chatRepo:        null,   // ChatRepository (set by init)
+  reminderPrefs:   null,   // ReminderPrefsRepository (set by init)
+  storageTracker:  null,   // StorageUsageTracker (wraps state.storage; set by init)
+  exportDialog:    null,   // ExportDialog
+  importDialog:    null,   // ImportDialog
 
   // Runtime data
-  chats: [],            // metadata-only chat array (content stripped)
+  chats: [],            // metadata-only chat array (content stripped); capped at MAX_CHATS_IN_MEMORY most-recent entries by ChatRepository.loadAll()
 
   // Transient context-menu state
   contextMenuTopic: null,

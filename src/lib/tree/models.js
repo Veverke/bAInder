@@ -9,7 +9,7 @@
  * Does NOT know about the tree structure — no parent/child traversal here.
  */
 
-import { generateId } from '../search-utils.js';
+import { generateId } from '../utils/search-utils.js';
 
 /**
  * Topic Data Model
@@ -22,6 +22,7 @@ export class Topic {
     this.parentId     = parentId;
     this.children     = [];
     this.chatIds      = [];
+    this._chatIdSet   = new Set();
     this.createdAt    = Date.now();
     this.updatedAt    = Date.now();
     this.firstChatDate = null;
@@ -32,6 +33,8 @@ export class Topic {
   static fromObject(obj) {
     const topic = Object.create(Topic.prototype);
     Object.assign(topic, obj);
+    // Rebuild the shadow Set from the persisted chatIds array.
+    topic._chatIdSet = new Set(obj.chatIds || []);
     return topic;
   }
 
@@ -54,6 +57,40 @@ export class Topic {
   touch() {
     this.updatedAt = Date.now();
   }
+
+  // ── Chat-ID management ────────────────────────────────────────────────────
+
+  /**
+   * O(1) membership test — backed by a shadow Set.
+   * @param {string} id
+   * @returns {boolean}
+   */
+  hasChatId(id) {
+    return this._chatIdSet.has(id);
+  }
+
+  /**
+   * Add `id` to both the array and the shadow Set if not already present.
+   * Duplicate check is O(1) — no array scan.
+   * @param {string} id
+   */
+  addChatId(id) {
+    if (!this._chatIdSet.has(id)) {
+      this._chatIdSet.add(id);
+      this.chatIds.push(id);
+    }
+  }
+
+  /**
+   * Remove `id` from both the array and the shadow Set.
+   * @param {string} id
+   */
+  removeChatId(id) {
+    this._chatIdSet.delete(id);
+    this.chatIds = this.chatIds.filter(cid => cid !== id);
+  }
+
+  // ── Date-range tracking ───────────────────────────────────────────────────
 
   /**
    * Expand the stored date range to include `chatTimestamp`.

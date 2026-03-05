@@ -11,6 +11,14 @@
 import { state, elements } from '../app-context.js';
 import browser from '../../lib/vendor/browser.js';
 import { handleExportAll } from '../controllers/import-export-actions.js';
+let _state = state;
+// ---------------------------------------------------------------------------
+// Test injection hook - lets unit tests provide a mock app context instead of
+// mutating the real singleton.  Never call from production code.
+// ---------------------------------------------------------------------------
+/** @internal */
+export function _setContext(ctx) { _state = ctx; }
+
 
 const BACKUP_REMINDER_DAYS_DEFAULT = 30;
 const BACKUP_SNOOZE_DAYS           =  7;
@@ -38,7 +46,7 @@ export async function initBackupReminder() {
     const daysSince  = lastExport
       ? Math.floor((Date.now() - lastExport) / (24 * 60 * 60 * 1000))
       : null;
-    const chatCount  = state.chats.length;
+    const chatCount  = _state.chats.length;
     const msg = lastExport
       ? `${chatCount} saved chat${chatCount !== 1 ? 's' : ''} · Last exported ${daysSince} day${daysSince !== 1 ? 's' : ''} ago`
       : `${chatCount} saved chat${chatCount !== 1 ? 's' : ''} · Never exported`;

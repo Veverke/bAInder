@@ -2,6 +2,7 @@
  * bAInder Logger
  *
  * Level hierarchy (lower = more verbose):
+ *   ALL   -1  — enable every output channel
  *   TRACE  0  — fine-grained debug output (group/time helpers)
  *   INFO   1  — general operational messages  (default)
  *   WARN   2  — warnings
@@ -12,8 +13,8 @@
  * Falls back to 'INFO' when no stored value is present.
  */
 
-const LEVELS = { TRACE: 0, INFO: 1, WARN: 2, ERROR: 3, OFF: 4 };
-const LEVEL_NAMES = ['TRACE', 'INFO', 'WARN', 'ERROR', 'OFF'];
+const LEVELS = { ALL: -1, TRACE: 0, INFO: 1, WARN: 2, ERROR: 3, OFF: 4 };
+const LEVEL_NAMES = ['ALL', 'TRACE', 'INFO', 'WARN', 'ERROR', 'OFF'];
 const STORAGE_KEY = 'bAInder:logLevel';
 const PREFIX = '[bAInder]';
 
@@ -32,7 +33,7 @@ class Logger {
 
   // ── Configuration ────────────────────────────────────────────────────────
 
-  /** Set log level. Accepts 'TRACE' | 'INFO' | 'WARN' | 'ERROR' | 'OFF' (case-insensitive). */
+  /** Set log level. Accepts 'ALL' | 'TRACE' | 'INFO' | 'WARN' | 'ERROR' | 'OFF' (case-insensitive). */
   setLevel(level) {
     this._level = _resolveLevel(level);
     if (typeof localStorage !== 'undefined') {

@@ -3,7 +3,7 @@
  * All functions are pure with no side effects.
  */
 
-import { escapeHtml } from '../search-utils.js';
+import { escapeHtml } from '../utils/search-utils.js';
 
 /** @param {string} s */
 export function cap(s) {

@@ -10,7 +10,7 @@ import {
   applyStyle,
   styledToMarkdown,
   styledToHtmlBody,
-} from '../src/lib/style-transformer.js';
+} from '../src/lib/theme/style-transformer.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -954,5 +954,95 @@ describe('styledToHtmlBody()', () => {
     const html = styledToHtmlBody(rawResult);
     expect(html).toContain('<p>');
     expect(html).toContain('</p>');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Branch-gap tests — lines 409, 416, 459, 472
+// ---------------------------------------------------------------------------
+
+describe('styledToMarkdown() — branch coverage for non-array sections and empty content', () => {
+  it('handles non-array sections gracefully (line 409 false branch)', () => {
+    // sections: null → should NOT throw; falls back to []
+    const input = { title: 'T', introduction: 'intro', sections: null, conclusion: 'end' };
+    expect(() => styledToMarkdown(input)).not.toThrow();
+    const md = styledToMarkdown(input);
+    expect(md).toContain('# T');
+    expect(md).toContain('intro');
+    expect(md).toContain('end');
+  });
+
+  it('handles sections as a plain object (non-array) without crashing', () => {
+    const input = { title: 'X', introduction: '', sections: { key: 'val' }, conclusion: '' };
+    expect(() => styledToMarkdown(input)).not.toThrow();
+  });
+
+  it('section with falsy content falls back to empty string (line 416 ||\'\'\')', () => {
+    const input = {
+      title: 'Falsy',
+      introduction: '',
+      sections: [
+        { heading: 'First', content: null },
+        { heading: 'Second', content: '' },
+        { heading: 'Third', content: undefined },
+      ],
+      conclusion: '',
+    };
+    const md = styledToMarkdown(input);
+    // headings still rendered; content lines are empty (no crash)
+    expect(md).toContain('## First');
+    expect(md).toContain('## Second');
+    expect(md).toContain('## Third');
+  });
+
+  it('section with no heading skips the ## heading line', () => {
+    const input = {
+      title: 'NoHead',
+      introduction: '',
+      sections: [{ heading: '', content: 'body text here' }],
+      conclusion: '',
+    };
+    const md = styledToMarkdown(input);
+    expect(md).toContain('body text here');
+    expect(md).not.toContain('## ');
+  });
+});
+
+describe('styledToHtmlBody() — branch coverage for missing heading and non-array sections', () => {
+  it('section with empty heading uses empty headingHtml (ternary false branch, line ~469)', () => {
+    // heading is falsy → headingHtml = '' → no <h2> for this section
+    const input = {
+      title: 'NoH2',
+      introduction: 'intro here',
+      sections: [
+        { heading: '',    content: 'paragraph one' },
+        { heading: null,  content: 'paragraph two' },
+      ],
+      conclusion: '',
+    };
+    const html = styledToHtmlBody(input);
+    expect(html).toContain('<section>');
+    expect(html).not.toContain('<h2></h2>');
+    expect(html).toContain('paragraph one');
+  });
+
+  it('section with null content passes through _contentToHtml safely (line 472)', () => {
+    const input = {
+      title: 'NullContent',
+      introduction: '',
+      sections: [{ heading: 'Heading', content: null }],
+      conclusion: '',
+    };
+    expect(() => styledToHtmlBody(input)).not.toThrow();
+    const html = styledToHtmlBody(input);
+    expect(html).toContain('<section>');
+  });
+
+  it('non-array sections returns empty htmlParts body (line 466 false branch)', () => {
+    const input = { title: 'X', introduction: '', sections: 'bad', conclusion: '' };
+    expect(() => styledToHtmlBody(input)).not.toThrow();
+    const html = styledToHtmlBody(input);
+    expect(html).toContain('<h1>X</h1>');
+    expect(html).not.toContain('<section>');
   });
 });

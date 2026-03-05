@@ -21,6 +21,7 @@ import {
   extractChat,
   prepareChatForSave
 } from '../src/content/chat-extractor.js';
+import { stripSourceContainers } from '../src/content/extractors/source-links.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -226,6 +227,20 @@ describe('getTextContent()', () => {
 
   it('returns empty string for null', () => {
     expect(getTextContent(null)).toBe('');
+  });
+
+  it('falls back to textContent when innerHTML is empty', () => {
+    const el = document.createElement('div');
+    // Override innerHTML to return '' (falsy) so textContent path is taken
+    Object.defineProperty(el, 'innerHTML', { get: () => '', configurable: true });
+    el.textContent = 'plain text only';
+    expect(getTextContent(el)).toContain('plain text');
+  });
+
+  it('returns empty string when both innerHTML and textContent are empty', () => {
+    const el = document.createElement('div');
+    // Both '' → sanitizeContent('') → ''
+    expect(getTextContent(el)).toBe('');
   });
 });
 
@@ -460,6 +475,28 @@ describe('htmlToMarkdown()', () => {
     const result = htmlToMarkdown(wrapper);
     expect(result).toContain('npm install');
   });
+
+  it('skips <img> with blob: src (session-only URL)', () => {
+    // blob: URLs are not persisted → img should be skipped
+    const result = htmlToMarkdown(el('<img src="blob:https://chat.openai.com/abc123" alt="image">'));
+    expect(result).toBe('');
+  });
+
+  it('renders <img> with https: src as markdown image', () => {
+    const result = htmlToMarkdown(el('<img src="https://example.com/photo.png" alt="A photo">'));
+    expect(result).toContain('![A photo](https://example.com/photo.png)');
+  });
+
+  it('renders <img> with https: src and no alt attribute (alt || "" fallback)', () => {
+    // img without alt attribute → getAttribute('alt') returns null → null || '' = ''
+    const img = document.createElement('img');
+    img.setAttribute('src', 'https://example.com/icon.png');
+    // deliberately do NOT set alt
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(img);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('![](https://example.com/icon.png)');
+  });
 });
 
 // ─── formatMessage ────────────────────────────────────────────────────────────
@@ -625,6 +662,22 @@ describe('generateTitle()', () => {
     const messages = [{ role: 'user', content: '## Copilot\nThis is the content' }];
     const title = generateTitle(messages, '');
     expect(title).toBe('This is the content');
+  });
+
+  it('uses || "" fallback when all user content lines are empty after stripping (line 19 branch)', () => {
+    // Content that after cleaning produces no non-empty lines → [0] = undefined → || '' → firstLine = ''
+    // → if (firstLine) is false → falls through to URL/Untitled
+    const messages = [{ role: 'user', content: '\n\n\n' }]; // only blank lines
+    const title = generateTitle(messages, '');
+    expect(title).toBe('Untitled Chat');
+  });
+
+  it('returns full cleaned line when sentence is too short (< 8 chars) to extract sentence', () => {
+    // sentenceMatch finds "Yes." (3 chars) which is < 8 → falls through to return full line
+    const messages = [{ role: 'user', content: 'Yes. But I need more details on this topic.' }];
+    const title = generateTitle(messages, '');
+    // "Yes." is < 8 chars long so full first line is returned, not just "Yes."
+    expect(title).toBe('Yes. But I need more details on this topic.');
   });
 });
 
@@ -874,6 +927,87 @@ describe('extractChatGPT()', () => {
     const result = extractChatGPT(document);
     expect(result.messageCount).toBe(result.messages.length);
   });
+
+  it('skips an article turn with no [data-message-author-role] child', () => {
+    document.body.innerHTML = '';
+    const article = document.createElement('article');
+    article.setAttribute('data-testid', 'conversation-turn-0');
+    article.innerHTML = '<p>No role element here</p>';
+    document.body.appendChild(article);
+    const result = extractChatGPT(document);
+    // The turn is skipped; fallback selector also finds nothing since no [data-message-author-role]
+    expect(result.messages).toHaveLength(0);
+  });
+
+  it('uses [class*="prose"] element when .markdown is absent', () => {
+    document.body.innerHTML = '';
+    const article = document.createElement('article');
+    article.setAttribute('data-testid', 'conversation-turn-0');
+    const roleEl = document.createElement('div');
+    roleEl.setAttribute('data-message-author-role', 'user');
+    const proseEl = document.createElement('div');
+    proseEl.className = 'prose-content';   // matches [class*="prose"]
+    proseEl.textContent = 'Prose text';
+    roleEl.appendChild(proseEl);
+    article.appendChild(roleEl);
+    document.body.appendChild(article);
+    const result = extractChatGPT(document);
+    expect(result.messages[0]?.content).toContain('Prose text');
+  });
+
+  it('uses || "" fallback for rawRole when attribute value is empty string', () => {
+    // data-message-author-role="" → getAttribute returns "" (falsy) → || '' fires
+    // empty rawRole → role maps to 'assistant' (not 'user')
+    document.body.innerHTML = '';
+    const article = document.createElement('article');
+    article.setAttribute('data-testid', 'conversation-turn-0');
+    const roleEl = document.createElement('div');
+    roleEl.setAttribute('data-message-author-role', ''); // empty string
+    roleEl.textContent = 'Empty role content';
+    article.appendChild(roleEl);
+    document.body.appendChild(article);
+    const result = extractChatGPT(document);
+    // rawRole = '' (falsy) → '' || '' = '' → not 'user' → maps to 'assistant'
+    expect(result.messages[0]?.role).toBe('assistant');
+  });
+
+  it('fallback path: maps non-user role to assistant and calls stripSourceContainers', () => {
+    // Fallback path (no articles with data-testid): direct [data-message-author-role] elements
+    // where role is NOT 'user' → maps to 'assistant' and processEl = stripSourceContainers(el)
+    document.body.innerHTML = '';
+    const el = document.createElement('div');
+    el.setAttribute('data-message-author-role', 'assistant');
+    el.textContent = 'Fallback assistant content';
+    document.body.appendChild(el);
+    const result = extractChatGPT(document);
+    expect(result.messages[0]?.role).toBe('assistant');
+    expect(result.messages[0]?.content).toContain('Fallback assistant content');
+  });
+
+  it('skips primary turn when htmlToMarkdown returns empty content (if (content) false branch)', () => {
+    // An article with a role element but completely empty content → content = '' → not pushed
+    document.body.innerHTML = '';
+    const article = document.createElement('article');
+    article.setAttribute('data-testid', 'conversation-turn-0');
+    const roleEl = document.createElement('div');
+    roleEl.setAttribute('data-message-author-role', 'user');
+    // No text content → htmlToMarkdown returns ''
+    article.appendChild(roleEl);
+    document.body.appendChild(article);
+    const result = extractChatGPT(document);
+    expect(result.messages).toHaveLength(0);
+  });
+
+  it('fallback: skips element when htmlToMarkdown returns empty content (if (content) false branch)', () => {
+    // Fallback element with no text → content = '' → not pushed
+    document.body.innerHTML = '';
+    const el = document.createElement('div');
+    el.setAttribute('data-message-author-role', 'user');
+    // No text content
+    document.body.appendChild(el);
+    const result = extractChatGPT(document);
+    expect(result.messages).toHaveLength(0);
+  });
 });
 
 // ─── extractClaude ────────────────────────────────────────────────────────────
@@ -946,6 +1080,17 @@ describe('extractClaude()', () => {
     ]);
     const result = extractClaude(document);
     expect(result.messageCount).toBe(2);
+  });
+
+  it('skips a turn whose content is empty (if(content) FALSE branch)', () => {
+    // A turn element with no actual text produces empty htmlToMarkdown output
+    const emptyTurn = document.createElement('div');
+    emptyTurn.setAttribute('data-testid', 'human-turn');
+    // Intentionally no children / text
+    document.body.appendChild(emptyTurn);
+    const result = extractClaude(document);
+    // The empty-content turn should be filtered out
+    expect(result.messages).toHaveLength(0);
   });
 });
 
@@ -1043,6 +1188,17 @@ describe('extractGemini()', () => {
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].role).toBe('assistant');
     expect(result.messages[0].content).toBe('ML is a subset of AI.');
+  });
+
+  it('skips a turn whose content is empty (if(content) FALSE branch)', () => {
+    // An assistant element with no text → htmlToMarkdown returns '' → not pushed
+    const emptyModel = document.createElement('div');
+    emptyModel.className = 'model-response-text';
+    // No text content
+    document.body.appendChild(emptyModel);
+
+    const result = extractGemini(document);
+    expect(result.messages).toHaveLength(0);
   });
 });
 
@@ -1205,6 +1361,18 @@ describe('extractCopilot()', () => {
     const allContent = result.messages.map(m => m.content).join(' ');
     expect(allContent).toContain('Current real prompt');
     expect(allContent).not.toContain('Old history chat title');
+  });
+
+  it('skips a turn whose htmlToMarkdown content is empty after stripRoleLabels (if(content) FALSE branch)', () => {
+    // An element containing only a "You said:" label → after stripping, content is ''
+    document.body.innerHTML = '';
+    const userEl = document.createElement('div');
+    userEl.setAttribute('data-testid', 'user-message');
+    userEl.innerHTML = '<h5>You said:</h5>'; // only the label, no actual content
+    document.body.appendChild(userEl);
+    const result = extractCopilot(document);
+    // After role-label stripping, content = '' → not pushed
+    expect(result.messages).toHaveLength(0);
   });
 });
 
@@ -1871,4 +2039,168 @@ describe('extractChat() – URL resolution branches', () => {
     expect(typeof result.url).toBe('string');
   });
 
+});
+
+// ─── extractSourceLinks – Part B and Part C ───────────────────────────────────
+
+describe('extractSourceLinks() – additional branches', () => {
+  function makeEl(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div;
+  }
+
+  it('Part B: extracts from elements with data-testid containing "source"', () => {
+    const el = makeEl(`
+      <div data-testid="sources-container">
+        <a href="https://partb-source.com">Part B Source</a>
+      </div>
+    `);
+    const result = extractSourceLinks(el);
+    expect(result).toContain('[Part B Source](https://partb-source.com)');
+  });
+
+  it('Part B: extracts from element with data-test-id containing "source"', () => {
+    const el = makeEl(`
+      <div data-test-id="source-info">
+        <a href="https://hyphen-testid.com">Hyphen TestId</a>
+      </div>
+    `);
+    const result = extractSourceLinks(el);
+    expect(result).toContain('[Hyphen TestId](https://hyphen-testid.com)');
+  });
+
+  it('Part C: extracts favicon-based sources from Copilot button', () => {
+    const el = makeEl(`
+      <div data-testid="sources-button-testid">
+        <img src="https://services.bingapis.com/favicon?url=example.com" />
+      </div>
+    `);
+    const result = extractSourceLinks(el);
+    expect(result).toContain('**Sources:**');
+    expect(result).toContain('example.com');
+  });
+
+  it('Part C: skips favicon imgs with no matching query param', () => {
+    const el = makeEl(`
+      <div data-testid="sources-button-testid">
+        <img src="https://services.bingapis.com/favicon?other=val" />
+      </div>
+    `);
+    // No ?url= param, so the img is ignored
+    expect(extractSourceLinks(el)).toBe('');
+  });
+
+  it('Part C: deduplicates repeated favicon domains', () => {
+    const el = makeEl(`
+      <div data-testid="sources-button-testid">
+        <img src="https://services.bingapis.com/favicon?url=https%3A%2F%2Fsame.com%2F" />
+        <img src="https://services.bingapis.com/favicon?url=https%3A%2F%2Fsame.com%2F" />
+      </div>
+    `);
+    const result = extractSourceLinks(el);
+    // Only one list entry produced even though the same domain appears twice
+    const listLines = result.split('\n').filter(l => l.startsWith('- '));
+    expect(listLines).toHaveLength(1);
+  });
+
+  it('skips protocol-relative links that are not http/https', () => {
+    const el = makeEl('<a href="ftp://some-ftp.com">FTP Link</a>');
+    expect(extractSourceLinks(el)).toBe('');
+  });
+
+  it('uses href as title when anchor has no text', () => {
+    const el = makeEl('<div data-testid="citation-x"><a href="https://bare-href.com"></a></div>');
+    const result = extractSourceLinks(el);
+    expect(result).toContain('[https://bare-href.com](https://bare-href.com)');
+  });
+});
+
+// ─── stripSourceContainers ────────────────────────────────────────────────────
+
+describe('stripSourceContainers()', () => {
+  function makeEl(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div;
+  }
+
+  it('returns a clone and does not mutate the original', () => {
+    const el = makeEl('<div data-testid="citation-x"><a href="https://x.com">X</a></div><p>Keep</p>');
+    const clone = stripSourceContainers(el);
+    // Original still has the citation div
+    expect(el.querySelector('[data-testid="citation-x"]')).not.toBeNull();
+    // Clone should not (it was stripped by SOURCE_CONTAINER_SELECTORS or testid check)
+    const cloneCitation = clone.querySelector('[data-testid="citation-x"]');
+    expect(cloneCitation).toBeNull();
+  });
+
+  it('removes elements matching SOURCE_CONTAINER_SELECTORS', () => {
+    const el = makeEl('<div class="CitationBubble"><a href="https://x.com">X</a></div><p>Keep</p>');
+    const clone = stripSourceContainers(el);
+    expect(clone.querySelector('.CitationBubble')).toBeNull();
+    expect(clone.querySelector('p')).not.toBeNull();
+  });
+
+  it('removes elements whose data-testid contains "source"', () => {
+    const el = makeEl('<div data-testid="sources-button-testid">Button</div><p>Keep</p>');
+    const clone = stripSourceContainers(el);
+    expect(clone.querySelector('[data-testid="sources-button-testid"]')).toBeNull();
+    expect(clone.querySelector('p')).not.toBeNull();
+  });
+
+  it('removes elements whose data-test-id contains "source"', () => {
+    const el = makeEl('<div data-test-id="source-info">Info</div><p>Keep</p>');
+    const clone = stripSourceContainers(el);
+    expect(clone.querySelector('[data-test-id="source-info"]')).toBeNull();
+    expect(clone.querySelector('p')).not.toBeNull();
+  });
+
+  it('removes <button> elements with aria-label containing "sources"', () => {
+    const el = makeEl('<button aria-label="Sources">3 sources</button><p>Keep</p>');
+    const clone = stripSourceContainers(el);
+    expect(clone.querySelector('button')).toBeNull();
+    expect(clone.querySelector('p')).not.toBeNull();
+  });
+
+  it('removes <button> with text containing "references"', () => {
+    const el = makeEl('<button>See references</button><p>Keep</p>');
+    const clone = stripSourceContainers(el);
+    expect(clone.querySelector('button')).toBeNull();
+    expect(clone.querySelector('p')).not.toBeNull();
+  });
+
+  it('keeps <button> unrelated to sources', () => {
+    const el = makeEl('<button>Copy text</button><p>Keep</p>');
+    const clone = stripSourceContainers(el);
+    expect(clone.querySelector('button')).not.toBeNull();
+  });
+
+  it('removes Copilot feedback banner elements', () => {
+    const el = makeEl('<div aria-label="provide your feedback">Feedback</div><p>Keep</p>');
+    const clone = stripSourceContainers(el);
+    // The feedback removal catches element with aria-label containing "provide your feedback"
+    expect(clone.querySelector('[aria-label="provide your feedback"]')).toBeNull();
+    expect(clone.querySelector('p')).not.toBeNull();
+  });
+
+  it('removes Copilot UI chrome (messageAttributionIcon)', () => {
+    const el = makeEl('<span data-testid="messageAttributionIcon">Logo</span><p>Keep</p>');
+    const clone = stripSourceContainers(el);
+    expect(clone.querySelector('[data-testid="messageAttributionIcon"]')).toBeNull();
+    expect(clone.querySelector('p')).not.toBeNull();
+  });
+
+  it('handles element with no children safely', () => {
+    const el = makeEl('');
+    const clone = stripSourceContainers(el);
+    expect(clone).toBeTruthy();
+  });
+
+  it('[role=button] matching sources is removed', () => {
+    const el = makeEl('<div role="button" aria-label="Citations">Cites</div><p>Keep</p>');
+    const clone = stripSourceContainers(el);
+    expect(clone.querySelector('[role="button"][aria-label="Citations"]')).toBeNull();
+    expect(clone.querySelector('p')).not.toBeNull();
+  });
 });

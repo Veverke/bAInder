@@ -8,6 +8,45 @@
  * Skips: script, style, svg, button, aria-hidden elements.
  */
 
+// ── M365 Copilot / Fluent UI code-block constants ────────────────────────────
+const _COPILOT_SKIP  = new Set(['button','script','style','svg','path','noscript','template','img']);
+const _COPILOT_BLOCK = new Set(['div','p','li','tr','section','article','header','footer','pre']);
+const _KNOWN_LANG    = /^(javascript|typescript|python|java|c#|csharp|c\+\+|cpp|ruby|go|rust|css|scss|html|xml|json|bash|shell|sh|sql|php|swift|kotlin|scala|r|matlab|yaml|toml|markdown)$/i;
+
+/**
+ * Handle M365 Copilot / Fluent UI code blocks.
+ * These are rendered without <pre>/<code> — detected by ARIA label or scriptor class.
+ * @param {Element} node
+ * @returns {string|null}  Fenced Markdown code block, or null if node is not a Copilot block.
+ */
+function _extractCopilotCodeBlock(node) {
+  const ariaLabel = node.getAttribute('aria-label') || '';
+  const nodeClass  = typeof node.className === 'string' ? node.className : '';
+  if (ariaLabel !== 'Code Preview' && !nodeClass.includes('scriptor-component-code-block')) {
+    return null;
+  }
+
+  const extractRaw = n => {
+    if (n.nodeType === 3) return n.textContent || '';
+    if (n.nodeType !== 1) return '';
+    if (_COPILOT_SKIP.has(n.tagName.toLowerCase())) return '';
+    if (n.getAttribute && n.getAttribute('aria-hidden') === 'true') return '';
+    const isBlock = _COPILOT_BLOCK.has(n.tagName.toLowerCase());
+    const inner   = Array.from(n.childNodes).map(extractRaw).join('');
+    return isBlock ? inner + '\n' : inner;
+  };
+
+  const raw   = extractRaw(node).replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n').trim();
+  const lines = raw.split('\n');
+  let lang = '', start = 0;
+  if (lines.length > 0 && _KNOWN_LANG.test(lines[0].trim())) {
+    lang  = lines[0].trim().toLowerCase().replace('c#', 'csharp').replace('c++', 'cpp');
+    start = 1;
+  }
+  const code = lines.slice(start).join('\n').trim();
+  return code ? `\n\`\`\`${lang}\n${code}\n\`\`\`\n` : '';
+}
+
 /**
  * Convert a DOM element's content to Markdown, preserving structure.
  * @param {Element|null} el
@@ -30,34 +69,8 @@ export function htmlToMarkdown(el) {
     if (['script', 'style', 'svg', 'noscript', 'button', 'template'].includes(tag)) return '';
 
     // ── M365 Copilot / Fluent UI code block ──────────────────────────────────
-    // Rendered without <pre>/<code> — detected by ARIA label or scriptor class.
-    {
-      const ariaLabel = node.getAttribute('aria-label') || '';
-      const nodeClass = typeof node.className === 'string' ? node.className : '';
-      if (ariaLabel === 'Code Preview' || nodeClass.includes('scriptor-component-code-block')) {
-        const SKIP = new Set(['button','script','style','svg','path','noscript','template','img']);
-        const BLOCK = new Set(['div','p','li','tr','section','article','header','footer','pre']);
-        const KNOWN_LANG = /^(javascript|typescript|python|java|c#|csharp|c\+\+|cpp|ruby|go|rust|css|scss|html|xml|json|bash|shell|sh|sql|php|swift|kotlin|scala|r|matlab|yaml|toml|markdown)$/i;
-        const extractRaw = n => {
-          if (n.nodeType === 3) return n.textContent || '';
-          if (n.nodeType !== 1) return '';
-          if (SKIP.has(n.tagName.toLowerCase())) return '';
-          if (n.getAttribute && n.getAttribute('aria-hidden') === 'true') return '';
-          const t = BLOCK.has(n.tagName.toLowerCase());
-          const inner = Array.from(n.childNodes).map(extractRaw).join('');
-          return t ? inner + '\n' : inner;
-        };
-        const raw = extractRaw(node).replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n').trim();
-        const lines = raw.split('\n');
-        let lang = '', start = 0;
-        if (lines.length > 0 && KNOWN_LANG.test(lines[0].trim())) {
-          lang = lines[0].trim().toLowerCase().replace('c#', 'csharp').replace('c++', 'cpp');
-          start = 1;
-        }
-        const code = lines.slice(start).join('\n').trim();
-        return code ? `\n\`\`\`${lang}\n${code}\n\`\`\`\n` : '';
-      }
-    }
+    const copilotBlock = _extractCopilotCodeBlock(node);
+    if (copilotBlock !== null) return copilotBlock;
 
     // Build inner content first (needed by most cases)
     const inner = Array.from(node.childNodes).map(walk).join('');

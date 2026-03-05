@@ -17,17 +17,17 @@
  * Mutation methods stay here because they own the state changes.
  */
 
-import { Topic, ChatEntry }              from './tree/models.js';
+import { Topic, ChatEntry }              from './models.js';
 import { validateTopicName,
-         hasDuplicateName as _hasDup }   from './tree/tree-validator.js';
+         hasDuplicateName as _hasDup }   from './tree-validator.js';
 import { getAllTopics    as _getAll,
          getRootTopics  as _getRoots,
          getChildren    as _getChildren,
          getTopicPath   as _getPath,
          isDescendant   as _isDesc,
          findOrphans    as _findOrphans,
-         getStatistics  as _getStats }   from './tree/tree-traversal.js';
-import { serialize, deserialize }        from './tree/tree-serializer.js';
+         getStatistics  as _getStats }   from './tree-traversal.js';
+import { serialize, deserialize }        from './tree-serializer.js';
 
 // Re-export so existing callers (`import { Topic, ChatEntry } from '…tree.js'`)
 // continue to work without any changes.

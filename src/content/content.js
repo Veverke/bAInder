@@ -67,7 +67,7 @@ const browser = chrome;
         scrollEl.scrollTo({ top: savedTop, left: savedLeft, behavior: 'instant' });
         if (!response?.dataUrl) { resolve(null); return; }
         window.__bAInderDesignerImages[iframeid] = response.dataUrl;
-        console.log('[bAInder] Captured Designer image for', iframeid,
+        console.debug('[bAInder] Captured Designer image for', iframeid,
           '(' + Math.round(rect.width) + 'x' + Math.round(rect.height) + ')');
         resolve(response.dataUrl);
       }).catch(() => {
@@ -712,20 +712,11 @@ const browser = chrome;
     try {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
-        console.log('[bAInder DEBUG] contextmenu: no selection, skipping cache push');
         return;
       }
       const fragment = sel.getRangeAt(0).cloneContents();
       const wrapper  = document.createElement('div');
       wrapper.appendChild(fragment);
-      // Log the wrapper element itself so it can be expanded in DevTools
-      console.log('[bAInder DEBUG] contextmenu: captured DOM =', wrapper);
-      console.log('[bAInder DEBUG] contextmenu: captured HTML (full) =', wrapper.innerHTML);
-      const preEls  = wrapper.querySelectorAll('pre');
-      const codeEls = wrapper.querySelectorAll('code');
-      console.log('[bAInder DEBUG] contextmenu: pre count =', preEls.length, 'code count =', codeEls.length);
-      preEls.forEach((p, i)  => console.log(`[bAInder DEBUG]   pre[${i}] outerHTML =`, p.outerHTML.slice(0, 300)));
-      codeEls.forEach((c, i) => console.log(`[bAInder DEBUG]   code[${i}] parent.tag =`, c.parentElement?.tagName, 'class =', c.className, 'text =', c.textContent.slice(0, 100)));
 
       // ── On-demand Designer image capture ──────────────────────────────────
       // ImageGenerated telemetry may not have fired yet (images still rendering).
@@ -747,7 +738,7 @@ const browser = chrome;
           if (window.__bAInderDesignerImages?.[iframeid]) continue; // already cached
           const liveIframe = document.querySelector(`iframe[src*="iframeid=${iframeid}"]`);
           if (!liveIframe) continue;
-          console.log('[bAInder] On-demand capture for Designer iframe (contextmenu)', iframeid);
+          console.debug('[bAInder] On-demand capture for Designer iframe (contextmenu)', iframeid);
           capturePromises.push(captureDesignerIframe(iframeid, liveIframe));
         } catch (_) {}
       }
@@ -760,27 +751,23 @@ const browser = chrome;
       }
 
       const markdown = stripRoleLabels(htmlToMarkdown(wrapper)).trim();
-      console.log('[bAInder DEBUG] contextmenu: htmlToMarkdown output =', JSON.stringify(markdown.slice(0, 1000)));
 
       if (!markdown) {
-        console.log('[bAInder DEBUG] contextmenu: markdown empty, not caching');
         return;
       }
 
       // Guard: browser.runtime.id becomes undefined when the extension context is
       // invalidated (e.g. after a reload). The page must be refreshed to reconnect.
       if (!browser?.runtime?.id) {
-        console.warn('[bAInder DEBUG] contextmenu: extension context invalidated — reload the page to reconnect');
         return;
       }
 
       browser.runtime.sendMessage({
         type: 'STORE_EXCERPT_CACHE',
         data: { markdown }
-      }).then(r => console.log('[bAInder DEBUG] STORE_EXCERPT_CACHE response =', r))
-        .catch(e => console.warn('[bAInder DEBUG] STORE_EXCERPT_CACHE send failed =', e?.message));
+      }).catch(() => {});
     } catch (err) {
-      console.error('[bAInder DEBUG] contextmenu error:', err);
+      console.error('[bAInder] contextmenu error:', err);
     }
   });
 
@@ -862,7 +849,7 @@ const browser = chrome;
   function onUrlChange() {
     const currentUrl = document.location.href;
     if (currentUrl === lastUrl) return;
-    console.log('bAInder: URL change detected', { from: lastUrl, to: currentUrl });
+    console.debug('[bAInder] URL change detected', { from: lastUrl, to: currentUrl });
     lastUrl = currentUrl;
     initContentScript();
   }
@@ -884,11 +871,11 @@ const browser = chrome;
   function initContentScript() {
     const platform = detectPlatform(window.location.hostname);
     if (!platform) {
-      console.log('bAInder: Not on a supported AI chat platform');
+      console.debug('[bAInder] Not on a supported AI chat platform');
       return;
     }
-    console.log(`bAInder: Detected platform - ${platform}`);
-    console.log('bAInder: Content script ready');
+    console.info('[bAInder] Platform detected:', platform);
+    console.info('[bAInder] Content script ready');
   }
 
   if (document.readyState === 'loading') {
@@ -897,6 +884,6 @@ const browser = chrome;
     initContentScript();
   }
 
-  console.log('bAInder content script loaded on:', window.location.hostname);
+  console.info('[bAInder] Content script loaded on:', window.location.hostname);
 
 })(); // end IIFE
