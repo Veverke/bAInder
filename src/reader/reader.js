@@ -5,15 +5,15 @@
  * Pure functions are exported so they can be unit tested independently.
  */
 
-import { parseFrontmatter } from '../lib/markdown-serialiser.js';
-import { loadTheme } from '../lib/useTheme.js';
+import { parseFrontmatter } from '../lib/io/markdown-serialiser.js';
+import { loadTheme } from '../lib/theme/useTheme.js';
 import {
   loadAnnotations, saveAnnotation, deleteAnnotation,
   serializeRange,  applyAnnotations, parseBacklinks,
-} from '../lib/annotations.js';
-import { setupStickyNotes } from '../lib/sticky-notes-ui.js';
+} from '../lib/chat/annotations.js';
+import { setupStickyNotes } from '../lib/sticky-notes/sticky-notes-ui.js';
 import browser from '../lib/vendor/browser.js';
-import { escapeHtml, generateId } from '../lib/search-utils.js';
+import { escapeHtml, generateId } from '../lib/utils/search-utils.js';
 export { escapeHtml };  // re-export: callers that import escapeHtml from reader.js continue to work
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -27,14 +27,14 @@
  */
 
 import { StorageService }  from '../lib/storage.js';
-import { DialogManager }   from '../lib/dialog-manager.js';
-import { TopicDialogs }    from '../lib/topic-dialogs.js';
-import { ChatDialogs }     from '../lib/chat-dialogs.js';
-import { ExportDialog }    from '../lib/export-dialog.js';
-import { ImportDialog }    from '../lib/import-dialog.js';
-import { loadTheme }       from '../lib/useTheme.js';
+import { DialogManager }   from '../lib/dialogs/dialog-manager.js';
+import { TopicDialogs }    from '../lib/dialogs/topic-dialogs.js';
+import { ChatDialogs }     from '../lib/dialogs/chat-dialogs.js';
+import { ExportDialog }    from '../lib/dialogs/export-dialog.js';
+import { ImportDialog }    from '../lib/dialogs/import-dialog.js';
+import { loadTheme }       from '../lib/theme/useTheme.js';
 import browser             from '../lib/vendor/browser.js';
-import { logger }          from '../lib/logger.js';
+import { logger }          from '../lib/utils/logger.js';
 
 import { state, elements } from './app-context.js';
 import { ChatRepository }  from './services/chat-repository.js';

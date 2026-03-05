@@ -55,30 +55,32 @@ export function detectPlatform(hostname) {
 
 // ─── Orchestration ────────────────────────────────────────────────────────────
 
-export function extractChat(platform, doc, url) {
+export async function extractChat(platform, doc, url) {
   if (!platform) throw new Error('Platform is required');
-  if (!doc)      throw new Error('Document is required');
 
   let result;
 
   switch (platform) {
     case 'chatgpt':
+      if (!doc) throw new Error('Document is required');
       result = extractChatGPT(doc);
       break;
     case 'claude':
-      result = extractClaude(doc);
+      result = await extractClaude();
       break;
     case 'gemini':
+      if (!doc) throw new Error('Document is required');
       result = extractGemini(doc);
       break;
     case 'copilot':
+      if (!doc) throw new Error('Document is required');
       result = extractCopilot(doc);
       break;
     default:
       throw new Error(`Unsupported platform: ${platform}`);
   }
 
-  const finalUrl = url || (doc.location && doc.location.href) || '';
+  const finalUrl = url || (doc?.location && doc.location.href) || '';
 
   return {
     platform,

@@ -1,5 +1,5 @@
 /**
- * Tests for src/lib/sticky-notes-ui.js (pure functions only)
+ * Tests for src/lib/sticky-notes/sticky-notes-ui.js (pure functions only)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { clusterNotes, wrapSelection, wrapLink, buildNoteOverlay, setupStickyNotes } from '../src/lib/sticky-notes/sticky-notes-ui.js';

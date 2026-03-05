@@ -1,5 +1,5 @@
 /**
- * bAInder Sticky Notes UI — src/lib/sticky-notes-ui.js
+ * bAInder Sticky Notes UI — src/lib/sticky-notes/sticky-notes-ui.js
  *
  * Renders sticky-note overlays in the reader page, wires the context-menu
  * "Add Sticky Note" action, handles the show/hide header toggle, and provides

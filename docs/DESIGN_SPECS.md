@@ -1314,7 +1314,7 @@ If no frontmatter exists, fallback to:
   - ✅ Storage usage display
   - ✅ Export/import entire database (Stage 9 ZIP)
   - ✅ Clear all data option
-  - ✅ Debug logger utility (`src/lib/logger.js`; toggled via Settings → Advanced)
+  - ✅ Debug logger utility (`src/lib/utils/logger.js`; toggled via Settings → Advanced)
 - Error handling:
   - ✅ Graceful degradation with user-friendly error messages
   - ✅ Retry-safe read-modify-write storage pattern
@@ -1540,7 +1540,7 @@ Before release, audit all logging:
 
 Suggested minimal logger pattern:
 ```js
-// src/lib/logger.js
+// src/lib/utils/logger.js
 const LOG_LEVEL = 'WARN'; // Change to 'DEBUG' during development
 const LEVELS = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
 export const logger = {
@@ -1777,9 +1777,9 @@ Clicking a chat row emits a circular ripple using a pseudo-element `::after` wit
 Add `<details>`/`<summary>` wrappers (or JS-driven toggle buttons) around the Search and Tree sections so users can collapse one to give more room to the other.  
 *Files:* `sidepanel.html` (structure), `sidepanel.js` (persist collapse state), `sidepanel.css` (chevron animation)
 
-**U2 — Pinned / starred topics** ✅ *Implemented*  
-A star icon on each topic card header. Clicking sets `topic.pinned = true` in storage. Pinned topics always appear before unpinned ones in the tree regardless of alphabetical order, with a subtle `★` prefix.  
-*Files:* `tree-renderer.js` (star element + sort), `sidepanel.js` (storage write), `sidepanel.css` (star icon styles)
+**U2 — Pinned topics** ✅ *Implemented*
+A pin icon (📌) on each topic card header. Clicking sets `topic.pinned = true` in storage. Pinned topics always appear before unpinned ones in the tree regardless of alphabetical order, with a subtle 📌 prefix.
+*Files:* `topic-node-builder.js` (pin element + sort), `tree-controller.js` (storage write), `sidepanel.css` (pin icon styles)
 
 **U3 — Chat-count histogram sparkline in topic cards** ✅ *Implemented*  
 Each topic card footer shows a micro bar chart (SVG, max 6 bars) representing the number of chats saved per week over the last 6 weeks. Derived from `chat.savedAt` timestamps — no new data needed.  
@@ -1807,7 +1807,7 @@ A `@media print` block that hides the progress bar, jump-to-top button, and head
 
 **R2 — Highlight & annotate** ✅ *Implemented* *(high effort)*  
 User can select text in the reader, press a floating toolbar button, and save a highlight with optional note to `chrome.storage.local`. Highlights are re-applied on re-open using stored character offsets. Requires a new `annotations.js` module.  
-*Files:* `reader.js`, `reader.css`, new `src/lib/annotations.js`
+*Files:* `reader.js`, `reader.css`, new `src/lib/chat/annotations.js`
 
 **R3 — Reading time estimate in reader header** ✅ *Implemented*  
 Count words in the rendered content and display "~X min read" in the reader header area. Standard 200 wpm estimate. Updates after `renderChat()` completes.  
@@ -1955,7 +1955,7 @@ Extend the existing full-text search with filter pills that narrow results befor
 All three filters operate on data already in storage; no new indexing is needed. A small filter bar above the search input (collapsed by default) exposes them.
 
 **Implementation:**
-- `src/lib/search-utils.js` — `applySearchFilters(results, filters, tree)` pure function
+- `src/utils/` — `applySearchFilters(results, filters, tree)` pure function
 - `src/sidepanel/sidepanel.html` — filter toggle button + collapsible filter bar (source pills, date range, topic scope select)
 - `src/sidepanel/sidepanel.css` — filter bar, pill, and active-indicator styles
 - `src/sidepanel/sidepanel.js` — `setupFilterBar()`, `populateTopicScopeSelect()`, `updateFilterIndicator()` functions; `state.filters` tracks active filter state; filters applied in `runSearch()` via `applySearchFilters`
@@ -2025,12 +2025,12 @@ Implementation: ~20 lines in `reader.js` (inject button per message during `rend
 
 > **Status: Completed — March 2, 2026**
 
-The annotations system (`src/lib/annotations.js`) is already built. Extend it to allow a highlight note to reference another saved chat using `[[topic/chat title]]` syntax, resolved against the live tree on save. Render a "Related chats" section at the bottom of the reader listing all backlinks to the current chat from other saved chats.
+The annotations system (`src/lib/chat/annotations.js`) is already built. Extend it to allow a highlight note to reference another saved chat using `[[topic/chat title]]` syntax, resolved against the live tree on save. Render a "Related chats" section at the bottom of the reader listing all backlinks to the current chat from other saved chats.
 
 This creates a lightweight Zettelkasten / wiki layer on top of bAInder's existing knowledge base. No competitor has this. Pairs naturally with the Obsidian export (C.2).
 
 **Implementation:**
-- `src/lib/annotations.js` — `parseBacklinks(note)` extracts `[[...]]` patterns from annotation note text
+- `src/lib/chat/annotations.js` — `parseBacklinks(note)` extracts `[[...]]` patterns from annotation note text
 - `src/reader/reader.js` — `renderBacklinksSection(chatId, chatTitle, chats, storage)` scans all other chats' annotation keys for `[[current chat title]]` references; appends a "Referenced by" section to `#reader-content`; called from `init()` after `setupAnnotations()`
 - `src/reader/reader.css` — `.backlinks-section`, `.backlinks-section__title`, `.backlinks-list`, `.backlinks-list__link` styles
 

@@ -28,8 +28,8 @@ These files have **zero test coverage** because no test imports them. Each needs
 
 | File | Notes |
 |---|---|
-| `src/lib/export-dialog.js` | UI dialog wiring for export |
-| `src/lib/import-dialog.js` | UI dialog wiring for import |
+| `src/lib/dialogs/export-dialog.js` | UI dialog wiring for export |
+| `src/lib/dialogs/import-dialog.js` | UI dialog wiring for import |
 | `src/sidepanel/app-context.js` | Shared React/app context |
 | `src/sidepanel/notification.js` | Toast/notification helper |
 | `src/sidepanel/sidepanel.js` | Main sidepanel entry point |
@@ -59,7 +59,7 @@ These files have **zero test coverage** because no test imports them. Each needs
 
 | File | Stmts | Branch | Funcs | Existing test file? |
 |---|---|---|---|---|
-| `src/lib/annotations.js` | 1.51% | 0% | 0% | ❌ None |
+| `src/lib/chat/annotations.js` | 1.51% | 0% | 0% | ❌ None |
 | `src/lib/export-engine.js` | 0% | 0% | 0% | ❌ None |
 | `src/lib/renderer/virtual-scroll.js` | 3.61% | 0% | 0% | ❌ None |
 
@@ -72,8 +72,8 @@ These files have **zero test coverage** because no test imports them. Each needs
 | File | Stmts | Branch | Funcs | Existing test file? |
 |---|---|---|---|---|
 | `src/reader/reader.js` | 30.99% | 26.84% | 33.33% | ⚠️ `tests/reader.test.js` (failing) |
-| `src/lib/sticky-notes-ui.js` | 31.45% | 29.33% | 20.93% | ⚠️ `tests/sticky-notes-ui.test.js` (partial) |
-| `src/lib/logger.js` | 35.29% | 19.23% | 29.41% | ❌ None |
+| `src/lib/sticky-notes/sticky-notes-ui.js` | 31.45% | 29.33% | 20.93% | ⚠️ `tests/sticky-notes-ui.test.js` (partial) |
+| `src/lib/utils/logger.js` | 35.29% | 19.23% | 29.41% | ❌ None |
 | `src/lib/export/html-builder.js` | 41.37% | 30.30% | 33.33% | ⚠️ `tests/export-engine.test.js` (indirect) |
 | `src/lib/export/format-helpers.js` | 40.74% | 22.22% | 62.5% | ⚠️ `tests/export-engine.test.js` (indirect) |
 | `src/lib/export/markdown-builder.js` | 42.22% | 35.05% | 28.57% | ⚠️ `tests/export-engine.test.js` (indirect) |
@@ -90,9 +90,9 @@ These files have **zero test coverage** because no test imports them. Each needs
 |---|---|---|---|---|
 | `src/lib/renderer/item-builder.js` | 61.33% | 60% | 25% | ❌ None |
 | `src/lib/renderer/node-builder.js` | 66.2% | 54.28% | 38.88% | ❌ None |
-| `src/lib/useTheme.js` | 63.63% | 66.66% | 66.66% | ❌ None |
+| `src/lib/theme/useTheme.js` | 63.63% | 66.66% | 66.66% | ❌ None |
 | `src/lib/tree-renderer.js` | 56.37% | 45.78% | 50.72% | ⚠️ `tests/tree-renderer.test.js` (partial) |
-| `src/lib/search-utils.js` | 76.38% | 71.87% | 73.33% | ⚠️ `tests/search-utils.test.js` (partial) |
+| `src/lib/utils/search-utils.js` | 76.38% | 71.87% | 73.33% | ⚠️ `tests/search-utils.test.js` (partial) |
 | `src/content/extractors/source-links.js` | 74.68% | 56.06% | 54.54% | ⚠️ `tests/chat-extractor.test.js` (partial) |
 | `src/lib/export/html-styles.js` | 75% | 100% | 66.66% | ⚠️ indirect |
 | `src/lib/export/md-to-html.js` | 91.17% | 82.35% | 75% | ⚠️ `tests/export-engine.test.js` (indirect) |
@@ -107,7 +107,7 @@ These files pass the statement threshold but fall short on branches or functions
 
 | File | Stmts | Branch | Funcs | Gap |
 |---|---|---|---|---|
-| `src/lib/chat-dialogs.js` | 90.62% | **78.94%** | 93.33% | Branch coverage |
+| `src/lib/dialogs/chat-dialogs.js` | 90.62% | **78.94%** | 93.33% | Branch coverage |
 | `src/lib/import-parser.js` | 93.75% | **77.63%** | 100% | Branch coverage |
 | `src/lib/storage.js` | 94.17% | **79.10%** | 96.87% | Branch coverage |
 | `src/lib/export/zip-builder.js` | 95.91% | **81.63%** | 100% | Branch coverage |
@@ -117,7 +117,7 @@ These files pass the statement threshold but fall short on branches or functions
 | `src/lib/tree/tree-traversal.js` | 95.34% | **83.33%** | 100% | Branch coverage |
 | `src/lib/tree/models.js` | 96.87% | 91.42% | **88.88%** | Function coverage |
 | `src/lib/style-transformer.js` | 97.87% | **89.23%** | 100% | Branch (very close) |
-| `src/lib/dialog-manager.js` | 99.21% | **93.50%** | 100% | Branch (close) |
+| `src/lib/dialogs/dialog-manager.js` | 99.21% | **93.50%** | 100% | Branch (close) |
 
 ---
 
@@ -129,22 +129,22 @@ Work should proceed lowest-coverage first, grouped by the test file that will ad
 
 | Task | New test file | Target files covered |
 |---|---|---|
-| **T1-A** | `tests/annotations.test.js` | `src/lib/annotations.js` |
+| **T1-A** | `tests/annotations.test.js` | `src/lib/chat/annotations.js` |
 | **T1-B** | `tests/export-engine.test.js` | `src/lib/export-engine.js`, `src/lib/export/html-builder.js`, `src/lib/export/format-helpers.js`, `src/lib/export/markdown-builder.js`, `src/lib/export/html-styles.js` |
 | **T1-C** | `tests/virtual-scroll.test.js` | `src/lib/renderer/virtual-scroll.js` |
-| **T1-D** | `tests/logger.test.js` | `src/lib/logger.js` |
+| **T1-D** | `tests/logger.test.js` | `src/lib/utils/logger.js` |
 | **T1-E** | `tests/tree-sort.test.js` | `src/lib/renderer/tree-sort.js` |
 | **T1-F** | `tests/item-builder.test.js` | `src/lib/renderer/item-builder.js`, `src/lib/renderer/node-builder.js` |
-| **T1-G** | `tests/use-theme.test.js` | `src/lib/useTheme.js` |
+| **T1-G** | `tests/use-theme.test.js` | `src/lib/theme/useTheme.js` |
 
 ### Sprint 2 — Expand Existing Partial Test Files
 
 | Task | Existing test file | Target files | Key gaps to add |
 |---|---|---|---|
-| **T2-A** | `tests/sticky-notes-ui.test.js` | `src/lib/sticky-notes-ui.js` | Drag interactions, context menu callbacks, multi-note ops |
+| **T2-A** | `tests/sticky-notes-ui.test.js` | `src/lib/sticky-notes/sticky-notes-ui.js` | Drag interactions, context menu callbacks, multi-note ops |
 | **T2-B** | `tests/theme.test.js` | `src/lib/theme-sdk.js` | applyTheme, token overrides, CSS var map |
 | **T2-C** | `tests/tree-renderer.test.js` | `src/lib/tree-renderer.js` | renderNode edge cases, collapse/expand state, event handlers |
-| **T2-D** | `tests/search-utils.test.js` | `src/lib/search-utils.js` | Highlight overlaps, empty queries, multi-term |
+| **T2-D** | `tests/search-utils.test.js` | `src/lib/utils/search-utils.js` | Highlight overlaps, empty queries, multi-term |
 | **T2-E** | `tests/chat-extractor.test.js` | `src/content/extractors/source-links.js` | Source parsing edge cases, malformed URLs |
 | **T2-F** | `tests/reader.test.js` (fix + expand) | `src/reader/reader.js` | Fix failing tests; add render, navigation, theme paths |
 
@@ -178,7 +178,7 @@ These require DOM/event mocking with happy-dom; each is a thin controller so tes
 
 | Task | New test file | Target | Approach |
 |---|---|---|---|
-| **T5-A** | `tests/export-dialog.test.js` | `lib/export-dialog.js`, `lib/import-dialog.js` | Mock dialog APIs, verify open/close/submit flows |
+| **T5-A** | `tests/export-dialog.test.js` | `lib/dialogs/export-dialog.js`, `lib/dialogs/import-dialog.js` | Mock dialog APIs, verify open/close/submit flows |
 | **T5-B** | `tests/background.test.js` | `background/background.js` | Mock chrome events, verify handler registration |
 | **T5-C** | `tests/app-context.test.js` | `sidepanel/app-context.js`, `notification.js` | Context provider, notification dispatch |
 
