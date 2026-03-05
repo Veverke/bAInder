@@ -2,11 +2,11 @@
  * Copilot conversation extractor.
  * Targets: copilot.microsoft.com, m365.cloud.microsoft/chat
  *
- * Copilot DOM (as of 2025/2026):
- *   User messages:      [data-testid="user-message"],  .UserMessage,  [class*="UserMessage"]
- *   Copilot responses:  [data-testid="copilot-message"],[class*="CopilotMessage"],
- *                       [data-testid="assistant-message"],[class*="AssistantMessage"],
- *                       .markdown-body (inside a copilot turn container)
+ * Copilot DOM (as of March 2026):
+ *   User messages:      [data-testid="user-message"], [class*="user-message"], [class*="UserMessage"]
+ *   Copilot responses:  [data-testid="ai-message"], [class*="ai-message"],
+ *                       [data-testid="copilot-message"], [class*="CopilotMessage"],
+ *                       [data-testid="assistant-message"], [class*="AssistantMessage"]
  */
 
 import { htmlToMarkdown }        from './html-to-markdown.js';
@@ -69,8 +69,8 @@ export function extractCopilot(doc) {
 
   const rawCopilotEls = Array.from(
     chatScope.querySelectorAll(
-      '[data-testid="copilot-message"], [data-testid="assistant-message"], ' +
-      '[class*="CopilotMessage"], [class*="AssistantMessage"], [class*="copilot-message"]'
+      '[data-testid="ai-message"], [data-testid="copilot-message"], [data-testid="assistant-message"], ' +
+      '[class*="ai-message"], [class*="CopilotMessage"], [class*="AssistantMessage"], [class*="copilot-message"]'
     )
   ).filter(el => !inHistoryPanel(el));
 

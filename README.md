@@ -1,5 +1,7 @@
 # 🗂️ bAInder — AI Chat Organizer
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > Stop losing your best AI conversations. bAInder saves, organises, and lets you search every chat from ChatGPT, Claude, Gemini, and Copilot — all in a sleek browser side panel, entirely on your device.
 
 Install the extension, hit **Save** on any conversation, drop it into a topic, and it's yours forever — tagged, searchable, and readable in a clean viewer. No accounts, no cloud sync, no data ever leaves your browser.
@@ -64,7 +66,26 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 
 ---
 
-## 🚀 Installation
+## � Screenshots
+
+### Extension Side Panel
+
+![bAInder screenshot 1](assets/screenshots/bAInder%20screenshot%201.png)
+
+### Chat Reader View
+
+![bAInder reader screenshot 1](assets/screenshots/bAInder%20reader%20screenshot%201.png)
+
+### Some of the themes that can be installed
+
+![bAInder themed screenshot 1](assets/screenshots/bAInder%20themed%20screenshot%201.png)
+![bAInder themed screenshot 2](assets/screenshots/bAInder%20themed%20screenshot%202.png)
+![bAInder themed screenshot 3](assets/screenshots/bAInder%20themed%20screenshot%203.png)
+![bAInder themed screenshot 4](assets/screenshots/bAInder%20themed%20screenshot%204.png)
+
+---
+
+## �🚀 Installation
 
 ### 🌐 Chrome
 1. Go to `chrome://extensions` and enable **Developer mode**
@@ -84,6 +105,89 @@ npm run build:all   # produces dist/chrome/ and dist/edge/
 
 ---
 
-## 📄 License
+## �️ Contributing & Development
 
-MIT
+### Getting Started
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/bAInder.git
+   cd bAInder
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start development with watch mode**
+   ```bash
+   npm run dev
+   ```
+
+4. **Load the extension in your browser**
+   - **Chrome**: Open `chrome://extensions`, enable Developer mode, click **Load unpacked**, and select `dist/chrome/`
+   - **Edge**: Open `edge://extensions`, enable Developer mode, click **Load unpacked**, and select `dist/edge/`
+
+### Available Scripts
+
+```bash
+npm run build:all    # Build extensions for both Chrome and Edge
+npm run dev          # Start development server with watch mode
+npm run test         # Run tests with Vitest
+npm test -- --watch # Run tests in watch mode
+npm run lint         # Run ESLint
+```
+
+### Project Structure
+
+- **`src/background/`** — Extension background scripts
+- **`src/content/`** — Content scripts injected into web pages
+- **`src/sidepanel/`** — Side panel UI and logic
+- **`src/reader/`** — Chat viewer UI
+- **`src/lib/`** — Core utilities, storage, export/import logic
+- **`tests/`** — Test files for all modules
+- **`docs/`** — Documentation and design specs
+
+### Testing
+
+Run the test suite:
+```bash
+npm test
+```
+
+Tests use Vitest and cover:
+- Chat extraction and parsing
+- Data storage and retrieval
+- Export/import functionality
+- UI components and interactions
+- Utility functions
+
+### Code Quality
+
+- **Linting**: ESLint configuration ensures code consistency
+- **Tests**: All new features should include corresponding tests
+- **UT Coverage gate**: 90% minimum code coverage required
+- **Commits**: Follow conventional commit messages for clarity
+
+### Making Changes
+
+1. Create a feature branch: `git checkout -b feature/your-feature`
+2. Make your changes and write tests
+3. Run `npm run lint` and `npm test` to verify
+4. Build with `npm run build:all` to test in the extension
+5. Commit with descriptive messages
+6. Push and create a pull request
+
+---
+
+## �📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+**Copyright © 2024 Avraham Y. Kahana**
+
+You are free to use, modify, and distribute this software for any purpose, including commercial use, provided you include the original copyright notice and license text.
+
+For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
