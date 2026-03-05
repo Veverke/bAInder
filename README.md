@@ -16,61 +16,45 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 
 ## ✨ Features
 
-### 💾 Save from any AI platform
-A floating **Save** button appears automatically on ChatGPT, Claude, Gemini, and Microsoft Copilot. One click captures the full conversation. The title is auto-detected; you pick the topic and add tags.
+### 💾 Capture
+| | |
+|---|---|
+| 💾 **Save from any AI platform** | One-click floating Save button on ChatGPT, Claude, Gemini, and Copilot; also clip any highlighted selection via right-click. |
+| 🔒 **Fully local & private** | All data lives in `chrome.storage.local` — nothing is ever transmitted anywhere. |
 
-You can also **save just a selection**: highlight any text on an AI page, right-click, and choose **Save selection to bAInder** to clip only that passage as a standalone entry.
+### 🗂️ Organise
+| | |
+|---|---|
+| 🌳 **Hierarchical topic tree** | Organise chats into nested topics with sorted counts, sparklines, and pinned favourites. |
+| 📁 **Topic management** | Add, rename, delete, move (drag-and-drop), merge, and pin topics at any depth. |
+| 🏷️ **Tags** | Add comma-separated tags at save time or later; shown as coloured chips and included in search. |
+| ⭐ **Star ratings** | Rate chats 1–5 stars from the context menu or Reader header; filter search results by minimum rating. |
+| ⏰ **Review-by date & stale alerts** | Set a review date on any chat; get a ⚠️ badge and Reader banner when it's overdue. |
 
-### 🌳 Hierarchical topic tree
-Organise chats into a nested folder structure of topics and sub-topics. The tree is always alphabetically sorted, shows per-topic chat counts, and sparkline activity bars so you can see which areas you've been working in recently.
+### 🔍 Find
+| | |
+|---|---|
+| 🔍 **Powerful search** | Full-text search across titles, content, and tags with snippet previews, breadcrumbs, and star-rating filters. |
+| 🕐 **Recently saved rail** | Scrollable strip below the search bar showing your five most recently saved chats. |
 
-### 🔍 Powerful search
-Full-text search across every saved conversation — titles, content, and tags — with highlighted snippet previews and topic breadcrumbs in results. Filter results by minimum star rating to surface only your best chats.
+### 📖 Read & Annotate
+| | |
+|---|---|
+| 📖 **Distraction-free Reader** | Clean chat viewer with persistent scroll position so you resume exactly where you left off. |
+| 📝 **Sticky notes & annotations** | Add draggable Markdown sticky notes or colour-highlight any passage directly in the Reader. |
 
-### 📖 Distraction-free Reader
-Click any saved chat to open it in a clean Reader view. The title, topic breadcrumb, and tags stay visible while you scroll through the full conversation. Your scroll position is remembered per chat, so revisiting a long conversation resumes exactly where you left off.
+### 📤 Export & Share
+| | |
+|---|---|
+| ☑️ **Multi-chat digest export** | Select chats across topics and export a combined Markdown, HTML, or PDF digest with an optional table of contents. |
+| 📦 **Export & Import** | Download a topic as a ZIP of Markdown/HTML files, or import a ZIP to restore or share it. |
 
-### 📁 Topic management
-- **Add / Rename / Delete** topics at any depth
-- **Move** a topic (or chat) to a different parent with drag-and-drop or via the context menu
-- **Merge** two topics into one — all chats and sub-topics are combined automatically
-- **📌 Pin** important topics so they float to the top of the tree
-
-### ⭐ Star ratings
-Rate any saved chat 1–5 stars from the context menu or directly in the Reader header. Rated chats display an amber star badge in the tree, and search results can be filtered by minimum rating so your best conversations are always easy to find.
-
-### ⏰ Review-by date & stale alerts
-Mark any chat as time-sensitive by setting an optional review date. When the date passes, a ⚠️ badge appears on the chat in the tree and a dismissible banner appears at the top of the Reader. Hit **Mark as reviewed** to clear the flag, or update the date to push it forward.
-
-### 🏷️ Tags
-Attach comma-separated tags to any chat at save time, or edit them later. Tags appear as coloured chips throughout the UI and are included in search.
-
-### 📝 Sticky notes & text annotations
-Inside the Reader you can:
-- **Sticky notes** — right-click anywhere to add a draggable sticky note. Notes support Markdown, auto-save, and can be shown or hidden with a single click.
-- **Text annotations** — select any passage and highlight it in one of several colours. Highlights are persisted and restored every time you open the chat.
-
-### ☑️ Multi-Chat Assembly / Digest Export
-Combine multiple saved chats into one document. Activate **multi-select mode** from the side panel toolbar to check off any number of chats across different topics, then export the combined selection as a single **digest document** — Markdown, HTML, or PDF — with a heading per chat and an optional table of contents. Ideal for research summaries and handoff documents.
-
-### 📦 Export & Import
-Right-click any topic → **Export** to download a ZIP archive of all its chats as Markdown or HTML files. Use **Import** to restore or share a ZIP on any machine.
-
-### 🎨 Themes
-- Customise the extension's look using [ThemeStudioSDK](https://github.com/Veverke/ThemeStudioSDK) themes.
-- Want inspiration? The community package includes **⚡ Neon**, **🍄 Mario Bros**, **🚀 Sci-Fi**, **⌨️ Typewriter**, and many other cool themes — try it out!
-
-### 🕐 Recently saved rail
-A horizontal scrollable rail below the search bar shows your five most recently saved chats for quick one-click access.
-
-### 📊 Activity sparklines
-Each topic card in the tree displays a mini bar chart showing how many chats were saved per week over the last six weeks — a quick visual pulse of where your activity has been.
-
-### 💿 Storage usage meter
-A storage bar at the bottom of the side panel shows how much of your local storage budget is in use, so you always know when it's time to export and tidy up.
-
-### 🔒 Fully local & private
-All data is stored in your browser using `chrome.storage.local`. Nothing is transmitted anywhere.
+### 🎛️ Customise & Monitor
+| | |
+|---|---|
+| 🎨 **Themes** | Customise the look with [ThemeStudioSDK](https://github.com/Veverke/ThemeStudioSDK) themes, including community presets like Neon, Mario Bros, and Sci-Fi. |
+| 📊 **Activity sparklines** | Per-topic mini bar charts showing weekly save activity over the last six weeks. |
+| 💿 **Storage usage meter** | Bottom-of-panel bar showing how much local storage is in use. |
 
 ---
 
