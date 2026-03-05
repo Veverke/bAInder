@@ -34,7 +34,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 }
 
 // ─── Mock export-engine ───────────────────────────────────────────────────────
-vi.mock('../src/lib/export-engine.js', () => ({
+vi.mock('../src/lib/export/export-engine.js', () => ({
   buildExportMarkdown: vi.fn((chat, topicPath) => `# ${chat.title}\n${topicPath}`),
   buildExportHtml:     vi.fn((chat, topicPath) => `<html><body>${chat.title}</body></html>`),
   buildZipPayload:     vi.fn(() => [{ path: 'bAInder-export/test.md', content: '# Test' }]),
@@ -44,7 +44,7 @@ vi.mock('../src/lib/export-engine.js', () => ({
 }));
 
 // ─── Mock import-parser ───────────────────────────────────────────────────────
-vi.mock('../src/lib/import-parser.js', () => ({
+vi.mock('../src/lib/io/import-parser.js', () => ({
   validateZipFile: vi.fn(() => ({ valid: true })),
   parseZipEntries: vi.fn(() => ({
     topicFolders: new Map([
@@ -130,9 +130,9 @@ vi.mock('../src/lib/import-parser.js', () => ({
 }));
 
 // ─── Shared imports ───────────────────────────────────────────────────────────
-import { DialogManager } from '../src/lib/dialog-manager.js';
-import { ExportDialog }  from '../src/lib/export-dialog.js';
-import { ImportDialog }  from '../src/lib/import-dialog.js';
+import { DialogManager } from '../src/lib/dialogs/dialog-manager.js';
+import { ExportDialog }  from '../src/lib/dialogs/export-dialog.js';
+import { ImportDialog }  from '../src/lib/dialogs/import-dialog.js';
 import {
   buildExportMarkdown,
   buildExportHtml,
@@ -140,13 +140,13 @@ import {
   triggerDownload,
   buildTopicPath,
   sanitizeFilename,
-} from '../src/lib/export-engine.js';
+} from '../src/lib/export/export-engine.js';
 import {
   validateZipFile,
   parseZipEntries,
   buildImportPlan,
   executeImport,
-} from '../src/lib/import-parser.js';
+} from '../src/lib/io/import-parser.js';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 const mockTopic = {

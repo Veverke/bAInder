@@ -8,7 +8,7 @@
  * onto the container that DialogManager already owns.
  */
 
-import JSZip from './vendor/jszip-esm.js';
+import JSZip from '../vendor/jszip-esm.js';
 import {
   buildExportMarkdown,
   buildExportHtml,
@@ -18,8 +18,8 @@ import {
   sanitizeFilename,
   buildDigestMarkdown,
   buildDigestHtml,
-} from './export-engine.js';
-import { STYLES, STYLE_LABELS } from './style-transformer.js';
+} from '../export/export-engine.js';
+import { STYLES, STYLE_LABELS } from '../theme/style-transformer.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

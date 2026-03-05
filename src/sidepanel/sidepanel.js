@@ -11,6 +11,7 @@
  * Module map:
  *   app-context.js                  shared state + elements
  *   services/chat-repository.js     all browser.storage chat I/O
+ *   services/reminder-prefs-repository.js  backup-reminder preference storage I/O
  *   controllers/tree-controller.js  tree load/save/render
  *   controllers/search-controller.js  search + filter bar
  *   controllers/topic-actions.js    topic CRUD + context menu
@@ -23,21 +24,26 @@
  *   features/settings-panel.js      settings slide-in panel
  *   features/recent-rail.js         recently-saved chip rail
  *   features/storage-usage.js       storage usage display
+ *   services/storage-sync.js        cross-tab storage change listener
  *   notification.js                 toast notifications
  */
 
-import { StorageService }  from '../lib/storage.js';
-import { DialogManager }   from '../lib/dialog-manager.js';
-import { TopicDialogs }    from '../lib/topic-dialogs.js';
-import { ChatDialogs }     from '../lib/chat-dialogs.js';
-import { ExportDialog }    from '../lib/export-dialog.js';
-import { ImportDialog }    from '../lib/import-dialog.js';
-import { loadTheme }       from '../lib/useTheme.js';
+import { StorageService, StorageUsageTracker } from '../lib/storage.js';
+import { DialogManager }   from '../lib/dialogs/dialog-manager.js';
+import { TopicDialogs }    from '../lib/dialogs/topic-dialogs.js';
+import { ChatDialogs }     from '../lib/dialogs/chat-dialogs.js';
+import { ExportDialog }    from '../lib/dialogs/export-dialog.js';
+import { ImportDialog }    from '../lib/dialogs/import-dialog.js';
+import { loadTheme }       from '../lib/theme/useTheme.js';
 import browser             from '../lib/vendor/browser.js';
-import { logger }          from '../lib/logger.js';
+import { logger }          from '../lib/utils/logger.js';
+import { TREE_FLASH_MS }   from '../lib/utils/constants.js';
 
-import { state, elements } from './app-context.js';
-import { ChatRepository }  from './services/chat-repository.js';
+import { state, elements }          from './app-context.js';
+import { ChatRepository }            from './services/chat-repository.js';
+import { ReminderPrefsRepository }   from './services/reminder-prefs-repository.js';
+import { initStorageSync }           from './services/storage-sync.js';
+import { validateRuntimeMessage }    from './services/message-validator.js';
 
 import { loadTree, initTreeRenderer, saveExpandedState, renderTreeView } from './controllers/tree-controller.js';
 import {
@@ -76,19 +82,21 @@ import { openSettingsPanel }   from './features/settings-panel.js';
 import { updateRecentRail }    from './features/recent-rail.js';
 import { updateStorageUsage }  from './features/storage-usage.js';
 
-logger.log('Side Panel loaded');
+logger.info('Side panel loaded');
 
 // ---------------------------------------------------------------------------
 // Bootstrap
 // ---------------------------------------------------------------------------
 
 async function init() {
-  logger.log('Initializing bAInder…');
+  logger.info('Initializing bAInder…');
 
   // Services
-  state.storage  = StorageService.getInstance('chrome');
-  state.dialog   = new DialogManager(elements.modalContainer);
-  state.chatRepo = new ChatRepository();
+  state.storage        = StorageService.getInstance('chrome');
+  state.storageTracker = new StorageUsageTracker(state.storage);
+  state.dialog         = new DialogManager(elements.modalContainer);
+  state.chatRepo       = new ChatRepository(state.storage);
+  state.reminderPrefs  = new ReminderPrefsRepository();
 
   // Load theme
   const savedThemeId = localStorage.getItem('themeId') ?? 'light';
@@ -126,7 +134,58 @@ async function init() {
   await initSaveBanner();
   await initBackupReminder();
 
-  logger.log('Initialized successfully');
+  // Register cross-tab storage sync — keeps in-memory state fresh when
+  // another extension page (second window, background script) modifies storage.
+  initStorageSync({
+    onTopicTreeChanged: _onExternalTreeChange,
+    onChatsChanged:     _onExternalChatsChange,
+  });
+
+  logger.info('bAInder initialized');
+}
+
+// ---------------------------------------------------------------------------
+// External storage-change reload handlers  (called by storage-sync.js)
+// ---------------------------------------------------------------------------
+
+/**
+ * Reload the topic tree from storage and refresh the UI.
+ * Triggered when another extension page writes to the `topicTree` key.
+ */
+async function _onExternalTreeChange() {
+  try {
+    logger.info('StorageSync: topic tree changed — reloading');
+    await loadTree();
+    // Re-sync dialog helpers that hold a reference to the old tree object
+    if (state.topicDialogs) state.topicDialogs.tree = state.tree;
+    if (state.chatDialogs)  state.chatDialogs.tree  = state.tree;
+    if (state.renderer) {
+      state.renderer.setTree(state.tree);
+      renderTreeView();
+    }
+    await updateStorageUsage();
+  } catch (err) {
+    logger.error('[StorageSync] onTopicTreeChanged error:', err);
+  }
+}
+
+/**
+ * Reload the chats array from storage and refresh the UI.
+ * Triggered when another extension page writes to the `chats` key.
+ */
+async function _onExternalChatsChange() {
+  try {
+    logger.info('StorageSync: chats changed — reloading');
+    state.chats = await state.chatRepo.loadAll();
+    if (state.renderer) {
+      state.renderer.setChatData(state.chats);
+      renderTreeView();
+    }
+    updateRecentRail(handleChatClick);
+    await updateStorageUsage();
+  } catch (err) {
+    logger.error('[StorageSync] onChatsChanged error:', err);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -262,7 +321,13 @@ function setupEventListeners() {
 // Background message listener
 // ---------------------------------------------------------------------------
 
-browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const validation = validateRuntimeMessage(message, sender, browser.runtime.id);
+  if (!validation.ok) {
+    logger.warn('Ignored runtime message:', validation.reason);
+    return false;
+  }
+
   if (message.type === 'CHAT_SAVED') {
     handleChatSaved(message.data)
       .then(() => sendResponse({ success: true }))
@@ -283,7 +348,7 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (node) {
         node.scrollIntoView({ behavior: 'smooth', block: 'center' });
         node.classList.add('tree-chat-item--flash');
-        setTimeout(() => node.classList.remove('tree-chat-item--flash'), 1500);
+        setTimeout(() => node.classList.remove('tree-chat-item--flash'), TREE_FLASH_MS);
       }
     }, chat?.topicId ? 80 : 0); // brief delay to let render complete
     sendResponse({ success: true });
@@ -314,8 +379,9 @@ window.bAInder = {
   state,
   tree:         () => state.tree,
   renderer:     () => state.renderer,
-  storage:      () => state.storage,
-  dialog:       () => state.dialog,
+  storage:        () => state.storage,
+  storageTracker: () => state.storageTracker,
+  dialog:         () => state.dialog,
   topicDialogs: () => state.topicDialogs,
   chatDialogs:  () => state.chatDialogs,
   chats:        () => state.chats,

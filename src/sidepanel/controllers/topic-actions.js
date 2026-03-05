@@ -12,6 +12,7 @@
  */
 
 import { state, elements } from '../app-context.js';
+import { logger } from '../../lib/utils/logger.js';
 import { showNotification } from '../notification.js';
 import {
   saveTree,
@@ -20,6 +21,14 @@ import {
   collectDescendantChatIds,
 } from './tree-controller.js';
 import { setSaveBtnState } from '../features/save-banner.js';
+let _state = state;
+// ---------------------------------------------------------------------------
+// Test injection hook - lets unit tests provide a mock app context instead of
+// mutating the real singleton.  Never call from production code.
+// ---------------------------------------------------------------------------
+/** @internal */
+export function _setContext(ctx) { _state = ctx; }
+
 
 // ---------------------------------------------------------------------------
 // Context menu — positioning
@@ -53,7 +62,7 @@ export function handleTopicClick(_topic) {
 
 export async function handleTopicContextMenu(topic, event) {
   event.preventDefault();
-  state.contextMenuTopic = topic;
+  _state.contextMenuTopic = topic;
   showContextMenu(event.clientX, event.clientY);
 }
 
@@ -74,17 +83,17 @@ export function setupContextMenuActions() {
     item.addEventListener('click', async (e) => {
       e.stopPropagation();
       const action = item.dataset.action;
-      const topic  = state.contextMenuTopic;
+      const topic  = _state.contextMenuTopic;
       hideContextMenu();
 
       if (topic && actions[action]) {
-        state.contextMenuTopic = topic;   // restore after hideContextMenu
+        _state.contextMenuTopic = topic;   // restore after hideContextMenu
         await actions[action]();
-        state.contextMenuTopic = null;
+        _state.contextMenuTopic = null;
       } else if (!topic) {
-        console.warn('No topic selected for action:', action);
+        logger.warn('No topic selected for action:', action);
       } else {
-        console.warn('Unknown topic action:', action);
+        logger.warn('Unknown topic action:', action);
       }
     });
   });
@@ -95,56 +104,56 @@ export function setupContextMenuActions() {
 // ---------------------------------------------------------------------------
 
 export async function handleAddTopic() {
-  const result = await state.topicDialogs.showAddTopic();
+  const result = await _state.topicDialogs.showAddTopic();
   if (!result) return;
 
   await saveTree();
   renderTreeView();
 
-  if (result.parentId) state.renderer.expandToTopic(result.topicId);
-  state.renderer.selectNode(result.topicId);
+  if (result.parentId) _state.renderer.expandToTopic(result.topicId);
+  _state.renderer.selectNode(result.topicId);
   saveExpandedState();
 
   // Make the Save button suggest saving to this freshly-created topic
-  state.lastCreatedTopicId = result.topicId;
+  _state.lastCreatedTopicId = result.topicId;
   setSaveBtnState('default');
 }
 
 export async function handleRenameTopic() {
-  if (!state.contextMenuTopic) return;
-  const result = await state.topicDialogs.showRenameTopic(state.contextMenuTopic.id);
+  if (!_state.contextMenuTopic) return;
+  const result = await _state.topicDialogs.showRenameTopic(_state.contextMenuTopic.id);
   if (!result) return;
 
   await saveTree();
   renderTreeView();
-  state.renderer.selectNode(result.topicId);
+  _state.renderer.selectNode(result.topicId);
 }
 
 export async function handleMoveTopic() {
-  if (!state.contextMenuTopic) return;
-  const result = await state.topicDialogs.showMoveTopic(state.contextMenuTopic.id);
+  if (!_state.contextMenuTopic) return;
+  const result = await _state.topicDialogs.showMoveTopic(_state.contextMenuTopic.id);
   if (!result) return;
 
   await saveTree();
   renderTreeView();
-  state.renderer.expandToTopic(result.topicId);
-  state.renderer.selectNode(result.topicId);
+  _state.renderer.expandToTopic(result.topicId);
+  _state.renderer.selectNode(result.topicId);
   saveExpandedState();
 }
 
 export async function handleDeleteTopic() {
-  if (!state.contextMenuTopic) return;
+  if (!_state.contextMenuTopic) return;
 
   // Collect descendant chat IDs BEFORE the tree mutation
-  const chatIdsToDelete = collectDescendantChatIds(state.contextMenuTopic.id);
+  const chatIdsToDelete = collectDescendantChatIds(_state.contextMenuTopic.id);
 
-  const result = await state.topicDialogs.showDeleteTopic(state.contextMenuTopic.id);
+  const result = await _state.topicDialogs.showDeleteTopic(_state.contextMenuTopic.id);
   if (!result) return;
 
   if (chatIdsToDelete.length > 0) {
-    state.chats = await state.chatRepo.removeManyChats(chatIdsToDelete);
-    state.renderer.setChatData(state.chats);
-    console.log(`Removed ${chatIdsToDelete.length} chat(s) from deleted topic tree`);
+    _state.chats = await _state.chatRepo.removeManyChats(chatIdsToDelete);
+    _state.renderer.setChatData(_state.chats);
+    logger.log(`Removed ${chatIdsToDelete.length} chat(s) from deleted topic tree`);
   }
 
   await saveTree();
@@ -152,24 +161,24 @@ export async function handleDeleteTopic() {
 }
 
 export async function handleMergeTopic() {
-  if (!state.contextMenuTopic) return;
-  const result = await state.topicDialogs.showMergeTopic(state.contextMenuTopic.id);
+  if (!_state.contextMenuTopic) return;
+  const result = await _state.topicDialogs.showMergeTopic(_state.contextMenuTopic.id);
   if (!result) return;
 
   await saveTree();
   renderTreeView();
-  state.renderer.expandToTopic(result.targetTopicId);
-  state.renderer.selectNode(result.targetTopicId);
+  _state.renderer.expandToTopic(result.targetTopicId);
+  _state.renderer.selectNode(result.targetTopicId);
   saveExpandedState();
 }
 
 export async function handleExportTopic() {
-  const topic = state.contextMenuTopic;
+  const topic = _state.contextMenuTopic;
   if (!topic) return;
   try {
-    await state.exportDialog.showExportTopic(topic, state.tree, state.chats);
+    await _state.exportDialog.showExportTopic(topic, _state.tree, _state.chats);
   } catch (err) {
-    console.error('Export failed:', err);
-    await state.dialog.alert(err.message || 'Export failed', 'Export Error');
+    logger.error('Export failed:', err);
+    await _state.dialog.alert(err.message || 'Export failed', 'Export Error');
   }
 }

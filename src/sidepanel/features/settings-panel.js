@@ -7,7 +7,7 @@
  * NOT responsible for: persisting settings (delegated to the logger module).
  */
 
-import { logger } from '../../lib/logger.js';
+import { logger } from '../../lib/utils/logger.js';
 import browser from '../../lib/vendor/browser.js';
 
 export function openSettingsPanel() {

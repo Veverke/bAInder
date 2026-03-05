@@ -12,12 +12,13 @@
  */
 
 import { state, elements } from '../app-context.js';
+import { logger } from '../../lib/utils/logger.js';
 import { showNotification } from '../notification.js';
 import {
   assignChatToTopic,
   moveChatToTopic,
   removeChatFromTopic,
-} from '../../lib/chat-manager.js';
+} from '../../lib/chat/chat-manager.js';
 import browser from '../../lib/vendor/browser.js';
 import {
   saveTree,
@@ -26,6 +27,14 @@ import {
 } from './tree-controller.js';
 import { setSaveBtnState } from '../features/save-banner.js';
 import { updateRecentRail } from '../features/recent-rail.js';
+let _state = state;
+// ---------------------------------------------------------------------------
+// Test injection hook - lets unit tests provide a mock app context instead of
+// mutating the real singleton.  Never call from production code.
+// ---------------------------------------------------------------------------
+/** @internal */
+export function _setContext(ctx) { _state = ctx; }
+
 
 // ---------------------------------------------------------------------------
 // Context menu — positioning
@@ -63,7 +72,7 @@ export async function handleChatClick(chat) {
 
 export function handleChatContextMenu(chat, event) {
   event.preventDefault();
-  state.contextMenuChat = chat;
+  _state.contextMenuChat = chat;
   updateChatRatingWidget(chat.rating || 0);
 
   // C.19 — review date label
@@ -111,17 +120,17 @@ export function setupChatContextMenuActions() {
     item.addEventListener('click', async (e) => {
       e.stopPropagation();
       const action = item.dataset.chatAction;
-      const chat   = state.contextMenuChat;
+      const chat   = _state.contextMenuChat;
       hideChatContextMenu();
 
       if (chat && actions[action]) {
-        state.contextMenuChat = chat;   // restore after hideChatContextMenu
+        _state.contextMenuChat = chat;   // restore after hideChatContextMenu
         await actions[action]();
-        state.contextMenuChat = null;
+        _state.contextMenuChat = null;
       } else if (!chat) {
-        console.warn('No chat selected for action:', action);
+        logger.warn('No chat selected for action:', action);
       } else {
-        console.warn('Unknown chat action:', action);
+        logger.warn('Unknown chat action:', action);
       }
     });
   });
@@ -142,13 +151,13 @@ export function updateChatRatingWidget(rating) {
 }
 
 export async function handleRateChatAction(value) {
-  const chat = state.contextMenuChat;
+  const chat = _state.contextMenuChat;
   if (!chat) return;
   const newRating = chat.rating === value ? null : value;
-  state.chats = await state.chatRepo.updateChat(chat.id, { rating: newRating });
-  state.contextMenuChat = { ...chat, rating: newRating };
+  _state.chats = await _state.chatRepo.updateChat(chat.id, { rating: newRating });
+  _state.contextMenuChat = { ...chat, rating: newRating };
   updateChatRatingWidget(newRating || 0);
-  state.renderer.setChatData(state.chats);
+  _state.renderer.setChatData(_state.chats);
   renderTreeView();
 }
 
@@ -168,11 +177,11 @@ export async function handleRateChatAction(value) {
 
 export async function handleChatSaved(chatEntry) {
   // 1. Update in-memory list before the dialog (so the chat is visible)
-  state.chats = [...state.chats, chatEntry];
-  state.renderer.setChatData(state.chats);
+  _state.chats = [..._state.chats, chatEntry];
+  _state.renderer.setChatData(_state.chats);
 
   // 2. Prompt assignment
-  const result = await state.chatDialogs.showAssignChat(chatEntry);
+  const result = await _state.chatDialogs.showAssignChat(chatEntry);
   if (!result) {
     // User cancelled — reset save button without marking success
     setSaveBtnState('default');
@@ -180,25 +189,25 @@ export async function handleChatSaved(chatEntry) {
   }
 
   // 3. Apply mutations
-  const updatedChat = assignChatToTopic(chatEntry, result.topicId, state.tree);
+  const updatedChat = assignChatToTopic(chatEntry, result.topicId, _state.tree);
   if (result.title && result.title !== chatEntry.title) updatedChat.title = result.title;
   if (result.tags  !== undefined)                       updatedChat.tags  = result.tags;
 
   // 4. Persist
-  state.chats = await state.chatRepo.updateChat(chatEntry.id, updatedChat);
+  _state.chats = await _state.chatRepo.updateChat(chatEntry.id, updatedChat);
 
   // 5. Save tree
   await saveTree();
 
   // 6. Re-render
-  state.renderer.setChatData(state.chats);
+  _state.renderer.setChatData(_state.chats);
   renderTreeView();
-  state.renderer.expandToTopic(result.topicId);
+  _state.renderer.expandToTopic(result.topicId);
 
   // Record the topic used so the button shows it as the default next time.
   // Also clear lastCreatedTopicId — it has been consumed by this save.
-  state.lastUsedTopicId    = result.topicId;
-  state.lastCreatedTopicId = null;
+  _state.lastUsedTopicId    = result.topicId;
+  _state.lastCreatedTopicId = null;
 
   // Now mark save as successful (auto-resets to 'default', which will show lastUsedTopicId)
   setSaveBtnState('success');
@@ -221,69 +230,69 @@ export async function handleChatSaved(chatEntry) {
 // ---------------------------------------------------------------------------
 
 function handleOpenChatAction() {
-  if (state.contextMenuChat) handleChatClick(state.contextMenuChat);
+  if (_state.contextMenuChat) handleChatClick(_state.contextMenuChat);
 }
 
 async function handleRenameChatAction() {
-  if (!state.contextMenuChat) return;
-  const result = await state.chatDialogs.showRenameChat(state.contextMenuChat);
+  if (!_state.contextMenuChat) return;
+  const result = await _state.chatDialogs.showRenameChat(_state.contextMenuChat);
   if (!result) return;
 
   const updates = { title: result.title };
   if (result.tags !== undefined) updates.tags = result.tags;
-  state.chats = await state.chatRepo.updateChat(state.contextMenuChat.id, updates);
-  state.renderer.setChatData(state.chats);
+  _state.chats = await _state.chatRepo.updateChat(_state.contextMenuChat.id, updates);
+  _state.renderer.setChatData(_state.chats);
   renderTreeView();
 }
 
 async function handleEditTagsAction() {
-  if (!state.contextMenuChat) return;
-  const result = await state.chatDialogs.showEditTags(state.contextMenuChat);
+  if (!_state.contextMenuChat) return;
+  const result = await _state.chatDialogs.showEditTags(_state.contextMenuChat);
   if (!result) return;
 
-  state.chats = await state.chatRepo.updateChat(state.contextMenuChat.id, { tags: result.tags });
-  state.renderer.setChatData(state.chats);
+  _state.chats = await _state.chatRepo.updateChat(_state.contextMenuChat.id, { tags: result.tags });
+  _state.renderer.setChatData(_state.chats);
   renderTreeView();
 }
 
 async function handleMoveChatAction() {
-  if (!state.contextMenuChat) return;
-  const result = await state.chatDialogs.showMoveChat(state.contextMenuChat);
+  if (!_state.contextMenuChat) return;
+  const result = await _state.chatDialogs.showMoveChat(_state.contextMenuChat);
   if (!result) return;
 
-  const movedChat = moveChatToTopic(state.contextMenuChat, result.topicId, state.tree);
-  state.chats = await state.chatRepo.updateChat(state.contextMenuChat.id, movedChat);
+  const movedChat = moveChatToTopic(_state.contextMenuChat, result.topicId, _state.tree);
+  _state.chats = await _state.chatRepo.updateChat(_state.contextMenuChat.id, movedChat);
   await saveTree();
-  state.renderer.setChatData(state.chats);
+  _state.renderer.setChatData(_state.chats);
   renderTreeView();
-  state.renderer.expandToTopic(result.topicId);
+  _state.renderer.expandToTopic(result.topicId);
   saveExpandedState();
 }
 
 async function handleDeleteChatAction() {
-  if (!state.contextMenuChat) return;
-  const result = await state.chatDialogs.showDeleteChat(state.contextMenuChat);
+  if (!_state.contextMenuChat) return;
+  const result = await _state.chatDialogs.showDeleteChat(_state.contextMenuChat);
   if (!result) return;
 
-  const chat = state.contextMenuChat;
+  const chat = _state.contextMenuChat;
   if (chat.topicId) {
-    removeChatFromTopic(chat.id, chat.topicId, state.tree);
+    removeChatFromTopic(chat.id, chat.topicId, _state.tree);
     await saveTree();
   }
-  state.chats = await state.chatRepo.removeChat(chat.id);
-  state.renderer.setChatData(state.chats);
+  _state.chats = await _state.chatRepo.removeChat(chat.id);
+  _state.renderer.setChatData(_state.chats);
   renderTreeView();
 }
 
 async function handleSetReviewDateAction() {
-  if (!state.contextMenuChat) return;
-  const result = await state.chatDialogs.showSetReviewDate(state.contextMenuChat);
+  if (!_state.contextMenuChat) return;
+  const result = await _state.chatDialogs.showSetReviewDate(_state.contextMenuChat);
   if (!result) return;
 
-  state.chats = await state.chatRepo.updateChat(
-    state.contextMenuChat.id,
+  _state.chats = await _state.chatRepo.updateChat(
+    _state.contextMenuChat.id,
     { reviewDate: result.reviewDate, flaggedAsStale: false }
   );
-  state.renderer.setChatData(state.chats);
+  _state.renderer.setChatData(_state.chats);
   renderTreeView();
 }

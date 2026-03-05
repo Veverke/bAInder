@@ -9,12 +9,21 @@
  * any other UI beyond the tree itself.
  */
 
-import { TopicTree } from '../../lib/tree.js';
-import { TreeRenderer } from '../../lib/tree-renderer.js';
-import { moveChatToTopic } from '../../lib/chat-manager.js';
+import { TopicTree } from '../../lib/tree/tree.js';
+import { TreeRenderer } from '../../lib/renderer/tree-renderer.js';
+import { moveChatToTopic } from '../../lib/chat/chat-manager.js';
 import { state, elements } from '../app-context.js';
+import { logger } from '../../lib/utils/logger.js';
 import { showNotification } from '../notification.js';
 import { updateStorageUsage } from '../features/storage-usage.js';
+let _state = state;
+// ---------------------------------------------------------------------------
+// Test injection hook - lets unit tests provide a mock app context instead of
+// mutating the real singleton.  Never call from production code.
+// ---------------------------------------------------------------------------
+/** @internal */
+export function _setContext(ctx) { _state = ctx; }
+
 
 // ---------------------------------------------------------------------------
 // Tree skeleton helpers
@@ -46,30 +55,30 @@ export function removeTreeSkeleton() {
 // ---------------------------------------------------------------------------
 
 /**
- * Load the topic tree from storage into state.tree.
+ * Load the topic tree from storage into _state.tree.
  * Initialises an empty tree on error.
  */
 export async function loadTree() {
   try {
-    const treeData = await state.storage.loadTopicTree();
-    state.tree = TopicTree.fromObject(treeData);
-    console.log(`Loaded tree with ${state.tree.getAllTopics().length} topics`);
+    const treeData = await _state.storage.loadTopicTree();
+    _state.tree = TopicTree.fromObject(treeData);
+    logger.log(`Loaded tree with ${_state.tree.getAllTopics().length} topics`);
   } catch (error) {
-    console.error('Error loading tree:', error);
-    state.tree = new TopicTree();
+    logger.error('Error loading tree:', error);
+    _state.tree = new TopicTree();
   }
 }
 
 /**
- * Persist state.tree to storage and refresh the storage usage display.
+ * Persist _state.tree to storage and refresh the storage usage display.
  */
 export async function saveTree() {
   try {
-    await state.storage.saveTopicTree(state.tree.toObject());
-    console.log('Tree saved successfully');
+    await _state.storage.saveTopicTree(_state.tree.toObject());
+    logger.log('Tree saved successfully');
     await updateStorageUsage();
   } catch (error) {
-    console.error('Error saving tree:', error);
+    logger.error('Error saving tree:', error);
     showNotification('Error saving changes', 'error');
   }
 }
@@ -80,8 +89,8 @@ export async function saveTree() {
 
 /** Persist the current expanded-node set to localStorage. */
 export function saveExpandedState() {
-  if (state.renderer) {
-    const expandedIds = state.renderer.getExpandedState();
+  if (_state.renderer) {
+    const expandedIds = _state.renderer.getExpandedState();
     localStorage.setItem('expandedNodes', JSON.stringify(expandedIds));
   }
 }
@@ -107,42 +116,42 @@ export function saveExpandedState() {
  * }} callbacks
  */
 export function initTreeRenderer(callbacks = {}) {
-  state.renderer = new TreeRenderer(elements.treeView, state.tree);
+  _state.renderer = new TreeRenderer(elements.treeView, _state.tree);
   showTreeSkeleton();
 
   // Topic events
-  state.renderer.onTopicClick       = callbacks.onTopicClick       ?? handleTopicClick;
-  state.renderer.onTopicContextMenu = callbacks.onTopicContextMenu ?? (() => {});
-  state.renderer.onTopicDrop        = handleTopicDrop;
-  state.renderer.onTopicPin         = handleTopicPin;
+  _state.renderer.onTopicClick       = callbacks.onTopicClick       ?? handleTopicClick;
+  _state.renderer.onTopicContextMenu = callbacks.onTopicContextMenu ?? (() => {});
+  _state.renderer.onTopicDrop        = handleTopicDrop;
+  _state.renderer.onTopicPin         = handleTopicPin;
 
   // Chat events
-  state.renderer.setChatData(state.chats);
-  state.renderer.onChatClick        = callbacks.onChatClick        ?? (() => {});
-  state.renderer.onChatContextMenu  = callbacks.onChatContextMenu  ?? (() => {});
-  state.renderer.onChatDrop         = handleChatDrop;
+  _state.renderer.setChatData(_state.chats);
+  _state.renderer.onChatClick        = callbacks.onChatClick        ?? (() => {});
+  _state.renderer.onChatContextMenu  = callbacks.onChatContextMenu  ?? (() => {});
+  _state.renderer.onChatDrop         = handleChatDrop;
 
   // C.17 — multi-select
   if (callbacks.onSelectionChange) {
-    state.renderer.onSelectionChange = callbacks.onSelectionChange;
+    _state.renderer.onSelectionChange = callbacks.onSelectionChange;
   }
 
   // C.9 — apply saved sort mode
-  state.renderer.sortMode = state.sortMode;
+  _state.renderer.sortMode = _state.sortMode;
 
   // Restore expanded state
   const savedExpanded = localStorage.getItem('expandedNodes');
   if (savedExpanded) {
     try {
-      state.renderer.setExpandedState(JSON.parse(savedExpanded));
+      _state.renderer.setExpandedState(JSON.parse(savedExpanded));
     } catch (error) {
-      console.error('Error loading expanded state:', error);
+      logger.error('Error loading expanded state:', error);
     }
   }
 
-  state.renderer.render();
+  _state.renderer.render();
   removeTreeSkeleton();
-  state.renderer.updateTopicCount();
+  _state.renderer.updateTopicCount();
 
   // C.3 — populate topic-scope dropdown (injected to avoid import cycle)
   callbacks.populateTopicScope?.();
@@ -150,12 +159,12 @@ export function initTreeRenderer(callbacks = {}) {
 
 /**
  * Re-render the tree and refresh the topic count badge.
- * Call this after any mutation to state.tree or state.chats.
+ * Call this after any mutation to _state.tree or _state.chats.
  */
 export function renderTreeView() {
-  if (state.renderer) {
-    state.renderer.render();
-    state.renderer.updateTopicCount();
+  if (_state.renderer) {
+    _state.renderer.render();
+    _state.renderer.updateTopicCount();
   }
 }
 
@@ -169,16 +178,16 @@ export function renderTreeView() {
  * @param {string|null} targetTopicId  null = move to root
  */
 export async function handleTopicDrop(draggedTopicId, targetTopicId) {
-  if (!state.tree) return;
-  const dragged = state.tree.topics[draggedTopicId];
+  if (!_state.tree) return;
+  const dragged = _state.tree.topics[draggedTopicId];
   if (!dragged) return;
   if (dragged.parentId === targetTopicId) return; // no-op
 
   try {
-    state.tree.moveTopic(draggedTopicId, targetTopicId);
+    _state.tree.moveTopic(draggedTopicId, targetTopicId);
     await saveTree();
     renderTreeView();
-    state.renderer.expandToTopic(draggedTopicId);
+    _state.renderer.expandToTopic(draggedTopicId);
     saveExpandedState();
     showNotification(`Moved "${dragged.name}"`, 'success');
   } catch (err) {
@@ -192,16 +201,16 @@ export async function handleTopicDrop(draggedTopicId, targetTopicId) {
  * @param {string} targetTopicId
  */
 export async function handleChatDrop(chatId, targetTopicId) {
-  const chat = state.chats.find(c => c.id === chatId);
+  const chat = _state.chats.find(c => c.id === chatId);
   if (!chat) return;
   if (chat.topicId === targetTopicId) return;
 
-  const movedChat = moveChatToTopic(chat, targetTopicId, state.tree);
-  state.chats = await state.chatRepo.updateChat(chatId, movedChat);
+  const movedChat = moveChatToTopic(chat, targetTopicId, _state.tree);
+  _state.chats = await _state.chatRepo.updateChat(chatId, movedChat);
   await saveTree();
-  state.renderer.setChatData(state.chats);
+  _state.renderer.setChatData(_state.chats);
   renderTreeView();
-  state.renderer.expandToTopic(targetTopicId);
+  _state.renderer.expandToTopic(targetTopicId);
   saveExpandedState();
   showNotification(`Moved "${chat.title}"`, 'success');
 }
@@ -215,8 +224,8 @@ export async function handleChatDrop(chatId, targetTopicId) {
  * @param {boolean} pinned
  */
 export async function handleTopicPin(topicId, pinned) {
-  if (!state.tree) return;
-  const topic = state.tree.topics[topicId];
+  if (!_state.tree) return;
+  const topic = _state.tree.topics[topicId];
   if (!topic) return;
   topic.pinned = pinned;
   await saveTree();
@@ -237,7 +246,7 @@ export async function handleTopicPin(topicId, pinned) {
  * @returns {string[]}
  */
 export function collectDescendantChatIds(topicId) {
-  const topic = state.tree && state.tree.topics[topicId];
+  const topic = _state.tree && _state.tree.topics[topicId];
   if (!topic) return [];
   const ids = [...(topic.chatIds || [])];
   for (const childId of (topic.children || [])) {

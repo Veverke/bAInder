@@ -7,7 +7,7 @@
  * NOT responsible for: CSS variable application (delegated to useTheme.js).
  */
 
-import { loadTheme, persistTheme } from '../../lib/useTheme.js';
+import { loadTheme, persistTheme } from '../../lib/theme/useTheme.js';
 import { BUNDLED_THEMES, BUNDLED_THEME_IDS } from '../themes/index.js';
 import { elements } from '../app-context.js';
 

@@ -9,49 +9,58 @@
  */
 
 import { state, elements } from '../app-context.js';
-import { TopicTree } from '../../lib/tree.js';
+import { logger } from '../../lib/utils/logger.js';
+import { TopicTree } from '../../lib/tree/tree.js';
 import browser from '../../lib/vendor/browser.js';
 import { showNotification } from '../notification.js';
 import { saveTree, renderTreeView } from './tree-controller.js';
 import { updateStorageUsage } from '../features/storage-usage.js';
 import { updateRecentRail } from '../features/recent-rail.js';
 import { handleChatClick } from './chat-actions.js';
+let _state = state;
+// ---------------------------------------------------------------------------
+// Test injection hook - lets unit tests provide a mock app context instead of
+// mutating the real singleton.  Never call from production code.
+// ---------------------------------------------------------------------------
+/** @internal */
+export function _setContext(ctx) { _state = ctx; }
+
 
 /** Export the entire tree (toolbar action). */
 export async function handleExportAll() {
   try {
-    await state.exportDialog.showExportTree(state.tree, state.chats);
+    await _state.exportDialog.showExportTree(_state.tree, _state.chats);
     // C.10 — record export timestamp; hide backup reminder banner
     await browser.storage.local.set({ lastExportTimestamp: Date.now() });
     if (elements.backupReminderBanner) elements.backupReminderBanner.style.display = 'none';
   } catch (err) {
-    console.error('Export failed:', err);
-    await state.dialog.alert(err.message || 'Export failed', 'Export Error');
+    logger.error('Export failed:', err);
+    await _state.dialog.alert(err.message || 'Export failed', 'Export Error');
   }
 }
 
 /** Import from a ZIP file (toolbar action). */
 export async function handleImport() {
   try {
-    await state.importDialog.showImportDialog(
-      state.tree,
-      state.chats,
+    await _state.importDialog.showImportDialog(
+      _state.tree,
+      _state.chats,
       async (updatedTopics, updatedRootTopics, updatedChats, summary) => {
         // Rebuild tree from imported data
-        state.tree  = TopicTree.fromObject({ topics: updatedTopics, rootTopicIds: updatedRootTopics });
-        state.chats = updatedChats;
+        _state.tree  = TopicTree.fromObject({ topics: updatedTopics, rootTopicIds: updatedRootTopics });
+        _state.chats = updatedChats;
 
         // Keep dialog instances' tree reference in sync
-        state.topicDialogs.tree = state.tree;
-        state.chatDialogs.tree  = state.tree;
+        _state.topicDialogs.tree = _state.tree;
+        _state.chatDialogs.tree  = _state.tree;
 
         // Persist
         await saveTree();
-        state.chats = await state.chatRepo.replaceAll(state.chats);
+        _state.chats = await _state.chatRepo.replaceAll(_state.chats);
 
         // Refresh UI
-        state.renderer.setTree(state.tree);
-        state.renderer.setChatData(state.chats);
+        _state.renderer.setTree(_state.tree);
+        _state.renderer.setChatData(_state.chats);
         renderTreeView();
         await updateStorageUsage();
 
@@ -60,30 +69,30 @@ export async function handleImport() {
       }
     );
   } catch (err) {
-    console.error('Import failed:', err);
-    await state.dialog.alert(err.message || 'Import failed', 'Import Error');
+    logger.error('Import failed:', err);
+    await _state.dialog.alert(err.message || 'Import failed', 'Import Error');
   }
 }
 
 /** Clear all saved chats and topics (toolbar action). */
 export async function handleClearAll() {
-  const confirmed = await state.dialog.confirm(
+  const confirmed = await _state.dialog.confirm(
     'This will permanently delete all saved chats and topics. This cannot be undone.',
     'Clear All Saved Chats'
   );
   if (!confirmed) return;
 
   try {
-    state.tree  = new TopicTree();
-    state.chats = [];
+    _state.tree  = new TopicTree();
+    _state.chats = [];
 
     await Promise.all([
-      state.storage.saveTopicTree(state.tree.toObject()),
-      state.chatRepo.replaceAll([]),
+      _state.storage.saveTopicTree(_state.tree.toObject()),
+      _state.chatRepo.replaceAll([]),
     ]);
 
-    state.renderer.setTree(state.tree);
-    state.renderer.setChatData(state.chats);
+    _state.renderer.setTree(_state.tree);
+    _state.renderer.setChatData(_state.chats);
     renderTreeView();
 
     updateRecentRail(handleChatClick);
@@ -91,7 +100,7 @@ export async function handleClearAll() {
 
     showNotification('All saved chats cleared.', 'success');
   } catch (err) {
-    console.error('Clear all failed:', err);
-    await state.dialog.alert(err.message || 'Failed to clear data', 'Error');
+    logger.error('Clear all failed:', err);
+    await _state.dialog.alert(err.message || 'Failed to clear data', 'Error');
   }
 }

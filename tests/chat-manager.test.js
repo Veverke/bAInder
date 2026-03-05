@@ -8,7 +8,8 @@ import {
   updateChatInArray,
   removeChatFromArray,
   buildChatDisplayTitle
-} from '../src/lib/chat-manager.js';
+} from '../src/lib/chat/chat-manager.js';
+import { Topic } from '../src/lib/tree/models.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -17,7 +18,9 @@ function makeChat(id, topicId = null, extra = {}) {
 }
 
 function makeTopic(id) {
-  return { id, name: `Topic ${id}`, chatIds: [], children: [], parentId: null };
+  // Use real Topic instances so the _chatIdSet shadow Set is correctly
+  // maintained by addChatId / removeChatId.
+  return Topic.fromObject({ id, name: `Topic ${id}`, chatIds: [], children: [], parentId: null });
 }
 
 function makeTree(topicIds = []) {
@@ -110,7 +113,8 @@ describe('assignChatToTopic', () => {
 
   it('does not duplicate chatId if already present', () => {
     const tree = makeTree(['t1']);
-    tree.topics['t1'].chatIds.push('c1');
+    // Use addChatId so the shadow Set stays in sync before the second call.
+    tree.topics['t1'].addChatId('c1');
     const chat = makeChat('c1');
     assignChatToTopic(chat, 't1', tree);
     expect(tree.topics['t1'].chatIds.filter(id => id === 'c1')).toHaveLength(1);
@@ -202,7 +206,8 @@ describe('moveChatToTopic', () => {
 
   it('moves chat from old topic to new topic', () => {
     const tree = makeTree(['t1', 't2']);
-    tree.topics['t1'].chatIds = ['c1'];
+    // Use addChatId to keep the shadow Set in sync.
+    tree.topics['t1'].addChatId('c1');
     const chat = makeChat('c1', 't1');
     const result = moveChatToTopic(chat, 't2', tree);
     expect(tree.topics['t1'].chatIds).not.toContain('c1');
@@ -292,6 +297,61 @@ describe('removeChatFromArray', () => {
   });
 });
 
+// ─── Topic.chatId helpers (shadow-Set O(1) deduplication) ────────────────────
+
+describe('Topic chatId helpers', () => {
+  it('hasChatId returns false for empty topic', () => {
+    const t = makeTopic('t1');
+    expect(t.hasChatId('c1')).toBe(false);
+  });
+
+  it('addChatId adds to both array and Set', () => {
+    const t = makeTopic('t1');
+    t.addChatId('c1');
+    expect(t.chatIds).toContain('c1');
+    expect(t.hasChatId('c1')).toBe(true);
+  });
+
+  it('addChatId is idempotent — duplicate is rejected in O(1)', () => {
+    const t = makeTopic('t1');
+    t.addChatId('c1');
+    t.addChatId('c1');
+    expect(t.chatIds).toHaveLength(1);
+    expect(t.hasChatId('c1')).toBe(true);
+  });
+
+  it('removeChatId removes from both array and Set', () => {
+    const t = makeTopic('t1');
+    t.addChatId('c1');
+    t.addChatId('c2');
+    t.removeChatId('c1');
+    expect(t.chatIds).toEqual(['c2']);
+    expect(t.hasChatId('c1')).toBe(false);
+    expect(t.hasChatId('c2')).toBe(true);
+  });
+
+  it('removeChatId is a no-op for unknown id', () => {
+    const t = makeTopic('t1');
+    t.addChatId('c1');
+    t.removeChatId('c99');
+    expect(t.chatIds).toEqual(['c1']);
+  });
+
+  it('fromObject initialises _chatIdSet from persisted chatIds', () => {
+    const t = Topic.fromObject({ id: 't1', name: 'T', chatIds: ['c1', 'c2'], children: [], parentId: null });
+    expect(t.hasChatId('c1')).toBe(true);
+    expect(t.hasChatId('c2')).toBe(true);
+    expect(t.hasChatId('c3')).toBe(false);
+  });
+
+  it('toObject does not include _chatIdSet', () => {
+    const t = makeTopic('t1');
+    t.addChatId('c1');
+    expect(t.toObject()).not.toHaveProperty('_chatIdSet');
+    expect(t.toObject().chatIds).toEqual(['c1']);
+  });
+});
+
 // ─── buildChatDisplayTitle ────────────────────────────────────────────────────
 
 describe('buildChatDisplayTitle', () => {
@@ -318,5 +378,62 @@ describe('buildChatDisplayTitle', () => {
   it('prefixes 💬 when metadata is absent', () => {
     const chat = { title: 'Plain' };
     expect(buildChatDisplayTitle(chat)).toBe('💬 Plain');
+  });
+});
+
+// ─── Plain-object topic fallback branches ─────────────────────────────────────
+// Cover the `else if (!topic.chatIds.includes(chat.id))` branch in
+// assignChatToTopic and the `else` branch in removeChatFromTopic when the
+// topic is a plain object without addChatId/removeChatId methods.
+
+describe('assignChatToTopic – plain-object topic fallback', () => {
+  function makePlainTree(topicIds = []) {
+    const topics = {};
+    topicIds.forEach(id => {
+      topics[id] = { id, name: `T${id}`, chatIds: [], children: [], parentId: null };
+    });
+    return { topics, updateTopicDateRange: vi.fn() };
+  }
+
+  it('pushes chat id onto chatIds when topic is a plain object (no addChatId)', () => {
+    const tree = makePlainTree(['t1']);
+    const chat = makeChat('c1');
+    assignChatToTopic(chat, 't1', tree);
+    expect(tree.topics['t1'].chatIds).toContain('c1');
+  });
+
+  it('does not duplicate chat id in plain-object topic (else-if false branch)', () => {
+    const tree = makePlainTree(['t1']);
+    tree.topics['t1'].chatIds = ['c1']; // already present
+    const chat = makeChat('c1');
+    assignChatToTopic(chat, 't1', tree);
+    // Should not push again
+    expect(tree.topics['t1'].chatIds.filter(id => id === 'c1')).toHaveLength(1);
+  });
+});
+
+describe('removeChatFromTopic – plain-object topic fallback', () => {
+  function makePlainTree(topicIds = []) {
+    const topics = {};
+    topicIds.forEach(id => {
+      topics[id] = { id, name: `T${id}`, chatIds: [], children: [], parentId: null };
+    });
+    return { topics };
+  }
+
+  it('filters chatIds via array method when topic is a plain object', () => {
+    const tree = makePlainTree(['t1']);
+    tree.topics['t1'].chatIds = ['c1', 'c2', 'c3'];
+    removeChatFromTopic('c2', 't1', tree);
+    expect(tree.topics['t1'].chatIds).toEqual(['c1', 'c3']);
+  });
+});
+
+// ─── buildChatDisplayTitle – assembled chat prefix ────────────────────────────
+
+describe('buildChatDisplayTitle – assembled prefix', () => {
+  it('prefixes 🔗 for assembled chats (metadata.isAssembled = true)', () => {
+    const chat = { title: 'Assembled', metadata: { isAssembled: true } };
+    expect(buildChatDisplayTitle(chat)).toBe('🔗 Assembled');
   });
 });

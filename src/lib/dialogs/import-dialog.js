@@ -1,10 +1,10 @@
-import JSZip from './vendor/jszip-esm.js';
+import JSZip from '../vendor/jszip-esm.js';
 import {
   validateZipFile,
   parseZipEntries,
   buildImportPlan,
   executeImport,
-} from './import-parser.js';
+} from '../io/import-parser.js';
 
 /**
  * Handles the import-from-ZIP dialog workflow for bAInder.

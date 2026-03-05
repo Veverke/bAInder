@@ -7,8 +7,9 @@
 import { handleSaveChat as _handleSaveChat, detectSource, buildExcerptPayload } from './chat-save-handler.js';
 import { checkStaleChats } from './stale-check.js';
 import browser from '../lib/vendor/browser.js';
+import { logger } from '../lib/utils/logger.js';
 
-console.log('bAInder Background Service Worker initialized');
+logger.info('Background service worker initialized');
 
 // Cache for rich excerpt markdown pushed proactively by content script on right-click.
 // Stored in browser.storage.session so it survives service worker restarts between
@@ -42,7 +43,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== 'save-excerpt') return;
   try {
     const pageUrl = info.pageUrl || '';
-    console.log('[bAInder DEBUG] onClicked: menuItemId=save-excerpt, selectionText=', JSON.stringify((info.selectionText || '').slice(0, 200)));
+    logger.trace('onClicked: selectionText=', JSON.stringify((info.selectionText || '').slice(0, 200)));
 
     // Prefer the rich markdown pushed proactively by the content script on
     // right-click (STORE_EXCERPT_CACHE).  Fall back to a live EXTRACT_EXCERPT
@@ -53,39 +54,39 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
     // browser.storage.session covers the case where the SW was killed and
     // restarted between the contextmenu event and the menu-item click.
     let richMarkdown = _excerptCache?.markdown || null;
-    console.log('[bAInder DEBUG] onClicked: _excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
+    logger.trace('onClicked: in-memory excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
     _excerptCache = null; // consume in-memory copy
 
     if (!richMarkdown) {
       try {
         const stored = await browser.storage.session.get('excerptCache');
         richMarkdown = stored?.excerptCache?.markdown || null;
-        console.log('[bAInder DEBUG] onClicked: session storage excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
+        logger.trace('onClicked: session excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
       } catch (e) {
-        console.warn('[bAInder DEBUG] onClicked: session storage get failed =', e?.message);
+        logger.trace('onClicked: session storage read failed =', e?.message);
       }
     }
     // Always clear session storage after consuming (one-shot)
     browser.storage.session.remove('excerptCache').catch(() => {});
 
     if (!richMarkdown) {
-      console.log('[bAInder DEBUG] onClicked: no cache, trying EXTRACT_EXCERPT fallback');
+      logger.trace('onClicked: no cache — trying EXTRACT_EXCERPT fallback');
       try {
         const resp = await browser.tabs.sendMessage(tab.id, { type: 'EXTRACT_EXCERPT' });
-        console.log('[bAInder DEBUG] onClicked: EXTRACT_EXCERPT resp =', resp?.success, typeof resp?.data?.markdown, (resp?.data?.markdown || '').slice(0, 200));
+        logger.trace('onClicked: EXTRACT_EXCERPT resp =', resp?.success, typeof resp?.data?.markdown, (resp?.data?.markdown || '').slice(0, 200));
         if (resp?.success && resp.data?.markdown) richMarkdown = resp.data.markdown;
       } catch (e) {
-        console.warn('[bAInder DEBUG] onClicked: EXTRACT_EXCERPT failed =', e?.message);
+        logger.trace('onClicked: EXTRACT_EXCERPT failed =', e?.message);
       }
     }
 
-    console.log('[bAInder DEBUG] onClicked: final richMarkdown =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 500)) : null);
+    logger.trace('onClicked: resolved richMarkdown =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 500)) : null);
     const payload = buildExcerptPayload(info.selectionText, pageUrl, richMarkdown);
-    console.log('[bAInder DEBUG] onClicked: payload.content =', JSON.stringify(payload.content.slice(0, 500)));
+    logger.trace('onClicked: payload.content =', JSON.stringify(payload.content.slice(0, 500)));
     const entry = await handleSaveChat(payload, { tab });
     browser.runtime.sendMessage({ type: 'CHAT_SAVED', data: entry }).catch(() => {});
   } catch (err) {
-    console.error('bAInder: Excerpt save failed', err.message);
+    logger.error('Excerpt save failed:', err.message);
   }
 });
 
@@ -93,61 +94,52 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // Extension installed or updated
 browser.runtime.onInstalled.addListener((details) => {
-  console.log('Extension installed/updated:', details.reason);
+  logger.info('Extension event:', details.reason);
   setupContextMenus();
 
   if (details.reason === 'install') {
-    // First time installation
-    console.log('First time installation - setting up defaults');
+    logger.info('First-time install — setting up defaults');
     setupDefaults();
     
     // Open side panel to welcome user
     browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
       if (tabs[0]) {
-        chrome.sidePanel.open({ tabId: tabs[0].id }).catch(err => {
-          console.log('Could not open side panel:', err);
+        browser.sidePanel.open({ tabId: tabs[0].id }).catch(err => {
+          logger.warn('Could not open side panel on install:', err);
         });
       }
     });
   } else if (details.reason === 'update') {
-    console.log('Extension updated from version:', details.previousVersion);
+    logger.info('Extension updated from', details.previousVersion);
   }
 });
 
 // Set up default data structure
 async function setupDefaults() {
   try {
-    const existing = await browser.storage.local.get(['topics', 'chats', 'settings']);
-    
-    if (!existing.topics) {
+    const existing = await browser.storage.local.get(['topicTree', 'chats']);
+    if (!existing.topicTree) {
       await browser.storage.local.set({
-        topics: [],
-        chats: [],
-        expandedTopics: [],
-        settings: {
-          autoSave: true,
-          showTimestamps: true,
-          defaultExportFormat: 'markdown'
-        }
+        topicTree: { rootTopicIds: [], topics: {} },
+        chats: existing.chats ?? [],
       });
-      console.log('Default data structure created');
     }
   } catch (error) {
-    console.error('Error setting up defaults:', error);
+    logger.error('Error setting up defaults:', error);
   }
 }
 
 // Handle action (toolbar icon) click - open side panel
 browser.action.onClicked.addListener((tab) => {
-  console.log('Extension icon clicked, opening side panel');
-  chrome.sidePanel.open({ tabId: tab.id }).catch(err => {
-    console.error('Error opening side panel:', err);
+  logger.info('Toolbar icon clicked — opening side panel');
+  browser.sidePanel.open({ tabId: tab.id }).catch(err => {
+    logger.error('Failed to open side panel:', err);
   });
 });
 
 // Handle messages from content scripts and side panel
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Message received:', message.type, message);
+  logger.trace('Runtime message received:', message.type);
   
   switch (message.type) {
     case 'CAPTURE_DESIGNER_IMAGE': {
@@ -178,7 +170,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
           reader.onloadend = () => sendResponse({ dataUrl: reader.result });
           reader.readAsDataURL(blob);
         } catch (err) {
-          console.warn('[bAInder] CAPTURE_DESIGNER_IMAGE failed:', err.message);
+          logger.warn('CAPTURE_DESIGNER_IMAGE failed:', err.message);
           sendResponse({ success: false, error: err.message });
         }
       })();
@@ -189,10 +181,10 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Rich markdown pushed proactively by content script on right-click.
       // Store both in-memory (fast path) and session storage (SW restart path).
       _excerptCache = message.data || null;
-      console.log('[bAInder DEBUG] STORE_EXCERPT_CACHE received, markdown =', _excerptCache ? JSON.stringify(_excerptCache.markdown?.slice(0, 200)) : null);
+      logger.trace('STORE_EXCERPT_CACHE received, markdown =', _excerptCache ? JSON.stringify(_excerptCache.markdown?.slice(0, 200)) : null);
       browser.storage.session.set({ excerptCache: _excerptCache })
-        .then(() => console.log('[bAInder DEBUG] STORE_EXCERPT_CACHE: session storage write OK'))
-        .catch(e => console.warn('[bAInder DEBUG] STORE_EXCERPT_CACHE: session storage write failed =', e?.message));
+        .then(() => logger.trace('STORE_EXCERPT_CACHE: session storage write OK'))
+        .catch(e => logger.trace('STORE_EXCERPT_CACHE: session storage write failed =', e?.message));
       sendResponse({ success: true });
       break;
 
@@ -212,13 +204,13 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
       
     case 'OPEN_SIDE_PANEL':
-      chrome.sidePanel.open({ tabId: sender.tab.id })
+      browser.sidePanel.open({ tabId: sender.tab.id })
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
       
     default:
-      console.warn('Unknown message type:', message.type);
+      logger.warn('Unknown message type:', message.type);
       sendResponse({ success: false, error: 'Unknown message type' });
   }
 });
@@ -238,18 +230,18 @@ async function getStorageUsage() {
       megabytes: (bytesInUse / (1024 * 1024)).toFixed(2)
     };
   } catch (error) {
-    console.error('Error getting storage usage:', error);
+    logger.error('getStorageUsage failed:', error);
     throw error;
   }
 }
 
 // Keep service worker alive (optional, for debugging)
 browser.runtime.onStartup.addListener(() => {
-  console.log('Browser started, service worker active');
+  logger.info('Browser started — service worker active');
   // C.19 — Run stale-check on every browser startup
-  checkStaleChats(browser.storage.local).catch(err =>
-    console.warn('[bAInder] Stale check failed on startup:', err.message)
-  );
+  checkStaleChats(browser.storage.local)
+    .then(count => { if (count > 0) logger.info('Stale check: flagged', count, 'chat(s) for review'); })
+    .catch(err => logger.warn('Stale check failed on startup:', err.message));
 });
 
 // C.19 — Register a daily alarm to keep stale flags current even when the
@@ -258,10 +250,10 @@ browser.runtime.onStartup.addListener(() => {
 browser.alarms.create('staleCheck', { periodInMinutes: 1440 });
 browser.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'staleCheck') {
-    checkStaleChats(browser.storage.local).catch(err =>
-      console.warn('[bAInder] Stale check alarm failed:', err.message)
-    );
+    checkStaleChats(browser.storage.local)
+      .then(count => { if (count > 0) logger.info('Stale check (alarm): flagged', count, 'chat(s) for review'); })
+      .catch(err => logger.warn('Stale check alarm failed:', err.message));
   }
 });
 
-console.log('Background service worker setup complete');
+logger.info('Background service worker ready');

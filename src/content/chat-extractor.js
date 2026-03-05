@@ -12,7 +12,7 @@
  *   - Copilot (copilot.microsoft.com → redirects to m365.cloud.microsoft/chat)
  */
 
-import { messagesToMarkdown }                        from '../lib/markdown-serialiser.js';
+import { messagesToMarkdown }                        from '../lib/io/markdown-serialiser.js';
 import { sanitizeContent, getTextContent }           from './extractors/dom-utils.js';
 import { htmlToMarkdown }                            from './extractors/html-to-markdown.js';
 import { generateTitle, formatMessage }              from './extractors/message-utils.js';

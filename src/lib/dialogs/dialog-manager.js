@@ -9,7 +9,7 @@
  * - Click backdrop to close
  */
 
-import { escapeHtml as _escHtml } from './search-utils.js';
+import { escapeHtml as _escHtml } from '../utils/search-utils.js';
 
 export class DialogManager {
   constructor(containerElement) {
@@ -35,6 +35,44 @@ export class DialogManager {
   }
 
   /**
+   * Strip dangerous elements and attributes from an HTML string before
+   * injecting it into the DOM via innerHTML.
+   *
+   * Removes:
+   *   - All <script> elements
+   *   - All event-handler attributes (on*)
+   *   - javascript: URLs in href / src / action
+   *
+   * Uses a detached DOMParser document so no code runs during parsing.
+   *
+   * @param {string} html
+   * @returns {string} sanitised HTML
+   */
+  _sanitiseHtml(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    // Remove all <script> elements
+    doc.querySelectorAll('script').forEach(el => el.remove());
+
+    // Strip event-handler attributes and javascript: URLs from all elements
+    doc.body.querySelectorAll('*').forEach(el => {
+      for (const attr of [...el.attributes]) {
+        if (attr.name.startsWith('on')) {
+          el.removeAttribute(attr.name);
+        }
+        if (
+          (attr.name === 'href' || attr.name === 'src' || attr.name === 'action') &&
+          /^\s*javascript:/i.test(attr.value)
+        ) {
+          el.removeAttribute(attr.name);
+        }
+      }
+    });
+
+    return doc.body.innerHTML;
+  }
+
+  /**
    * Show a custom dialog
    */
   show(contentHTML, options = {}) {
@@ -45,7 +83,7 @@ export class DialogManager {
       modal.className = 'modal';
       modal.innerHTML = `
         <div class="modal-content ${options.size || 'medium'}">
-          ${contentHTML}
+          ${this._sanitiseHtml(contentHTML)}
         </div>
       `;
 

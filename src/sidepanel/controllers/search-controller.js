@@ -14,16 +14,25 @@
  */
 
 import { state, elements } from '../app-context.js';
+import { logger } from '../../lib/utils/logger.js';
 import {
   extractSnippet,
   highlightTerms,
   formatBreadcrumb,
   escapeHtml,
   applySearchFilters,
-} from '../../lib/search-utils.js';
-import { getTagColor } from '../../lib/tree-renderer.js';
+} from '../../lib/utils/search-utils.js';
+import { getTagColor } from '../../lib/renderer/tree-renderer.js';
 import { saveExpandedState } from './tree-controller.js';
 import { handleChatClick } from './chat-actions.js';
+let _state = state;
+// ---------------------------------------------------------------------------
+// Test injection hook - lets unit tests provide a mock app context instead of
+// mutating the real singleton.  Never call from production code.
+// ---------------------------------------------------------------------------
+/** @internal */
+export function _setContext(ctx) { _state = ctx; }
+
 
 // ─── Debounce helper ─────────────────────────────────────────────────────────
 
@@ -43,20 +52,20 @@ export function debounce(fn, ms) {
 /** Execute the storage search + tree highlight for a given query. */
 function runSearch(query) {
   const searchContainer = elements.searchInput?.closest('.search-container');
-  if (state.renderer) {
-    state.renderer.highlightSearch(query);
-    state.renderer.expandAll();
+  if (_state.renderer) {
+    _state.renderer.highlightSearch(query);
+    _state.renderer.expandAll();
     saveExpandedState();
   }
-  state.storage.searchChats(query)
+  _state.storage.searchChats(query)
     .then(results => {
       searchContainer?.classList.remove('is-typing');
-      const filtered = applySearchFilters(results, state.filters, state.tree);
+      const filtered = applySearchFilters(results, _state.filters, _state.tree);
       renderSearchResults(filtered, query);
     })
     .catch(err => {
       searchContainer?.classList.remove('is-typing');
-      console.error('Search failed:', err);
+      logger.error('Search failed:', err);
     });
 }
 
@@ -67,7 +76,7 @@ const _handleSearchDeferred = debounce(runSearch, 250);
 /** Handle the search input `input` event. */
 export function handleSearch(event) {
   const query = event.target.value.trim();
-  state.searchQuery = query;
+  _state.searchQuery = query;
 
   elements.clearSearchBtn.style.display = query ? 'block' : 'none';
   const searchContainer = elements.searchInput?.closest('.search-container');
@@ -78,24 +87,24 @@ export function handleSearch(event) {
   } else {
     _handleSearchDeferred.cancel();
     searchContainer?.classList.remove('is-typing');
-    state.renderer?.clearHighlight();
+    _state.renderer?.clearHighlight();
     hideSearchResults();
   }
 }
 
-/** Clear the search input and reset all related state. */
+/** Clear the search input and reset all related _state. */
 export function clearSearch() {
   _handleSearchDeferred.cancel();
   elements.searchInput.value = '';
-  state.searchQuery = '';
+  _state.searchQuery = '';
   elements.clearSearchBtn.style.display = 'none';
-  state.renderer?.clearHighlight();
+  _state.renderer?.clearHighlight();
   hideSearchResults();
 }
 
 /** Re-run the current search query (e.g. after filters change). */
 export function rerunSearch() {
-  if (state.searchQuery) _handleSearchDeferred(state.searchQuery);
+  if (_state.searchQuery) _handleSearchDeferred(_state.searchQuery);
 }
 
 // ─── Result rendering ────────────────────────────────────────────────────────
@@ -148,7 +157,7 @@ export function buildResultCard(query, chat) {
   const sourceText = LABELS[source] || (source.charAt(0).toUpperCase() + source.slice(1));
   const title      = chat.title || 'Untitled Chat';
   const snippet    = extractSnippet(chat.content || '', query);
-  const path       = (chat.topicId && state.tree) ? state.tree.getTopicPath(chat.topicId) : [];
+  const path       = (chat.topicId && _state.tree) ? _state.tree.getTopicPath(chat.topicId) : [];
   const breadcrumb = formatBreadcrumb(path);
   const tags       = chat.tags || [];
 
@@ -204,11 +213,11 @@ export function setupFilterBar() {
   elements.filterSourcePills?.querySelectorAll('.filter-pill').forEach(pill => {
     pill.addEventListener('click', () => {
       const src = pill.dataset.source;
-      if (state.filters.sources.has(src)) {
-        state.filters.sources.delete(src);
+      if (_state.filters.sources.has(src)) {
+        _state.filters.sources.delete(src);
         pill.classList.remove('is-active');
       } else {
-        state.filters.sources.add(src);
+        _state.filters.sources.add(src);
         pill.classList.add('is-active');
       }
       updateFilterIndicator();
@@ -218,19 +227,19 @@ export function setupFilterBar() {
 
   // Date range
   elements.filterDateFrom?.addEventListener('change', () => {
-    state.filters.dateFrom = elements.filterDateFrom.value || null;
+    _state.filters.dateFrom = elements.filterDateFrom.value || null;
     updateFilterIndicator();
     rerunSearch();
   });
   elements.filterDateTo?.addEventListener('change', () => {
-    state.filters.dateTo = elements.filterDateTo.value || null;
+    _state.filters.dateTo = elements.filterDateTo.value || null;
     updateFilterIndicator();
     rerunSearch();
   });
 
   // Topic scope
   elements.filterTopicScope?.addEventListener('change', () => {
-    state.filters.topicId = elements.filterTopicScope.value;
+    _state.filters.topicId = elements.filterTopicScope.value;
     updateFilterIndicator();
     rerunSearch();
   });
@@ -239,11 +248,11 @@ export function setupFilterBar() {
   elements.filterRatingPills?.querySelectorAll('[data-min-rating]').forEach(pill => {
     pill.addEventListener('click', () => {
       const val = parseInt(pill.dataset.minRating, 10);
-      if (state.filters.minRating === val) {
-        state.filters.minRating = null;
+      if (_state.filters.minRating === val) {
+        _state.filters.minRating = null;
         pill.classList.remove('is-active');
       } else {
-        state.filters.minRating = val;
+        _state.filters.minRating = val;
         elements.filterRatingPills
           .querySelectorAll('[data-min-rating]')
           .forEach(p => p.classList.remove('is-active'));
@@ -256,11 +265,11 @@ export function setupFilterBar() {
 
   // Clear all filters
   elements.filterClearBtn?.addEventListener('click', () => {
-    state.filters.sources   = new Set();
-    state.filters.dateFrom  = null;
-    state.filters.dateTo    = null;
-    state.filters.topicId   = '';
-    state.filters.minRating = null;
+    _state.filters.sources   = new Set();
+    _state.filters.dateFrom  = null;
+    _state.filters.dateTo    = null;
+    _state.filters.topicId   = '';
+    _state.filters.minRating = null;
 
     elements.filterSourcePills?.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('is-active'));
     elements.filterRatingPills?.querySelectorAll('[data-min-rating]').forEach(p => p.classList.remove('is-active'));
@@ -279,25 +288,25 @@ export function setupFilterBar() {
  */
 export function populateTopicScopeSelect() {
   const sel = elements.filterTopicScope;
-  if (!sel || !state.tree) return;
+  if (!sel || !_state.tree) return;
   sel.innerHTML = '<option value="">All topics</option>';
-  state.tree.getRootTopics().forEach(topic => {
+  _state.tree.getRootTopics().forEach(topic => {
     const opt = document.createElement('option');
     opt.value       = topic.id;
     opt.textContent = topic.name;
     sel.appendChild(opt);
   });
-  sel.value = state.filters.topicId || '';
+  sel.value = _state.filters.topicId || '';
 }
 
 /** Toggle the filter-active indicator dot on the filter toggle button. */
 export function updateFilterIndicator() {
   if (!elements.filterToggleBtn) return;
   const hasFilters =
-    state.filters.sources.size > 0 ||
-    state.filters.dateFrom       ||
-    state.filters.dateTo         ||
-    state.filters.topicId        ||
-    state.filters.minRating != null;
+    _state.filters.sources.size > 0 ||
+    _state.filters.dateFrom       ||
+    _state.filters.dateTo         ||
+    _state.filters.topicId        ||
+    _state.filters.minRating != null;
   elements.filterToggleBtn.classList.toggle('has-active-filters', Boolean(hasFilters));
 }

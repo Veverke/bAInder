@@ -1839,7 +1839,7 @@ ul.tree-root.drop-target {
 
 /* â”€â”€ U2: Star / pin button on topic cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-.tree-star-btn {
+.tree-pin-btn {
   flex-shrink: 0;
   width: 22px;
   height: 22px;
@@ -1848,32 +1848,30 @@ ul.tree-root.drop-target {
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
-  color: var(--text-tertiary);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   opacity: 0;
-  transition: opacity var(--transition-fast), color var(--transition-fast), transform 120ms ease;
+  transition: opacity var(--transition-fast), transform 120ms ease, filter var(--transition-fast);
 }
 
-.tree-node-content:hover .tree-star-btn,
-.tree-node-content:focus-within .tree-star-btn {
-  opacity: 1;
+.tree-node-content:hover .tree-pin-btn,
+.tree-node-content:focus-within .tree-pin-btn {
+  opacity: 0.45;
 }
 
-.tree-star-btn:hover { color: var(--warning); transform: scale(1.2); }
-.tree-star-btn:active { transform: scale(0.9); }
+.tree-pin-btn:hover { opacity: 1; transform: scale(1.2); }
+.tree-pin-btn:active { transform: scale(0.9); }
 
-/* Pinned star is always visible */
-.tree-star-btn--active {
+/* Pinned — always fully visible */
+.tree-pin-btn--active {
   opacity: 1 !important;
-  color: var(--warning);
 }
 
 /* Pinned topic card gets a subtle left accent */
-.tree-node--card:has(.tree-star-btn--active) > .tree-node-content {
+.tree-node--card:has(.tree-pin-btn--active) > .tree-node-content {
   border-left: 3px solid var(--warning);
 }
 

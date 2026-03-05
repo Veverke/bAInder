@@ -18,6 +18,7 @@ import {
   loadNotesVisible,
   saveNotesVisible,
 } from './sticky-notes.js';
+import { HOVER_OUT_DISMISS_MS } from '../utils/constants.js';
 
 // renderMarkdown is injected at call time to avoid a circular import
 // (reader.js ← sticky-notes-ui.js ← reader.js).
@@ -579,7 +580,7 @@ export async function setupStickyNotes(chatId, storage, renderFn) {
   }
 
   function _scheduleHide() {
-    _dropdownHideTimer = setTimeout(() => { dropdown.hidden = true; }, 150);
+    _dropdownHideTimer = setTimeout(() => { dropdown.hidden = true; }, HOVER_OUT_DISMISS_MS);
   }
 
   toggleBtn.addEventListener('mouseenter', _showDropdown);

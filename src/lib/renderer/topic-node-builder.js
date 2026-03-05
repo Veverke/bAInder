@@ -115,18 +115,18 @@ export function buildTopicNode(topic, level, ctx) {
     nodeContent.appendChild(buildSparklineEl(topic.id, ctx.chats));
   }
 
-  // ── Pin / star button (root-level topics only, U2) ───────────────────────
+  // ── Pin button (root-level topics only, U2) ───────────────────────────────
   if (level === 0) {
-    const starBtn = document.createElement('button');
-    starBtn.className = `tree-star-btn${topic.pinned ? ' tree-star-btn--active' : ''}`;
-    starBtn.setAttribute('aria-label', topic.pinned ? 'Unpin topic' : 'Pin topic');
-    starBtn.setAttribute('title',       topic.pinned ? 'Unpin'        : 'Pin to top');
-    starBtn.textContent = '\u2605'; // ★
-    starBtn.addEventListener('click', (e) => {
+    const pinBtn = document.createElement('button');
+    pinBtn.className = `tree-pin-btn${topic.pinned ? ' tree-pin-btn--active' : ''}`;
+    pinBtn.setAttribute('aria-label', topic.pinned ? 'Unpin topic' : 'Pin topic');
+    pinBtn.setAttribute('title',       topic.pinned ? 'Unpin'        : 'Pin to top');
+    pinBtn.textContent = '\uD83D\uDCCC'; // 📌
+    pinBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (ctx.onTopicPin) ctx.onTopicPin(topic.id, !topic.pinned);
     });
-    nodeContent.appendChild(starBtn);
+    nodeContent.appendChild(pinBtn);
   }
 
   // ── ⋮ more-actions button (visible on hover) ─────────────────────────────

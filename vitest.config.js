@@ -12,6 +12,10 @@ export default defineConfig({
       // per test (e.g. simulate errors), so this lets the import binding resolve
       // to whichever mock is active without changing the test files.
       'jszip': resolve(__dirname, 'tests/__mocks__/jszip.js'),
+      // Also redirect the vendor path used by export-dialog.js and import-dialog.js.
+      // Without this alias the UMD bundle executes at module-graph resolution time
+      // and captures window.JSZip before any test setup can install its mock.
+      '../vendor/jszip-esm.js': resolve(__dirname, 'tests/__mocks__/jszip.js'),
     }
   },
   test: {
@@ -25,7 +29,9 @@ export default defineConfig({
         'node_modules/',
         'tests/',
         'dist/',
-        '*.config.js'
+        '*.config.js',
+        'src/**/*.original.js',
+        'src/lib/vendor/**'
       ]
     },
     include: ['tests/**/*.test.js'],
