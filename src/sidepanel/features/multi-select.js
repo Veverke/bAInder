@@ -10,30 +10,21 @@
  */
 
 import { state, elements } from '../app-context.js';
-import { logger } from '../../lib/utils/logger.js';
 import { showNotification } from '../notification.js';
 import { buildDigestMarkdown } from '../../lib/export/markdown-builder.js';
 import { saveTree, renderTreeView } from '../controllers/tree-controller.js';
-import { assignChatToTopic } from '../../lib/chat/chat-manager.js';
-let _state = state;
-// ---------------------------------------------------------------------------
-// Test injection hook - lets unit tests provide a mock app context instead of
-// mutating the real singleton.  Never call from production code.
-// ---------------------------------------------------------------------------
-/** @internal */
-export function _setContext(ctx) { _state = ctx; }
-
+import { assignChatToTopic } from '../../lib/chat-manager.js';
 
 // ---------------------------------------------------------------------------
 // Mode management
 // ---------------------------------------------------------------------------
 
 export function handleMultiSelectToggle() {
-  if (!_state.renderer) return;
-  if (_state.renderer.multiSelectMode) {
+  if (!state.renderer) return;
+  if (state.renderer.multiSelectMode) {
     exitMultiSelectMode();
   } else {
-    _state.renderer.enterMultiSelectMode();
+    state.renderer.enterMultiSelectMode();
     elements.multiSelectToggleBtn?.classList.add('section-toggle--active');
     elements.multiSelectToggleBtn?.setAttribute('aria-pressed', 'true');
     if (elements.multiSelectToggleBtn) elements.multiSelectToggleBtn.title = 'Exit selection mode';
@@ -43,8 +34,8 @@ export function handleMultiSelectToggle() {
 }
 
 export function exitMultiSelectMode() {
-  if (!_state.renderer) return;
-  _state.renderer.exitMultiSelectMode();
+  if (!state.renderer) return;
+  state.renderer.exitMultiSelectMode();
   elements.multiSelectToggleBtn?.classList.remove('section-toggle--active');
   elements.multiSelectToggleBtn?.setAttribute('aria-pressed', 'false');
   if (elements.multiSelectToggleBtn) elements.multiSelectToggleBtn.title = 'Select chats';
@@ -84,8 +75,8 @@ export function updateSelectionBar(count) {
 // ---------------------------------------------------------------------------
 
 export async function handleAssemble() {
-  if (!_state.renderer) return;
-  const metaChats = _state.renderer.getSelectedChats();
+  if (!state.renderer) return;
+  const metaChats = state.renderer.getSelectedChats();
   if (metaChats.length < 2) {
     showNotification('Select at least 2 chats to assemble', 'error');
     return;
@@ -97,7 +88,7 @@ export async function handleAssemble() {
     .join(' + ')
     .slice(0, 80);
 
-  const title = await _state.dialog.prompt(
+  const title = await state.dialog.prompt(
     `Name this assembled chat (combining ${metaChats.length} chats):`,
     defaultTitle,
     'Assemble Chats'
@@ -107,9 +98,9 @@ export async function handleAssemble() {
   let fullChats;
   try {
     const selectedIds = new Set(metaChats.map(c => c.id));
-    fullChats = await _state.chatRepo.loadFullByIds(selectedIds);
+    fullChats = await state.chatRepo.loadFullByIds(selectedIds);
   } catch (err) {
-    logger.error('Failed to load full chat content for assembly:', err);
+    console.error('Failed to load full chat content for assembly:', err);
     showNotification('Failed to load chats for assembly', 'error');
     return;
   }
@@ -117,7 +108,7 @@ export async function handleAssemble() {
   // Build combined markdown content (TOC only for larger assemblies).
   // forAssembly: true selects the messagesToMarkdown-based per-chat serialisation
   // that matches the reader's turn styling, instead of the ### Role export format.
-  const topicsMap = _state.tree?.topics || {};
+  const topicsMap = state.tree?.topics || {};
   const content   = buildDigestMarkdown(fullChats, topicsMap, { includeToc: fullChats.length > 3, forAssembly: true });
 
   const assembledChat = {
@@ -139,30 +130,30 @@ export async function handleAssemble() {
 
   try {
     // Save the assembled chat to storage
-    await _state.chatRepo.addChat(assembledChat);
+    await state.chatRepo.addChat(assembledChat);
 
     // Find or create the "Assemblies" topic at the root level
-    let assembliesTopicId = _state.tree.getAllTopics()
+    let assembliesTopicId = state.tree.getAllTopics()
       .find(t => t.name === 'Assemblies' && !t.parentId)?.id;
     if (!assembliesTopicId) {
-      assembliesTopicId = _state.tree.addTopic('Assemblies');
+      assembliesTopicId = state.tree.addTopic('Assemblies');
     }
 
     // Link the new chat to the topic in-memory and persist
-    assignChatToTopic(assembledChat, assembliesTopicId, _state.tree);
-    await _state.chatRepo.updateChat(assembledChat.id, { topicId: assembliesTopicId });
+    assignChatToTopic(assembledChat, assembliesTopicId, state.tree);
+    await state.chatRepo.updateChat(assembledChat.id, { topicId: assembliesTopicId });
     await saveTree();
 
     // Reload chats and re-render tree
-    _state.chats = await _state.chatRepo.loadAll();
-    _state.renderer.setChatData(_state.chats);
-    _state.renderer.expandNode(assembliesTopicId);
+    state.chats = await state.chatRepo.loadAll();
+    state.renderer.setChatData(state.chats);
+    state.renderer.expandNode(assembliesTopicId);
     renderTreeView();
 
     exitMultiSelectMode();
     showNotification(`🔗 “${title.trim()}” assembled from ${fullChats.length} chats`, 'success');
   } catch (err) {
-    logger.error('Assembly failed:', err);
+    console.error('Assembly failed:', err);
     showNotification('Assembly failed: ' + (err.message || 'Unknown error'), 'error');
   }
 }
@@ -172,8 +163,8 @@ export async function handleAssemble() {
 // ---------------------------------------------------------------------------
 
 export async function handleExportDigest() {
-  if (!_state.renderer) return;
-  const metaChats = _state.renderer.getSelectedChats();
+  if (!state.renderer) return;
+  const metaChats = state.renderer.getSelectedChats();
   if (metaChats.length < 2) {
     showNotification('Select at least 2 chats to export a digest', 'error');
     return;
@@ -182,17 +173,17 @@ export async function handleExportDigest() {
   let fullChats;
   try {
     const selectedIds = new Set(metaChats.map(c => c.id));
-    fullChats = await _state.chatRepo.loadFullByIds(selectedIds);
+    fullChats = await state.chatRepo.loadFullByIds(selectedIds);
   } catch (err) {
-    logger.error('Failed to load full chat content for digest export:', err);
+    console.error('Failed to load full chat content for digest export:', err);
     showNotification('Failed to load chats for export', 'error');
     return;
   }
 
   try {
-    await _state.exportDialog.showExportDigest(fullChats, _state.tree);
+    await state.exportDialog.showExportDigest(fullChats, state.tree);
   } catch (err) {
-    logger.error('Digest export failed:', err);
-    await _state.dialog.alert(err.message || 'Digest export failed', 'Export Error');
+    console.error('Digest export failed:', err);
+    await state.dialog.alert(err.message || 'Digest export failed', 'Export Error');
   }
 }

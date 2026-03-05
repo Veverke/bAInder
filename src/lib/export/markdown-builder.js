@@ -3,7 +3,7 @@
  * Serialises single chats and multi-chat digests to Markdown documents.
  */
 
-import { messagesToMarkdown, escapeYaml } from '../io/markdown-serialiser.js';
+import { messagesToMarkdown, escapeYaml } from '../markdown-serialiser.js';
 import { buildTopicPath }                  from './filename-utils.js';
 import { cap, sourceLabel, formatDateHuman, stripFrontmatter, digestAnchor } from './format-helpers.js';
 
