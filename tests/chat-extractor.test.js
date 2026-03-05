@@ -1013,84 +1013,158 @@ describe('extractChatGPT()', () => {
 // ─── extractClaude ────────────────────────────────────────────────────────────
 
 describe('extractClaude()', () => {
-  beforeEach(() => { document.body.innerHTML = ''; });
+  const ORG_ID  = 'org-uuid-123';
+  const CONV_ID = 'abc-def-456';
 
-  it('throws if document is null', () => {
-    expect(() => extractClaude(null)).toThrow('Document is required');
+  function mockClaudeFetch(turns = [], name = 'Test Conv') {
+    const msgs = turns.map((t, i) => ({
+      uuid: `m${i}`,
+      parent_message_uuid: i > 0 ? `m${i - 1}` : undefined,
+      sender: t.role === 'user' ? 'human' : 'assistant',
+      content: [{ type: 'text', text: t.content }],
+    }));
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (url.includes('chat_conversations')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            name,
+            chat_messages: msgs,
+            current_leaf_message_uuid: msgs.length ? `m${msgs.length - 1}` : undefined,
+          }),
+        });
+      }
+      // organizations list endpoint
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([{ uuid: ORG_ID }]) });
+    }));
+  }
+
+  beforeEach(() => {
+    Object.defineProperty(window, 'location', {
+      value: { pathname: `/chat/${CONV_ID}`, href: `https://claude.ai/chat/${CONV_ID}` },
+      configurable: true, writable: true,
+    });
   });
 
-  it('returns empty messages for a blank page', () => {
-    document.body.innerHTML = '<div></div>';
-    const result = extractClaude(document);
-    expect(result.messages).toHaveLength(0);
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
-  it('extracts human and ai turns by data-testid', () => {
-    buildClaudeDoc([
+  it('throws when no conversation ID in URL', async () => {
+    Object.defineProperty(window, 'location', { value: { pathname: '/' }, configurable: true, writable: true });
+    await expect(extractClaude()).rejects.toThrow('No conversation ID in URL');
+  });
+
+  it('throws when fetch organizations fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    await expect(extractClaude()).rejects.toThrow('Failed to fetch organizations');
+  });
+
+  it('throws when no organizations found', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) }));
+    await expect(extractClaude()).rejects.toThrow('No organizations found');
+  });
+
+  it('throws when conversation fetch fails for all orgs', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (url.includes('chat_conversations')) return Promise.resolve({ ok: false, status: 404 });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([{ uuid: ORG_ID }]) });
+    }));
+    await expect(extractClaude()).rejects.toThrow('Failed to fetch conversation (404)');
+  });
+
+  it('throws when conversation data has no chat_messages', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (url.includes('chat_conversations')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ name: 'test' }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([{ uuid: ORG_ID }]) });
+    }));
+    await expect(extractClaude()).rejects.toThrow('Invalid conversation data');
+  });
+
+  it('extracts messages from API response', async () => {
+    mockClaudeFetch([
       { role: 'user',      content: 'Tell me a joke' },
-      { role: 'assistant', content: 'Why did the chicken...' }
+      { role: 'assistant', content: 'Why did the chicken...' },
     ]);
-    const result = extractClaude(document);
+    const result = await extractClaude();
     expect(result.messages).toHaveLength(2);
     expect(result.messages[0]).toEqual({ role: 'user',      content: 'Tell me a joke' });
     expect(result.messages[1]).toEqual({ role: 'assistant', content: 'Why did the chicken...' });
   });
 
-  it('extracts using .human-turn class fallback', () => {
-    const human = document.createElement('div');
-    human.className = 'human-turn';
-    human.textContent = 'User class message';
-    document.body.appendChild(human);
-
-    const result = extractClaude(document);
-    expect(result.messages[0].role).toBe('user');
-    expect(result.messages[0].content).toBe('User class message');
+  it('uses data.name as conversation title', async () => {
+    mockClaudeFetch([{ role: 'user', content: 'Q' }], 'My Custom Title');
+    const result = await extractClaude();
+    expect(result.title).toBe('My Custom Title');
   });
 
-  it('extracts using .ai-turn class fallback', () => {
-    const ai = document.createElement('div');
-    ai.className = 'ai-turn';
-    ai.textContent = 'AI class message';
-    document.body.appendChild(ai);
-
-    const result = extractClaude(document);
-    expect(result.messages[0].role).toBe('assistant');
+  it('generates title from messages when data.name is absent', async () => {
+    mockClaudeFetch([{ role: 'user', content: 'Explain quantum entanglement' }], '');
+    const result = await extractClaude();
+    expect(result.title).toContain('Explain quantum entanglement');
   });
 
-  it('handles .bot-turn class', () => {
-    const bot = document.createElement('div');
-    bot.className = 'bot-turn';
-    bot.textContent = 'Bot response';
-    document.body.appendChild(bot);
-
-    const result = extractClaude(document);
-    expect(result.messages[0].role).toBe('assistant');
-  });
-
-  it('sets title from first user message', () => {
-    buildClaudeDoc([{ role: 'user', content: 'Explain quantum entanglement' }]);
-    const result = extractClaude(document);
-    expect(result.title).toBe('Explain quantum entanglement');
-  });
-
-  it('returns messageCount equal to messages length', () => {
-    buildClaudeDoc([
+  it('returns messageCount equal to messages length', async () => {
+    mockClaudeFetch([
       { role: 'user',      content: 'Q' },
-      { role: 'assistant', content: 'A' }
+      { role: 'assistant', content: 'A' },
     ]);
-    const result = extractClaude(document);
+    const result = await extractClaude();
     expect(result.messageCount).toBe(2);
   });
 
-  it('skips a turn whose content is empty (if(content) FALSE branch)', () => {
-    // A turn element with no actual text produces empty htmlToMarkdown output
-    const emptyTurn = document.createElement('div');
-    emptyTurn.setAttribute('data-testid', 'human-turn');
-    // Intentionally no children / text
-    document.body.appendChild(emptyTurn);
-    const result = extractClaude(document);
-    // The empty-content turn should be filtered out
-    expect(result.messages).toHaveLength(0);
+  it('falls back to chat_messages when current_leaf_message_uuid is missing', async () => {
+    const msgs = [
+      { uuid: 'm0', sender: 'human',     content: [{ type: 'text', text: 'Q' }] },
+      { uuid: 'm1', sender: 'assistant', content: [{ type: 'text', text: 'A' }] },
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (url.includes('chat_conversations')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ name: 'Test', chat_messages: msgs }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([{ uuid: ORG_ID }]) });
+    }));
+    const result = await extractClaude();
+    expect(result.messages).toHaveLength(2);
+  });
+
+  it('handles msg.text string field as content fallback', async () => {
+    // content must be absent (not an array) to trigger the msg.text fallback branch
+    const msgs = [{ uuid: 'm0', sender: 'human', text: 'Text field content' }];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (url.includes('chat_conversations')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ name: 'T', chat_messages: msgs, current_leaf_message_uuid: 'm0' }) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([{ uuid: ORG_ID }]) });
+    }));
+    const result = await extractClaude();
+    expect(result.messages[0].content).toBe('Text field content');
+  });
+
+  it('skips messages with empty content (if(content.trim()) FALSE branch)', async () => {
+    mockClaudeFetch([
+      { role: 'user',      content: '' },
+      { role: 'assistant', content: 'Non-empty response' },
+    ]);
+    const result = await extractClaude();
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('assistant');
+  });
+
+  it('tries multiple orgs and uses first successful one', async () => {
+    const msgs = [{ uuid: 'm0', sender: 'human', content: [{ type: 'text', text: 'Q' }] }];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (!url.includes('chat_conversations')) {
+        // organizations list
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([{ uuid: 'org-fail' }, { uuid: 'org-ok' }]) });
+      }
+      if (url.includes('org-fail')) return Promise.resolve({ ok: false, status: 403 });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ name: 'T', chat_messages: msgs, current_leaf_message_uuid: 'm0' }) });
+    }));
+    const result = await extractClaude();
+    expect(result.messages).toHaveLength(1);
   });
 });
 
@@ -1685,74 +1759,102 @@ describe('extractSourceLinks()', () => {
 describe('extractChat()', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
-  it('throws when platform is null', () => {
-    expect(() => extractChat(null, document)).toThrow('Platform is required');
+  it('throws when platform is null', async () => {
+    await expect(extractChat(null, document)).rejects.toThrow('Platform is required');
   });
 
-  it('throws when document is null', () => {
-    expect(() => extractChat('chatgpt', null)).toThrow('Document is required');
+  it('throws when document is null', async () => {
+    await expect(extractChat('chatgpt', null)).rejects.toThrow('Document is required');
   });
 
-  it('throws for unsupported platform', () => {
-    expect(() => extractChat('bing', document)).toThrow('Unsupported platform: bing');
+  it('throws for unsupported platform', async () => {
+    await expect(extractChat('bing', document)).rejects.toThrow('Unsupported platform: bing');
   });
 
-  it('dispatches to extractChatGPT', () => {
+  it('dispatches to extractChatGPT', async () => {
     buildChatGPTDoc([{ role: 'user', content: 'GPT question' }]);
-    const result = extractChat('chatgpt', document);
+    const result = await extractChat('chatgpt', document);
     expect(result.platform).toBe('chatgpt');
     expect(result.messages[0].content).toBe('GPT question');
   });
 
-  it('dispatches to extractClaude', () => {
-    buildClaudeDoc([{ role: 'user', content: 'Claude question' }]);
-    const result = extractChat('claude', document);
+  it('dispatches to extractClaude', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/chat/conv-abc', href: 'https://claude.ai/chat/conv-abc' },
+      configurable: true, writable: true,
+    });
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (url.includes('chat_conversations')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({
+          name: 'Test',
+          chat_messages: [{ uuid: 'm0', sender: 'human', content: [{ type: 'text', text: 'Claude question' }] }],
+          current_leaf_message_uuid: 'm0',
+        })});
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([{ uuid: 'org1' }]) });
+    }));
+    const result = await extractChat('claude', document);
     expect(result.platform).toBe('claude');
     expect(result.messages[0].content).toBe('Claude question');
+    vi.unstubAllGlobals();
   });
 
-  it('dispatches to extractGemini', () => {
+  it('dispatches to extractGemini', async () => {
     buildGeminiDoc([{ role: 'user', content: 'Gemini question' }]);
-    const result = extractChat('gemini', document);
+    const result = await extractChat('gemini', document);
     expect(result.platform).toBe('gemini');
     expect(result.messages[0].content).toBe('Gemini question');
   });
 
-  it('dispatches to extractCopilot', () => {
+  it('dispatches to extractCopilot', async () => {
     buildCopilotDoc([{ role: 'user', content: 'Copilot question' }]);
-    const result = extractChat('copilot', document);
+    const result = await extractChat('copilot', document);
     expect(result.platform).toBe('copilot');
     expect(result.messages[0].content).toBe('Copilot question');
   });
 
-  it('includes extractedAt timestamp', () => {
+  it('includes extractedAt timestamp', async () => {
     const before = Date.now();
     buildChatGPTDoc([{ role: 'user', content: 'Q' }]);
-    const result = extractChat('chatgpt', document);
+    const result = await extractChat('chatgpt', document);
     expect(result.extractedAt).toBeGreaterThanOrEqual(before);
     expect(result.extractedAt).toBeLessThanOrEqual(Date.now());
   });
 
-  it('includes url from document.location.href', () => {
+  it('includes url from document.location.href', async () => {
     buildChatGPTDoc([{ role: 'user', content: 'Q' }]);
-    const result = extractChat('chatgpt', document);
-    // In JSDOM test env, href is 'about:blank'
+    const result = await extractChat('chatgpt', document);
+    // In happy-dom test env, href is 'about:blank'
     expect(typeof result.url).toBe('string');
   });
 
-  it('accepts an explicit URL override', () => {
+  it('accepts an explicit URL override', async () => {
     buildChatGPTDoc([{ role: 'user', content: 'Q' }]);
-    const result = extractChat('chatgpt', document, 'https://chat.openai.com/c/abc');
+    const result = await extractChat('chatgpt', document, 'https://chat.openai.com/c/abc');
     expect(result.url).toBe('https://chat.openai.com/c/abc');
   });
 
-  it('returns messageCount in the envelope', () => {
-    buildClaudeDoc([
-      { role: 'user',      content: 'Q1' },
-      { role: 'assistant', content: 'A1' }
-    ]);
-    const result = extractChat('claude', document);
+  it('returns messageCount in the envelope', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/chat/conv-mc', href: 'https://claude.ai/chat/conv-mc' },
+      configurable: true, writable: true,
+    });
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (url.includes('chat_conversations')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({
+          name: 'T',
+          chat_messages: [
+            { uuid: 'm0', sender: 'human',     content: [{ type: 'text', text: 'Q1' }] },
+            { uuid: 'm1', parent_message_uuid: 'm0', sender: 'assistant', content: [{ type: 'text', text: 'A1' }] },
+          ],
+          current_leaf_message_uuid: 'm1',
+        })});
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([{ uuid: 'org1' }]) });
+    }));
+    const result = await extractChat('claude', document);
     expect(result.messageCount).toBe(2);
+    vi.unstubAllGlobals();
   });
 });
 
@@ -1839,15 +1941,16 @@ describe('prepareChatForSave()', () => {
 
 describe('Full extraction pipeline', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
+  afterEach(() => { vi.unstubAllGlobals(); });
 
-  it('ChatGPT: end-to-end extract and prepare', () => {
+  it('ChatGPT: end-to-end extract and prepare', async () => {
     buildChatGPTDoc([
       { role: 'user',      content: 'Explain recursion' },
       { role: 'assistant', content: 'Recursion is when a function calls itself.' },
       { role: 'user',      content: 'Give an example in Python' },
       { role: 'assistant', content: 'def fact(n): return 1 if n<=1 else n*fact(n-1)' }
     ]);
-    const chatData   = extractChat('chatgpt', document, 'https://chat.openai.com/c/xyz');
+    const chatData   = await extractChat('chatgpt', document, 'https://chat.openai.com/c/xyz');
     const saveReady  = prepareChatForSave(chatData);
 
     expect(saveReady.title).toBe('Explain recursion');
@@ -1858,12 +1961,25 @@ describe('Full extraction pipeline', () => {
     expect(saveReady.content).toContain('Explain recursion');
   });
 
-  it('Claude: end-to-end extract and prepare', () => {
-    buildClaudeDoc([
-      { role: 'user',      content: 'Write a haiku about the ocean' },
-      { role: 'assistant', content: 'Waves crash on the shore\nSalt and foam kiss the white sand\nEternal rhythm' }
-    ]);
-    const chatData  = extractChat('claude', document, 'https://claude.ai/chat/123');
+  it('Claude: end-to-end extract and prepare', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/chat/a1b2c3d4-e5f6-7890-abcd-ef1234567890', href: 'https://claude.ai/chat/a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
+      configurable: true, writable: true,
+    });
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (url.includes('chat_conversations')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({
+          name: 'Write a haiku about the ocean',
+          chat_messages: [
+            { uuid: 'm0', sender: 'human',     content: [{ type: 'text', text: 'Write a haiku about the ocean' }] },
+            { uuid: 'm1', parent_message_uuid: 'm0', sender: 'assistant', content: [{ type: 'text', text: 'Waves crash on the shore\nSalt and foam kiss the white sand\nEternal rhythm' }] },
+          ],
+          current_leaf_message_uuid: 'm1',
+        })});
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([{ uuid: 'org1' }]) });
+    }));
+    const chatData  = await extractChat('claude', document, 'https://claude.ai/chat/haiku-conv');
     const saveReady = prepareChatForSave(chatData);
 
     expect(saveReady.title).toBe('Write a haiku about the ocean');
@@ -1871,12 +1987,12 @@ describe('Full extraction pipeline', () => {
     expect(saveReady.messageCount).toBe(2);
   });
 
-  it('Gemini: end-to-end extract and prepare', () => {
+  it('Gemini: end-to-end extract and prepare', async () => {
     buildGeminiDoc([
       { role: 'user',      content: 'What are the planets in our solar system?' },
       { role: 'assistant', content: 'Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune.' }
     ]);
-    const chatData  = extractChat('gemini', document, 'https://gemini.google.com/app/abc');
+    const chatData  = await extractChat('gemini', document, 'https://gemini.google.com/app/abc');
     const saveReady = prepareChatForSave(chatData);
 
     expect(saveReady.title).toBe('What are the planets in our solar system?');
@@ -1884,14 +2000,14 @@ describe('Full extraction pipeline', () => {
     expect(saveReady.messageCount).toBe(2);
   });
 
-  it('Copilot: end-to-end extract and prepare', () => {
+  it('Copilot: end-to-end extract and prepare', async () => {
     buildCopilotDoc([
       { role: 'user',      content: 'How do I reverse a string in Python?' },
       { role: 'assistant', content: 'Use slicing: s[::-1]' },
       { role: 'user',      content: 'What about in JavaScript?' },
       { role: 'assistant', content: "str.split('').reverse().join('')" }
     ]);
-    const chatData  = extractChat('copilot', document, 'https://copilot.microsoft.com/');
+    const chatData  = await extractChat('copilot', document, 'https://copilot.microsoft.com/');
     const saveReady = prepareChatForSave(chatData);
 
     expect(saveReady.title).toBe('How do I reverse a string in Python?');
@@ -1902,9 +2018,9 @@ describe('Full extraction pipeline', () => {
     expect(saveReady.content).toContain('How do I reverse a string in Python?');
   });
 
-  it('handles an empty conversation gracefully end-to-end', () => {
+  it('handles an empty conversation gracefully end-to-end', async () => {
     document.body.innerHTML = '<main></main>';
-    const chatData  = extractChat('chatgpt', document, 'https://chat.openai.com/c/empty');
+    const chatData  = await extractChat('chatgpt', document, 'https://chat.openai.com/c/empty');
     const saveReady = prepareChatForSave(chatData);
 
     expect(saveReady.messageCount).toBe(0);
@@ -1918,31 +2034,39 @@ describe('Full extraction pipeline', () => {
 // This tests the `pos & DOCUMENT_POSITION_FOLLOWING ? -1 : 1` false branch
 // ---------------------------------------------------------------------------
 
-describe('extractClaude() – sort returns 1 when AI element precedes human', () => {
-  beforeEach(() => { document.body.innerHTML = ''; });
+describe('extractClaude() – branch traversal from leaf to root', () => {
+  const ORG_ID  = 'org-bt';
+  const CONV_ID = 'bt-conv-123';
 
-  it('should still capture messages correctly when AI turn appears before human in DOM', () => {
-    // Build Claude doc with AI element appended BEFORE the human element
-    const div = document.createElement('div');
+  beforeEach(() => {
+    Object.defineProperty(window, 'location', {
+      value: { pathname: `/chat/${CONV_ID}`, href: `https://claude.ai/chat/${CONV_ID}` },
+      configurable: true, writable: true,
+    });
+  });
 
-    const aiEl = document.createElement('div');
-    aiEl.setAttribute('data-testid', 'ai-turn');
-    aiEl.textContent = 'Hello, I am Claude.';
+  afterEach(() => { vi.unstubAllGlobals(); });
 
-    const humanEl = document.createElement('div');
-    humanEl.setAttribute('data-testid', 'human-turn');
-    humanEl.textContent = 'Who are you?';
-
-    // AI comes first in DOM (before human)
-    div.appendChild(aiEl);
-    div.appendChild(humanEl);
-    document.body.appendChild(div);
-
-    const result = extractClaude(document);
-    expect(result.messages.length).toBe(2);
-    // After sort by DOM position, AI (first in DOM) → assistant, Human (second) → user
-    expect(result.messages[0].role).toBe('assistant');
-    expect(result.messages[1].role).toBe('user');
+  it('walks parent_message_uuid chain to reconstruct branch in chronological order', async () => {
+    // m0 → m1 → m2 (leaf), traversal must produce [m0, m1, m2] in order
+    const msgs = [
+      { uuid: 'm2', parent_message_uuid: 'm1', sender: 'assistant', content: [{ type: 'text', text: 'Hello, I am Claude.' }] },
+      { uuid: 'm0', sender: 'human',           content: [{ type: 'text', text: 'Who are you?' }] },
+      { uuid: 'm1', parent_message_uuid: 'm0', sender: 'human', content: [{ type: 'text', text: 'Tell me more.' }] },
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url) => {
+      if (url.includes('chat_conversations')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({
+          name: 'Test', chat_messages: msgs, current_leaf_message_uuid: 'm2',
+        })});
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([{ uuid: ORG_ID }]) });
+    }));
+    const result = await extractClaude();
+    expect(result.messages.length).toBe(3);
+    expect(result.messages[0].content).toBe('Who are you?');
+    expect(result.messages[1].content).toBe('Tell me more.');
+    expect(result.messages[2].content).toBe('Hello, I am Claude.');
   });
 });
 
@@ -2006,39 +2130,35 @@ describe('extractCopilot() – sort returns 1 when assistant element precedes us
 describe('extractChat() – URL resolution branches', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
-  it('uses doc.location.href when no url arg is provided', () => {
+  it('uses doc.location.href when no url arg is provided', async () => {
     buildChatGPTDoc([{ role: 'user', content: 'Hello' }]);
-    // JSDOM document.location.href is 'about:blank' by default
-    const result = extractChat('chatgpt', document); // no url arg
+    // happy-dom document.location.href is 'about:blank' by default
+    const result = await extractChat('chatgpt', document); // no url arg
     // Should use doc.location.href ('about:blank') not throw
     expect(typeof result.url).toBe('string');
   });
 
-  it('uses empty string when url arg is omitted and doc has no location', () => {
-    // Simulate a document object with no location property
-    const div = document.createElement('div');
-    document.body.appendChild(div);
+  it('uses empty string when url arg is omitted and doc has no location', async () => {
+    buildChatGPTDoc([{ role: 'user', content: 'Test' }]);
     const fakeDoc = {
       querySelectorAll: (sel) => document.querySelectorAll(sel),
       location: null  // no location
     };
-    buildChatGPTDoc([{ role: 'user', content: 'Test' }]);
-    // Provide fakeDoc with null location but no url → finalUrl = ''
-    const result = extractChat('chatgpt', fakeDoc);
+    const result = await extractChat('chatgpt', fakeDoc);
     expect(result.url).toBe('');
   });
-  it('copilot: uses explicit url arg when provided', () => {
+
+  it('copilot: uses explicit url arg when provided', async () => {
     buildCopilotDoc([{ role: 'user', content: 'Hello' }]);
-    const result = extractChat('copilot', document, 'https://m365.cloud.microsoft/chat?conversationId=abc');
+    const result = await extractChat('copilot', document, 'https://m365.cloud.microsoft/chat?conversationId=abc');
     expect(result.url).toBe('https://m365.cloud.microsoft/chat?conversationId=abc');
   });
 
-  it('copilot: falls back to doc.location.href when no url arg', () => {
+  it('copilot: falls back to doc.location.href when no url arg', async () => {
     buildCopilotDoc([{ role: 'user', content: 'Hello' }]);
-    const result = extractChat('copilot', document);
+    const result = await extractChat('copilot', document);
     expect(typeof result.url).toBe('string');
   });
-
 });
 
 // ─── extractSourceLinks – Part B and Part C ───────────────────────────────────

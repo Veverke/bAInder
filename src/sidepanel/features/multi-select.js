@@ -13,7 +13,7 @@ import { state, elements } from '../app-context.js';
 import { showNotification } from '../notification.js';
 import { buildDigestMarkdown } from '../../lib/export/markdown-builder.js';
 import { saveTree, renderTreeView } from '../controllers/tree-controller.js';
-import { assignChatToTopic } from '../../lib/chat-manager.js';
+import { assignChatToTopic } from '../../lib/chat/chat-manager.js';
 
 // ---------------------------------------------------------------------------
 // Mode management

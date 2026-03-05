@@ -368,7 +368,7 @@ body {
 .sparkline { display:flex;align-items:flex-end;gap:2px;height:18px; }
 .spark-bar { width:7px;background:var(--accent);border-radius:2px 2px 0 0;opacity:.5; }
 .spark-bar.hi { opacity:1; }
-.pinned-star { color:var(--amber);font-size:10px; }
+.pinned-pin { font-size:10px; }
 .storage-bar { padding:8px;border-top:1px solid var(--border);margin-top:auto; }
 .storage-label { font-size:10px;color:var(--mute);margin-bottom:4px; }
 .storage-track { height:4px;background:var(--surface2);border-radius:2px; }
@@ -739,7 +739,7 @@ body {
               <div class="topic-row selected">
                 <button class="expand-btn">▼</button>
                 <span class="topic-icon">📁</span>
-                <span class="topic-name"><span class="pinned-star">★</span> Learning</span>
+                <span class="topic-name"><span class="pinned-pin">📌</span> Learning</span>
                 <span class="badge count">5</span>
                 <div class="sparkline">
                   <div class="spark-bar" style="height:6px"></div><div class="spark-bar" style="height:12px"></div><div class="spark-bar" style="height:4px"></div><div class="spark-bar hi" style="height:18px"></div><div class="spark-bar" style="height:9px"></div><div class="spark-bar hi" style="height:14px"></div>
@@ -1134,7 +1134,7 @@ body {
               <div class="topic-row pinned-row hl-box">
                 <button class="expand-btn">▼</button>
                 <span class="topic-icon">📁</span>
-                <span class="topic-name"><span class="pinned-star">★</span> Learning</span>
+                <span class="topic-name"><span class="pinned-pin">📌</span> Learning</span>
                 <span class="badge count">5</span>
                 <span style="position:relative;background:#2d2008;border:1px solid var(--amber);border-radius:4px;font-size:9px;padding:2px 7px;color:var(--amber);margin-left:2px;">pinned</span>
               </div>
@@ -1147,7 +1147,7 @@ body {
                 <span class="topic-icon">📁</span>
                 <span class="topic-name">Personal</span>
                 <span class="badge count">1</span>
-                <span style="margin-left:auto;font-size:14px;color:var(--mute);opacity:.5;">☆</span>
+                <span style="margin-left:auto;font-size:14px;color:var(--mute);opacity:.5;">📌</span>
               </div>
             </div>
             <div class="topic-node" style="margin-top:2px;">
@@ -1161,7 +1161,7 @@ body {
           </div>
         </div>
       </div>
-      <div class="narrator">Hover any topic to reveal a <em>☆ star</em> icon. Click it to <em>pin</em> the topic — pinned topics float to the top of the tree and are marked with <em>★</em>. Click again to unpin.</div>
+      <div class="narrator">Hover any topic to reveal the <em>📌 pin</em> icon. Click it to <em>pin</em> the topic — pinned topics float to the top of the tree and are marked with <em>📌</em>. Click again to unpin.</div>
     </div>
 
     <!-- ══ S14: Tags — coloured chips & tag search ════════════════ -->
@@ -1795,7 +1795,7 @@ const NARRATOR_TEXT = {
   s10: "Click Plus Add Topic to create a new folder. Enter a name and optionally nest it under an existing parent. The topic appears in the tree immediately, sorted alphabetically.",
   s11: "Right-click any topic for a context menu: Rename it, Move to a different parent, Merge two topics into one — combining all chats and children — or Delete it.",
   s12: "Everything in the tree is draggable. Drag a topic onto another to nest it, or drag a chat into a different topic to reassign it — the tree updates instantly.",
-  s13: "Hover any topic to reveal a star icon. Click it to pin the topic — pinned topics float to the top of the tree and are marked with a star. Click again to unpin.",
+  s13: "Hover any topic to reveal the 📌 pin icon. Click it to pin the topic — pinned topics float to the top of the tree and are marked with 📌. Click again to unpin.",
   s14: "Tags are coloured chips that appear on every chat. Search by tag name and bAInder highlights matching chips in both the tree and result cards.",
   s15: "In the Reader, right-click anywhere and choose Add Sticky Note. Notes are a personal annotation layer — they auto-save, support Markdown, are draggable, and can be hidden with one click.",
   s16: "Right-click any topic then Export to download a ZIP of Markdown or HTML files — one file per chat. Use the Import button to restore a ZIP on any machine.",
@@ -2099,9 +2099,9 @@ const CURSOR_PATHS = {
 
   s13: [
     {t:0,   x:81,  y:29, label:'Hover topic'},
-    {t:1.5, x:93,  y:27, label:'Click ☆ to pin'},
+    {t:1.5, x:93,  y:27, label:'Click 📌 to pin'},
     {t:2,   x:93,  y:27, click:true},
-    {t:4,   x:80,  y:22, label:'★ pinned at top'}
+    {t:4,   x:80,  y:22, label:'📌 pinned at top'}
   ],
 
   s14: [
@@ -2271,9 +2271,9 @@ const SCENE_CAPTIONS = {
     {t:5,  step:'Chats',  text:'<em>Drag any chat</em> and drop it on a different topic to reassign it'}
   ],
   s13: [
-    {t:0,  step:'Hover',  text:'Hover over any topic — the <em>☆ star</em> icon appears on the right'},
-    {t:2,  step:'Click',  text:'Click the star to <em>pin</em> the topic to the top of the tree'},
-    {t:4,  step:'Result', text:'Pinned topics show a <em>★ prefix</em> and always stay at the top'}
+    {t:0,  step:'Hover',  text:'Hover over any topic — the <em>📌 pin</em> icon appears on the right'},
+    {t:2,  step:'Click',  text:'Click the pin icon to <em>pin</em> the topic to the top of the tree'},
+    {t:4,  step:'Result', text:'Pinned topics show a <em>📌 prefix</em> and always stay at the top'}
   ],
   s14: [
     {t:0,  step:'Tags',   text:'<em>Tags</em> appear as coloured chips on every chat node in the tree'},

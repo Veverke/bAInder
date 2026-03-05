@@ -354,7 +354,7 @@ body {
 .sparkline { display:flex;align-items:flex-end;gap:2px;height:18px; }
 .spark-bar { width:7px;background:var(--accent);border-radius:2px 2px 0 0;opacity:.55; }
 .spark-bar.hi { opacity:1; }
-.pinned-star { color:var(--amber);font-size:10px; }
+.pinned-pin { font-size:10px; }
 .storage-bar { margin:auto 0 0;padding:8px;border-top:1px solid var(--border); }
 .storage-label { font-size:10px;color:var(--mute);margin-bottom:4px; }
 .storage-track { height:4px;background:var(--surface2);border-radius:2px; }
@@ -854,7 +854,7 @@ body {
             </div>
             <!-- tree -->
             <div class="topic-node">
-              <div class="topic-row selected"><span class="topic-icon">📁</span><span class="topic-name"><span class="pinned-star">★</span> Learning</span><span class="badge count">5</span></div>
+              <div class="topic-row selected"><span class="topic-icon">📁</span><span class="topic-name"><span class="pinned-pin">📌</span> Learning</span><span class="badge count">5</span></div>
               <div class="children">
                 <div class="topic-row"><span class="topic-icon">📁</span><span class="topic-name">React</span><span class="badge count">2</span>
                   <div class="sparkline"><div class="spark-bar" style="height:6px"></div><div class="spark-bar" style="height:10px"></div><div class="spark-bar" style="height:5px"></div><div class="spark-bar hi" style="height:16px"></div><div class="spark-bar" style="height:8px"></div><div class="spark-bar" style="height:12px"></div></div>
@@ -1087,7 +1087,7 @@ body {
             <div class="topic-node">
               <div class="topic-row selected" style="background:#1e1a10;border-left:2px solid var(--amber)">
                 <span class="topic-icon">📁</span>
-                <span class="topic-name"><span class="pinned-star">★</span> Learning</span>
+                <span class="topic-name"><span class="pinned-pin">📌</span> Learning</span>
                 <span class="badge count">5</span>
                 <span class="callout" style="position:relative;top:0;background:#2d2008;border-color:var(--amber);color:var(--amber);font-size:9px;padding:2px 7px">pinned</span>
               </div>
@@ -1098,7 +1098,7 @@ body {
                 <span class="topic-icon">📁</span>
                 <span class="topic-name">Work</span>
                 <span class="badge count">3</span>
-                <span style="margin-left:auto;font-size:14px;color:var(--mute);opacity:.5">☆</span>
+                <span style="margin-left:auto;font-size:14px;color:var(--mute);opacity:.5">📌</span>
               </div>
             </div>
             <div class="topic-node" style="margin-top:2px">
@@ -1111,7 +1111,7 @@ body {
           </div>
         </div>
       </div>
-      <div class="narrator">Hover a topic to reveal the <em>star</em> icon. Click it to pin — pinned topics always float to the top of the tree, marked with <em>★</em>.</div>
+      <div class="narrator">Hover a topic to reveal the <em>📌 pin</em> icon. Click it to pin — pinned topics always float to the top of the tree, marked with <em>📌</em>.</div>
     </div>
 
     <!-- ══ S13: Tags & tag search ══════════════════════════════════ -->
@@ -1634,12 +1634,12 @@ const CURSOR_PATHS = {
     {t:6.5, x:80, y:43, label:'Drop on topic'}
   ],
 
-  /* S12 — pin/star (panel topic x≈80 y≈28; star icon x≈93) */
+  /* S12 — pin (panel topic x≈80 y≈28; pin icon x≈93) */
   s12: [
     {t:0,   x:80, y:30, label:'Hover topic'},
-    {t:1.5, x:93, y:28, label:'Click ☆ to pin'},
+    {t:1.5, x:93, y:28, label:'Click 📌 to pin'},
     {t:2,   x:93, y:28, click:true},
-    {t:3.5, x:79, y:22, label:'★ pinned at top'}
+    {t:3.5, x:79, y:22, label:'📌 pinned at top'}
   ],
 
   /* S13 — tags & search (panel) */
@@ -1772,9 +1772,9 @@ const SCENE_CAPTIONS = {
     {t:5, step:'Drag',   text:'<em>Drag a chat</em> and drop it onto any topic to reassign it'}
   ],
   s12: [
-    {t:0, step:'Hover',  text:'Hover over any topic — the <em>☆ star icon</em> appears'},
-    {t:2, step:'Click',  text:'Click the star to <em>pin</em> the topic'},
-    {t:4, step:'Result', text:'Pinned topics float to the <em>top of the tree</em> with a <em>★ prefix</em>'}
+    {t:0, step:'Hover',  text:'Hover over any topic — the <em>📌 pin icon</em> appears'},
+    {t:2, step:'Click',  text:'Click the pin icon to <em>pin</em> the topic'},
+    {t:4, step:'Result', text:'Pinned topics float to the <em>top of the tree</em> with a <em>📌 prefix</em>'}
   ],
   s13: [
     {t:0, step:'Tags',   text:'<em>Tags</em> appear as coloured chips on every chat node in the tree'},

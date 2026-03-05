@@ -365,7 +365,7 @@ Several UI timing values are hardcoded as inline literals with no named constant
 | `3500` | `src/sidepanel/features/save-banner.js` | Save-button reset delay | `SAVE_BTN_RESET_MS` |
 | `1500` | `src/sidepanel/sidepanel.js` | Tree item flash duration | `TREE_FLASH_MS` |
 | `150` | `src/reader/reader.js` | Annotation panel hover-out delay | `HOVER_OUT_DISMISS_MS` |
-| `150` | `src/lib/sticky-notes/sticky-notes-ui.js` | Sticky-note dropdown hover-out delay | `HOVER_OUT_DISMISS_MS` |
+| `150` | `src/lib/sticky-notes/sticky-notes/sticky-notes-ui.js` | Sticky-note dropdown hover-out delay | `HOVER_OUT_DISMISS_MS` |
 
 The `150` ms value appears in two separate modules for the same conceptual purpose (hover-out delay before hiding a floating panel), meaning a user-experience decision is duplicated rather than shared.
 

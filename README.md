@@ -2,15 +2,22 @@
 
 > Stop losing your best AI conversations. bAInder saves, organises, and lets you search every chat from ChatGPT, Claude, Gemini, and Copilot — all in a sleek browser side panel, entirely on your device.
 
+Install the extension, hit **Save** on any conversation, drop it into a topic, and it's yours forever — tagged, searchable, and readable in a clean viewer. No accounts, no cloud sync, no data ever leaves your browser.
+
+> 🔒 **Fully local & private** — All data lives in `chrome.storage.local`. Nothing is ever transmitted anywhere.
+
 **[▶ Watch the animated tutorial](docs/tutorial.html)**
 
 ---
 
-## 🤔 What is bAInder?
+## 🤖 Supported platforms
 
-Every day you have insightful conversations with AI assistants that disappear into an ever-growing, unsearchable history. bAInder fixes that.
-
-Install the extension, hit **Save** on any conversation, drop it into a topic, and it's yours forever — tagged, searchable, and readable in a clean viewer. No accounts, no cloud sync, no data ever leaves your browser.
+| AI Service | URL |
+|---|---|
+| 🟢 ChatGPT | `chat.openai.com` / `chatgpt.com` |
+| 🟠 Claude | `claude.ai` |
+| 🔵 Gemini | `gemini.google.com` |
+| 🔷 Microsoft Copilot | `copilot.microsoft.com` |
 
 ---
 
@@ -20,7 +27,6 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 | | |
 |---|---|
 | 💾 **Save from any AI platform** | One-click floating Save button on ChatGPT, Claude, Gemini, and Copilot; also clip any highlighted selection via right-click. |
-| 🔒 **Fully local & private** | All data lives in `chrome.storage.local` — nothing is ever transmitted anywhere. |
 
 ### 🗂️ Organise
 | | |
@@ -70,32 +76,11 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 2. Click **Load unpacked** and select the `dist/edge` folder
 3. Pin the bAInder icon to your toolbar and open the side panel
 
-#### 🛠️ Build from source
+### 🛠️ Build from source
 ```bash
 npm install
 npm run build:all   # produces dist/chrome/ and dist/edge/
 ```
-
----
-
-## 🤖 Supported platforms
-
-| AI Service | URL |
-|---|---|
-| 🟢 ChatGPT | `chat.openai.com` / `chatgpt.com` |
-| 🟠 Claude | `claude.ai` |
-| 🔵 Gemini | `gemini.google.com` |
-| 🔷 Microsoft Copilot | `copilot.microsoft.com` |
-
----
-
-## 🎬 Tutorial
-
-The animated walkthrough covers the full workflow in two parts — core usage and advanced features.
-
-**[Open tutorial →](docs/tutorial.html)**
-
-*(The tutorial is a self-contained animated HTML page. Download the repo and open `docs/tutorial.html` in your browser for the best experience.)*
 
 ---
 

@@ -20,6 +20,8 @@
 | C.20 | JSONL fine-tuning export | Low–Medium | Very High (unique) | Candidate |
 | C.21 | Direct Obsidian push (Local REST API) | Medium | High | Candidate |
 | C.22 | Reading progress persistence | Low | Moderate | ✅ Completed (March 4, 2026) |
+| C.23 | Platform expansion: DeepSeek, Grok & Perplexity | Medium | Very High | Candidate |
+| C.24 | Internal API-based extraction — platform-wide strategy (ChatGPT next, Perplexity after) | Low/platform | Moderate | Candidate |
 
 ---
 
@@ -78,6 +80,9 @@
   - Claude: `https://claude.ai/new?q=<encoded>`
   - Gemini: `https://gemini.google.com/app?hl=en` (no direct query param yet — open tab + inject via content script)
   - Copilot: `https://copilot.microsoft.com/?q=<encoded>`
+  - DeepSeek: `https://chat.deepseek.com/` (no query param — open tab + inject via content script)
+  - Grok: `https://grok.com/` (no stable query param — open tab + inject via content script)
+  - Perplexity: `https://www.perplexity.ai/?q=<encoded>` (native query param support)
 - Fall back to clipboard copy + open tab for platforms without query-param support.
 
 **Effort:** Medium. **Differentiator:** Very High — genuinely unique feature in the space.
@@ -178,4 +183,78 @@
 
 ---
 
-*Document generated: March 3, 2026*
+## C.23 — Platform Expansion: DeepSeek, Grok & Perplexity
+
+**Idea:** Extend bAInder's content-script coverage to three fast-growing AI platforms — **DeepSeek**, **Grok** (xAI), and **Perplexity** — so users can save, organise, and re-fire chats from these interfaces with the same one-click experience they have on ChatGPT and Claude.
+
+**Value:** These platforms now account for a significant share of power-user AI traffic. Users who run queries across multiple models lose their Grok and Perplexity history the moment they close the tab. Adding native support makes bAInder the single archive for the entire AI ecosystem, not just the incumbents.
+
+**Implementation sketch (per platform):**
+
+### DeepSeek (`chat.deepseek.com`)
+- Content script selects `.message-content` / `.user-message` blocks (similar structure to ChatGPT).
+- Platform badge: `deepseek` — teal colour token.
+- Supports DeepSeek-R1 chain-of-thought blocks (`<think>` tags) — collapse by default in the reader, expandable inline.
+- No `?q=` deep-link: prompt injection via content script after tab open (same pattern as Gemini).
+
+### Grok (`grok.com`)
+- Content script targets Grok's React-rendered message list (class selectors require monitoring for updates given xAI's active release cadence).
+- Platform badge: `grok` — graphite/black colour token matching xAI branding.
+- Capture "Show reasoning" / think-mode content as a collapsible aside in the saved entry.
+- No stable `?q=` deep-link: open tab + inject prompt via content script.
+
+### Perplexity (`perplexity.ai`)
+- Content script extracts query (user turn) and answer (assistant turn) blocks; also captures source citations as a structured `sources[]` array on the `ChatEntry`.
+- Render citations as a collapsible "Sources" footer in the reader view (linked list of URLs + titles).
+- Platform badge: `perplexity` — teal/indigo colour token.
+- Native `?q=<encoded>` deep-link — simplest cross-platform re-fire of the three.
+
+**Shared work:**
+- Add `'deepseek' | 'grok' | 'perplexity'` to the `Platform` union type in `chat-entry.js`.
+- Register three new manifest `content_scripts` entries with appropriate `matches` patterns.
+- Extend the platform icon/badge map in the UI (`platform-badge.js`).
+- Update C.16 "Launch on…" dropdown to include all three (see C.16 implementation notes above).
+- Extend the JSONL export (C.20) to correctly map Perplexity's `assistant` turns (which may include citation markup).
+
+**Risks:**
+- Grok's DOM is under active development — class names may shift with xAI product updates; use MutationObserver-based selectors.
+- Perplexity's answer blocks mix markdown + inline citations — stripping citation markers for clean export needs careful regex.
+
+**Effort:** Medium (each platform is roughly the same scope as a new ChatGPT content script; ~1–2 days per platform). **Differentiator:** Very High — broadens addressable user base significantly at a time when DeepSeek and Perplexity usage is surging.
+
+---
+
+## C.24 — Internal API-Based Extraction (Replace DOM Scraping — Platform-Wide Strategy)
+
+**Idea:** Migrate extractors away from DOM scraping toward each platform's internal web API — the same approach already proven with Claude (March 2026). ChatGPT is the next priority, with Perplexity a strong secondary candidate.
+
+**Background:** Every major AI chat site is a React SPA that calls its own backend API. These endpoints are not public/documented APIs — they are the same endpoints the site's own frontend uses. They return clean JSON and are accessible from a content script using the user's existing browser session (`credentials: 'include'`). **No API key, no cost, no additional subscription required.**
+
+This is fundamentally different from paid generation APIs (e.g. `api.anthropic.com`, `api.openai.com`) — those are for building AI products and are billed per token. Internal web APIs are free because the user is already authenticated and the server is just serving their own data.
+
+| Platform | Internal API | Notes |
+|---|---|---|
+| **Claude** | ✅ Implemented | `/api/organizations/:orgId/chat_conversations/:id` — clean JSON, stable |
+| **ChatGPT** | Available | `/backend-api/conversation/{id}` — clean JSON, `mapping` tree |
+| **Perplexity** | Available | Accessible JSON endpoints, reasonably stable |
+| **Gemini** | Available but complex | Uses protobuf/gRPC-style requests — harder to parse reliably |
+| **Grok / DeepSeek** | Unknown | Requires investigation |
+
+**ChatGPT — implementation sketch:**
+- Replace `extractChatGPT(doc)` in `content.js` and `extractors/chatgpt.js` with async `extractChatGPTViaApi()`.
+- Parse `conversationId` from `window.location.pathname` (`/c/[uuid]`).
+- Fetch `https://chatgpt.com/backend-api/conversation/${conversationId}` with `credentials: 'include'`.
+- Walk the `mapping` tree from `current_node` back through `parent` pointers (same pattern as Claude branch traversal) to build the active branch in chronological order.
+- Map `author.role === 'user'` → `'user'`, `'assistant'` → `'assistant'`; skip `system` and `tool` nodes.
+- Concatenate `content.parts[]` (filter to `string` type; skip image/file parts).
+- Make the `EXTRACT_CHAT` handler for ChatGPT async (same `return true` pattern already applied for Claude).
+
+**Value:** The API approach eliminates DOM fragility: content is always complete (no lazy-loading issues), edited message branches are handled via the mapping tree, and streaming-in-progress responses aren't truncated. ChatGPT's DOM has already changed multiple times — the current extractor carries two fallback selector strategies.
+
+**Risks:** Platforms could add auth checks or rate-limit internal endpoints; DOM scraping should be kept as a silent fallback. Internal endpoints are undocumented and can change without notice, though in practice they tend to be more stable than rendered DOM.
+
+**Effort:** Low per platform — identical pattern to the Claude fix, already proven. **Differentiator:** Moderate — primarily a reliability/maintenance improvement, but directly reduces future maintenance burden for all C.23 platform expansions.
+
+---
+
+*Document generated: March 3, 2026 — last updated: March 5, 2026*

@@ -1,5 +1,5 @@
 /**
- * bAInder Annotations — src/lib/annotations.js
+ * bAInder Annotations — src/lib/chat/annotations.js
  *
  * Stores and retrieves text highlights + optional notes for reader pages.
  * Annotations are keyed by chatId in chrome.storage.local (or any injected

@@ -1,5 +1,5 @@
 /**
- * bAInder Sticky Notes — src/lib/sticky-notes.js
+ * bAInder Sticky Notes — src/lib/sticky-notes/sticky-notes.js
  *
  * Stores and retrieves sticky notes attached to saved chats.
  * Sticky notes are additive annotations that never alter the original chat

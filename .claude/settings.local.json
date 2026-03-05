@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:claude.ai)",
+      "WebFetch(domain:gist.github.com)",
+      "Bash(npm run build)",
+      "Bash(python3 -c \":*)",
+      "Bash(node -e \"const fs=require\\(''fs''\\); const c=fs.readFileSync\\(''c:/Repos/Personal/bAInder/src/sidepanel/sidepanel.css'',''utf8''\\); const i=c.indexOf\\(''U2: Star''\\); console.log\\(i, JSON.stringify\\(c.slice\\(i-5,i+60\\)\\)\\);\")",
+      "Bash(node -e \"const fs=require\\(''fs''\\); let c=fs.readFileSync\\(''c:/Repos/Personal/bAInder/src/sidepanel/sidepanel.css'',''utf8''\\); c=c.replace\\(''U2: Star / pin button on topic cards'', ''U2: Pin button on topic cards''\\); fs.writeFileSync\\(''c:/Repos/Personal/bAInder/src/sidepanel/sidepanel.css'',c,''utf8''\\); console.log\\(''done''\\);\")",
+      "Bash(npm test -- --coverage)",
+      "Bash(npm test -- --coverage --reporter=verbose)",
+      "Bash(npm run test:coverage)",
+      "Bash(grep -v \"^[[:space:]]*$\")",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(npm run test:coverage -- --reporter=verbose)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\)[''total'']; print\\(f\"\"Statements: {d[''statements''][''pct'']}%\\\\nBranches: {d[''branches''][''pct'']}%\\\\nFunctions: {d[''functions''][''pct'']}%\\\\nLines: {d[''lines''][''pct'']}%\"\"\\)\")",
+      "Bash(node -e \"const d=require\\(''./coverage/coverage-summary.json''\\).total; console.log\\(''Stmts:'',d.statements.pct+''%'', ''Branches:'',d.branches.pct+''%'', ''Functions:'',d.functions.pct+''%'', ''Lines:'',d.lines.pct+''%''\\)\")"
+    ]
+  }
+}

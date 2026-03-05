@@ -366,21 +366,65 @@ const browser = chrome;
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
   }
 
-  function extractClaude(doc) {
-    const messages = [];
-    const humanTurns = Array.from(doc.querySelectorAll('[data-testid="human-turn"], .human-turn, .human-message'));
-    const aiTurns    = Array.from(doc.querySelectorAll('[data-testid="ai-turn"], .ai-turn, .ai-message, .bot-turn'));
-    const allTurns   = [
-      ...humanTurns.map(el => ({ el, role: 'user' })),
-      ...aiTurns.map(el => ({ el, role: 'assistant' }))
-    ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
-    allTurns.forEach(({ el, role }) => {
-      const processEl = role === 'assistant' ? stripSourceContainers(el) : el;
-      let content = htmlToMarkdown(processEl);
-      if (role === 'assistant') content += extractSourceLinks(el);
-      if (content) messages.push(formatMessage(role, content));
+  async function extractClaudeViaApi() {
+    const pathMatch = window.location.pathname.match(/\/chat\/([a-f0-9-]+)/i);
+    if (!pathMatch) throw new Error('No conversation ID in URL');
+    const conversationId = pathMatch[1];
+
+    const API_HEADERS = {
+      'Accept': 'application/json',
+      'anthropic-client-type': 'web',
+    };
+
+    const orgsResp = await fetch('https://claude.ai/api/organizations', {
+      credentials: 'include',
+      headers: API_HEADERS,
     });
-    return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
+    if (!orgsResp.ok) throw new Error('Failed to fetch organizations');
+    const orgs = await orgsResp.json();
+    if (!orgs?.length) throw new Error('No organizations found');
+
+    // Try each org until one returns the conversation (handles multi-org accounts)
+    let convResp, data;
+    let lastStatus = 0;
+    for (const org of orgs) {
+      convResp = await fetch(
+        `https://claude.ai/api/organizations/${org.uuid}/chat_conversations/${conversationId}?tree=True&rendering_mode=messages&render_all_tools=true`,
+        { credentials: 'include', headers: API_HEADERS }
+      );
+      if (convResp.ok) { data = await convResp.json(); break; }
+      lastStatus = convResp.status;
+    }
+    if (!data) throw new Error(`Failed to fetch conversation (${lastStatus})`);
+    if (!data?.chat_messages) throw new Error('Invalid conversation data');
+
+    // Build a UUID → message map for branch traversal
+    const msgMap = {};
+    for (const msg of data.chat_messages) msgMap[msg.uuid] = msg;
+
+    // Walk from current leaf back to root to get the active branch in order
+    let ordered = [];
+    let cur = msgMap[data.current_leaf_message_uuid];
+    while (cur) {
+      ordered.unshift(cur);
+      cur = msgMap[cur.parent_message_uuid];
+    }
+    if (!ordered.length) ordered = data.chat_messages;
+
+    const messages = [];
+    for (const msg of ordered) {
+      const role = msg.sender === 'human' ? 'user' : 'assistant';
+      let content = '';
+      if (Array.isArray(msg.content)) {
+        content = msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n\n');
+      } else if (typeof msg.text === 'string') {
+        content = msg.text;
+      }
+      if (content.trim()) messages.push(formatMessage(role, content.trim()));
+    }
+
+    const title = data.name || generateTitle(messages, window.location.href);
+    return { title, messages, messageCount: messages.length };
   }
 
   function extractGemini(doc) {
@@ -796,15 +840,30 @@ const browser = chrome;
       case 'EXTRACT_CHAT': {
         if (!platform) {
           sendResponse({ success: false, error: 'Not on a supported AI chat platform' });
-          break;
+          return false;
         }
-        try {
-          const chatData = extractChat(platform, document);
-          sendResponse({ success: true, data: prepareChatForSave(chatData) });
-        } catch (err) {
-          sendResponse({ success: false, error: err.message });
-        }
-        break;
+        (async () => {
+          try {
+            let chatData;
+            if (platform === 'claude') {
+              const result = await extractClaudeViaApi();
+              chatData = {
+                platform,
+                url: window.location.href,
+                title: result.title,
+                messages: result.messages,
+                messageCount: result.messageCount,
+                extractedAt: Date.now(),
+              };
+            } else {
+              chatData = extractChat(platform, document);
+            }
+            sendResponse({ success: true, data: prepareChatForSave(chatData) });
+          } catch (err) {
+            sendResponse({ success: false, error: err.message });
+          }
+        })();
+        return true; // keep message channel open for async sendResponse
       }
 
       case 'EXTRACT_EXCERPT': {

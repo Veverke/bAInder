@@ -169,11 +169,11 @@ Point out each element in order:
 **Screen:** Side panel
 
 **On-screen action:**
-1. Hover over a topic — star icon appears in the header
-2. Click the star — topic moves to the top of the tree, shown with a ★ prefix
+1. Hover over a topic — pin icon appears in the header
+2. Click the pin — topic moves to the top of the tree, shown with a 📌 prefix
 
-**Narrator:**  
-> "Pin your most important topics with the star icon — pinned topics always float to the top of the tree, no matter how many others you have."
+**Narrator:**
+> "Pin your most important topics with the pin icon — pinned topics always float to the top of the tree, no matter how many others you have."
 
 ---
 
