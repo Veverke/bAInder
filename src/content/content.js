@@ -644,8 +644,8 @@ const browser = chrome;
       '[aria-label*="You said"]', '[aria-label*="you said"]',
     ];
     const assistantSelectors = [
-      '[data-testid="copilot-message"]', '[data-testid="assistant-message"]',
-      '[class*="CopilotMessage"]', '[class*="AssistantMessage"]', '[class*="copilot-message"]',
+      '[data-testid="ai-message"]', '[data-testid="copilot-message"]', '[data-testid="assistant-message"]',
+      '[class*="ai-message"]', '[class*="CopilotMessage"]', '[class*="AssistantMessage"]', '[class*="copilot-message"]',
       '[class*="botMessage"]',   '[class*="BotMessage"]',   '[class*="bot-message"]',
       '[data-author-role="assistant"]', '[data-author-role="bot"]',
       '[aria-label*="Copilot said"]', '[aria-label*="Copilot:"]',
@@ -658,6 +658,8 @@ const browser = chrome;
     const rawCopilotEls = dedup(assistantSelectors.flatMap(sel => {
       try { return Array.from(chatScope.querySelectorAll(sel)); } catch (_) { return []; }
     })).filter(el => !inHistoryPanel(el));
+    
+    console.log(`[extractCopilot] Found ${rawUserEls.length} user messages, ${rawCopilotEls.length} assistant messages`);
 
     const userEls    = removeDescendants(rawUserEls);
     const copilotEls = removeDescendants(rawCopilotEls);
