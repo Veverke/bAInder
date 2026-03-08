@@ -36,7 +36,7 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 | 🌳 **Hierarchical topic tree** | Organise chats into nested topics with sorted counts, sparklines, and pinned favourites. |
 | 📁 **Topic management** | Add, rename, delete, move (drag-and-drop), merge, and pin topics at any depth. |
 | 🏷️ **Tags** | Add comma-separated tags at save time or later; shown as coloured chips and included in search. |
-| ⭐ **Star ratings** | Rate chats 1–5 stars from the context menu or Reader header; filter search results by minimum rating. |
+| ⭐ **Star ratings** | Rate chats 1-5 stars from the context menu or Reader header; filter search results by minimum rating. |
 | ⏰ **Review-by date & stale alerts** | Set a review date on any chat; get a ⚠️ badge and Reader banner when it's overdue. |
 
 ### 🔍 Find
@@ -66,17 +66,17 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
-### Extension Side Panel
+### 🧩 Extension Side Panel
 
 ![bAInder screenshot 1](assets/screenshots/bAInder%20screenshot%201.png)
 
-### Chat Reader View
+### 📖 Chat Reader View
 
 ![bAInder reader screenshot 1](assets/screenshots/bAInder%20reader%20screenshot%201.png)
 
-### Some of the themes that can be installed
+### 🎨 Themes You Can Install
 
 ![bAInder themed screenshot 1](assets/screenshots/bAInder%20themed%20screenshot%201.png)
 ![bAInder themed screenshot 2](assets/screenshots/bAInder%20themed%20screenshot%202.png)
@@ -104,9 +104,9 @@ npm run build:all   # produces dist/chrome/ and dist/edge/
 
 ---
 
-## Contributing & Development
+## 🛠️ Contributing & Development
 
-### Getting Started
+### 🏁 Getting Started
 
 1. **Clone the repository**
    ```bash
@@ -128,7 +128,7 @@ npm run build:all   # produces dist/chrome/ and dist/edge/
    - **Chrome**: Open `chrome://extensions`, enable Developer mode, click **Load unpacked**, and select `dist/chrome/`
    - **Edge**: Open `edge://extensions`, enable Developer mode, click **Load unpacked**, and select `dist/edge/`
 
-### Available Scripts
+### 📜 Available Scripts
 
 ```bash
 npm run build:all    # Build extensions for both Chrome and Edge
@@ -138,7 +138,7 @@ npm test -- --watch # Run tests in watch mode
 npm run lint         # Run ESLint
 ```
 
-### Project Structure
+### 🗃️ Project Structure
 
 - **`src/background/`** — Extension background scripts
 - **`src/content/`** — Content scripts injected into web pages
@@ -148,7 +148,7 @@ npm run lint         # Run ESLint
 - **`tests/`** — Test files for all modules
 - **`docs/`** — Documentation and design specs
 
-### Testing
+### 🧪 Testing
 
 Run the test suite:
 ```bash
@@ -162,14 +162,14 @@ Tests use Vitest and cover:
 - UI components and interactions
 - Utility functions
 
-### Code Quality
+### ✅ Code Quality
 
 - **Linting**: ESLint configuration ensures code consistency
 - **Tests**: All new features should include corresponding tests
 - **UT Coverage gate**: 90% minimum code coverage required
 - **Commits**: Follow conventional commit messages for clarity
 
-### Making Changes
+### ✍️ Making Changes
 
 1. Create a feature branch: `git checkout -b feature/your-feature`
 2. Make your changes and write tests
