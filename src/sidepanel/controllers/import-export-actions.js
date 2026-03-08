@@ -86,6 +86,14 @@ export async function handleClearAll() {
     _state.tree  = new TopicTree();
     _state.chats = [];
 
+    // Keep dialog instances' tree reference in sync (same pattern as handleImport)
+    if (_state.topicDialogs) _state.topicDialogs.tree = _state.tree;
+    if (_state.chatDialogs)  _state.chatDialogs.tree  = _state.tree;
+
+    // Clear stale topic references so the save button doesn't show a deleted topic
+    _state.lastUsedTopicId    = null;
+    _state.lastCreatedTopicId = null;
+
     await Promise.all([
       _state.storage.saveTopicTree(_state.tree.toObject()),
       _state.chatRepo.replaceAll([]),
@@ -94,6 +102,9 @@ export async function handleClearAll() {
     _state.renderer.setTree(_state.tree);
     _state.renderer.setChatData(_state.chats);
     renderTreeView();
+
+    // Hide backup reminder banner — there is nothing left to back up
+    if (elements.backupReminderBanner) elements.backupReminderBanner.style.display = 'none';
 
     updateRecentRail(handleChatClick);
     await updateStorageUsage();

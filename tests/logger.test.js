@@ -34,9 +34,9 @@ describe('Logger', () => {
       expect(logger.getLevel()).toBe('INFO');
     });
 
-    it('sets level to TRACE', () => {
-      logger.setLevel('TRACE');
-      expect(logger.getLevel()).toBe('TRACE');
+    it('sets level to DEBUG', () => {
+      logger.setLevel('DEBUG');
+      expect(logger.getLevel()).toBe('DEBUG');
     });
 
     it('sets level to WARN', () => {
@@ -81,8 +81,8 @@ describe('Logger', () => {
       expect(logger.getLevelValue()).toBe(-1);
     });
 
-    it('returns 0 for TRACE', () => {
-      logger.setLevel('TRACE');
+    it('returns 0 for DEBUG', () => {
+      logger.setLevel('DEBUG');
       expect(logger.getLevelValue()).toBe(0);
     });
 
@@ -112,7 +112,7 @@ describe('Logger', () => {
       const levels = logger.constructor.LEVELS;
       expect(Array.isArray(levels)).toBe(true);
       expect(levels).toContain('ALL');
-      expect(levels).toContain('TRACE');
+      expect(levels).toContain('DEBUG');
       expect(levels).toContain('INFO');
       expect(levels).toContain('OFF');
     });
@@ -121,9 +121,9 @@ describe('Logger', () => {
   // ── Backward-compat shims ────────────────────────────────────────────────
 
   describe('setEnabled / isEnabled', () => {
-    it('setEnabled(true) sets level to TRACE', () => {
+    it('setEnabled(true) sets level to DEBUG', () => {
       logger.setEnabled(true);
-      expect(logger.getLevel()).toBe('TRACE');
+      expect(logger.getLevel()).toBe('DEBUG');
     });
 
     it('setEnabled(false) sets level to INFO', () => {
@@ -131,8 +131,8 @@ describe('Logger', () => {
       expect(logger.getLevel()).toBe('INFO');
     });
 
-    it('isEnabled() returns true when TRACE', () => {
-      logger.setLevel('TRACE');
+    it('isEnabled() returns true when DEBUG', () => {
+      logger.setLevel('DEBUG');
       expect(logger.isEnabled()).toBe(true);
     });
 
@@ -186,23 +186,23 @@ describe('Logger', () => {
       expect(spyError).toHaveBeenCalledWith('[bAInder]', '[ERROR]', 'fatal');
     });
 
-    it('calls console.error at TRACE level', () => {
-      logger.setLevel('TRACE');
+    it('calls console.error at DEBUG level', () => {
+      logger.setLevel('DEBUG');
       logger.error('fatal');
       expect(spyError).toHaveBeenCalled();
     });
   });
 
-  describe('trace()', () => {
-    it('calls console.debug at TRACE level', () => {
-      logger.setLevel('TRACE');
-      logger.trace('verbose');
-      expect(spyDebug).toHaveBeenCalledWith('[bAInder]', '[TRACE]', 'verbose');
+  describe('DEBUG()', () => {
+    it('calls console.debug at DEBUG level', () => {
+      logger.setLevel('DEBUG');
+      logger.debug('verbose');
+      expect(spyDebug).toHaveBeenCalledWith('[bAInder]', '[DEBUG]', 'verbose');
     });
 
     it('does NOT call console.debug at INFO level', () => {
       logger.setLevel('INFO');
-      logger.trace('verbose');
+      logger.debug('verbose');
       expect(spyDebug).not.toHaveBeenCalled();
     });
   });
@@ -212,7 +212,7 @@ describe('Logger', () => {
   describe('ALL level enables all output', () => {
     beforeEach(() => { logger.setLevel('ALL'); });
 
-    it('trace() passes',    () => { logger.trace('x'); expect(spyDebug).toHaveBeenCalled(); });
+    it('DEBUG() passes',    () => { logger.debug('x'); expect(spyDebug).toHaveBeenCalled(); });
     it('info() passes',     () => { logger.info('x');  expect(spyInfo).toHaveBeenCalled();  });
     it('warn() passes',     () => { logger.warn('x');  expect(spyWarn).toHaveBeenCalled();  });
     it('error() passes',    () => { logger.error('x'); expect(spyError).toHaveBeenCalled(); });
@@ -227,7 +227,7 @@ describe('Logger', () => {
   describe('OFF level silences all output', () => {
     beforeEach(() => { logger.setLevel('OFF'); });
 
-    it('trace() suppressed', () => { logger.trace('x'); expect(spyDebug).not.toHaveBeenCalled(); });
+    it('DEBUG() suppressed', () => { logger.debug('x'); expect(spyDebug).not.toHaveBeenCalled(); });
     it('info() suppressed',  () => { logger.info('x');  expect(spyInfo).not.toHaveBeenCalled();  });
     it('warn() suppressed',  () => { logger.warn('x');  expect(spyWarn).not.toHaveBeenCalled();  });
     it('error() suppressed', () => { logger.error('x'); expect(spyError).not.toHaveBeenCalled(); });
@@ -237,7 +237,7 @@ describe('Logger', () => {
     it('timeEnd() suppressed',  () => { logger.timeEnd('x');  expect(spyTimeEnd).not.toHaveBeenCalled();  });
   });
 
-  // ── INFO level suppresses TRACE helpers ──────────────────────────────────
+  // ── INFO level suppresses DEBUG helpers ──────────────────────────────────
 
   describe('INFO level suppresses group/time helpers', () => {
     beforeEach(() => { logger.setLevel('INFO'); });
@@ -248,10 +248,10 @@ describe('Logger', () => {
     it('timeEnd() not called', () => { logger.timeEnd('label'); expect(spyTimeEnd).not.toHaveBeenCalled(); });
   });
 
-  // ── TRACE level enables group/time helpers ────────────────────────────────
+  // ── DEBUG level enables group/time helpers ────────────────────────────────
 
-  describe('TRACE level enables group/time helpers', () => {
-    beforeEach(() => { logger.setLevel('TRACE'); });
+  describe('DEBUG level enables group/time helpers', () => {
+    beforeEach(() => { logger.setLevel('DEBUG'); });
 
     it('group() calls console.group', () => {
       logger.group('my group');

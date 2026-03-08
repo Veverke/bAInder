@@ -43,7 +43,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== 'save-excerpt') return;
   try {
     const pageUrl = info.pageUrl || '';
-    logger.trace('onClicked: selectionText=', JSON.stringify((info.selectionText || '').slice(0, 200)));
+    logger.debug('onClicked: selectionText=', JSON.stringify((info.selectionText || '').slice(0, 200)));
 
     // Prefer the rich markdown pushed proactively by the content script on
     // right-click (STORE_EXCERPT_CACHE).  Fall back to a live EXTRACT_EXCERPT
@@ -54,35 +54,35 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
     // browser.storage.session covers the case where the SW was killed and
     // restarted between the contextmenu event and the menu-item click.
     let richMarkdown = _excerptCache?.markdown || null;
-    logger.trace('onClicked: in-memory excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
+    logger.debug('onClicked: in-memory excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
     _excerptCache = null; // consume in-memory copy
 
     if (!richMarkdown) {
       try {
         const stored = await browser.storage.session.get('excerptCache');
         richMarkdown = stored?.excerptCache?.markdown || null;
-        logger.trace('onClicked: session excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
+        logger.debug('onClicked: session excerptCache =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 200)) : null);
       } catch (e) {
-        logger.trace('onClicked: session storage read failed =', e?.message);
+        logger.debug('onClicked: session storage read failed =', e?.message);
       }
     }
     // Always clear session storage after consuming (one-shot)
     browser.storage.session.remove('excerptCache').catch(() => {});
 
     if (!richMarkdown) {
-      logger.trace('onClicked: no cache — trying EXTRACT_EXCERPT fallback');
+      logger.debug('onClicked: no cache — trying EXTRACT_EXCERPT fallback');
       try {
         const resp = await browser.tabs.sendMessage(tab.id, { type: 'EXTRACT_EXCERPT' });
-        logger.trace('onClicked: EXTRACT_EXCERPT resp =', resp?.success, typeof resp?.data?.markdown, (resp?.data?.markdown || '').slice(0, 200));
+        logger.debug('onClicked: EXTRACT_EXCERPT resp =', resp?.success, typeof resp?.data?.markdown, (resp?.data?.markdown || '').slice(0, 200));
         if (resp?.success && resp.data?.markdown) richMarkdown = resp.data.markdown;
       } catch (e) {
-        logger.trace('onClicked: EXTRACT_EXCERPT failed =', e?.message);
+        logger.debug('onClicked: EXTRACT_EXCERPT failed =', e?.message);
       }
     }
 
-    logger.trace('onClicked: resolved richMarkdown =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 500)) : null);
+    logger.debug('onClicked: resolved richMarkdown =', richMarkdown ? JSON.stringify(richMarkdown.slice(0, 500)) : null);
     const payload = buildExcerptPayload(info.selectionText, pageUrl, richMarkdown);
-    logger.trace('onClicked: payload.content =', JSON.stringify(payload.content.slice(0, 500)));
+    logger.debug('onClicked: payload.content =', JSON.stringify(payload.content.slice(0, 500)));
     const entry = await handleSaveChat(payload, { tab });
     browser.runtime.sendMessage({ type: 'CHAT_SAVED', data: entry }).catch(() => {});
   } catch (err) {
@@ -139,7 +139,7 @@ browser.action.onClicked.addListener((tab) => {
 
 // Handle messages from content scripts and side panel
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  logger.trace('Runtime message received:', message.type);
+  logger.debug('Runtime message received:', message.type);
   
   switch (message.type) {
     case 'CAPTURE_DESIGNER_IMAGE': {
@@ -181,10 +181,10 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Rich markdown pushed proactively by content script on right-click.
       // Store both in-memory (fast path) and session storage (SW restart path).
       _excerptCache = message.data || null;
-      logger.trace('STORE_EXCERPT_CACHE received, markdown =', _excerptCache ? JSON.stringify(_excerptCache.markdown?.slice(0, 200)) : null);
+      logger.debug('STORE_EXCERPT_CACHE received, markdown =', _excerptCache ? JSON.stringify(_excerptCache.markdown?.slice(0, 200)) : null);
       browser.storage.session.set({ excerptCache: _excerptCache })
-        .then(() => logger.trace('STORE_EXCERPT_CACHE: session storage write OK'))
-        .catch(e => logger.trace('STORE_EXCERPT_CACHE: session storage write failed =', e?.message));
+        .then(() => logger.debug('STORE_EXCERPT_CACHE: session storage write OK'))
+        .catch(e => logger.debug('STORE_EXCERPT_CACHE: session storage write failed =', e?.message));
       sendResponse({ success: true });
       break;
 

@@ -95,6 +95,25 @@ export async function handleAssemble() {
   );
   if (!title) return; // user cancelled
 
+  // Prompt the user to choose which folder to place the assembled chat in
+  const existingAssemblies = state.tree.getAllTopics()
+    .find(t => t.name === 'Assemblies' && !t.parentId);
+  const topicOptions = state.topicDialogs.buildTopicOptions(existingAssemblies?.id || null);
+  const folderOptions = existingAssemblies
+    ? topicOptions
+    : [{ value: '__assemblies__', label: "📁 Create 'Assemblies' folder", selected: true }, ...topicOptions];
+
+  const folderResult = await state.dialog.form([
+    {
+      name: 'topicId',
+      label: 'Save assembled chat to',
+      type: 'select',
+      options: folderOptions,
+      hint: 'Choose which folder to place this assembled chat in'
+    }
+  ], 'Choose Folder', 'Assemble');
+  if (!folderResult) return; // user cancelled
+
   let fullChats;
   try {
     const selectedIds = new Set(metaChats.map(c => c.id));
@@ -132,22 +151,29 @@ export async function handleAssemble() {
     // Save the assembled chat to storage
     await state.chatRepo.addChat(assembledChat);
 
-    // Find or create the "Assemblies" topic at the root level
-    let assembliesTopicId = state.tree.getAllTopics()
-      .find(t => t.name === 'Assemblies' && !t.parentId)?.id;
-    if (!assembliesTopicId) {
-      assembliesTopicId = state.tree.addTopic('Assemblies');
+    // Resolve the target folder from the user's selection
+    let targetTopicId;
+    if (folderResult.topicId === '__assemblies__') {
+      // Create or reuse the 'Assemblies' root topic
+      let assembliesId = state.tree.getAllTopics()
+        .find(t => t.name === 'Assemblies' && !t.parentId)?.id;
+      if (!assembliesId) {
+        assembliesId = state.tree.addTopic('Assemblies');
+      }
+      targetTopicId = assembliesId;
+    } else {
+      targetTopicId = folderResult.topicId;
     }
 
     // Link the new chat to the topic in-memory and persist
-    assignChatToTopic(assembledChat, assembliesTopicId, state.tree);
-    await state.chatRepo.updateChat(assembledChat.id, { topicId: assembliesTopicId });
+    assignChatToTopic(assembledChat, targetTopicId, state.tree);
+    await state.chatRepo.updateChat(assembledChat.id, { topicId: targetTopicId });
     await saveTree();
 
     // Reload chats and re-render tree
     state.chats = await state.chatRepo.loadAll();
     state.renderer.setChatData(state.chats);
-    state.renderer.expandNode(assembliesTopicId);
+    state.renderer.expandNode(targetTopicId);
     renderTreeView();
 
     exitMultiSelectMode();

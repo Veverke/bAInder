@@ -174,9 +174,9 @@ describe('ChromeStorageAdapter', () => {
       }
     });
 
-    it('should return empty array immediately for an empty query (early-exit)', async () => {
+    it('should return all chats for an empty query (filter-only mode)', async () => {
       const results = await storage.searchChats('');
-      expect(results).toEqual([]);
+      expect(results.length).toBe(3); // all 3 chats from beforeEach
     });
 
     it('should use the supplied chats array and skip the storage read', async () => {
@@ -643,16 +643,15 @@ describe('ChromeStorageAdapter – getStorageUsage with defined QUOTA_BYTES', ()
     delete global.chrome.storage.local.QUOTA_BYTES;
   });
 
-  it('computes percentUsed when QUOTA_BYTES is defined (non-null quota)', async () => {
-    // Set a finite quota so the quota !== null branch is exercised
-    const FAKE_QUOTA = 10 * 1024 * 1024; // 10 MB
-    global.chrome.storage.local.QUOTA_BYTES = FAKE_QUOTA;
+  it('bytesQuota is always null (unlimitedStorage — QUOTA_BYTES is ignored)', async () => {
+    // Even if Chrome exposes QUOTA_BYTES, the extension has unlimitedStorage
+    // so we always treat the quota as null to avoid a misleading denominator.
+    global.chrome.storage.local.QUOTA_BYTES = 10 * 1024 * 1024;
 
     const usage = await storage.getStorageUsage({ topicCount: 2, chatCount: 5 });
 
-    expect(usage.bytesQuota).toBe(FAKE_QUOTA);
-    expect(usage.percentUsed).not.toBeNull();
-    expect(typeof usage.percentUsed).toBe('number');
+    expect(usage.bytesQuota).toBeNull();
+    expect(usage.percentUsed).toBeNull();
 
     // Restore
     delete global.chrome.storage.local.QUOTA_BYTES;
@@ -668,15 +667,14 @@ describe('ChromeStorageAdapter – getStorageUsage with defined QUOTA_BYTES', ()
     expect(usage.percentUsed).toBeNull();
   });
 
-  it('fallback path also computes percentUsed when QUOTA_BYTES is defined', async () => {
-    const FAKE_QUOTA = 5 * 1024 * 1024;
-    global.chrome.storage.local.QUOTA_BYTES = FAKE_QUOTA;
+  it('fallback path also returns null quota when QUOTA_BYTES is defined (unlimitedStorage)', async () => {
+    global.chrome.storage.local.QUOTA_BYTES = 5 * 1024 * 1024;
     clearStorageMock();
 
     const usage = await storage.getStorageUsage(); // no counts → fallback path
 
-    expect(usage.bytesQuota).toBe(FAKE_QUOTA);
-    expect(usage.percentUsed).not.toBeNull();
+    expect(usage.bytesQuota).toBeNull();
+    expect(usage.percentUsed).toBeNull();
 
     delete global.chrome.storage.local.QUOTA_BYTES;
   });

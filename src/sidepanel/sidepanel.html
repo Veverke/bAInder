@@ -85,6 +85,12 @@
             <button class="filter-pill filter-pill--star" data-min-rating="5" title="5 stars only">★★★★★</button>
           </div>
         </div>
+        <div class="filter-group">
+          <span class="filter-group__label">Tags</span>
+          <div class="filter-pills filter-pills--tags" id="filterTagPills" aria-label="Filter by tag">
+            <span class="filter-pills__empty">No tags saved yet</span>
+          </div>
+        </div>
         <button id="filterClearBtn" class="filter-clear-btn">Clear filters</button>
       </div>
     </header>
@@ -316,22 +322,8 @@
           <path d="M13 10C12.9 10.3 13 10.6 13.2 10.9L13.3 11C13.4 11.2 13.5 11.4 13.5 11.6C13.5 11.8 13.4 12 13.3 12.2C13.1 12.6 12.7 12.9 12.2 12.9C12 12.9 11.8 12.8 11.6 12.7L11.5 12.6C11.2 12.4 10.9 12.3 10.6 12.4C10.3 12.5 10.1 12.7 10 13V13.2C10 13.6 9.8 14 9.5 14.2C9.3 14.4 9.2 14.5 8.9 14.5C8.6 14.5 8.4 14.4 8.2 14.2C7.8 13.9 7.5 13.5 7.5 13V12.9C7.4 12.6 7.2 12.4 6.9 12.3H6.8C6.5 12.2 6.2 12.3 5.9 12.5L5.8 12.6C5.6 12.7 5.4 12.8 5.2 12.8C5 12.8 4.8 12.7 4.6 12.6C4.2 12.3 3.9 11.9 3.9 11.4C3.9 11.2 4 11 4.1 10.8L4.2 10.7C4.4 10.4 4.5 10.1 4.4 9.8C4.3 9.5 4.1 9.3 3.8 9.2H3.6C3.2 9.2 2.8 9 2.6 8.7C2.4 8.5 2.3 8.2 2.3 7.9C2.3 7.6 2.4 7.4 2.6 7.2C2.9 6.8 3.3 6.5 3.8 6.5H3.9C4.2 6.4 4.4 6.2 4.5 5.9V5.8C4.6 5.5 4.5 5.2 4.3 4.9L4.2 4.8C4.1 4.6 4 4.4 4 4.2C4 4 4.1 3.8 4.2 3.6C4.5 3.2 4.9 2.9 5.4 2.9C5.6 2.9 5.8 3 6 3.1L6.1 3.2C6.4 3.4 6.7 3.5 7 3.4C7.3 3.3 7.5 3.1 7.6 2.8V2.6C7.6 2.2 7.8 1.8 8.1 1.6C8.3 1.4 8.6 1.3 8.9 1.3C9.2 1.3 9.4 1.4 9.6 1.6C10 1.9 10.3 2.3 10.3 2.8V2.9C10.4 3.2 10.6 3.4 10.9 3.5C11.2 3.6 11.5 3.5 11.8 3.3L11.9 3.2C12.1 3.1 12.3 3 12.5 3C12.7 3 12.9 3.1 13.1 3.2C13.5 3.5 13.8 3.9 13.8 4.4C13.8 4.6 13.7 4.8 13.6 5L13.5 5.1C13.3 5.4 13.2 5.7 13.3 6C13.4 6.3 13.6 6.5 13.9 6.6H14.1C14.5 6.6 14.9 6.8 15.1 7.1C15.3 7.3 15.4 7.6 15.4 7.9C15.4 8.2 15.3 8.4 15.1 8.6C14.8 9 14.4 9.3 13.9 9.3H13.8C13.5 9.4 13.3 9.6 13.2 9.9V10H13Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         </button>
-        <button id="themeBtn" class="btn-icon" title="Change theme">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 2C4.69 2 2 4.69 2 8C2 11.31 4.69 14 8 14C8.83 14 9.5 13.33 9.5 12.5C9.5 12.11 9.35 11.76 9.1 11.49C8.87 11.23 8.72 10.89 8.72 10.5C8.72 9.67 9.39 9 10.22 9H12C13.1 9 14 8.1 14 7C14 4.24 11.31 2 8 2Z" stroke="currentColor" stroke-width="1.2"/>
-            <circle cx="5.5" cy="6.5" r="1" fill="currentColor"/>
-            <circle cx="8" cy="5" r="1" fill="currentColor"/>
-            <circle cx="10.5" cy="6.5" r="1" fill="currentColor"/>
-          </svg>
-        </button>
       </div>
     </footer>
-  </div>
-
-  <!-- Theme Picker flyout -->
-  <div id="themePicker" class="theme-picker" aria-hidden="true">
-    <p class="theme-picker__header">Theme</p>
-    <div id="themePickerGrid"></div>
   </div>
 
   <!-- Context Menu (hidden by default) -->
@@ -495,14 +487,14 @@
             <label class="settings-row__label" for="logLevelSelect">Log level</label>
             <select id="logLevelSelect" class="settings-select" aria-label="Log level">
               <option value="ALL">All</option>
-              <option value="TRACE">Trace</option>
+              <option value="DEBUG">Debug</option>
               <option value="INFO"  selected>Info</option>
               <option value="WARN">Warning</option>
               <option value="ERROR">Error</option>
               <option value="OFF">Off</option>
             </select>
           </div>
-          <p class="settings-hint">Controls how much bAInder writes to the browser DevTools console. <strong>Info</strong> is the default. Use <strong>All</strong> or <strong>Trace</strong> for verbose troubleshooting output.</p>
+          <p class="settings-hint">Controls how much bAInder writes to the browser DevTools console. <strong>Info</strong> is the default. Use <strong>All</strong> or <strong>Debug</strong> for verbose troubleshooting output.</p>
         </section>
 
       </div>
