@@ -17,7 +17,7 @@ describe('TreeRenderer', () => {
     const emptyState = document.createElement('div');
     emptyState.id = 'emptyState';
     emptyState.style.display = 'flex';
-    document.body.appendChild(emptyState);
+    container.appendChild(emptyState);
 
     // Create item count element
     const itemCount = document.createElement('span');
@@ -60,8 +60,8 @@ describe('TreeRenderer', () => {
       renderer = new TreeRenderer(container, null);
       renderer.render();
       
-      expect(container.innerHTML).toBe('');
       const emptyState = document.getElementById('emptyState');
+      expect(container.contains(emptyState)).toBe(true);
       expect(emptyState.style.display).toBe('flex');
     });
 
@@ -69,9 +69,31 @@ describe('TreeRenderer', () => {
       renderer = new TreeRenderer(container, tree);
       renderer.render();
       
-      expect(container.innerHTML).toBe('');
       const emptyState = document.getElementById('emptyState');
+      expect(container.contains(emptyState)).toBe(true);
       expect(emptyState.style.display).toBe('flex');
+    });
+
+    it('should expand collapsed toc section when rendering empty state', () => {
+      const tocSection = document.createElement('section');
+      tocSection.className = 'toc-section section--collapsed';
+
+      const tocCollapseBtn = document.createElement('button');
+      tocCollapseBtn.id = 'tocCollapseBtn';
+      tocCollapseBtn.setAttribute('aria-expanded', 'false');
+
+      tocSection.appendChild(tocCollapseBtn);
+      document.body.appendChild(tocSection);
+      tocSection.appendChild(container);
+
+      localStorage.setItem('toc-collapsed', '1');
+
+      renderer = new TreeRenderer(container, tree);
+      renderer.render();
+
+      expect(tocSection.classList.contains('section--collapsed')).toBe(false);
+      expect(tocCollapseBtn.getAttribute('aria-expanded')).toBe('true');
+      expect(localStorage.getItem('toc-collapsed')).toBeNull();
     });
   });
 

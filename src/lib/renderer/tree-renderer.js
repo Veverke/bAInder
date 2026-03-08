@@ -215,6 +215,10 @@ export class TreeRenderer {
     const rootTopics = this.tree.getRootTopics();
     if (rootTopics.length === 0) { this.renderEmpty(); return; }
 
+    const emptyState = this.container.querySelector('#emptyState')
+      || document.getElementById('emptyState');
+    if (emptyState) emptyState.style.display = 'none';
+
     const flatNodes = this._flattenVisible();
     if (flatNodes.length > this.virtualThreshold && !this.multiSelectMode) {
       this.renderVirtual(flatNodes);
@@ -227,7 +231,9 @@ export class TreeRenderer {
     }
     this.container.classList.remove('tree-virtual-container');
     this.container.classList.toggle('tree-multiselect-active', this.multiSelectMode);
-    this.container.innerHTML = '';
+
+    // Keep #emptyState mounted so its inline SVG and listeners survive rerenders.
+    this.container.querySelectorAll(':scope > :not(#emptyState)').forEach(el => el.remove());
 
     const ul = document.createElement('ul');
     ul.className = 'tree-root';
@@ -261,15 +267,28 @@ export class TreeRenderer {
     });
 
     this.container.appendChild(ul);
-
-    const emptyState = document.getElementById('emptyState');
-    if (emptyState) emptyState.style.display = 'none';
   }
 
   renderEmpty() {
-    this.container.innerHTML = '';
-    const emptyState = document.getElementById('emptyState');
-    if (emptyState) emptyState.style.display = 'flex';
+    const emptyState = this.container.querySelector('#emptyState')
+      || document.getElementById('emptyState');
+    if (!emptyState) return;
+
+    // If the TOC body was persisted as collapsed, force it open for onboarding.
+    const tocSection = this.container.closest('.toc-section');
+    if (tocSection?.classList.contains('section--collapsed')) {
+      tocSection.classList.remove('section--collapsed');
+      const tocBtn = tocSection.querySelector('#tocCollapseBtn');
+      if (tocBtn) tocBtn.setAttribute('aria-expanded', 'true');
+      localStorage.removeItem('toc-collapsed');
+    }
+
+    if (emptyState.parentElement !== this.container) {
+      this.container.appendChild(emptyState);
+    }
+
+    this.container.querySelectorAll(':scope > :not(#emptyState)').forEach(el => el.remove());
+    emptyState.style.display = 'flex';
   }
 
   renderVirtual(flatNodes) {
