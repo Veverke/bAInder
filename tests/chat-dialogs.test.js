@@ -494,17 +494,17 @@ describe('ChatDialogs – showSetReviewDate', () => {
     const promise = chatDialogs.showSetReviewDate(chat);
 
     const dateInput = document.querySelector('[data-field="reviewDate"]');
-    dateInput.value = '2024-06-15';
+    dateInput.value = '2026-06-15';
     document.querySelector('[data-action="submit"]').click();
 
     const result = await promise;
     expect(result).not.toBeNull();
-    expect(result.reviewDate).toBe('2024-06-15');
+    expect(result.reviewDate).toBe('2026-06-15');
   });
 
   it('returns {reviewDate: null} when date field is cleared', async () => {
     const { chatDialogs } = setup();
-    const chat = makeChatEntry({ reviewDate: '2024-01-01' });
+    const chat = makeChatEntry({ reviewDate: '2026-01-01' });
     const promise = chatDialogs.showSetReviewDate(chat);
 
     const dateInput = document.querySelector('[data-field="reviewDate"]');
@@ -528,7 +528,7 @@ describe('ChatDialogs – showSetReviewDate', () => {
 
   it('shows "Update Review Date" title when chat already has a review date', async () => {
     const { chatDialogs } = setup();
-    const chat = makeChatEntry({ reviewDate: '2024-03-20' });
+    const chat = makeChatEntry({ reviewDate: '2026-03-20' });
     const promise = chatDialogs.showSetReviewDate(chat);
 
     expect(document.body.textContent).toContain('Update Review Date');

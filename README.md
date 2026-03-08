@@ -80,7 +80,6 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 
 ![bAInder themed screenshot 1](assets/screenshots/bAInder%20themed%20screenshot%201.png)
 ![bAInder themed screenshot 2](assets/screenshots/bAInder%20themed%20screenshot%202.png)
-![bAInder themed screenshot 3](assets/screenshots/bAInder%20themed%20screenshot%203.png)
 ![bAInder themed screenshot 4](assets/screenshots/bAInder%20themed%20screenshot%204.png)
 
 ---
@@ -185,7 +184,7 @@ Tests use Vitest and cover:
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
-**Copyright © 2024 Avraham Y. Kahana**
+**Copyright © 2026 Avraham Y. Kahana**
 
 You are free to use, modify, and distribute this software for any purpose, including commercial use, provided you include the original copyright notice and license text.
 

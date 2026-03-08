@@ -12,31 +12,31 @@ import {
 /** A well-formed bAInder export ZIP (simulated extracted entries). */
 const WELL_FORMED_ENTRIES = [
   {
-    path: 'bAInder-export-2024-03-15/_metadata.json',
+    path: 'bAInder-export-2026-03-15/_metadata.json',
     content: JSON.stringify({
       export_version: '1.0',
-      export_date: '2024-03-15T14:30:00Z',
+      export_date: '2026-03-15T14:30:00Z',
       bainder_version: '1.0.0',
       tree_structure: { total_chats: 2, total_topics: 2 },
     }),
   },
-  { path: 'bAInder-export-2024-03-15/README.md', content: '# bAInder Export\n...' },
+  { path: 'bAInder-export-2026-03-15/README.md', content: '# bAInder Export\n...' },
   {
-    path: 'bAInder-export-2024-03-15/Work/_topic.json',
+    path: 'bAInder-export-2026-03-15/Work/_topic.json',
     content: JSON.stringify({ name: 'Work', chatCount: 1 }),
   },
   {
-    path: 'bAInder-export-2024-03-15/Work/Projects/_topic.json',
+    path: 'bAInder-export-2026-03-15/Work/Projects/_topic.json',
     content: JSON.stringify({ name: 'Projects', chatCount: 1 }),
   },
   {
-    path: 'bAInder-export-2024-03-15/Work/Projects/project-alpha-discussion.md',
+    path: 'bAInder-export-2026-03-15/Work/Projects/project-alpha-discussion.md',
     content: [
       '---',
       'title: "Project Alpha Discussion"',
       'source: chatgpt',
       'url: https://chat.openai.com/c/abc',
-      'date: 2024-03-15T10:30:00Z',
+      'date: 2026-03-15T10:30:00Z',
       'topic: "Work > Projects"',
       'chat_id: chat-001',
       '---',
@@ -51,12 +51,12 @@ const WELL_FORMED_ENTRIES = [
     ].join('\n'),
   },
   {
-    path: 'bAInder-export-2024-03-15/Personal/budget-analysis.md',
+    path: 'bAInder-export-2026-03-15/Personal/budget-analysis.md',
     content: [
       '---',
       'title: "Budget Analysis"',
       'source: claude',
-      'date: 2024-03-10T08:00:00Z',
+      'date: 2026-03-10T08:00:00Z',
       '---',
       '',
       'Content here',
@@ -236,7 +236,7 @@ describe('parseZipEntries()', () => {
     const result = parseZipEntries(WELL_FORMED_ENTRIES);
     // No path should start with the export date folder
     for (const file of result.chatFiles) {
-      expect(file.path).not.toMatch(/^bAInder-export-2024-03-15/);
+      expect(file.path).not.toMatch(/^bAInder-export-2026-03-15/);
     }
   });
 
@@ -347,7 +347,7 @@ describe('parseChatFromMarkdown()', () => {
 
   it('parses the date field to a millisecond timestamp', () => {
     const chat = parseChatFromMarkdown(ALPHA_MD, 'project-alpha-discussion.md');
-    const expected = Date.parse('2024-03-15T10:30:00Z');
+    const expected = Date.parse('2026-03-15T10:30:00Z');
     expect(chat.timestamp).toBe(expected);
   });
 
@@ -461,7 +461,7 @@ describe('parseChatFromMarkdown()', () => {
       '---',
       'title: "Exported Chat"',
       'source: chatgpt',
-      'exported: 2024-06-01T12:00:00Z',
+      'exported: 2026-06-01T12:00:00Z',
       '---',
       'Content',
     ].join('\n');
@@ -622,7 +622,7 @@ describe('buildImportPlan() — merge strategy', () => {
       '---',
       'title: "Duplicate Chat"',
       'source: chatgpt',
-      'date: 2024-03-15T10:30:00Z',
+      'date: 2026-03-15T10:30:00Z',
       '---',
       'Content A',
     ].join('\n');

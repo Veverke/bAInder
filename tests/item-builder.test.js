@@ -200,9 +200,9 @@ describe('buildChatItem', () => {
   });
 
   it('stale badge title includes reviewDate when provided', () => {
-    const li = buildChatItem(makeChat({ flaggedAsStale: true, reviewDate: '2024-01-01' }), 0, ctx);
+    const li = buildChatItem(makeChat({ flaggedAsStale: true, reviewDate: '2026-01-01' }), 0, ctx);
     const badge = li.querySelector('.tree-stale-badge');
-    expect(badge.title).toContain('2024-01-01');
+    expect(badge.title).toContain('2026-01-01');
   });
 
   it('renders tag chips when tags are present', () => {
@@ -492,11 +492,11 @@ describe('buildTopicNode', () => {
   });
 
   it('renders timespan badge when getDateRangeString returns non-empty', () => {
-    const topic = makeTopic({ getDateRangeString: vi.fn(() => 'Jan 2024 – Mar 2024') });
+    const topic = makeTopic({ getDateRangeString: vi.fn(() => 'Jan 2026 – Mar 2026') });
     const li = buildTopicNode(topic, 0, ctx);
     const badge = li.querySelector('.tree-timespan');
     expect(badge).not.toBeNull();
-    expect(badge.textContent).toBe('Jan 2024 – Mar 2024');
+    expect(badge.textContent).toBe('Jan 2026 – Mar 2026');
   });
 
   it('does not render timespan badge when getDateRangeString returns empty', () => {

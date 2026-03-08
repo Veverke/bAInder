@@ -123,7 +123,7 @@ export class Topic {
   }
 
   /**
-   * Return a human-readable date-range string such as "Jan 2024 - Mar 2024"
+   * Return a human-readable date-range string such as "Jan 2026 - Mar 2026"
    * or null when the topic has no chats.
    * @returns {string|null}
    */
