@@ -5,9 +5,8 @@
  * Injected into ChatGPT, Claude, and Gemini pages.
  * Detects platform, extracts chat content, injects "Save to bAInder" button.
  *
- * Bundled by Vite — ES module imports at the top of this file are resolved at
- * build time and inlined into the output bundle (a plain IIFE), so content
- * scripts work without requiring "type":"module" in the manifest.
+ * Bundled by Vite as a classic content script. Keep this file dependency-light
+ * so the output remains self-contained and avoids top-level `import` in dist.
  * The extraction logic is inlined from src/content/chat-extractor.js.
  */
 
@@ -15,7 +14,13 @@
 // Using it directly avoids ES module output (import statements) which can fail on some sites.
 const browser = chrome;
 
-import { logger } from '../lib/utils/logger.js';
+// Local logger shim: keeps this bundle standalone (no cross-file imports).
+const logger = {
+  debug: (...args) => console.debug(...args),
+  info: (...args) => console.info(...args),
+  warn: (...args) => console.warn(...args),
+  error: (...args) => console.error(...args)
+};
 
 (function bAInderContentScript() {
   'use strict';
