@@ -304,6 +304,19 @@ export function renderMarkdown(markdown) {
     }
 
     // â”€â”€ Blockquote â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    // Assembled-chat section divider (===) -- marks where one chat ends, next begins
+    if (/^={3,}\s*$/.test(line)) {
+      flushPara(paraBuf); paraBuf = '';
+      flushList();
+      htmlParts.push(
+        '<div class="chat-section-divider" role="separator" aria-label="Chat boundary">' +
+          '<span class="chat-section-divider__label">next chat</span>' +
+        '</div>'
+      );
+      i++;
+      continue;
+    }
     if (/^>\s?/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
