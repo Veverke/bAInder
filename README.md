@@ -66,7 +66,7 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 
 ---
 
-## � Screenshots
+## Screenshots
 
 ### Extension Side Panel
 
@@ -84,7 +84,7 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 
 ---
 
-## �🚀 Installation
+## 🚀 Installation
 
 ### 🌐 Chrome
 1. Go to `chrome://extensions` and enable **Developer mode**
@@ -104,7 +104,7 @@ npm run build:all   # produces dist/chrome/ and dist/edge/
 
 ---
 
-## �️ Contributing & Development
+## Contributing & Development
 
 ### Getting Started
 
@@ -180,7 +180,7 @@ Tests use Vitest and cover:
 
 ---
 
-## �📄 License
+## 📄 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
