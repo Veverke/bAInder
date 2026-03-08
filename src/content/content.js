@@ -15,6 +15,8 @@
 // Using it directly avoids ES module output (import statements) which can fail on some sites.
 const browser = chrome;
 
+import { logger } from '../lib/utils/logger.js';
+
 (function bAInderContentScript() {
   'use strict';
 
@@ -67,7 +69,7 @@ const browser = chrome;
         scrollEl.scrollTo({ top: savedTop, left: savedLeft, behavior: 'instant' });
         if (!response?.dataUrl) { resolve(null); return; }
         window.__bAInderDesignerImages[iframeid] = response.dataUrl;
-        console.debug('[bAInder] Captured Designer image for', iframeid,
+        logger.debug('[bAInder] Captured Designer image for', iframeid,
           '(' + Math.round(rect.width) + 'x' + Math.round(rect.height) + ')');
         resolve(response.dataUrl);
       }).catch(() => {
@@ -625,41 +627,265 @@ const browser = chrome;
 
   function extractCopilot(doc) {
     const messages = [];
+    const DBG = '[extractCopilot]';
 
     // Scope to the main conversation area so sidebar history items are excluded.
-    const chatScope =
-      doc.querySelector('main') ||
-      doc.querySelector('[role="main"]') ||
-      doc.querySelector('[class*="conversation"][class*="container"]') ||
-      doc;
-
-    const inHistoryPanel = el =>
-      !!el.closest('aside, [role="complementary"], [role="navigation"], [class*="history"], [class*="sidebar"]');
-
-    const userSelectors = [
-      '[data-testid="user-message"]',
-      '.UserMessage', '[class*="UserMessage"]', '[class*="user-message"]',
-      '[class*="userMessage"]', '[class*="HumanMessage"]', '[class*="human-message"]',
-      '[data-author-role="user"]', '[data-content-type="user"]',
-      '[aria-label*="You said"]', '[aria-label*="you said"]',
+    const scopeCandidates = [
+      { sel: '[data-testid="chat-page"]',                   label: '[data-testid="chat-page"]' },
+      { sel: 'main',                                        label: 'main' },
+      { sel: '[role="main"]',                               label: '[role="main"]' },
+      { sel: '[class*="conversation"][class*="container"]', label: '[class*="conversation"][class*="container"]' },
     ];
-    const assistantSelectors = [
-      '[data-testid="ai-message"]', '[data-testid="copilot-message"]', '[data-testid="assistant-message"]',
-      '[class*="ai-message"]', '[class*="CopilotMessage"]', '[class*="AssistantMessage"]', '[class*="copilot-message"]',
-      '[class*="botMessage"]',   '[class*="BotMessage"]',   '[class*="bot-message"]',
-      '[data-author-role="assistant"]', '[data-author-role="bot"]',
-      '[aria-label*="Copilot said"]', '[aria-label*="Copilot:"]',
-    ];
+    let chatScope = doc;
+    let chatScopeLabel = 'document (fallback)';
+    for (const { sel, label } of scopeCandidates) {
+      const el = doc.querySelector(sel);
+      if (el) { chatScope = el; chatScopeLabel = label; break; }
+    }
+    logger.debug(`${DBG} chatScope: ${chatScopeLabel}`, {
+      tag:        chatScope === doc ? 'document' : chatScope.tagName,
+      id:         chatScope.id || '',
+      class:      (typeof chatScope.className === 'string' ? chatScope.className : '').slice(0, 120),
+      role:       chatScope.getAttribute ? (chatScope.getAttribute('role') || '') : '',
+      childCount: chatScope.children ? chatScope.children.length : 0,
+    });
 
-    const dedup = els => [...new Set(els)];
-    const rawUserEls = dedup(userSelectors.flatMap(sel => {
-      try { return Array.from(chatScope.querySelectorAll(sel)); } catch (_) { return []; }
-    })).filter(el => !inHistoryPanel(el));
-    const rawCopilotEls = dedup(assistantSelectors.flatMap(sel => {
-      try { return Array.from(chatScope.querySelectorAll(sel)); } catch (_) { return []; }
-    })).filter(el => !inHistoryPanel(el));
-    
-    console.log(`[extractCopilot] Found ${rawUserEls.length} user messages, ${rawCopilotEls.length} assistant messages`);
+    // Returns the specific predicate selector that matches, or null if the element
+    // is NOT inside a history/sidebar panel. Returning the string (not just bool)
+    // lets the debug logging show exactly which predicate fires.
+    const HISTORY_PANEL_PREDICATES = [
+      'aside',
+      '[role="complementary"]',
+      '[role="navigation"]',
+      '[class*="history"]',
+      '[data-testid="sidebar-container"]',
+      '[data-testid="backstage-chats"]',
+      '[data-testid="highlighted-chats"]',
+      '[data-testid="sidebar-expanded-content"]',
+    ];
+    const inHistoryPanel = el => {
+      for (const sel of HISTORY_PANEL_PREDICATES) {
+        if (el.closest(sel)) return sel;
+      }
+      return null;
+    };
+    const inHistoryPanelBool = el => !!inHistoryPanel(el);
+
+    // ── Fast path: data-content attributes are stable, Copilot-assigned semantic
+    // markers that only appear on real conversation messages (confirmed: sidebar
+    // history items do NOT carry these attributes).  Skip inHistoryPanel entirely.
+    const trustedUserEls   = Array.from(doc.querySelectorAll('[data-content="user-message"]'));
+    const trustedAssistEls = Array.from(doc.querySelectorAll('[data-content="ai-message"]'));
+
+    let rawUserEls, rawCopilotEls;
+
+    if (trustedUserEls.length > 0 || trustedAssistEls.length > 0) {
+      rawUserEls    = trustedUserEls;
+      rawCopilotEls = trustedAssistEls;
+      logger.debug(`${DBG} Fast path via data-content: ${rawUserEls.length} user, ${rawCopilotEls.length} assistant`);
+    } else {
+      // ── Fallback: broad class/testid selectors + history-panel filtering ──
+      logger.debug(`${DBG} data-content not found — falling back to broad selectors`);
+
+      // Returns the specific predicate selector that matched, or null.
+      const HISTORY_PANEL_PREDICATES = [
+        'aside',
+        '[role="complementary"]',
+        '[role="navigation"]',
+        '[class*="history"]',
+        '[data-testid="sidebar-container"]',
+        '[data-testid="backstage-chats"]',
+        '[data-testid="highlighted-chats"]',
+        '[data-testid="sidebar-expanded-content"]',
+      ];
+      const inHistoryPanel     = el => { for (const s of HISTORY_PANEL_PREDICATES) { if (el.closest(s)) return s; } return null; };
+      const inHistoryPanelBool = el => !!inHistoryPanel(el);
+
+      const userSelectors = [
+        '[class~="group/user-message"]',
+        '[data-testid="user-message"]',
+        '.UserMessage', '[class*="UserMessage"]', '[class*="user-message"]',
+        '[class*="userMessage"]', '[class*="HumanMessage"]', '[class*="human-message"]',
+        '[data-author-role="user"]', '[data-content-type="user"]',
+        '[aria-label*="You said"]', '[aria-label*="you said"]',
+      ];
+      const assistantSelectors = [
+        '[class~="group/ai-message-item"]',
+        '[class~="group/ai-message"]',
+        '[data-testid="ai-message"]', '[data-testid="copilot-message"]', '[data-testid="assistant-message"]',
+        '[class*="ai-message"]', '[class*="CopilotMessage"]', '[class*="AssistantMessage"]', '[class*="copilot-message"]',
+        '[class*="botMessage"]',   '[class*="BotMessage"]',   '[class*="bot-message"]',
+        '[data-author-role="assistant"]', '[data-author-role="bot"]',
+        '[aria-label*="Copilot said"]', '[aria-label*="Copilot:"]',
+      ];
+
+      // Log per-selector hits.
+      const userSelectorHits = [];
+      userSelectors.forEach(sel => {
+        try {
+          const inScope = chatScope.querySelectorAll(sel).length;
+          const inDoc   = doc.querySelectorAll(sel).length;
+          if (inScope > 0 || inDoc > 0) userSelectorHits.push({ sel, inScope, inDoc });
+        } catch (e) { userSelectorHits.push({ sel, error: e.message }); }
+      });
+      logger.debug(userSelectorHits.length > 0
+        ? `${DBG} User selectors with hits:` : `${DBG} User selectors: NO HITS`,
+        userSelectorHits);
+
+      const assistSelectorHits = [];
+      assistantSelectors.forEach(sel => {
+        try {
+          const inScope = chatScope.querySelectorAll(sel).length;
+          const inDoc   = doc.querySelectorAll(sel).length;
+          if (inScope > 0 || inDoc > 0) assistSelectorHits.push({ sel, inScope, inDoc });
+        } catch (e) { assistSelectorHits.push({ sel, error: e.message }); }
+      });
+      logger.debug(assistSelectorHits.length > 0
+        ? `${DBG} Assistant selectors with hits:` : `${DBG} Assistant selectors: NO HITS`,
+        assistSelectorHits);
+
+      const dedup = els => [...new Set(els)];
+      const rawUserElsAll = dedup(userSelectors.flatMap(sel => {
+        try { return Array.from(chatScope.querySelectorAll(sel)); } catch (_) { return []; }
+      }));
+      const rawCopilotElsAll = dedup(assistantSelectors.flatMap(sel => {
+        try { return Array.from(chatScope.querySelectorAll(sel)); } catch (_) { return []; }
+      }));
+
+      const ancestorChain = el => {
+        const chain = [];
+        let cur = el.parentElement;
+        for (let i = 0; i < 6 && cur && cur !== doc.documentElement; i++, cur = cur.parentElement) {
+          chain.push({ tag: cur.tagName, testid: cur.getAttribute('data-testid') || '', role: cur.getAttribute('role') || '', class: (typeof cur.className === 'string' ? cur.className : '').split(' ').slice(0, 4).join(' ') });
+        }
+        return chain;
+      };
+
+      const userFilteredOut   = rawUserElsAll.filter(el => inHistoryPanelBool(el));
+      const assistFilteredOut = rawCopilotElsAll.filter(el => inHistoryPanelBool(el));
+      if (userFilteredOut.length > 0) {
+        logger.debug(`${DBG} ${userFilteredOut.length} user element(s) removed by inHistoryPanel:`,
+          userFilteredOut.slice(0, 5).map(el => ({ tag: el.tagName, testid: el.getAttribute('data-testid') || '', class: (el.className || '').slice(0, 80), triggeringPred: inHistoryPanel(el), ancestors: ancestorChain(el) })));
+      }
+      if (assistFilteredOut.length > 0) {
+        logger.debug(`${DBG} ${assistFilteredOut.length} assistant element(s) removed by inHistoryPanel:`,
+          assistFilteredOut.slice(0, 5).map(el => ({ tag: el.tagName, testid: el.getAttribute('data-testid') || '', class: (el.className || '').slice(0, 80), triggeringPred: inHistoryPanel(el), ancestors: ancestorChain(el) })));
+      }
+
+      rawUserEls    = rawUserElsAll.filter(el => !inHistoryPanelBool(el));
+      rawCopilotEls = rawCopilotElsAll.filter(el => !inHistoryPanelBool(el));
+    }
+
+    logger.debug(`${DBG} Found ${rawUserEls.length} user messages, ${rawCopilotEls.length} assistant messages`);
+
+    // ── DOM fingerprint: runs when no messages are found ──────────────────
+    // This dumps actionable clues about what the current Copilot DOM looks like
+    // so the selectors can be updated to match the new structure.
+    if (rawUserEls.length === 0 && rawCopilotEls.length === 0) {
+      logger.debug(`${DBG} ⚠ No messages matched — dumping DOM fingerprint to help fix selectors:`);
+
+      // 1. All data-testid values that are message/chat related
+      const testIdEls = Array.from(doc.querySelectorAll('[data-testid]'))
+        .filter(el => /message|user|bot|ai|assistant|copilot|human|turn|chat|query|response|thread|bubble/i
+          .test(el.getAttribute('data-testid') || ''));
+      logger.debug(`${DBG} [data-testid] message-related (${testIdEls.length}):`,
+        testIdEls.slice(0, 15).map(el => ({
+          testid: el.getAttribute('data-testid'),
+          tag:    el.tagName,
+          class:  (el.className || '').slice(0, 80),
+        })));
+
+      // 2. All data-testid values seen on the page (top 40, sorted)
+      const allTestIds = [...new Set(
+        Array.from(doc.querySelectorAll('[data-testid]'))
+          .map(el => el.getAttribute('data-testid') || '')
+          .filter(Boolean)
+      )].sort();
+      logger.debug(`${DBG} All data-testid values on page (${allTestIds.length}):`, allTestIds.slice(0, 40));
+
+      // 3. Class-name tokens that look like message containers
+      const msgClassTokens = [...new Set(
+        Array.from(doc.querySelectorAll('*'))
+          .flatMap(el => {
+            const c = typeof el.className === 'string' ? el.className : '';
+            return c.split(/\s+/).filter(t =>
+              /message|usermsg|botmsg|humanmsg|copilot|assistant|ai-|bubble|turn|chat[-_]?item|query|response/i.test(t)
+            );
+          })
+      )].sort();
+      logger.debug(`${DBG} Message-related class tokens in DOM (${msgClassTokens.length}):`, msgClassTokens.slice(0, 40));
+
+      // 4. Elements with ARIA roles that typically wrap conversation content
+      ['feed', 'log', 'list', 'listitem', 'article', 'region'].forEach(role => {
+        const els = Array.from(doc.querySelectorAll(`[role="${role}"]`));
+        if (els.length > 0) {
+          logger.debug(`${DBG} [role="${role}"] (${els.length}):`,
+            els.slice(0, 5).map(el => ({
+              tag:       el.tagName,
+              class:     (el.className || '').slice(0, 80),
+              ariaLabel: el.getAttribute('aria-label') || '',
+              testid:    el.getAttribute('data-testid') || '',
+              childCount: el.children.length,
+            })));
+        }
+      });
+
+      // 5. Elements with data-author-role / data-message-* / data-content-type
+      ['[data-author-role]', '[data-message-author-role]', '[data-content-type]', '[data-message-id]'].forEach(attrSel => {
+        const els = Array.from(doc.querySelectorAll(attrSel));
+        if (els.length > 0) {
+          const attrName = attrSel.replace(/[\[\]]/g, '').split('=')[0];
+          logger.debug(`${DBG} ${attrSel} (${els.length}):`,
+            els.slice(0, 8).map(el => ({
+              value: el.getAttribute(attrName),
+              tag:   el.tagName,
+              class: (el.className || '').slice(0, 80),
+            })));
+        }
+      });
+
+      // 6. aria-label elements mentioning "said", "message", "Copilot", "You"
+      const ariaLabelEls = Array.from(doc.querySelectorAll('[aria-label]'))
+        .filter(el => /said|message|copilot|you said|assistant/i.test(el.getAttribute('aria-label') || ''));
+      if (ariaLabelEls.length > 0) {
+        logger.debug(`${DBG} aria-label conversation elements (${ariaLabelEls.length}):`,
+          ariaLabelEls.slice(0, 10).map(el => ({
+            ariaLabel: el.getAttribute('aria-label'),
+            tag:       el.tagName,
+            class:     (el.className || '').slice(0, 80),
+          })));
+      }
+
+      // 7. Direct children of chatScope — structural overview of the conversation area
+      const scopeChildren = Array.from(chatScope.children || []).slice(0, 20);
+      logger.debug(`${DBG} chatScope direct children (${chatScope.children?.length || 0}):`,
+        scopeChildren.map(el => ({
+          tag:        el.tagName,
+          id:         el.id || '',
+          class:      (el.className || '').slice(0, 100),
+          role:       el.getAttribute('role') || '',
+          testid:     el.getAttribute('data-testid') || '',
+          ariaLabel:  el.getAttribute('aria-label') || '',
+          childCount: el.children.length,
+        })));
+
+      // 8. Second-level children of chatScope (the first few in each direct child)
+      logger.debug(`${DBG} chatScope grandchildren (first 3 per child, first 5 children):`);
+      Array.from(chatScope.children || []).slice(0, 5).forEach((child, ci) => {
+        const grandkids = Array.from(child.children).slice(0, 3);
+        if (grandkids.length > 0) {
+          logger.debug(`  child[${ci}] ${child.tagName}.${(child.className||'').split(' ')[0]} grandchildren:`,
+            grandkids.map(el => ({
+              tag:       el.tagName,
+              class:     (el.className || '').slice(0, 100),
+              role:      el.getAttribute('role') || '',
+              testid:    el.getAttribute('data-testid') || '',
+              ariaLabel: el.getAttribute('aria-label') || '',
+              childCount: el.children.length,
+            })));
+        }
+      });
+    }
 
     const userEls    = removeDescendants(rawUserEls);
     const copilotEls = removeDescendants(rawCopilotEls);
@@ -784,7 +1010,7 @@ const browser = chrome;
           if (window.__bAInderDesignerImages?.[iframeid]) continue; // already cached
           const liveIframe = document.querySelector(`iframe[src*="iframeid=${iframeid}"]`);
           if (!liveIframe) continue;
-          console.debug('[bAInder] On-demand capture for Designer iframe (contextmenu)', iframeid);
+          logger.debug('[bAInder] On-demand capture for Designer iframe (contextmenu)', iframeid);
           capturePromises.push(captureDesignerIframe(iframeid, liveIframe));
         } catch (_) {}
       }
@@ -813,7 +1039,7 @@ const browser = chrome;
         data: { markdown }
       }).catch(() => {});
     } catch (err) {
-      console.error('[bAInder] contextmenu error:', err);
+      logger.error('[bAInder] contextmenu error:', err);
     }
   });
 
@@ -910,7 +1136,7 @@ const browser = chrome;
   function onUrlChange() {
     const currentUrl = document.location.href;
     if (currentUrl === lastUrl) return;
-    console.debug('[bAInder] URL change detected', { from: lastUrl, to: currentUrl });
+    logger.debug('[bAInder] URL change detected', { from: lastUrl, to: currentUrl });
     lastUrl = currentUrl;
     initContentScript();
   }
@@ -932,11 +1158,11 @@ const browser = chrome;
   function initContentScript() {
     const platform = detectPlatform(window.location.hostname);
     if (!platform) {
-      console.debug('[bAInder] Not on a supported AI chat platform');
+      logger.debug('[bAInder] Not on a supported AI chat platform');
       return;
     }
-    console.info('[bAInder] Platform detected:', platform);
-    console.info('[bAInder] Content script ready');
+    logger.info('[bAInder] Platform detected:', platform);
+    logger.info('[bAInder] Content script ready');
   }
 
   if (document.readyState === 'loading') {
@@ -945,6 +1171,6 @@ const browser = chrome;
     initContentScript();
   }
 
-  console.info('[bAInder] Content script loaded on:', window.location.hostname);
+  logger.info('[bAInder] Content script loaded on:', window.location.hostname);
 
 })(); // end IIFE

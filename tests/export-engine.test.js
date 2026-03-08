@@ -1215,7 +1215,7 @@ describe('buildDigestMarkdown()', () => {
 
   it('uses === separator between chats', () => {
     const md = buildDigestMarkdown(digestChats, mockTopicsMap);
-    expect(md).toContain('===');
+    expect(md).toMatch(/^={3,}\s*$/m);
   });
 
   it('forAssembly option uses messagesToMarkdown for messages', () => {

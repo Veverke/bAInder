@@ -149,9 +149,6 @@ export class ChromeStorageAdapter extends IStorageService {
    */
   async searchChats(query, chats = null) {
     try {
-      // ── Early-exit ───────────────────────────────────────────────────────
-      if (!query) return [];
-
       // ── Resolve chats array ──────────────────────────────────────────────
       // Prefer the caller-supplied in-memory array so the storage read can be
       // skipped entirely for every keystroke after the initial load.
@@ -162,6 +159,9 @@ export class ChromeStorageAdapter extends IStorageService {
         const result = await browser.storage.local.get(this.KEYS.CHATS);
         chatList = result[this.KEYS.CHATS] || [];
       }
+
+      // ── Filter-only mode: no query text, return all chats unranked ───────
+      if (!query) return chatList.filter(Boolean);
 
       // ── Filter → rank → cap ──────────────────────────────────────────────
       const lowerQuery = query.toLowerCase();
@@ -249,11 +249,13 @@ export class ChromeStorageAdapter extends IStorageService {
    */
   async getStorageUsage(counts = null) {
     try {
-      // Use the browser-reported quota when available (non-null only when
-      // the browser actually enforces a limit).  With the unlimitedStorage
-      // permission QUOTA_BYTES is undefined, so we set bytesQuota to null
-      // and avoid displaying a fabricated denominator.
-      const quota = browser.storage.local.QUOTA_BYTES ?? null;
+      // This extension declares unlimitedStorage in its manifest, so Chrome
+      // does not enforce any quota.  QUOTA_BYTES is a fixed constant on the
+      // API object (10 MB) that Chrome never clears even when the permission
+      // is granted, so reading it produces a misleading denominator.  We
+      // always treat bytesQuota as null (unlimited) so the display shows
+      // "X.XX MB used" with no fabricated ceiling.
+      const quota = null;
 
       if (counts !== null) {
         // ── Fast path: caller supplied in-memory counts ─────────────────────
@@ -262,7 +264,7 @@ export class ChromeStorageAdapter extends IStorageService {
         return {
           bytesUsed:   bytesInUse,
           bytesQuota:  quota,
-          percentUsed: quota !== null ? (bytesInUse / quota) * 100 : null,
+          percentUsed: null,
           topicCount:  counts.topicCount,
           chatCount:   counts.chatCount,
         };
@@ -281,7 +283,7 @@ export class ChromeStorageAdapter extends IStorageService {
       return {
         bytesUsed:   bytesInUse,
         bytesQuota:  quota,
-        percentUsed: quota !== null ? (bytesInUse / quota) * 100 : null,
+        percentUsed: null,
         topicCount:  Object.keys(tree.topics || {}).length,
         chatCount:   chats.length,
       };

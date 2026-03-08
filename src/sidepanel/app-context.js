@@ -37,7 +37,6 @@ export const elements = {
   saveBanner:           document.getElementById('saveBanner'),
   saveBtn:              document.getElementById('saveChatBtn'),
   saveBannerMsg:        document.getElementById('saveBannerMsg'),
-  themeBtn:             document.getElementById('themeBtn'),
   // C.9 — sort selector
   topicSortSelect:      document.getElementById('topicSortSelect'),
   // C.3 — search filter bar
@@ -49,6 +48,7 @@ export const elements = {
   filterTopicScope:     document.getElementById('filterTopicScope'),
   filterClearBtn:       document.getElementById('filterClearBtn'),
   filterRatingPills:    document.getElementById('filterRatingPills'),
+  filterTagPills:       document.getElementById('filterTagPills'),
   // C.10 — backup reminder
   backupReminderBanner: document.getElementById('backupReminderBanner'),
   backupReminderMsg:    document.getElementById('backupReminderMsg'),
@@ -95,7 +95,8 @@ export const state = {
     dateFrom:  null,        // 'YYYY-MM-DD' or null
     dateTo:    null,        // 'YYYY-MM-DD' or null
     topicId:   '',          // '' = all topics
-    minRating: null         // C.15 — 1–5 or null
+    minRating: null,        // C.15 — 1–5 or null
+    tags:      new Set()    // active tag strings (empty = all)
   },
 
   // C.9 — topic sort mode (persisted to localStorage)

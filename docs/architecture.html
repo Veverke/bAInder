@@ -795,7 +795,7 @@ const LAYERS = {
   sidepanel: {
     title: 'Side Panel (UI Shell)',
     desc:  'The main extension interface. Bootstrapped by sidepanel.js which wires up controllers, services, and feature modules — each with a clearly bounded responsibility.',
-    components: ['sp-sidepanel','sp-app-context','sp-tree-ctrl','sp-search-ctrl','sp-topic-actions','sp-chat-actions','sp-ie-actions','sp-chat-repo','sp-msg-validator','sp-reminder-prefs','sp-storage-sync','sp-save-banner','sp-backup-reminder','sp-theme-picker','sp-multi-select','sp-settings-panel','sp-recent-rail','sp-storage-usage','sp-notification'],
+    components: ['sp-sidepanel','sp-app-context','sp-tree-ctrl','sp-search-ctrl','sp-topic-actions','sp-chat-actions','sp-ie-actions','sp-chat-repo','sp-msg-validator','sp-reminder-prefs','sp-storage-sync','sp-save-banner','sp-backup-reminder','sp-multi-select','sp-settings-panel','sp-recent-rail','sp-storage-usage','sp-notification'],
   },
   reader: {
     title: 'Reader',
@@ -805,7 +805,7 @@ const LAYERS = {
   lib: {
     title: 'Shared Library',
     desc:  'Pure, side-effect-free modules imported by all other layers. Contains all domain logic and data structures.',
-    components: ['lib-storage','lib-tree','lib-tree-renderer','lib-chat-manager','lib-export-engine','lib-import-parser','lib-markdown-ser','lib-search-utils','lib-annotations','lib-sticky-notes','lib-sticky-ui','lib-dialog-manager','lib-chat-dialogs','lib-topic-dialogs','lib-export-dialog','lib-import-dialog','lib-style-transformer','lib-url-utils','lib-useTheme','lib-theme-sdk','lib-logger'],
+    components: ['lib-storage','lib-tree','lib-tree-renderer','lib-chat-manager','lib-export-engine','lib-import-parser','lib-markdown-ser','lib-search-utils','lib-annotations','lib-sticky-notes','lib-sticky-ui','lib-dialog-manager','lib-chat-dialogs','lib-topic-dialogs','lib-export-dialog','lib-import-dialog','lib-style-transformer','lib-url-utils','lib-logger'],
   },
 };
 
@@ -1077,7 +1077,7 @@ const COMPONENTS = {
       'Handles the CHAT_SAVED message from background (re-renders tree & recent rail)',
       'Intentionally thin — no business logic lives here',
     ],
-    deps: ['sp-app-context','sp-tree-ctrl','sp-search-ctrl','sp-topic-actions','sp-chat-actions','sp-ie-actions','sp-chat-repo','sp-reminder-prefs','sp-storage-sync','sp-msg-validator','sp-save-banner','sp-backup-reminder','sp-theme-picker','sp-multi-select','sp-settings-panel','sp-recent-rail','sp-storage-usage','sp-notification','lib-storage','lib-dialog-manager','lib-useTheme'],
+    deps: ['sp-app-context','sp-tree-ctrl','sp-search-ctrl','sp-topic-actions','sp-chat-actions','sp-ie-actions','sp-chat-repo','sp-reminder-prefs','sp-storage-sync','sp-msg-validator','sp-save-banner','sp-backup-reminder','sp-multi-select','sp-settings-panel','sp-recent-rail','sp-storage-usage','sp-notification','lib-storage','lib-dialog-manager'],
   },
 
   'sp-app-context': {
@@ -1279,22 +1279,6 @@ const COMPONENTS = {
     deps: ['sp-app-context','sp-reminder-prefs','sp-ie-actions'],
   },
 
-  'sp-theme-picker': {
-    name: 'features/theme-picker.js',
-    file: 'src/sidepanel/features/theme-picker.js',
-    icon: '🎨',
-    badge: 'feature',
-    layer: 'Side Panel',
-    layerKey: 'sidepanel',
-    summary: 'Slide-in theme picker panel.',
-    responsibilities: [
-      'setupThemePicker() — renders theme swatches from the available theme list',
-      'Applies selected theme instantly and persists preference',
-      'closeThemePicker() — collapses the panel',
-    ],
-    deps: ['sp-app-context','lib-useTheme','lib-theme-sdk'],
-  },
-
   'sp-multi-select': {
     name: 'features/multi-select.js',
     file: 'src/sidepanel/features/multi-select.js',
@@ -1395,7 +1379,7 @@ const COMPONENTS = {
       'Renders source chip, word count, and read-time in the header',
       'Supports print layout and "open original URL" action',
     ],
-    deps: ['lib-markdown-ser','lib-annotations','lib-sticky-ui','lib-search-utils','lib-useTheme'],
+    deps: ['lib-markdown-ser','lib-annotations','lib-sticky-ui','lib-search-utils'],
     flow: [
       { text: 'Page loads with', code: '?id=<chatId>', extra: ' query parameter' },
       { text: 'Reads full chat content from storage' },
@@ -1785,38 +1769,6 @@ const COMPONENTS = {
       'extractPlatformName(url) — returns human-readable platform label',
     ],
     deps: [],
-  },
-
-  'lib-useTheme': {
-    name: 'useTheme.js',
-    file: 'src/lib/theme/useTheme.js',
-    icon: '🌓',
-    badge: 'util',
-    layer: 'Shared Library',
-    layerKey: 'lib',
-    summary: 'Applies a stored theme by injecting CSS custom properties onto the root element.',
-    responsibilities: [
-      'loadTheme(storage?) — reads persisted theme key and calls applyTheme()',
-      'applyTheme(themeKey) — sets CSS variables from the theme definition map',
-      'Used by both sidepanel.js and reader.js to establish consistent colours',
-    ],
-    deps: ['lib-theme-sdk','lib-theme-defaults'],
-  },
-
-  'lib-theme-sdk': {
-    name: 'theme-sdk.js',
-    file: 'src/lib/theme-sdk.js',
-    icon: '🎨',
-    badge: 'util',
-    layer: 'Shared Library',
-    layerKey: 'lib',
-    summary: 'Theme definition registry and CSS variable generation.',
-    responsibilities: [
-      'Defines the set of CSS custom property tokens for each theme',
-      'getThemeList() — returns available themes for the theme picker UI',
-      'generateCSSVars(themeKey) — returns a map of --var: value entries',
-    ],
-    deps: ['lib-theme-defaults'],
   },
 
   'lib-logger': {

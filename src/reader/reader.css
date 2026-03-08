@@ -728,15 +728,36 @@ body {
   margin: 20px 0;
 }
 
-/* Inter-chat section divider in assembled digests — visually heavier than a
-   regular turn separator so readers can tell where one source ends and the next
-   begins. */
-.reader-content hr.chat-section-divider {
-  border: none;
-  border-top: 3px solid var(--primary, #6366f1);
-  margin: 36px 0;
-  opacity: 0.35;
-  border-radius: 2px;
+/* Inter-chat section divider in assembled digests — clearly marks where one
+   source chat ends and the next begins. */
+.reader-content .chat-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 48px 0 44px;
+  user-select: none;
+  pointer-events: none;
+}
+.reader-content .chat-section-divider::before,
+.reader-content .chat-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--primary, #6366f1);
+  opacity: 0.3;
+  border-radius: 1px;
+}
+.reader-content .chat-section-divider__label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary, #6366f1);
+  padding: 4px 14px;
+  border: 1.5px solid var(--primary, #6366f1);
+  border-radius: 20px;
+  opacity: 0.65;
+  white-space: nowrap;
 }
 
 /* ── State cards (loading / error) ───────────────────────────────────────── */
