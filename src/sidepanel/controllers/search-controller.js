@@ -49,13 +49,24 @@ export function debounce(fn, ms) {
 
 // ─── Internal deferred search ────────────────────────────────────────────────
 
+/** Return true when at least one filter criterion is currently set. */
+function _hasActiveFilters() {
+  const f = _state.filters;
+  return f.sources.size > 0 || !!f.dateFrom || !!f.dateTo || !!f.topicId ||
+    f.minRating != null || f.tags.size > 0;
+}
+
 /** Execute the storage search + tree highlight for a given query. */
 function runSearch(query) {
   const searchContainer = elements.searchInput?.closest('.search-container');
   if (_state.renderer) {
-    _state.renderer.highlightSearch(query);
-    _state.renderer.expandAll();
-    saveExpandedState();
+    if (query) {
+      _state.renderer.highlightSearch(query);
+      _state.renderer.expandAll();
+      saveExpandedState();
+    } else {
+      _state.renderer.clearHighlight();
+    }
   }
   _state.storage.searchChats(query)
     .then(results => {
@@ -87,8 +98,12 @@ export function handleSearch(event) {
   } else {
     _handleSearchDeferred.cancel();
     searchContainer?.classList.remove('is-typing');
-    _state.renderer?.clearHighlight();
-    hideSearchResults();
+    if (_hasActiveFilters()) {
+      _handleSearchDeferred('');
+    } else {
+      _state.renderer?.clearHighlight();
+      hideSearchResults();
+    }
   }
 }
 
@@ -98,13 +113,21 @@ export function clearSearch() {
   elements.searchInput.value = '';
   _state.searchQuery = '';
   elements.clearSearchBtn.style.display = 'none';
-  _state.renderer?.clearHighlight();
-  hideSearchResults();
+  if (_hasActiveFilters()) {
+    runSearch('');
+  } else {
+    _state.renderer?.clearHighlight();
+    hideSearchResults();
+  }
 }
 
 /** Re-run the current search query (e.g. after filters change). */
 export function rerunSearch() {
-  if (_state.searchQuery) _handleSearchDeferred(_state.searchQuery);
+  if (_state.searchQuery || _hasActiveFilters()) {
+    _handleSearchDeferred(_state.searchQuery);
+  } else {
+    hideSearchResults();
+  }
 }
 
 // ─── Result rendering ────────────────────────────────────────────────────────
@@ -132,7 +155,7 @@ export function renderSearchResults(results, query) {
           <circle cx="23" cy="23" r="5" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2.5 2.5" opacity="0.35"/>
         </svg>
         <p class="result-empty-state__title">No matches found</p>
-        <p class="result-empty-state__sub">Nothing matched <strong>&ldquo;${escapeHtml(query)}&rdquo;</strong>.<br>Try a shorter or different term.</p>
+        <p class="result-empty-state__sub">${query ? `Nothing matched <strong>&ldquo;${escapeHtml(query)}&rdquo;</strong>.<br>Try a shorter or different term.` : 'No chats match the current filters.<br>Try adjusting or clearing the filters.'}</p>
       </div>`;
     return;
   }
@@ -206,7 +229,10 @@ export function setupFilterBar() {
     const isOpen = bar.classList.toggle('is-open');
     elements.filterToggleBtn.setAttribute('aria-expanded', String(isOpen));
     bar.setAttribute('aria-hidden', String(!isOpen));
-    if (isOpen) populateTopicScopeSelect();
+    if (isOpen) {
+      populateTopicScopeSelect();
+      populateTagFilterPills();
+    }
   });
 
   // Source pills
@@ -270,9 +296,11 @@ export function setupFilterBar() {
     _state.filters.dateTo    = null;
     _state.filters.topicId   = '';
     _state.filters.minRating = null;
+    _state.filters.tags      = new Set();
 
     elements.filterSourcePills?.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('is-active'));
     elements.filterRatingPills?.querySelectorAll('[data-min-rating]').forEach(p => p.classList.remove('is-active'));
+    elements.filterTagPills?.querySelectorAll('.filter-pill--tag').forEach(p => p.classList.remove('is-active'));
     if (elements.filterDateFrom)   elements.filterDateFrom.value   = '';
     if (elements.filterDateTo)     elements.filterDateTo.value     = '';
     if (elements.filterTopicScope) elements.filterTopicScope.value = '';
@@ -304,9 +332,51 @@ export function updateFilterIndicator() {
   if (!elements.filterToggleBtn) return;
   const hasFilters =
     _state.filters.sources.size > 0 ||
-    _state.filters.dateFrom       ||
-    _state.filters.dateTo         ||
-    _state.filters.topicId        ||
-    _state.filters.minRating != null;
+    _state.filters.dateFrom          ||
+    _state.filters.dateTo            ||
+    _state.filters.topicId           ||
+    _state.filters.minRating != null ||
+    _state.filters.tags.size > 0;
   elements.filterToggleBtn.classList.toggle('has-active-filters', Boolean(hasFilters));
+}
+
+/**
+ * Populate the tag filter pills from all saved chats.
+ * Rebuilds the pill list each time the filter bar is opened.
+ */
+export function populateTagFilterPills() {
+  const container = elements.filterTagPills;
+  if (!container) return;
+
+  const allTags = new Set();
+  (_state.chats || []).forEach(chat => {
+    (chat.tags || []).forEach(t => allTags.add(t));
+  });
+
+  if (allTags.size === 0) {
+    container.innerHTML = '<span class="filter-pills__empty">No tags saved yet</span>';
+    return;
+  }
+
+  const sorted = [...allTags].sort();
+  container.innerHTML = sorted.map(tag => {
+    const isActive = _state.filters.tags.has(tag);
+    const hue = getTagColor(tag);
+    return `<button class="filter-pill filter-pill--tag${isActive ? ' is-active' : ''}" data-tag="${escapeHtml(tag)}" style="--tag-hue:${hue}" title="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`;
+  }).join('');
+
+  container.querySelectorAll('.filter-pill--tag').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const tag = pill.dataset.tag;
+      if (_state.filters.tags.has(tag)) {
+        _state.filters.tags.delete(tag);
+        pill.classList.remove('is-active');
+      } else {
+        _state.filters.tags.add(tag);
+        pill.classList.add('is-active');
+      }
+      updateFilterIndicator();
+      rerunSearch();
+    });
+  });
 }

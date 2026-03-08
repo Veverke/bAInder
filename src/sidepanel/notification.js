@@ -19,7 +19,7 @@ import { TOAST_DISMISS_MS } from '../lib/utils/constants.js';
  *   Pass `'loading'` for a persistent spinner that stays until the next call.
  */
 export function showNotification(message, type = 'info') {
-  logger.trace('Toast:', type, message);
+  logger.debug('Toast:', type, message);
   const toast = document.getElementById('toast');
   if (!toast) return;
   toast.textContent = message;

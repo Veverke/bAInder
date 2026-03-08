@@ -3,7 +3,7 @@
  *
  * Level hierarchy (lower = more verbose):
  *   ALL   -1  — enable every output channel
- *   TRACE  0  — fine-grained debug output (group/time helpers)
+ *   DEBUG  0  — verbose debug output (group/time helpers)
  *   INFO   1  — general operational messages  (default)
  *   WARN   2  — warnings
  *   ERROR  3  — errors
@@ -13,8 +13,8 @@
  * Falls back to 'INFO' when no stored value is present.
  */
 
-const LEVELS = { ALL: -1, TRACE: 0, INFO: 1, WARN: 2, ERROR: 3, OFF: 4 };
-const LEVEL_NAMES = ['ALL', 'TRACE', 'INFO', 'WARN', 'ERROR', 'OFF'];
+const LEVELS = { ALL: -1, DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3, OFF: 4 };
+const LEVEL_NAMES = ['ALL', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'OFF'];
 const STORAGE_KEY = 'bAInder:logLevel';
 const PREFIX = '[bAInder]';
 
@@ -33,7 +33,7 @@ class Logger {
 
   // ── Configuration ────────────────────────────────────────────────────────
 
-  /** Set log level. Accepts 'ALL' | 'TRACE' | 'INFO' | 'WARN' | 'ERROR' | 'OFF' (case-insensitive). */
+  /** Set log level. Accepts 'ALL' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'OFF' (case-insensitive). */
   setLevel(level) {
     this._level = _resolveLevel(level);
     if (typeof localStorage !== 'undefined') {
@@ -52,17 +52,17 @@ class Logger {
 
   // ── Backward-compat shims (boolean toggle) ───────────────────────────────
 
-  /** @deprecated Use setLevel('TRACE') / setLevel('INFO') instead. */
-  setEnabled(val) { this.setLevel(val ? 'TRACE' : 'INFO'); }
+  /** @deprecated Use setLevel('DEBUG') / setLevel('INFO') instead. */
+  setEnabled(val) { this.setLevel(val ? 'DEBUG' : 'INFO'); }
 
-  /** @deprecated Use getLevel() instead. Returns true when level is TRACE. */
-  isEnabled() { return this._level === 'TRACE'; }
+  /** @deprecated Use getLevel() instead. Returns true when level is DEBUG. */
+  isEnabled() { return this._level === 'DEBUG'; }
 
   // ── Logging methods ──────────────────────────────────────────────────────
 
-  /** TRACE — verbose debug messages. */
-  trace(...args) {
-    if (LEVELS[this._level] <= LEVELS.TRACE) console.debug(PREFIX, '[TRACE]', ...args);
+  /** DEBUG — verbose debug messages. */
+  debug(...args) {
+    if (LEVELS[this._level] <= LEVELS.DEBUG) console.debug(PREFIX, '[DEBUG]', ...args);
   }
 
   /** INFO — general operational messages. */
@@ -83,22 +83,22 @@ class Logger {
     if (LEVELS[this._level] <= LEVELS.ERROR) console.error(PREFIX, '[ERROR]', ...args);
   }
 
-  // ── Group / timing helpers (gated at TRACE) ───────────────────────────────
+  // ── Group / timing helpers (gated at DEBUG) ─────────────────────────────
 
   group(label) {
-    if (LEVELS[this._level] <= LEVELS.TRACE) console.group(`${PREFIX} ${label}`);
+    if (LEVELS[this._level] <= LEVELS.DEBUG) console.group(`${PREFIX} ${label}`);
   }
 
   groupEnd() {
-    if (LEVELS[this._level] <= LEVELS.TRACE) console.groupEnd();
+    if (LEVELS[this._level] <= LEVELS.DEBUG) console.groupEnd();
   }
 
   time(label) {
-    if (LEVELS[this._level] <= LEVELS.TRACE) console.time(`${PREFIX} ${label}`);
+    if (LEVELS[this._level] <= LEVELS.DEBUG) console.time(`${PREFIX} ${label}`);
   }
 
   timeEnd(label) {
-    if (LEVELS[this._level] <= LEVELS.TRACE) console.timeEnd(`${PREFIX} ${label}`);
+    if (LEVELS[this._level] <= LEVELS.DEBUG) console.timeEnd(`${PREFIX} ${label}`);
   }
 }
 

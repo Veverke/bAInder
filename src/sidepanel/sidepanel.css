@@ -1943,6 +1943,7 @@ ul.tree-root.drop-target {
   fill: var(--primary);
   transition: opacity var(--transition-fast);
   align-self: center;
+  cursor: default;
 }
 
 .tree-node-content:hover .tree-sparkline { opacity: 0.85; }
@@ -2645,6 +2646,23 @@ ul.tree-root.drop-target {
   background: #f59e0b;
   border-color: #f59e0b;
   color: #fff;
+}
+/* Tag pills in filter bar - use per-tag hue when active */
+.filter-pills--tags {
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.filter-pill--tag.is-active {
+  background: hsl(var(--tag-hue, 260), 60%, 48%);
+  border-color: hsl(var(--tag-hue, 260), 60%, 48%);
+  color: #fff;
+}
+
+.filter-pills__empty {
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+  font-style: italic;
 }
 
 /* C.19 â€” Stale review badge on tree items */

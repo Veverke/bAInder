@@ -48,6 +48,7 @@ export const elements = {
   filterTopicScope:     document.getElementById('filterTopicScope'),
   filterClearBtn:       document.getElementById('filterClearBtn'),
   filterRatingPills:    document.getElementById('filterRatingPills'),
+  filterTagPills:       document.getElementById('filterTagPills'),
   // C.10 — backup reminder
   backupReminderBanner: document.getElementById('backupReminderBanner'),
   backupReminderMsg:    document.getElementById('backupReminderMsg'),
@@ -94,7 +95,8 @@ export const state = {
     dateFrom:  null,        // 'YYYY-MM-DD' or null
     dateTo:    null,        // 'YYYY-MM-DD' or null
     topicId:   '',          // '' = all topics
-    minRating: null         // C.15 — 1–5 or null
+    minRating: null,        // C.15 — 1–5 or null
+    tags:      new Set()    // active tag strings (empty = all)
   },
 
   // C.9 — topic sort mode (persisted to localStorage)

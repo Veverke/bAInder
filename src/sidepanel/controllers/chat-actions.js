@@ -243,6 +243,7 @@ async function handleRenameChatAction() {
   _state.chats = await _state.chatRepo.updateChat(_state.contextMenuChat.id, updates);
   _state.renderer.setChatData(_state.chats);
   renderTreeView();
+  updateRecentRail(handleChatClick);
 }
 
 async function handleEditTagsAction() {
