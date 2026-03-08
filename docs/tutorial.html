@@ -368,7 +368,7 @@ body {
 .sparkline { display:flex;align-items:flex-end;gap:2px;height:18px; }
 .spark-bar { width:7px;background:var(--accent);border-radius:2px 2px 0 0;opacity:.5; }
 .spark-bar.hi { opacity:1; }
-.pinned-star { color:var(--amber);font-size:10px; }
+.pinned-pin { font-size:10px; }
 .storage-bar { padding:8px;border-top:1px solid var(--border);margin-top:auto; }
 .storage-label { font-size:10px;color:var(--mute);margin-bottom:4px; }
 .storage-track { height:4px;background:var(--surface2);border-radius:2px; }
@@ -529,6 +529,15 @@ body {
 /* ── Merge animation ── */
 .merge-arrow { position:absolute;font-size:22px;color:var(--teal);animation:slide-right 1.2s ease-in-out infinite; }
 @keyframes slide-right{0%,100%{transform:translateX(0);opacity:.5}50%{transform:translateX(8px);opacity:1}}
+/* ── Star rating widget ── */
+.star-widget { display:flex;gap:2px;align-items:center; }
+.star { font-size:15px;color:var(--mute);cursor:pointer;transition:color .1s;line-height:1; }
+.star.filled { color:var(--amber); }
+/* ── Stale / review bar ── */
+.stale-bar { background:#2a1a00;border-top:2px solid var(--amber);padding:7px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--amber);flex-shrink:0; }
+.stale-btn { background:var(--amber);color:#000;border:none;border-radius:5px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer; }
+/* ── Selection bar (multi-select mode) ── */
+.sel-bar { background:#1e1a36;border-top:1px solid var(--accent);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--accent2);flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -551,6 +560,7 @@ body {
           <span class="fp">Topics &amp; Tags</span>
           <span class="fp">Reader View</span>
           <span class="fp">Search</span>
+          <span class="fp">Clip Selections</span>
         </div>
       </div>
       <div class="narrator">Welcome to the <em>bAInder</em> tutorial. This first part covers the core workflow — saving, organising, and finding your AI conversations.</div>
@@ -729,7 +739,7 @@ body {
               <div class="topic-row selected">
                 <button class="expand-btn">▼</button>
                 <span class="topic-icon">📁</span>
-                <span class="topic-name"><span class="pinned-star">★</span> Learning</span>
+                <span class="topic-name"><span class="pinned-pin">📌</span> Learning</span>
                 <span class="badge count">5</span>
                 <div class="sparkline">
                   <div class="spark-bar" style="height:6px"></div><div class="spark-bar" style="height:12px"></div><div class="spark-bar" style="height:4px"></div><div class="spark-bar hi" style="height:18px"></div><div class="spark-bar" style="height:9px"></div><div class="spark-bar hi" style="height:14px"></div>
@@ -891,6 +901,67 @@ body {
       <div class="narrator">bAInder works seamlessly with <em>Claude</em>, <em>Gemini</em>, and <em>Microsoft Copilot</em> too. The same floating button appears — one workflow across all your AI tools. Source platform is tracked automatically.</div>
     </div>
 
+    <!-- ══ S7x: Save selection — Q&A clipping ════════════════════ -->
+    <div class="scene" id="s7x">
+      <div class="layout-two">
+        <div class="main-area" style="position:relative;">
+          <div class="browser-bar">
+            <div class="browser-dots"><div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div></div>
+            <div class="browser-url">chatgpt.com/c/abc123</div>
+          </div>
+          <div class="chatgpt-page">
+            <div class="chatgpt-header"><span class="gpt-logo">⬡</span> ChatGPT</div>
+            <div class="chatgpt-messages">
+              <div class="msg msg-u">
+                <div class="msg-avatar">U</div>
+                <div class="msg-bubble">What is the difference between useMemo and useCallback?</div>
+              </div>
+              <div class="msg msg-a">
+                <div class="msg-avatar">G</div>
+                <div class="msg-bubble">
+                  Both hooks memoize values, but there's a key distinction:<br/>
+                  <span style="display:inline-block;background:rgba(124,106,247,.28);border-radius:4px;padding:3px 7px;margin-top:5px;border:1px dashed rgba(124,106,247,.55);">
+                    <strong>useMemo</strong> memoizes the <em>return value</em> of a function.<br/>
+                    <strong>useCallback</strong> memoizes the <em>function itself</em>.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Right-click context menu on selected text -->
+          <div class="ctx-menu hl-box" style="left:105px;top:155px;">
+            <div class="ctx-item hl-ctx">💾 Save selection to bAInder</div>
+            <div class="ctx-sep"></div>
+            <div class="ctx-item">📋 Copy</div>
+            <div class="ctx-item">🔍 Search Google for…</div>
+          </div>
+        </div>
+        <div class="panel-area">
+          <div class="panel-header">
+            <div class="panel-brand">bAInder</div>
+            <div class="search-row"><span>🔍</span><span>Search…</span></div>
+          </div>
+          <div class="panel-body">
+            <div class="topic-node">
+              <div class="topic-row selected">
+                <button class="expand-btn">▼</button>
+                <span class="topic-icon">📁</span>
+                <span class="topic-name">Learning / React</span>
+                <span class="badge count">3</span>
+              </div>
+              <div class="children">
+                <div class="chat-row new-flash">✂️ useMemo vs useCallback<span class="tag-chip" style="background:#1e1030;border-color:#3a1a60;color:#c084fc;">clip</span><span class="tag-chip">react</span></div>
+                <div class="chat-row">💬 React Performance Opt…<span class="tag-chip">react</span></div>
+                <div class="chat-row">💬 Hooks Deep Dive<span class="tag-chip">react</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="callout" style="top:54px;right:275px;">← clipping saved instantly</div>
+        </div>
+      </div>
+      <div class="narrator">To save just one exchange from a long chat, <em>select the text</em> on the page, <em>right-click</em>, and choose <em>Save selection to bAInder</em>. The snippet is saved as a standalone clipping — no need to archive the whole conversation.</div>
+    </div>
+
     <!-- ══ S8: Part 1 end card ════════════════════════════════════ -->
     <div class="scene" id="s8">
       <div class="scene-title">
@@ -904,6 +975,10 @@ body {
           <span class="fp teal">Sticky Notes</span>
           <span class="fp teal">Export / Import</span>
           <span class="fp teal">Themes &amp; Skins</span>
+          <span class="fp teal">Star Ratings</span>
+          <span class="fp teal">Review Dates</span>
+          <span class="fp teal">Digest Export</span>
+          <span class="fp teal">Progress Saves</span>
         </div>
       </div>
       <div class="narrator">That's the core workflow. Up next — <em>Part 2</em> covers everything that turns bAInder into a full knowledge-management tool.</div>
@@ -917,7 +992,7 @@ body {
         <div class="logo">bAInder</div>
         <div class="sub">Advanced Features</div>
         <div class="part-badge adv">Part 2</div>
-        <div class="tagline">Topic management · Drag &amp; drop · Pinning · Tags · Sticky notes · Export &amp; Import · Themes</div>
+        <div class="tagline">Topic management · Drag &amp; drop · Pinning · Tags · Sticky notes · Export &amp; Import · Themes · Star ratings · Review dates · Digest export · Reading progress</div>
       </div>
       <div class="narrator">Welcome to <em>Part 2</em>. We'll unlock every advanced feature and turn bAInder into your personal AI knowledge base.</div>
     </div>
@@ -1059,7 +1134,7 @@ body {
               <div class="topic-row pinned-row hl-box">
                 <button class="expand-btn">▼</button>
                 <span class="topic-icon">📁</span>
-                <span class="topic-name"><span class="pinned-star">★</span> Learning</span>
+                <span class="topic-name"><span class="pinned-pin">📌</span> Learning</span>
                 <span class="badge count">5</span>
                 <span style="position:relative;background:#2d2008;border:1px solid var(--amber);border-radius:4px;font-size:9px;padding:2px 7px;color:var(--amber);margin-left:2px;">pinned</span>
               </div>
@@ -1072,7 +1147,7 @@ body {
                 <span class="topic-icon">📁</span>
                 <span class="topic-name">Personal</span>
                 <span class="badge count">1</span>
-                <span style="margin-left:auto;font-size:14px;color:var(--mute);opacity:.5;">☆</span>
+                <span style="margin-left:auto;font-size:14px;color:var(--mute);opacity:.5;">📌</span>
               </div>
             </div>
             <div class="topic-node" style="margin-top:2px;">
@@ -1086,7 +1161,7 @@ body {
           </div>
         </div>
       </div>
-      <div class="narrator">Hover any topic to reveal a <em>☆ star</em> icon. Click it to <em>pin</em> the topic — pinned topics float to the top of the tree and are marked with <em>★</em>. Click again to unpin.</div>
+      <div class="narrator">Hover any topic to reveal the <em>📌 pin</em> icon. Click it to <em>pin</em> the topic — pinned topics float to the top of the tree and are marked with <em>📌</em>. Click again to unpin.</div>
     </div>
 
     <!-- ══ S14: Tags — coloured chips & tag search ════════════════ -->
@@ -1361,12 +1436,255 @@ body {
       <div class="narrator">Each topic shows a <em>mini sparkline</em> — six bars representing chats saved per week over the last 6 weeks. Hover a bar to see the exact count and a week-over-week comparison. Your activity at a glance.</div>
     </div>
 
+    <!-- ══ S19a: Star rating (1–5) ═══════════════════════════════ -->
+    <div class="scene" id="s19a">
+      <div class="layout-two">
+        <div class="main-area" style="position:relative;">
+          <div class="browser-bar" style="background:#111118;">
+            <div class="browser-dots"><div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div></div>
+            <div class="browser-url">chrome-extension://…/reader.html?chatId=react-perf-01</div>
+          </div>
+          <div class="reader-page">
+            <div class="reader-topbar">
+              <span style="color:var(--accent2);cursor:pointer;">← Back</span>
+              <span class="reader-topbar-title">React Performance Optimisation</span>
+              <div class="star-widget hl-box">
+                <span class="star filled">★</span>
+                <span class="star filled">★</span>
+                <span class="star filled">★</span>
+                <span class="star filled">★</span>
+                <span class="star">☆</span>
+              </div>
+            </div>
+            <div class="reader-body">
+              <div class="reader-turn">
+                <div class="reader-role">You</div>
+                <div class="reader-content">Can you help me optimise this React component for performance?</div>
+              </div>
+              <div class="reader-turn">
+                <div class="reader-role assistant">ChatGPT</div>
+                <div class="reader-content">Sure! Start with <strong>React.memo</strong> and <strong>useMemo</strong> to prevent unnecessary re-renders by memoizing expensive computations.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-area">
+          <div class="panel-header">
+            <div class="panel-brand">bAInder</div>
+            <div class="search-row" style="border-color:var(--accent);">
+              <span>🔍</span><span style="color:#ddd;">react</span>
+              <span style="margin-left:auto;font-size:10px;color:var(--mute);">filtered</span>
+            </div>
+            <!-- Min-rating filter pills -->
+            <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--mute);">Min rating:</span>
+              <span style="background:#2a1e08;border:1px solid #4a3010;color:var(--amber);border-radius:99px;padding:1px 7px;font-size:10px;cursor:pointer;">★ 3+</span>
+              <span class="hl-box-accent" style="background:#1e1a36;border:1px solid var(--accent);color:var(--accent2);border-radius:99px;padding:1px 7px;font-size:10px;cursor:pointer;">★ 4+ ✓</span>
+              <span style="background:var(--surface2);border:1px solid var(--border);color:var(--mute);border-radius:99px;padding:1px 7px;font-size:10px;cursor:pointer;">★ 5</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="topic-node">
+              <div class="topic-row selected"><button class="expand-btn">▼</button><span class="topic-icon">📁</span><span class="topic-name">Learning / React</span></div>
+              <div class="children">
+                <div class="chat-row" style="background:var(--surface2);border-radius:5px;margin-bottom:1px;">
+                  💬 React Performance Opt…
+                  <span style="color:var(--amber);font-size:10px;margin-left:auto;">★★★★☆</span>
+                </div>
+                <div class="chat-row">💬 Hooks Deep Dive<span style="color:var(--amber);font-size:10px;margin-left:auto;">★★★★★</span></div>
+                <div class="chat-row" style="opacity:.4;">💬 CSS Animation Tips<span style="color:var(--mute);font-size:10px;margin-left:auto;">☆☆☆☆☆</span></div>
+              </div>
+            </div>
+            <div style="height:5px;"></div>
+            <div class="result-card active">
+              <div class="result-card-title">React Performance Optimisation</div>
+              <div class="result-snippet">…memoizing with <span class="hl">React</span>.memo…</div>
+              <div style="display:flex;align-items:center;margin-top:3px;">
+                <div class="breadcrumb" style="flex:1;">Learning › React</div>
+                <span style="color:var(--amber);font-size:11px;">★★★★☆</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Rate any saved chat <em>1–5 stars</em> using the interactive widget in the <em>Reader header</em> — or right-click a chat node in the tree. Amber star badges appear inline in the tree and on search result cards. Use the <em>Min rating</em> filter pills above the results to surface only your highest-rated chats.</div>
+    </div>
+
+    <!-- ══ S19b: Review-by date / expiry flag ════════════════════ -->
+    <div class="scene" id="s19b">
+      <div class="layout-two">
+        <div class="main-area" style="position:relative;background:#111118;align-items:center;justify-content:center;display:flex;">
+          <!-- Date picker dialog -->
+          <div class="dialog-box" style="width:295px;">
+            <div class="dialog-title">📅 Set Review Date</div>
+            <div style="font-size:11px;color:var(--mute);line-height:1.5;">Flag this chat as time-sensitive. A warning badge appears when the date passes.</div>
+            <div>
+              <div class="field-label">Review by</div>
+              <input class="field-input focused" value="2026-06-01" readonly style="width:100%;"/>
+            </div>
+            <div class="dialog-actions">
+              <button class="btn-sm">Cancel</button>
+              <button class="btn-sm save">Set date</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel-area" style="display:flex;flex-direction:column;">
+          <div class="panel-header"><div class="panel-brand">bAInder</div></div>
+          <div class="panel-body" style="position:relative;">
+            <div class="topic-node">
+              <div class="topic-row selected"><button class="expand-btn">▼</button><span class="topic-icon">📁</span><span class="topic-name">Learning / React</span></div>
+              <div class="children">
+                <!-- Stale chat — ⚠ badge -->
+                <div class="chat-row hl-box" style="background:#1e1000;border-radius:5px;margin-bottom:1px;border:1px solid #5a3a00;">
+                  💬 React 18 Features
+                  <span style="background:#5a3a00;border-radius:4px;padding:1px 5px;font-size:9px;color:var(--amber);margin-left:4px;">⚠ stale</span>
+                </div>
+                <div class="chat-row">💬 React Performance Opt…</div>
+                <div class="chat-row">💬 Hooks Deep Dive</div>
+              </div>
+            </div>
+            <!-- Context menu hint -->
+            <div class="ctx-menu" style="right:6px;top:38px;">
+              <div class="ctx-item hl-ctx">📅 Set review date</div>
+              <div class="ctx-item">✏️ Rename</div>
+              <div class="ctx-item">📤 Export</div>
+              <div class="ctx-sep"></div>
+              <div class="ctx-item danger">🗑 Delete</div>
+            </div>
+          </div>
+          <!-- Stale banner shown in reader footer of panel -->
+          <div class="stale-bar" style="margin-top:auto;">
+            <span>⚠</span>
+            <span style="flex:1;">Info may be outdated — review was due 2026-03-01</span>
+            <button class="stale-btn">Mark as reviewed</button>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Right-click any chat and choose <em>Set review date</em> to flag time-sensitive information. When the date passes, bAInder shows a <em>⚠ stale badge</em> in the tree and a dismissible banner in the Reader. Click <em>Mark as reviewed</em> to clear the flag once the content is confirmed accurate.</div>
+    </div>
+
+    <!-- ══ S19c: Multi-chat digest export ════════════════════════ -->
+    <div class="scene" id="s19c">
+      <div class="layout-two">
+        <div class="main-area" style="background:#111118;align-items:center;justify-content:center;display:flex;">
+          <!-- Export digest dialog -->
+          <div class="dialog-box" style="width:320px;">
+            <div class="dialog-title">📋 Export Digest</div>
+            <div style="font-size:11px;color:var(--mute);margin-bottom:2px;">3 chats selected across 2 topics</div>
+            <div>
+              <div class="field-label">Format</div>
+              <div class="export-formats">
+                <div class="fmt-btn active">📝 Markdown</div>
+                <div class="fmt-btn">🌐 HTML</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:11px;background:var(--surface2);border-radius:6px;padding:7px 10px;border:1px solid var(--border);">
+              <input type="checkbox" checked readonly style="accent-color:var(--accent);width:13px;height:13px;"/> Include table of contents
+            </div>
+            <div class="dialog-actions">
+              <button class="btn-sm">Cancel</button>
+              <button class="btn-sm save">Download Digest</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel-area" style="display:flex;flex-direction:column;">
+          <div class="panel-header">
+            <div class="panel-brand">bAInder
+              <div class="panel-brand-icons">
+                <div class="icon-btn-sm hl-box-accent" title="Select chats">☑</div>
+                <div class="icon-btn-sm">⚙</div>
+              </div>
+            </div>
+            <div class="search-row"><span>🔍</span><span>Search…</span></div>
+          </div>
+          <div class="panel-body">
+            <div class="topic-node">
+              <div class="topic-row"><button class="expand-btn">▼</button><span class="topic-icon">📁</span><span class="topic-name">Learning</span></div>
+              <div class="children">
+                <div class="chat-row" style="background:#1e1a36;border-radius:5px;margin-bottom:1px;border:1px solid var(--accent);">
+                  <input type="checkbox" checked readonly style="accent-color:var(--accent);margin-right:4px;width:12px;height:12px;"/>
+                  💬 React Performance Opt…
+                </div>
+                <div class="chat-row" style="background:#1e1a36;border-radius:5px;margin-bottom:1px;border:1px solid var(--accent);">
+                  <input type="checkbox" checked readonly style="accent-color:var(--accent);margin-right:4px;width:12px;height:12px;"/>
+                  💬 Hooks Deep Dive
+                </div>
+                <div class="chat-row">
+                  <input type="checkbox" readonly style="margin-right:4px;opacity:.4;width:12px;height:12px;"/>
+                  💬 TypeScript Generics
+                </div>
+              </div>
+            </div>
+            <div class="topic-node" style="margin-top:4px;">
+              <div class="topic-row"><button class="expand-btn">▼</button><span class="topic-icon">📁</span><span class="topic-name">Work</span></div>
+              <div class="children">
+                <div class="chat-row" style="background:#1e1a36;border-radius:5px;border:1px solid var(--accent);">
+                  <input type="checkbox" checked readonly style="accent-color:var(--accent);margin-right:4px;width:12px;height:12px;"/>
+                  💬 Node.js Server Tuning
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Selection action bar -->
+          <div class="sel-bar">
+            <span style="flex:1;">3 chats selected</span>
+            <button class="save-btn hl-box-accent" style="font-size:11px;padding:4px 12px;">📋 Export Digest</button>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">Click the <em>☑ Select chats</em> toolbar button to enter multi-select mode. Check any combination of chats across different topics, then hit <em>Export Digest</em> — all selected chats are merged into a single <em>Markdown</em> or <em>HTML</em> document with a heading per chat and an optional table of contents. Ideal for research summaries or handoff notes.</div>
+    </div>
+
+    <!-- ══ S19d: Reading progress persistence ════════════════════ -->
+    <div class="scene" id="s19d">
+      <div class="layout-full">
+        <div class="browser-bar" style="background:#111118;border-bottom:1px solid #2a2a3a;">
+          <div class="browser-dots"><div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div></div>
+          <div class="browser-url">chrome-extension://…/reader.html?chatId=arch-deep-dive</div>
+        </div>
+        <div class="reader-page">
+          <div class="reader-topbar">
+            <span style="color:var(--accent2);cursor:pointer;">← Back</span>
+            <span class="reader-topbar-title">React Architecture Deep Dive — Part 3</span>
+            <span style="font-size:10px;color:var(--teal);background:#0d2020;border:1px solid var(--teal);border-radius:4px;padding:2px 8px;white-space:nowrap;">📍 Position restored</span>
+          </div>
+          <div class="reader-body" style="position:relative;">
+            <!-- Scroll track on right edge -->
+            <div style="position:absolute;right:4px;top:0;bottom:0;width:4px;background:var(--surface2);border-radius:2px;">
+              <div style="height:45%;background:var(--teal);border-radius:2px;opacity:.7;"></div>
+            </div>
+            <div class="reader-turn" style="opacity:.35;">
+              <div class="reader-role">You</div>
+              <div class="reader-content">Let's talk about the Context API vs Redux for state management.</div>
+            </div>
+            <div class="reader-turn" style="opacity:.35;">
+              <div class="reader-role assistant">ChatGPT</div>
+              <div class="reader-content">Context API is great for low-frequency updates. Redux shines when you need time-travel debugging and strict unidirectional data flow…</div>
+            </div>
+            <!-- Resumed position marker -->
+            <div style="border-top:2px dashed var(--teal);margin:8px 0 4px;display:flex;align-items:center;gap:6px;">
+              <span style="color:var(--teal);font-size:10px;white-space:nowrap;background:#0d2020;padding:1px 6px;border-radius:4px;">📍 Resumed here</span>
+            </div>
+            <div class="reader-turn">
+              <div class="reader-role">You</div>
+              <div class="reader-content">What about Zustand? I've heard it's a lighter alternative.</div>
+            </div>
+            <div class="reader-turn">
+              <div class="reader-role assistant">ChatGPT</div>
+              <div class="reader-content">Zustand is excellent for most React apps — minimal boilerplate, built-in devtools support, and no context provider wrapping required. It's become a popular default for medium-complexity apps.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="narrator">bAInder <em>remembers your scroll position</em> in every chat, persisted across sessions. Close a long technical discussion and come back later — the Reader reopens exactly <em>where you left off</em>. A subtle <em>📍 Resumed here</em> line marks the restored position.</div>
+    </div>
+
     <!-- ══ S19: Closing ════════════════════════════════════════════ -->
     <div class="scene" id="s19">
       <div class="scene-title">
         <div class="logo">bAInder</div>
         <div class="sub">AI Chat Organizer</div>
-        <div class="tagline" style="font-size:16px;">Save · Organise · Search · Annotate · Export</div>
+        <div class="tagline" style="font-size:16px;">Save · Search · Rate · Annotate · Export</div>
         <div class="tagline" style="font-size:13px;color:var(--mute);margin-top:-4px;">ChatGPT · Claude · Gemini · Copilot</div>
         <div class="part-badge" style="background:linear-gradient(90deg,var(--accent),var(--teal));">Install — Link in description</div>
       </div>
@@ -1425,6 +1743,7 @@ const SCENES = [
   { id:'s5',  dur:9,  part:1, label:'5 — Reader view' },
   { id:'s6',  dur:10, part:1, label:'6 — Search' },
   { id:'s7',  dur:9,  part:1, label:'7 — Multi-platform' },
+  { id:'s7x', dur:11, part:1, label:'7b — Save clipping' },
   { id:'s8',  dur:6,  part:1, label:'— End Part 1' },
   { id:'s9',  dur:5,  part:2, label:'— Part 2 Intro' },
   { id:'s10', dur:10, part:2, label:'8 — Add topic' },
@@ -1435,8 +1754,12 @@ const SCENES = [
   { id:'s15', dur:12, part:2, label:'13 — Sticky notes' },
   { id:'s16', dur:11, part:2, label:'14 — Export/Import' },
   { id:'s17', dur:13, part:2, label:'15 — Theming' },
-  { id:'s18', dur:8,  part:2, label:'16 — Sparklines' },
-  { id:'s19', dur:7,  part:2, label:'— Closing' },
+  { id:'s18',  dur:8,  part:2, label:'16 — Sparklines' },
+  { id:'s19a', dur:12, part:2, label:'17 — Star rating' },
+  { id:'s19b', dur:12, part:2, label:'18 — Review date' },
+  { id:'s19c', dur:13, part:2, label:'19 — Digest export' },
+  { id:'s19d', dur:9,  part:2, label:'20 — Read progress' },
+  { id:'s19',  dur:7,  part:2, label:'— Closing' },
 ];
 
 const TOTAL = SCENES.reduce((a,s) => a + s.dur, 0);
@@ -1466,17 +1789,22 @@ const NARRATOR_TEXT = {
   s5:  "Click any chat in the tree to open the Reader — a clean, distraction-free view of the full conversation. The title, topic breadcrumb, and tags are always visible in the topbar.",
   s6:  "Type any keyword in the search bar — results include highlighted snippets, topic breadcrumbs, and tag matches. Search covers full text, titles, and tags simultaneously.",
   s7:  "bAInder works seamlessly with Claude, Gemini, and Microsoft Copilot too. The same floating button appears — one workflow across all your AI tools.",
+  s7x: "To save just one exchange from a long chat, select the text on the page, right-click, and choose Save selection to bAInder. The snippet is saved as a standalone clipping — no need to archive the whole conversation.",
   s8:  "That's the core workflow. Up next — Part 2 covers everything that turns bAInder into a full knowledge-management tool.",
   s9:  "Welcome to Part 2. We'll unlock every advanced feature and turn bAInder into your personal AI knowledge base.",
   s10: "Click Plus Add Topic to create a new folder. Enter a name and optionally nest it under an existing parent. The topic appears in the tree immediately, sorted alphabetically.",
   s11: "Right-click any topic for a context menu: Rename it, Move to a different parent, Merge two topics into one — combining all chats and children — or Delete it.",
   s12: "Everything in the tree is draggable. Drag a topic onto another to nest it, or drag a chat into a different topic to reassign it — the tree updates instantly.",
-  s13: "Hover any topic to reveal a star icon. Click it to pin the topic — pinned topics float to the top of the tree and are marked with a star. Click again to unpin.",
+  s13: "Hover any topic to reveal the 📌 pin icon. Click it to pin the topic — pinned topics float to the top of the tree and are marked with 📌. Click again to unpin.",
   s14: "Tags are coloured chips that appear on every chat. Search by tag name and bAInder highlights matching chips in both the tree and result cards.",
   s15: "In the Reader, right-click anywhere and choose Add Sticky Note. Notes are a personal annotation layer — they auto-save, support Markdown, are draggable, and can be hidden with one click.",
   s16: "Right-click any topic then Export to download a ZIP of Markdown or HTML files — one file per chat. Use the Import button to restore a ZIP on any machine.",
   s17: "bAInder supports custom themes authored in ThemeStudioApp. Click the palette icon in the side-panel header to open the theme picker, then click any colour swatch to apply a theme instantly. To install new themes, download theme packs from the ThemeStudioSDK GitHub repository at github.com slash Veverke slash ThemeStudioSDK, then drag the JSON file into the theme picker to add it to your collection.",
   s18: "Each topic shows a mini sparkline — six bars representing chats saved per week over the last 6 weeks. Hover a bar to see the exact count and a week-over-week comparison.",
+  s19a: "Rate any saved chat 1 to 5 stars using the interactive widget in the Reader header — or right-click the chat node in the tree. Amber star badges appear inline in the tree and on search result cards. Use the Min rating filter pills to surface only your highest-rated chats.",
+  s19b: "Right-click any chat and choose Set review date to flag time-sensitive information. When the date passes, a stale warning badge appears in the tree, and a dismissible banner appears at the top of the Reader. Click Mark as reviewed to clear the flag once you have confirmed the content is still accurate.",
+  s19c: "Click the Select chats toolbar button to enter multi-select mode. Check any combination of chats across topics, then click Export Digest to merge them into a single Markdown or HTML document — with a heading per chat and an optional table of contents. Perfect for research summaries or handoff notes.",
+  s19d: "bAInder remembers your scroll position in every chat across sessions. Close a long technical discussion and come back later — the Reader reopens exactly where you left off. A subtle Resumed here marker confirms your restoration point.",
   s19: "That's everything in bAInder. Install the extension and start building your personal AI knowledge base today.",
 };
 
@@ -1728,6 +2056,15 @@ const CURSOR_PATHS = {
     {t:7,   x:83,  y:32, label:'Saved ✓'}
   ],
 
+  s7x: [
+    {t:0,   x:20,  y:55, label:'Select text on page'},
+    {t:1.5, x:30,  y:55},
+    {t:2.5, x:30,  y:55, click:true},
+    {t:4,   x:17,  y:53, label:'Save selection to bAInder'},
+    {t:4.8, x:17,  y:53, click:true},
+    {t:7,   x:82,  y:38, label:'Clipping saved ✓'}
+  ],
+
   s8: [{t:0, x:50, y:55}],
   s9: [{t:0, x:50, y:55}],
 
@@ -1762,9 +2099,9 @@ const CURSOR_PATHS = {
 
   s13: [
     {t:0,   x:81,  y:29, label:'Hover topic'},
-    {t:1.5, x:93,  y:27, label:'Click ☆ to pin'},
+    {t:1.5, x:93,  y:27, label:'Click 📌 to pin'},
     {t:2,   x:93,  y:27, click:true},
-    {t:4,   x:80,  y:22, label:'★ pinned at top'}
+    {t:4,   x:80,  y:22, label:'📌 pinned at top'}
   ],
 
   s14: [
@@ -1816,6 +2153,50 @@ const CURSOR_PATHS = {
     {t:6,   x:84,  y:55, label:'6-week activity'}
   ],
 
+  s19a: [
+    {t:0,   x:70,  y:11, label:'Star widget in Reader'},
+    {t:1.5, x:80,  y:11, click:true},
+    {t:3,   x:82,  y:11, label:'★★★★ rated'},
+    {t:3.5, x:82,  y:11, click:true},
+    {t:6,   x:93,  y:20, label:'Min rating filter'},
+    {t:6.5, x:93,  y:20, click:true},
+    {t:9,   x:85,  y:75, label:'Rating on result card'}
+  ],
+
+  s19b: [
+    {t:0,   x:84,  y:38, label:'Right-click chat'},
+    {t:0.8, x:84,  y:38, click:true},
+    {t:2,   x:85,  y:42, label:'Set review date'},
+    {t:2.7, x:85,  y:42, click:true},
+    {t:5,   x:33,  y:52, label:'Pick date'},
+    {t:5.5, x:33,  y:52, click:true},
+    {t:7.5, x:84,  y:34, label:'⚠ stale badge in tree'},
+    {t:10,  x:94,  y:93, label:'Mark as reviewed'},
+    {t:10.6,x:94,  y:93, click:true}
+  ],
+
+  s19c: [
+    {t:0,   x:89,  y:9,  label:'☑ Multi-select mode'},
+    {t:0.8, x:89,  y:9,  click:true},
+    {t:2.5, x:84,  y:37, label:'Check chats'},
+    {t:3,   x:84,  y:37, click:true},
+    {t:4.5, x:84,  y:46, click:true},
+    {t:7,   x:88,  y:90, label:'Export Digest'},
+    {t:7.5, x:88,  y:90, click:true},
+    {t:9.5, x:22,  y:52, label:'Markdown format'},
+    {t:10.5,x:42,  y:67, label:'Download'}
+  ],
+
+  s19d: [
+    {t:0,   x:50,  y:42},
+    {t:2,   x:50,  y:58, label:'Position auto-saved'},
+    {t:3.5, x:10,  y:8,  label:'← Leave chat'},
+    {t:4,   x:10,  y:8,  click:true},
+    {t:5.5, x:84,  y:38, label:'Reopen chat'},
+    {t:6,   x:84,  y:38, click:true},
+    {t:7.5, x:50,  y:55, label:'📍 Resumed here ✓'}
+  ],
+
   s19: [{t:0, x:50, y:70}]
 };
 
@@ -1863,6 +2244,11 @@ const SCENE_CAPTIONS = {
     {t:3,  step:'Gemini',  text:'And on <em>gemini.google.com</em> and <em>copilot.microsoft.com</em>'},
     {t:6,  step:'Track',   text:'Source platform (<em>ChatGPT / Claude / Gemini / Copilot</em>) is tracked automatically'}
   ],
+  s7x: [
+    {t:0,  step:'Select', text:'<em>Select any text</em> on the AI platform page'},
+    {t:2.5,step:'Right-click', text:'Right-click the selection → choose <em>Save selection to bAInder</em>'},
+    {t:5,  step:'Clipping', text:'The snippet is saved as a standalone <em>clipping</em> in your chosen topic'}
+  ],
   s8: [
     {t:0,  step:'Done ✓', text:'<em>Part 1</em> complete — Save · Organise · Search · Multi-Platform'}
   ],
@@ -1885,9 +2271,9 @@ const SCENE_CAPTIONS = {
     {t:5,  step:'Chats',  text:'<em>Drag any chat</em> and drop it on a different topic to reassign it'}
   ],
   s13: [
-    {t:0,  step:'Hover',  text:'Hover over any topic — the <em>☆ star</em> icon appears on the right'},
-    {t:2,  step:'Click',  text:'Click the star to <em>pin</em> the topic to the top of the tree'},
-    {t:4,  step:'Result', text:'Pinned topics show a <em>★ prefix</em> and always stay at the top'}
+    {t:0,  step:'Hover',  text:'Hover over any topic — the <em>📌 pin</em> icon appears on the right'},
+    {t:2,  step:'Click',  text:'Click the pin icon to <em>pin</em> the topic to the top of the tree'},
+    {t:4,  step:'Result', text:'Pinned topics show a <em>📌 prefix</em> and always stay at the top'}
   ],
   s14: [
     {t:0,  step:'Tags',   text:'<em>Tags</em> appear as coloured chips on every chat node in the tree'},
@@ -1916,6 +2302,30 @@ const SCENE_CAPTIONS = {
     {t:0,  step:'Chart',  text:'Each topic shows a <em>6-bar mini sparkline</em>'},
     {t:2.5,step:'Data',   text:'Each bar = chats saved <em>per week</em> over the last 6 weeks'},
     {t:5,  step:'Hover',  text:'<em>Hover any bar</em> for exact count and week-over-week comparison'}
+  ],
+  s19a: [
+    {t:0,  step:'Reader', text:'Use the <em>★ star widget</em> in the Reader header to rate a chat (1–5)'},
+    {t:3,  step:'Tree',   text:'Amber <em>★ badges</em> appear on rated chat nodes in the tree'},
+    {t:6,  step:'Filter', text:'Use <em>Min rating pills</em> in the search bar to filter by quality'},
+    {t:9,  step:'Cards',  text:'Rating is displayed on every <em>search result card</em>'}
+  ],
+  s19b: [
+    {t:0,  step:'Step 1', text:'Right-click any chat → <em>Set review date</em>'},
+    {t:3,  step:'Step 2', text:'Pick a date — bAInder monitors it daily in the <em>background</em>'},
+    {t:7.5,step:'Step 3', text:'Past-due chats show a <em>⚠ stale badge</em> in the tree'},
+    {t:10, step:'Step 4', text:'Click <em>Mark as reviewed</em> in the Reader banner to clear the flag'}
+  ],
+  s19c: [
+    {t:0,  step:'Step 1', text:'Click the <em>☑ Select chats</em> button in the toolbar'},
+    {t:3,  step:'Step 2', text:'Check any chats across multiple topics'},
+    {t:7,  step:'Step 3', text:'Click <em>Export Digest</em> in the selection bar'},
+    {t:10, step:'Step 4', text:'Choose <em>Markdown</em> or HTML — one merged document downloads'}
+  ],
+  s19d: [
+    {t:0,  step:'Reading', text:'Scroll through any long chat — position is <em>auto-saved</em> as you read'},
+    {t:3.5,step:'Leave',   text:'Close the chat or navigate away'},
+    {t:5.5,step:'Return',  text:'Reopen the chat — the Reader <em>restores your exact scroll position</em>'},
+    {t:7,  step:'Marker',  text:'A subtle <em>📍 Resumed here</em> line marks where you left off'}
   ],
   s19: [
     {t:0, step:'Done', text:'<em>bAInder</em> — turn every AI conversation into lasting knowledge'}

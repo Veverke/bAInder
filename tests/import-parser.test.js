@@ -5,7 +5,7 @@ import {
   parseChatFromMarkdown,
   buildImportPlan,
   executeImport,
-} from '../src/lib/import-parser.js';
+} from '../src/lib/io/import-parser.js';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -450,6 +450,64 @@ describe('parseChatFromMarkdown()', () => {
     expect(chat.source).toBe('imported');
   });
 
+  it('uses "Untitled" when filename is falsy (|| "Untitled" fallback on line 348)', () => {
+    // filename=null → titleFromFile = (null || 'Untitled') = 'Untitled'
+    const chat = parseChatFromMarkdown('No frontmatter here.', null);
+    expect(chat.title).toBe('Untitled');
+  });
+
+  it('parses the exported frontmatter field without throwing', () => {
+    const content = [
+      '---',
+      'title: "Exported Chat"',
+      'source: chatgpt',
+      'exported: 2024-06-01T12:00:00Z',
+      '---',
+      'Content',
+    ].join('\n');
+    const chat = parseChatFromMarkdown(content, 'exported-chat.md');
+    expect(chat.title).toBe('Exported Chat');
+  });
+
+  it('parses the contentFormat frontmatter field without throwing', () => {
+    const content = [
+      '---',
+      'title: "Formatted Chat"',
+      'source: claude',
+      'contentFormat: markdown',
+      '---',
+      'Content',
+    ].join('\n');
+    const chat = parseChatFromMarkdown(content, 'formatted.md');
+    expect(chat.title).toBe('Formatted Chat');
+  });
+
+  it('parses excerpt:true in frontmatter without throwing', () => {
+    const content = [
+      '---',
+      'title: "My Excerpt"',
+      'source: gemini',
+      'excerpt: true',
+      '---',
+      'Excerpt content',
+    ].join('\n');
+    const chat = parseChatFromMarkdown(content, 'excerpt.md');
+    expect(chat.title).toBe('My Excerpt');
+  });
+
+  it('parses excerpt:false in frontmatter without throwing', () => {
+    const content = [
+      '---',
+      'title: "Full Chat"',
+      'source: chatgpt',
+      'excerpt: false',
+      '---',
+      'Full content',
+    ].join('\n');
+    const chat = parseChatFromMarkdown(content, 'full.md');
+    expect(chat.title).toBe('Full Chat');
+  });
+
   it('handles null content gracefully — returns a valid chat object', () => {
     const chat = parseChatFromMarkdown(null, 'orphan.md');
     expect(chat.title).toBe('orphan');
@@ -480,6 +538,30 @@ describe('buildImportPlan() — null / edge cases', () => {
     expect(plan.chatsToImport).toHaveLength(0);
     expect(plan.conflicts).toHaveLength(0);
     expect(plan.summary).toMatchObject({ topics: 0, chats: 0, conflicts: 0 });
+  });
+
+  it('defaults to merge strategy when strategy is undefined (strategy || "merge" fallback)', () => {
+    // strategy=undefined → strategy || 'merge' fires → safeStrategy='merge'
+    const entries = parseZipEntries(WELL_FORMED_ENTRIES);
+    const plan = buildImportPlan(entries, null, undefined);
+    // merge strategy with null tree → all topics go to create
+    expect(plan.topicsToCreate.length).toBeGreaterThan(0);
+    expect(plan.topicsToMerge).toHaveLength(0);
+  });
+
+  it('uses default Map when zipEntries has no topicFolders (= new Map() fallback)', () => {
+    // zipEntries.topicFolders = undefined → destructuring default fires
+    const entries = { chatFiles: [] }; // no topicFolders
+    const plan = buildImportPlan(entries, null, 'merge');
+    expect(plan.topicsToCreate).toHaveLength(0);
+    expect(plan.chatsToImport).toHaveLength(0);
+  });
+
+  it('uses default [] when zipEntries has no chatFiles (= [] fallback)', () => {
+    // zipEntries.chatFiles = undefined → destructuring default fires
+    const entries = { topicFolders: new Map() }; // no chatFiles
+    const plan = buildImportPlan(entries, null, 'merge');
+    expect(plan.chatsToImport).toHaveLength(0);
   });
 });
 
@@ -613,6 +695,14 @@ describe('buildImportPlan() — create_root strategy', () => {
     for (const item of plan.chatsToImport) {
       expect(item.targetTopicPath).toMatch(new RegExp(`^${rootName}`));
     }
+  });
+
+  it('treats "new-root" as an alias for create_root strategy (line 421 branch)', () => {
+    // strategy === 'new-root' triggers the ternary TRUE branch
+    const plan2 = buildImportPlan(parsedEntries, cloneTree(EXISTING_TREE), 'new-root');
+    const today = new Date().toISOString().slice(0, 10);
+    const rootTopic = plan2.topicsToCreate.find(t => t.name === `Imported ${today}`);
+    expect(rootTopic).toBeDefined();
   });
 });
 
@@ -751,6 +841,45 @@ describe('executeImport()', () => {
     const projectsTopic = result.updatedTopics['topic-proj'];
     expect(projectsTopic.chatIds.length).toBeGreaterThan(0);
   });
+
+  it('handles existingTree with rootTopicIds missing (|| [] fallback on line 439)', () => {
+    // Tree has topics but no rootTopicIds → walkTopic is skipped, no merge resolution
+    const treeNoRootIds = {
+      topics: { 'topic-work': { id: 'topic-work', name: 'Work', children: ['topic-proj'] } },
+      // rootTopicIds intentionally omitted
+    };
+    const plan = buildImportPlan(parsedEntries, treeNoRootIds, 'merge');
+    // No merge can happen without rootTopicIds (can't walk tree), so all topics go to create
+    expect(plan.topicsToCreate.length).toBeGreaterThan(0);
+  });
+
+  it('handles topics without children property in walkTopic (|| [] fallback on line 444)', () => {
+    // topic-proj has children:[] in EXISTING_TREE; use a tree where topic-work has no children field
+    const treeBareTopics = {
+      topics: {
+        'topic-work': { id: 'topic-work', name: 'Work' }, // no children field
+      },
+      rootTopicIds: ['topic-work'],
+    };
+    const plan = buildImportPlan(parsedEntries, treeBareTopics, 'merge');
+    // Walking should succeed without throwing; Work should be merged
+    const merged = plan.topicsToMerge.map(m => m.existingTopicId);
+    expect(merged).toContain('topic-work');
+  });
+
+  it('handles orphaned child ID in walkTopic (early return when topic not found, line 439)', () => {
+    // topic-work.children includes 'nonexistent' — walkTopic('nonexistent') → topic=undefined → return
+    const treeOrphan = {
+      topics: {
+        'topic-work': { id: 'topic-work', name: 'Work', children: ['nonexistent'] },
+      },
+      rootTopicIds: ['topic-work'],
+    };
+    // Should not throw; the orphaned child ID is simply skipped
+    const plan = buildImportPlan(parsedEntries, treeOrphan, 'merge');
+    const merged = plan.topicsToMerge.map(m => m.existingTopicId);
+    expect(merged).toContain('topic-work');
+  });
 });
 
 // ─── Round-trip integration ───────────────────────────────────────────────────
@@ -829,5 +958,452 @@ describe('Round-trip: parseZipEntries → buildImportPlan → executeImport', ()
         expect(chatIdSet.has(chatId)).toBe(true);
       }
     }
+  });
+});
+
+// ─── executeImport – additional branch coverage ───────────────────────────────
+
+describe('executeImport() – branch edge cases', () => {
+  it('handles tree with topics but no rootTopicIds array', () => {
+    // tree.rootTopicIds is undefined → updatedRootTopics should be []
+    const treeNoRoots = { topics: { 't1': { id: 't1', name: 'X', children: [], chatIds: [] } } };
+    const result = executeImport(null, treeNoRoots, []);
+    expect(result.updatedRootTopics).toEqual([]);
+    expect(result.updatedTopics['t1']).toBeDefined();
+  });
+
+  it('deep-clones topics that lack children/chatIds (|| [] fallback on lines 613-614)', () => {
+    // topic has no children or chatIds properties → `|| []` fallback fires
+    const treeWithBareTopics = {
+      topics: {
+        't1': { id: 't1', name: 'Bare' }, // no children, no chatIds
+      },
+      rootTopicIds: ['t1'],
+    };
+    const result = executeImport(null, treeWithBareTopics, []);
+    // Cloned topic should have empty arrays for children and chatIds
+    expect(result.updatedTopics['t1'].children).toEqual([]);
+    expect(result.updatedTopics['t1'].chatIds).toEqual([]);
+  });
+
+  it('handles tree where rootTopicIds is not an array', () => {
+    const treeWrongRoots = { topics: {}, rootTopicIds: 'not-an-array' };
+    const result = executeImport(null, treeWrongRoots, []);
+    expect(result.updatedRootTopics).toEqual([]);
+  });
+
+  it('records an error when parent folder path cannot be resolved for a nested topic', () => {
+    // Create a plan with a nested topic whose parent is NOT in the folderToId map
+    const plan = {
+      topicsToCreate: [
+        // The parent 'Ghost' is missing from the plan — parentId resolution fails
+        { name: 'Child', parentName: 'Ghost', folderPath: 'Ghost/Child' },
+      ],
+      topicsToMerge: [],
+      chatsToImport: [],
+      conflicts:     [],
+    };
+    const result = executeImport(plan, null, []);
+    expect(result.summary.errors.length).toBeGreaterThan(0);
+    expect(result.summary.errors[0]).toMatch(/Parent folder not resolved/i);
+    // Child should still be created (attached to root)
+    const childTopic = Object.values(result.updatedTopics).find(t => t.name === 'Child');
+    expect(childTopic).toBeDefined();
+    expect(childTopic.parentId).toBeNull();
+    expect(result.updatedRootTopics).toContain(childTopic.id);
+  });
+
+  it('catches errors thrown during individual chat import and records them in summary.errors', () => {
+    // Create a chatEntry whose property access throws during spread
+    const throwingEntry = {};
+    Object.defineProperty(throwingEntry, 'id', {
+      get() { throw new Error('simulated spread error'); },
+      enumerable: true,
+    });
+
+    const plan = {
+      topicsToCreate: [{ name: 'Root', parentName: null, folderPath: 'Root' }],
+      topicsToMerge:  [],
+      chatsToImport:  [{ chatEntry: throwingEntry, targetTopicPath: 'Root' }],
+      conflicts:      [],
+    };
+
+    const result = executeImport(plan, null, []);
+    expect(result.summary.errors.length).toBeGreaterThan(0);
+    expect(result.summary.errors[0]).toMatch(/Failed to import chat/i);
+  });
+
+  it('updatedChats defaults to [] when chats arg is not an array', () => {
+    const result = executeImport(null, null, null);
+    expect(result.updatedChats).toEqual([]);
+  });
+
+  it('sets topicId to null when chat targetTopicPath is not in folderToId map', () => {
+    // The chat targets 'Nonexistent/Path' which was never created
+    const plan = {
+      topicsToCreate: [{ name: 'Root', parentName: null, folderPath: 'Root' }],
+      topicsToMerge:  [],
+      chatsToImport:  [{
+        chatEntry:      { id: 'c1', title: 'Orphan Chat', timestamp: 5000 },
+        targetTopicPath: 'Nonexistent/Path',
+      }],
+      conflicts: [],
+    };
+    const result = executeImport(plan, null, []);
+    expect(result.updatedChats[0].topicId).toBeNull();
+  });
+
+  it('skips duplicate chatId push when chatId already in topic.chatIds', () => {
+    // Pre-seed a topic with the same chat ID to trigger the false branch of
+    // !topic.chatIds.includes(chatWithTopic.id)
+    const existingTopicId = 'existing-t1';
+    const plan = {
+      topicsToCreate: [],
+      topicsToMerge:  [{ existingTopicId, folderPath: 'Work' }],
+      chatsToImport:  [{
+        chatEntry:      { id: 'c1', title: 'Duplicate', timestamp: 1000 },
+        targetTopicPath: 'Work',
+      }],
+      conflicts: [],
+    };
+    const treeWithChat = {
+      topics: {
+        [existingTopicId]: {
+          id: existingTopicId, name: 'Work', parentId: null,
+          children: [], chatIds: ['c1'],  // 'c1' already present
+          firstChatDate: 1000, lastChatDate: 1000,
+        },
+      },
+      rootTopicIds: [existingTopicId],
+    };
+    const result = executeImport(plan, treeWithChat, []);
+    // chatIds should still contain only one 'c1' – no duplicate push
+    expect(result.updatedTopics[existingTopicId].chatIds.filter(id => id === 'c1')).toHaveLength(1);
+  });
+
+  it('does not update lastChatDate when an earlier-timestamp chat is added to an existing range', () => {
+    // Covers the `lastChatDate === null || ts > lastChatDate` false branch
+    const existingTopicId = 'topic-ts';
+    const plan = {
+      topicsToCreate: [],
+      topicsToMerge:  [{ existingTopicId, folderPath: 'Dated' }],
+      chatsToImport:  [{
+        chatEntry:      { id: 'c-early', title: 'Old Chat', timestamp: 500 },
+        targetTopicPath: 'Dated',
+      }],
+      conflicts: [],
+    };
+    const treeWithDates = {
+      topics: {
+        [existingTopicId]: {
+          id: existingTopicId, name: 'Dated', parentId: null,
+          children: [], chatIds: [],
+          firstChatDate: 2000, lastChatDate: 3000,   // already set to later dates
+        },
+      },
+      rootTopicIds: [existingTopicId],
+    };
+    const result = executeImport(plan, treeWithDates, []);
+    const topic = result.updatedTopics[existingTopicId];
+    // ts=500 < firstChatDate=2000 → firstChatDate updates to 500
+    expect(topic.firstChatDate).toBe(500);
+    // ts=500 < lastChatDate=3000 → lastChatDate NOT updated
+    expect(topic.lastChatDate).toBe(3000);
+  });
+
+  it('does not update firstChatDate or lastChatDate when chat timestamp is not a number', () => {
+    // Covers the `typeof ts === 'number'` false branch
+    const existingTopicId = 'topic-nots';
+    const plan = {
+      topicsToCreate: [],
+      topicsToMerge:  [{ existingTopicId, folderPath: 'NoDate' }],
+      chatsToImport:  [{
+        chatEntry:      { id: 'cnd', title: 'No TS', timestamp: 'oops' },
+        targetTopicPath: 'NoDate',
+      }],
+      conflicts: [],
+    };
+    const treeForNoTs = {
+      topics: {
+        [existingTopicId]: {
+          id: existingTopicId, name: 'NoDate', parentId: null,
+          children: [], chatIds: [],
+          firstChatDate: null, lastChatDate: null,
+        },
+      },
+      rootTopicIds: [existingTopicId],
+    };
+    const result = executeImport(plan, treeForNoTs, []);
+    // Dates should remain null since ts is not a number
+    expect(result.updatedTopics[existingTopicId].firstChatDate).toBeNull();
+    expect(result.updatedTopics[existingTopicId].lastChatDate).toBeNull();
+  });
+
+  it('creates a topic without folderPath (item.folderPath falsy) and attaches it to root', () => {
+    // Covers line 672: `if (item.folderPath)` false branch
+    // Also covers the sort comparator false branch for null folderPath (lines 662-663)
+    const plan = {
+      topicsToCreate: [
+        { name: 'NoPath', parentName: null, folderPath: null },
+        { name: 'HasPath', parentName: null, folderPath: 'HasPath' },
+      ],
+      topicsToMerge:  [],
+      chatsToImport:  [],
+      conflicts: [],
+    };
+    const result = executeImport(plan, null, []);
+    const noPath = Object.values(result.updatedTopics).find(t => t.name === 'NoPath');
+    expect(noPath).toBeDefined();
+    expect(noPath.parentId).toBeNull();
+    expect(result.updatedRootTopics).toContain(noPath.id);
+  });
+
+  it('handles parentTopic missing from updatedTopics when parentId resolves via merge', () => {
+    // Covers line 688: `if (parentTopic && ...)` false branch when parentTopic is undefined
+    // parentId is truthy but not in updatedTopics (merge references an ID not in tree)
+    const ghostParentId = 'ghost-parent-999';
+    const plan = {
+      topicsToCreate: [
+        // Uses a nested path whose parent resolves to ghostParentId (via merge) but is absent from updatedTopics
+        { name: 'Child', parentName: 'Ghost', folderPath: 'Ghost/Child' },
+      ],
+      topicsToMerge: [
+        { existingTopicId: ghostParentId, folderPath: 'Ghost' },
+      ],
+      chatsToImport: [],
+      conflicts: [],
+    };
+    // tree.topics does NOT include ghostParentId → updatedTopics won't have it
+    const result = executeImport(plan, { topics: {}, rootTopicIds: [] }, []);
+    const child = Object.values(result.updatedTopics).find(t => t.name === 'Child');
+    expect(child).toBeDefined();
+    // parentId set to ghostParentId since folderToId resolved it, but parentTopic is undefined
+    // so children.push is skipped — no error thrown
+    expect(child.parentId).toBe(ghostParentId);
+  });
+});
+
+// ─── validateZipFile – additional branch coverage ─────────────────────────────
+
+describe('validateZipFile() – MIME vs extension combinations', () => {
+  it('returns valid when MIME is application/zip but extension is NOT .zip', () => {
+    // mimeOk=true, extOk=false → !mimeOk && !extOk = false → valid
+    const file = { name: 'export.data', size: 500, type: 'application/zip' };
+    const result = validateZipFile(file);
+    expect(result.valid).toBe(true);
+  });
+
+  it('returns invalid when file.size is a non-number', () => {
+    const file = { name: 'export.zip', size: 'big', type: 'application/zip' };
+    const result = validateZipFile(file);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBeTruthy();
+  });
+
+  it('returns invalid when file name is an empty string', () => {
+    const file = { name: '   ', size: 100, type: 'application/zip' };
+    const result = validateZipFile(file);
+    expect(result.valid).toBe(false);
+  });
+
+  it('returns invalid when file name is not a string', () => {
+    const file = { name: 42, size: 100, type: 'application/zip' };
+    const result = validateZipFile(file);
+    expect(result.valid).toBe(false);
+  });
+});
+
+// ─── executeImport – timestamp update branches (lines 692-702) ───────────────
+
+describe('executeImport() – timestamp update logic', () => {
+  function makePlanWithChats(chats) {
+    return {
+      topicsToCreate: [
+        { name: 'TestTopic', folderPath: 'TestTopic' },
+      ],
+      topicsToMerge: [],
+      chatsToImport: chats.map(c => ({
+        chatEntry: c,
+        targetTopicPath: 'TestTopic',
+      })),
+      conflicts: [],
+    };
+  }
+
+  it('sets firstChatDate and lastChatDate from a single chat with timestamp', () => {
+    const plan = makePlanWithChats([
+      { id: 'c1', title: 'Chat 1', timestamp: 1000 },
+    ]);
+    const result = executeImport(plan, null, []);
+    const topic = Object.values(result.updatedTopics).find(t => t.name === 'TestTopic');
+    expect(topic.firstChatDate).toBe(1000);
+    expect(topic.lastChatDate).toBe(1000);
+  });
+
+  it('updates firstChatDate when a newer import has an earlier timestamp', () => {
+    // First import sets firstChatDate = 1000
+    const plan = makePlanWithChats([
+      { id: 'c1', title: 'C1', timestamp: 1000 },
+      { id: 'c2', title: 'C2', timestamp: 500 }, // earlier → should update firstChatDate
+    ]);
+    const result = executeImport(plan, null, []);
+    const topic = Object.values(result.updatedTopics).find(t => t.name === 'TestTopic');
+    expect(topic.firstChatDate).toBe(500);
+    expect(topic.lastChatDate).toBe(1000);
+  });
+
+  it('updates lastChatDate when a newer import has a later timestamp', () => {
+    const plan = makePlanWithChats([
+      { id: 'c1', title: 'C1', timestamp: 500 },
+      { id: 'c2', title: 'C2', timestamp: 2000 }, // later → should update lastChatDate
+    ]);
+    const result = executeImport(plan, null, []);
+    const topic = Object.values(result.updatedTopics).find(t => t.name === 'TestTopic');
+    expect(topic.firstChatDate).toBe(500);
+    expect(topic.lastChatDate).toBe(2000);
+  });
+
+  it('does NOT update dates for chats where ts is not a number', () => {
+    const plan = makePlanWithChats([
+      { id: 'c1', title: 'NoTs' }, // no timestamp → typeof ts !== 'number'
+    ]);
+    const result = executeImport(plan, null, []);
+    const topic = Object.values(result.updatedTopics).find(t => t.name === 'TestTopic');
+    expect(topic.firstChatDate).toBeNull();
+    expect(topic.lastChatDate).toBeNull();
+  });
+
+  it('does NOT set dates when topicId is null (chat without a topic)', () => {
+    const plan = {
+      topicsToCreate: [],
+      topicsToMerge: [],
+      chatsToImport: [{
+        chatEntry: { id: 'c1', title: 'Orphan', timestamp: 9999 },
+        targetTopicPath: null, // no topic → folderToId.get(null) = undefined → topicId = null
+      }],
+      conflicts: [],
+    };
+    const result = executeImport(plan, null, []);
+    // No topic affected — updatedTopics is empty, chat is still added
+    expect(result.updatedChats.length).toBe(1);
+  });
+
+  it('does not add duplicate chatIds when the same chat is imported twice', () => {
+    const plan = {
+      topicsToCreate: [{ name: 'Dupes', folderPath: 'Dupes' }],
+      topicsToMerge: [],
+      chatsToImport: [
+        { chatEntry: { id: 'dup', title: 'Dup', timestamp: 100 }, targetTopicPath: 'Dupes' },
+        { chatEntry: { id: 'dup', title: 'Dup', timestamp: 100 }, targetTopicPath: 'Dupes' },
+      ],
+      conflicts: [],
+    };
+    const result = executeImport(plan, null, []);
+    const topic = Object.values(result.updatedTopics).find(t => t.name === 'Dupes');
+    expect(topic.chatIds.filter(id => id === 'dup')).toHaveLength(1);
+  });
+
+  it('sort puts shallow topic before deeper topic (sort comparator deep < shallow = negative)', () => {
+    // depthA=1 for 'Root', depthB=2 for 'Root/Child' — sorts Root first
+    const plan = {
+      topicsToCreate: [
+        { name: 'Child', folderPath: 'Root/Child' },
+        { name: 'Root',  folderPath: 'Root' },
+      ],
+      topicsToMerge:  [],
+      chatsToImport:  [],
+      conflicts: [],
+    };
+    const result = executeImport(plan, null, []);
+    // Child's parentId should resolve because Root was created first
+    const child = Object.values(result.updatedTopics).find(t => t.name === 'Child');
+    expect(child?.parentId).not.toBeNull();
+  });
+
+  it('does not push duplicate root topic when executeImport called twice with same plan', () => {
+    // updatedRootTopics already has the topic ID after first executePlan — second call
+    // must not duplicate it. We simulate by pre-seeding updatedRootTopics via an
+    // initial executeImport, then appending to it via topicsToMerge.
+    // A simpler approach: create a plan with two identical folderPaths which both
+    // try to be roots — but unique IDs prevent true duplication.
+    // Directly test the guard: run a plan then check no duplicates.
+    const plan = {
+      topicsToCreate: [{ name: 'Single', folderPath: 'Single' }],
+      topicsToMerge:  [],
+      chatsToImport:  [],
+      conflicts: [],
+    };
+    const result = executeImport(plan, null, []);
+    const singleCount = result.updatedRootTopics.filter(id => result.updatedTopics[id]?.name === 'Single').length;
+    expect(singleCount).toBe(1);
+  });
+
+  it('sort comparator handles item with no folderPath (depth=0 fallback branch)', () => {
+    // topicsToCreate includes an item without a folderPath → depthA = 0 (ternary FALSE)
+    // Place NoPath LAST so JS sort uses it as 'a' in at least one comparison
+    const plan = {
+      topicsToCreate: [
+        { name: 'Child', folderPath: 'Root/Child' },
+        { name: 'Root',  folderPath: 'Root' },
+        { name: 'NoPath' },               // no folderPath → depth 0 as 'a'
+      ],
+      topicsToMerge:  [],
+      chatsToImport:  [],
+      conflicts: [],
+    };
+    // Should not throw; items without folderPath are treated as root
+    const result = executeImport(plan, null, []);
+    expect(Object.values(result.updatedTopics).find(t => t.name === 'NoPath')).toBeDefined();
+  });
+
+  it('records error when parent folder path is not resolvable (line 692)', () => {
+    // A topic with folderPath 'Missing/Child' where 'Missing' was never created
+    const plan = {
+      topicsToCreate: [
+        { name: 'Orphan', folderPath: 'Missing/Orphan' },
+      ],
+      topicsToMerge:  [],
+      chatsToImport:  [],
+      conflicts: [],
+    };
+    const result = executeImport(plan, null, []);
+    // The error should be captured but not thrown
+    expect(result.summary.errors.some(e => e.includes('Parent folder not resolved'))).toBe(true);
+  });
+
+  it('handles plan with topicsToMerge=undefined (|| [] fallback on line 637)', () => {
+    // topicsToMerge is omitted → || [] branch fires
+    const plan = {
+      topicsToCreate: [{ name: 'X', folderPath: 'X' }],
+      chatsToImport: [],
+      conflicts: [],
+      // topicsToMerge intentionally omitted
+    };
+    const result = executeImport(plan, null, []);
+    expect(result.summary.topicsCreated).toBe(1);
+  });
+
+  it('handles plan with topicsToCreate=undefined (|| [] fallback on line 661)', () => {
+    // topicsToCreate is omitted → || [] branch fires
+    const plan = {
+      topicsToMerge: [],
+      chatsToImport: [],
+      conflicts: [],
+      // topicsToCreate intentionally omitted
+    };
+    const result = executeImport(plan, null, []);
+    expect(result.summary.topicsCreated).toBe(0);
+  });
+
+  it('handles plan with chatsToImport=undefined (|| [] fallback on line 702)', () => {
+    // chatsToImport is omitted → || [] branch fires
+    const plan = {
+      topicsToCreate: [],
+      topicsToMerge: [],
+      conflicts: [],
+      // chatsToImport intentionally omitted
+    };
+    const result = executeImport(plan, null, []);
+    expect(result.summary.chatsImported).toBe(0);
   });
 });

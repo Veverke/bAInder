@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DialogManager } from '../src/lib/dialog-manager.js';
-import { TopicDialogs } from '../src/lib/topic-dialogs.js';
-import { TopicTree } from '../src/lib/tree.js';
+import { DialogManager } from '../src/lib/dialogs/dialog-manager.js';
+import { TopicDialogs } from '../src/lib/dialogs/topic-dialogs.js';
+import { TopicTree } from '../src/lib/tree/tree.js';
 import { StorageService, ChromeStorageAdapter } from '../src/lib/storage.js';
 
 /**

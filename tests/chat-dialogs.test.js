@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { ChatDialogs } from '../src/lib/chat-dialogs.js';
-import { DialogManager } from '../src/lib/dialog-manager.js';
-import { TopicTree } from '../src/lib/tree.js';
+import { ChatDialogs } from '../src/lib/dialogs/chat-dialogs.js';
+import { DialogManager } from '../src/lib/dialogs/dialog-manager.js';
+import { TopicTree } from '../src/lib/tree/tree.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -464,5 +464,86 @@ describe('ChatDialogs – showEditTags', () => {
     const result = await promise;
     expect(result).not.toBeNull();
     expect(result.tags).toEqual([]);
+  });
+});
+
+// ─── showSetReviewDate ────────────────────────────────────────────────────────
+
+describe('ChatDialogs – showSetReviewDate', () => {
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('throws when chat is missing', async () => {
+    const { chatDialogs } = setup();
+    await expect(chatDialogs.showSetReviewDate(null)).rejects.toThrow('Chat is required');
+    await expect(chatDialogs.showSetReviewDate(undefined)).rejects.toThrow('Chat is required');
+  });
+
+  it('returns null when form is cancelled', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ reviewDate: null });
+    const promise = chatDialogs.showSetReviewDate(chat);
+
+    document.querySelector('[data-action="cancel"]').click();
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  it('returns {reviewDate} when a date is submitted', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ reviewDate: null });
+    const promise = chatDialogs.showSetReviewDate(chat);
+
+    const dateInput = document.querySelector('[data-field="reviewDate"]');
+    dateInput.value = '2024-06-15';
+    document.querySelector('[data-action="submit"]').click();
+
+    const result = await promise;
+    expect(result).not.toBeNull();
+    expect(result.reviewDate).toBe('2024-06-15');
+  });
+
+  it('returns {reviewDate: null} when date field is cleared', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ reviewDate: '2024-01-01' });
+    const promise = chatDialogs.showSetReviewDate(chat);
+
+    const dateInput = document.querySelector('[data-field="reviewDate"]');
+    dateInput.value = '';
+    document.querySelector('[data-action="submit"]').click();
+
+    const result = await promise;
+    expect(result).not.toBeNull();
+    expect(result.reviewDate).toBeNull();
+  });
+
+  it('shows "Set Review Date" title when chat has no review date', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ reviewDate: null });
+    const promise = chatDialogs.showSetReviewDate(chat);
+
+    expect(document.body.textContent).toContain('Set Review Date');
+    document.querySelector('[data-action="cancel"]').click();
+    await promise;
+  });
+
+  it('shows "Update Review Date" title when chat already has a review date', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ reviewDate: '2024-03-20' });
+    const promise = chatDialogs.showSetReviewDate(chat);
+
+    expect(document.body.textContent).toContain('Update Review Date');
+    document.querySelector('[data-action="cancel"]').click();
+    await promise;
+  });
+
+  it('pre-fills the date input with the existing review date', async () => {
+    const { chatDialogs } = setup();
+    const chat = makeChatEntry({ reviewDate: '2025-12-31' });
+    const promise = chatDialogs.showSetReviewDate(chat);
+
+    const dateInput = document.querySelector('[data-field="reviewDate"]');
+    expect(dateInput.value).toBe('2025-12-31');
+    document.querySelector('[data-action="cancel"]').click();
+    await promise;
   });
 });

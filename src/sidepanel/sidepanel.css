@@ -671,6 +671,15 @@ mark.search-highlight {
   color: var(--text-tertiary);
 }
 
+.storage-info--warn {
+  color: var(--color-warning, #d97706);
+  border-color: var(--color-warning, #d97706);
+}
+
+.storage-info--warn svg {
+  color: var(--color-warning, #d97706);
+}
+
 /* â”€â”€ Tree skeleton loader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .skeleton-row {
   display: flex;
@@ -1358,11 +1367,12 @@ button:focus-visible {
 }
 
 /* Light theme source chip colours */
-.tree-source-chip--chatgpt  { background: #dcfce7; color: #15803d; }
-.tree-source-chip--claude   { background: #fef3c7; color: #92400e; }
-.tree-source-chip--gemini   { background: #dbeafe; color: #1e40af; }
-.tree-source-chip--copilot  { background: #ede9fe; color: #5b21b6; }
-.tree-source-chip--unknown  { background: var(--bg-tertiary); color: var(--text-tertiary); }
+.tree-source-chip--chatgpt   { background: #dcfce7; color: #15803d; }
+.tree-source-chip--claude    { background: #fef3c7; color: #92400e; }
+.tree-source-chip--gemini    { background: #dbeafe; color: #1e40af; }
+.tree-source-chip--copilot   { background: #ede9fe; color: #5b21b6; }
+.tree-source-chip--assembled { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.tree-source-chip--unknown   { background: var(--bg-tertiary); color: var(--text-tertiary); }
 
 /* Expand/collapse button */
 .tree-expand-btn {
@@ -1827,9 +1837,9 @@ ul.tree-root.drop-target {
 }
 
 
-/* â”€â”€ U2: Star / pin button on topic cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* â”€â”€ U2: Pin button on topic cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-.tree-star-btn {
+.tree-pin-btn {
   flex-shrink: 0;
   width: 22px;
   height: 22px;
@@ -1838,32 +1848,30 @@ ul.tree-root.drop-target {
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
-  color: var(--text-tertiary);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   opacity: 0;
-  transition: opacity var(--transition-fast), color var(--transition-fast), transform 120ms ease;
+  transition: opacity var(--transition-fast), transform 120ms ease, filter var(--transition-fast);
 }
 
-.tree-node-content:hover .tree-star-btn,
-.tree-node-content:focus-within .tree-star-btn {
-  opacity: 1;
+.tree-node-content:hover .tree-pin-btn,
+.tree-node-content:focus-within .tree-pin-btn {
+  opacity: 0.45;
 }
 
-.tree-star-btn:hover { color: var(--warning); transform: scale(1.2); }
-.tree-star-btn:active { transform: scale(0.9); }
+.tree-pin-btn:hover { opacity: 1; transform: scale(1.2); }
+.tree-pin-btn:active { transform: scale(0.9); }
 
-/* Pinned star is always visible */
-.tree-star-btn--active {
+/* Pinned — always fully visible */
+.tree-pin-btn--active {
   opacity: 1 !important;
-  color: var(--warning);
 }
 
 /* Pinned topic card gets a subtle left accent */
-.tree-node--card:has(.tree-star-btn--active) > .tree-node-content {
+.tree-node--card:has(.tree-pin-btn--active) > .tree-node-content {
   border-left: 3px solid var(--warning);
 }
 
@@ -2633,6 +2641,16 @@ ul.tree-root.drop-target {
 /* Highlight selected chat rows */
 .tree-chat-item--selected > .tree-node-content {
   background: var(--primary-light, rgba(99, 102, 241, 0.10)) !important;
+  border-radius: var(--radius-sm, 6px);
+}
+
+/* Brief flash when navigating to a chat from the reader */
+@keyframes chat-item-flash {
+  0%   { background: rgba(99, 102, 241, 0.25); }
+  100% { background: transparent; }
+}
+.tree-chat-item--flash > .tree-node-content {
+  animation: chat-item-flash 1.5s ease-out forwards;
   border-radius: var(--radius-sm, 6px);
 }
 

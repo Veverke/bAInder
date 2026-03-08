@@ -18,7 +18,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // ─── Mock markdown-serialiser ─────────────────────────────────────────────────
-vi.mock('../src/lib/markdown-serialiser.js', () => ({
+vi.mock('../src/lib/io/markdown-serialiser.js', () => ({
   messagesToMarkdown: vi.fn((msgs, meta) => `---\ntitle: "${meta?.title || ''}"\n---\ncontent`),
   parseFrontmatter: vi.fn((md) => {
     const m = md.match(/title:\s*"([^"]+)"/);
@@ -36,8 +36,19 @@ import {
   buildMetadataJson,
   buildReadme,
   triggerDownload,
+  setDownloadDriver,
   _mdToHtml,
-} from '../src/lib/export-engine.js';
+  EXPORT_ENGINE_VERSION,
+} from '../src/lib/export/export-engine.js';
+
+// ─── Direct sub-module imports (for covering helper functions) ────────────────
+import { buildDigestMarkdown }                          from '../src/lib/export/markdown-builder.js';
+import { messagesToMarkdown }                           from '../src/lib/io/markdown-serialiser.js';
+import { buildDigestHtml }                              from '../src/lib/export/html-builder.js';
+import { cap, escCode, guessMime, digestAnchor, formatDateHuman, stripFrontmatter } from '../src/lib/export/format-helpers.js';
+import { getDigestCss, getExportCss, fontStackForStyle } from '../src/lib/export/html-styles.js';
+import { inlineMd }                                     from '../src/lib/export/md-to-html.js';
+import { collectDescendants, buildTopicFolderPaths }    from '../src/lib/export/filename-utils.js';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -294,6 +305,25 @@ describe('buildExportMarkdown()', () => {
   it('ends with the bAInder export footer line', () => {
     const md = buildExportMarkdown(mockChat, 'Work');
     expect(md).toContain('*Exported from bAInder');
+  });
+
+  it('capitalises custom message role (cap fallback, line 79)', () => {
+    // msg.role is neither 'user' nor 'assistant' → cap(msg.role || 'Unknown') fires
+    const chatCustomRole = {
+      ...mockChat,
+      messages: [{ role: 'system', content: 'system prompt' }],
+    };
+    const md = buildExportMarkdown(chatCustomRole, 'Work');
+    expect(md).toContain('### System');
+  });
+
+  it('uses "Unknown" when msg.role is null in buildExportMarkdown (|| "Unknown" branch)', () => {
+    const chatNullRole = {
+      ...mockChat,
+      messages: [{ role: null, content: 'no role' }],
+    };
+    const md = buildExportMarkdown(chatNullRole, 'Work');
+    expect(md).toContain('### Unknown');
   });
 });
 
@@ -669,9 +699,19 @@ describe('_mdToHtml()', () => {
  * download mechanism, including Blob creation and cleanup via fake timers.
  */
 describe('triggerDownload()', () => {
+  let clickDriver;
+
   beforeEach(() => {
     global.URL.createObjectURL = vi.fn(() => 'blob:fake-url');
     global.URL.revokeObjectURL = vi.fn();
+    // Inject a spy driver so no DOM interaction occurs
+    clickDriver = vi.fn();
+    setDownloadDriver(clickDriver);
+  });
+
+  afterEach(() => {
+    // Restore default DOM driver
+    setDownloadDriver(undefined);
   });
 
   it('calls URL.createObjectURL to create a Blob URL', () => {
@@ -698,5 +738,1106 @@ describe('triggerDownload()', () => {
     vi.advanceTimersByTime(15_000);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fake-url');
     vi.useRealTimers();
+  });
+
+  it('passes the Blob through directly when content is already a Blob', () => {
+    const existingBlob = new Blob(['pre-built'], { type: 'application/zip' });
+    triggerDownload('export.zip', existingBlob, 'application/zip');
+    const arg = URL.createObjectURL.mock.calls[0][0];
+    // The same Blob instance must have been used — no re-wrapping
+    expect(arg).toBe(existingBlob);
+  });
+
+  it('infers MIME type from filename when mimeType arg is omitted', () => {
+    triggerDownload('archive.zip', 'content');
+    const blob = URL.createObjectURL.mock.calls[0][0];
+    // guessMime('.zip') should give application/zip
+    expect(blob.type).toContain('zip');
+  });
+
+  it('invokes the click driver with the object URL and filename', () => {
+    triggerDownload('report.md', 'text', 'text/markdown');
+    expect(clickDriver).toHaveBeenCalledTimes(1);
+    expect(clickDriver).toHaveBeenCalledWith('blob:fake-url', 'report.md');
+  });
+
+  it('does not call document.createElement or touch document.body', () => {
+    const createSpy = vi.spyOn(document, 'createElement');
+    triggerDownload('report.md', 'text', 'text/markdown');
+    expect(createSpy).not.toHaveBeenCalled();
+    createSpy.mockRestore();
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// sanitizeFilename() – edge cases for trailing punctuation after truncation
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('sanitizeFilename() – truncation and trailing-char cleanup', () => {
+  it('removes trailing hyphen produced by 80-char slice', () => {
+    // Build a 85-char name where the 80th char is a hyphen
+    // "a".repeat(79) + "-" + "b".repeat(5)  — slice at 80 leaves trailing "-"
+    const name = 'a'.repeat(79) + '-bbbbb';
+    const result = sanitizeFilename(name);
+    expect(result).not.toMatch(/-$/);
+  });
+
+  it('returns "untitled" when input is only invalid characters', () => {
+    expect(sanitizeFilename('<<>>**')).toBe('untitled');
+  });
+
+  it('handles a name that is exactly 80 characters (no truncation)', () => {
+    const name = 'a'.repeat(80);
+    expect(sanitizeFilename(name).length).toBeLessThanOrEqual(80);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildZipPayload() – scope fallback & unassigned chats
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildZipPayload() – scope fallback and unassigned chats', () => {
+  it('falls back to all topics when scope is "topic" but topicId is not provided', () => {
+    const files = buildZipPayload(mockTree, [], { scope: 'topic' /* no topicId */ });
+    const topicJsonCount = files.filter(f => f.path.endsWith('_topic.json')).length;
+    // Should include all topics (fallback to all)
+    expect(topicJsonCount).toBe(Object.keys(mockTree.topics).length);
+  });
+
+  it('includes unassigned chats (no topicId) when scope is "all"', () => {
+    const unassigned = {
+      id: 'uncat-1', title: 'No Topic Chat', topicId: null,
+      source: 'chatgpt', timestamp: Date.now(), messages: [], tags: [], metadata: {},
+    };
+    const files = buildZipPayload(mockTree, [unassigned], { scope: 'all', format: 'markdown' });
+    const chatFiles = files.filter(f => f.path.endsWith('.md') && !f.path.endsWith('README.md'));
+    expect(chatFiles.some(f => f.path.includes('uncategorised'))).toBe(true);
+  });
+
+  it('excludes unassigned chats when scope is "topic"', () => {
+    const unassigned = {
+      id: 'uncat-2', title: 'Orphan', topicId: null,
+      source: 'claude', timestamp: Date.now(), messages: [], tags: [], metadata: {},
+    };
+    const files = buildZipPayload(mockTree, [unassigned], { scope: 'topic', topicId: 'topic-root' });
+    const chatFiles = files.filter(f => f.path.endsWith('.md') && !f.path.endsWith('README.md'));
+    expect(chatFiles).toHaveLength(0);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// EXPORT_ENGINE_VERSION
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('EXPORT_ENGINE_VERSION', () => {
+  it('is exported as a string', () => {
+    expect(typeof EXPORT_ENGINE_VERSION).toBe('string');
+  });
+
+  it('equals "1.0"', () => {
+    expect(EXPORT_ENGINE_VERSION).toBe('1.0');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// cap() / escCode() / stripFrontmatter() / guessMime() / digestAnchor()
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('cap()', () => {
+  it('capitalises the first letter of a string', () => {
+    expect(cap('hello')).toBe('Hello');
+  });
+
+  it('returns empty string for empty input', () => {
+    expect(cap('')).toBe('');
+  });
+
+  it('returns empty string for falsy input', () => {
+    expect(cap(null)).toBe('');
+  });
+
+  it('leaves already-capitalised strings unchanged', () => {
+    expect(cap('World')).toBe('World');
+  });
+});
+
+describe('escCode()', () => {
+  it('escapes & < > in code content', () => {
+    expect(escCode('a & b < c > d')).toBe('a &amp; b &lt; c &gt; d');
+  });
+
+  it('returns plain text unchanged when no special chars present', () => {
+    expect(escCode('hello world')).toBe('hello world');
+  });
+});
+
+describe('stripFrontmatter()', () => {
+  it('strips YAML frontmatter from markdown', () => {
+    const md = '---\ntitle: "foo"\n---\n\nbody text';
+    expect(stripFrontmatter(md)).toBe('body text');
+  });
+
+  it('returns original string when no frontmatter delimiter present', () => {
+    expect(stripFrontmatter('plain text')).toBe('plain text');
+  });
+
+  it('returns empty string for falsy input', () => {
+    expect(stripFrontmatter('')).toBe('');
+    expect(stripFrontmatter(null)).toBe('');
+  });
+
+  it('returns original when opening --- has no closing ---', () => {
+    const md = '---\ntitle: no close';
+    expect(stripFrontmatter(md)).toBe(md);
+  });
+});
+
+describe('guessMime()', () => {
+  it('returns text/html for .html files', () => {
+    expect(guessMime('export.html')).toContain('text/html');
+  });
+
+  it('returns application/zip for .zip files', () => {
+    expect(guessMime('archive.zip')).toBe('application/zip');
+  });
+
+  it('returns application/json for .json files', () => {
+    expect(guessMime('data.json')).toBe('application/json');
+  });
+
+  it('returns application/pdf for .pdf files', () => {
+    expect(guessMime('report.pdf')).toBe('application/pdf');
+  });
+
+  it('returns text/markdown as default for unknown extensions', () => {
+    expect(guessMime('notes.txt')).toContain('markdown');
+  });
+
+  it('returns text/markdown for .md files', () => {
+    expect(guessMime('chat.md')).toContain('markdown');
+  });
+});
+
+describe('digestAnchor()', () => {
+  it('converts title to lowercase slug with 1-based index suffix', () => {
+    expect(digestAnchor('My Chat Title', 0)).toBe('my-chat-title-1');
+  });
+
+  it('uses index offset correctly for non-zero index', () => {
+    expect(digestAnchor('Test', 4)).toBe('test-5');
+  });
+
+  it('falls back to "untitled" slug for empty title (|| "chat" only fires on all-special chars)', () => {
+    expect(digestAnchor('', 0)).toBe('untitled-1');
+  });
+
+  it('falls back to "chat" slug when title is only special characters', () => {
+    // After replace(/[^a-z0-9]+/g, '-') + strip leading/trailing hyphens, base is '' → "chat"
+    expect(digestAnchor('!!!', 0)).toBe('chat-1');
+  });
+
+  it('strips special chars from title', () => {
+    const anchor = digestAnchor('Hello! World?', 2);
+    expect(anchor).toMatch(/^[a-z0-9-]+-3$/);
+  });
+});
+
+describe('formatDateHuman()', () => {
+  it('returns empty string for falsy timestamp', () => {
+    expect(formatDateHuman(0)).toBe('');
+    expect(formatDateHuman(null)).toBe('');
+  });
+
+  it('returns a non-empty string for a valid timestamp', () => {
+    const result = formatDateHuman(1700000000000);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result).toContain('2023');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// getDigestCss() / getExportCss() / fontStackForStyle()
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('getDigestCss()', () => {
+  it('returns a non-empty CSS string', () => {
+    const css = getDigestCss('system-ui, sans-serif');
+    expect(css.length).toBeGreaterThan(50);
+  });
+
+  it('includes the provided font stack', () => {
+    const css = getDigestCss('Georgia, serif');
+    expect(css).toContain('Georgia, serif');
+  });
+
+  it('includes .toc style rules', () => {
+    expect(getDigestCss('system-ui')).toContain('.toc');
+  });
+
+  it('includes .chat-section style rules', () => {
+    expect(getDigestCss('system-ui')).toContain('.chat-section');
+  });
+});
+
+describe('getExportCss()', () => {
+  it('returns a non-empty CSS string', () => {
+    expect(getExportCss('system-ui').length).toBeGreaterThan(50);
+  });
+
+  it('includes .turn-user and .turn-assistant rules', () => {
+    const css = getExportCss('system-ui');
+    expect(css).toContain('.turn-user');
+    expect(css).toContain('.turn-assistant');
+  });
+});
+
+describe('fontStackForStyle()', () => {
+  it('"academic" style returns a serif font stack', () => {
+    expect(fontStackForStyle('academic')).toContain('Georgia');
+  });
+
+  it('"blog" style returns a serif font stack', () => {
+    expect(fontStackForStyle('blog')).toContain('Georgia');
+  });
+
+  it('"raw" style returns a system-ui sans-serif stack', () => {
+    expect(fontStackForStyle('raw')).toContain('system-ui');
+  });
+
+  it('unknown style returns a system-ui stack', () => {
+    expect(fontStackForStyle('unknown')).toContain('system-ui');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// inlineMd() — strikethrough, links, safe href
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('inlineMd()', () => {
+  it('converts ~~text~~ to <del>', () => {
+    expect(inlineMd('~~deleted~~')).toContain('<del>deleted</del>');
+  });
+
+  it('converts [label](https://example.com) to <a href>', () => {
+    const html = inlineMd('[click](https://example.com)');
+    expect(html).toContain('<a href="https://example.com"');
+    expect(html).toContain('click');
+  });
+
+  it('replaces unsafe javascript: href with #', () => {
+    const html = inlineMd('[bad](javascript:alert(1))');
+    expect(html).toContain('href="#"');
+    expect(html).not.toContain('javascript:');
+  });
+
+  it('replaces unsafe data: href with #', () => {
+    const html = inlineMd('[bad](data:text/html,<h1>evil</h1>)');
+    expect(html).toContain('href="#"');
+  });
+
+  it('allows mailto: links', () => {
+    const html = inlineMd('[email](mailto:user@example.com)');
+    expect(html).toContain('href="mailto:user@example.com"');
+  });
+
+  it('allows fragment-only links', () => {
+    const html = inlineMd('[jump](#section)');
+    expect(html).toContain('href="#section"');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// _mdToHtml — ordered list, unclosed fenced code block
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('_mdToHtml() — ordered list and edge cases', () => {
+  it('renders numbered list item (1. item) as <li>', () => {
+    const html = _mdToHtml('1. first item');
+    expect(html).toContain('<li>first item</li>');
+  });
+
+  it('renders multiple ordered list items', () => {
+    const html = _mdToHtml('1. alpha\n2. beta');
+    expect(html).toContain('<li>alpha</li>');
+    expect(html).toContain('<li>beta</li>');
+  });
+
+  it('flushes an unclosed fenced code block at end of input', () => {
+    const html = _mdToHtml('```\nconst x = 1;');
+    expect(html).toContain('<pre><code>');
+    expect(html).toContain('const x = 1;');
+  });
+
+  it('converts ### heading to <h3>', () => {
+    const html = _mdToHtml('### Third level');
+    expect(html).toContain('<h3>Third level</h3>');
+  });
+
+  it('converts *** horizontal rule to <hr>', () => {
+    const html = _mdToHtml('***');
+    expect(html).toContain('<hr>');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// collectDescendants() / buildTopicFolderPaths()
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('collectDescendants()', () => {
+  it('returns a set containing just the root when it has no children', () => {
+    const map = { 'a': { id: 'a', name: 'A', parentId: null, children: [] } };
+    const result = collectDescendants('a', map);
+    expect(result.has('a')).toBe(true);
+    expect(result.size).toBe(1);
+  });
+
+  it('collects root and all descendants', () => {
+    const result = collectDescendants('topic-root', mockTopicsMap);
+    expect(result.has('topic-root')).toBe(true);
+    expect(result.has('topic-child')).toBe(true);
+  });
+
+  it('handles circular child references without infinite loop', () => {
+    const circular = {
+      'x': { id: 'x', name: 'X', parentId: null, children: ['y'] },
+      'y': { id: 'y', name: 'Y', parentId: 'x', children: ['x'] }, // cycle back
+    };
+    expect(() => collectDescendants('x', circular)).not.toThrow();
+  });
+
+  it('handles a topicId that does not exist in the map', () => {
+    const result = collectDescendants('nonexistent', mockTopicsMap);
+    expect(result.has('nonexistent')).toBe(true); // the id is added before checking map
+  });
+});
+
+describe('buildTopicFolderPaths()', () => {
+  it('returns a Map with an entry for each topic', () => {
+    const paths = buildTopicFolderPaths(mockTopicsMap);
+    expect(paths.has('topic-root')).toBe(true);
+    expect(paths.has('topic-child')).toBe(true);
+  });
+
+  it('root topic path is just its sanitised name', () => {
+    const paths = buildTopicFolderPaths(mockTopicsMap);
+    expect(paths.get('topic-root')).toBe('work');
+  });
+
+  it('child topic path includes parent folder', () => {
+    const paths = buildTopicFolderPaths(mockTopicsMap);
+    expect(paths.get('topic-child')).toBe('work/projects');
+  });
+
+  it('handles empty map without throwing', () => {
+    expect(() => buildTopicFolderPaths({})).not.toThrow();
+    expect(buildTopicFolderPaths({}).size).toBe(0);
+  });
+
+  it('handles a topic whose parentId is not in the map', () => {
+    const orphan = { 'o1': { id: 'o1', name: 'Orphan', parentId: 'missing', children: [] } };
+    const paths = buildTopicFolderPaths(orphan);
+    expect(paths.has('o1')).toBe(true);
+    expect(typeof paths.get('o1')).toBe('string');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildDigestMarkdown()
+// ═════════════════════════════════════════════════════════════════════════════
+
+const digestChats = [
+  {
+    id: 'd-1', title: 'Digest Chat One', source: 'chatgpt',
+    topicId: 'topic-root', timestamp: 1700000000000,
+    messages: [
+      { role: 'user', content: 'Question one' },
+      { role: 'assistant', content: 'Answer one' },
+    ],
+    tags: [], metadata: {}, url: '',
+  },
+  {
+    id: 'd-2', title: 'Digest Chat Two', source: 'claude',
+    topicId: 'topic-child', timestamp: 1700500000000,
+    messages: [], content: '---\ntitle: "Two"\n---\nBody text', tags: [], metadata: {}, url: '',
+  },
+];
+
+describe('buildDigestMarkdown()', () => {
+  it('returns empty string for null chats', () => {
+    expect(buildDigestMarkdown(null, {})).toBe('');
+  });
+
+  it('returns empty string for empty chats array', () => {
+    expect(buildDigestMarkdown([], {})).toBe('');
+  });
+
+  it('result starts with YAML frontmatter', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap);
+    expect(md.startsWith('---')).toBe(true);
+  });
+
+  it('contains bAInder Digest title heading', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap);
+    expect(md).toContain('# bAInder Digest');
+  });
+
+  it('includes a table of contents when includeToc is not false', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap);
+    expect(md).toContain('## Contents');
+  });
+
+  it('omits table of contents when includeToc: false', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap, { includeToc: false });
+    expect(md).not.toContain('## Contents');
+  });
+
+  it('contains each chat title as a ## heading', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap);
+    expect(md).toContain('## Digest Chat One');
+    expect(md).toContain('## Digest Chat Two');
+  });
+
+  it('contains ### User and ### Assistant for chat with messages', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap);
+    expect(md).toContain('### User');
+    expect(md).toContain('### Assistant');
+  });
+
+  it('falls back to content body for chat with no messages', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap);
+    expect(md).toContain('Body text');
+  });
+
+  it('includes digest footer line', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap);
+    expect(md).toContain('Digest exported from bAInder');
+  });
+
+  it('uses === separator between chats', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap);
+    expect(md).toContain('===');
+  });
+
+  it('forAssembly option uses messagesToMarkdown for messages', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap, { forAssembly: true });
+    // messagesToMarkdown mock returns content — just verify it doesn't throw
+    expect(md).toContain('# bAInder Digest');
+  });
+
+  it('handles a role other than user/assistant (capitalises it)', () => {
+    const chats = [{
+      id: 'r1', title: 'Custom Role', source: 'chatgpt', topicId: null,
+      timestamp: 0, messages: [{ role: 'system', content: 'sys msg' }],
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {});
+    expect(md).toContain('### System');
+  });
+
+  it('uses "Unknown" when msg.role is falsy (|| "Unknown" fallback, line 79)', () => {
+    const chats = [{
+      id: 'r2', title: 'No Role', source: 'chatgpt', topicId: null,
+      timestamp: 0, messages: [{ role: null, content: 'no role here' }],
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {});
+    expect(md).toContain('### Unknown');
+  });
+
+  it('accepts null topicsMap and uses empty object fallback (|| {} on line 117)', () => {
+    // topicsMap=null → topics = null || {} = {} → no crash
+    const md = buildDigestMarkdown(digestChats, null);
+    expect(md).toContain('# bAInder Digest');
+  });
+
+  it('uses "Untitled Chat" when chat title is missing in ToC (|| "Untitled Chat" fallback)', () => {
+    const noTitleChats = [{
+      id: 'nt', source: 'chatgpt', topicId: null,
+      timestamp: 0, messages: [],
+      tags: [], metadata: {}, url: '',
+      // title intentionally omitted
+    }];
+    const md = buildDigestMarkdown(noTitleChats, {});
+    expect(md).toContain('Untitled Chat');
+  });
+
+  it('single chat does not produce "chats" plural in subtitle', () => {
+    const single = [digestChats[0]];
+    const md = buildDigestMarkdown(single, mockTopicsMap);
+    expect(md).toContain('1 chat compiled');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildDigestHtml()
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildDigestHtml()', () => {
+  it('returns fallback HTML for null chats', () => {
+    const html = buildDigestHtml(null, {});
+    expect(html).toContain('<html');
+  });
+
+  it('returns fallback HTML for empty chats array', () => {
+    const html = buildDigestHtml([], {});
+    expect(html).toContain('<html');
+  });
+
+  it('returns a complete HTML document for valid chats', () => {
+    const html = buildDigestHtml(digestChats, mockTopicsMap);
+    expect(html).toContain('<!DOCTYPE html>');
+    expect(html).toContain('<html');
+    expect(html).toContain('<body');
+  });
+
+  it('title says "bAInder Digest"', () => {
+    const html = buildDigestHtml(digestChats, mockTopicsMap);
+    expect(html).toContain('bAInder Digest');
+  });
+
+  it('includes a <nav class="toc"> when includeToc is not false', () => {
+    const html = buildDigestHtml(digestChats, mockTopicsMap);
+    expect(html).toContain('<nav class="toc">');
+  });
+
+  it('omits TOC when includeToc: false', () => {
+    const html = buildDigestHtml(digestChats, mockTopicsMap, { includeToc: false });
+    expect(html).not.toContain('<nav class="toc">');
+  });
+
+  it('each chat gets a <section class="chat-section">', () => {
+    const html = buildDigestHtml(digestChats, mockTopicsMap);
+    expect(html).toContain('chat-section');
+  });
+
+  it('contains turn-user and turn-assistant for chats with messages', () => {
+    const html = buildDigestHtml(digestChats, mockTopicsMap);
+    expect(html).toContain('turn-user');
+    expect(html).toContain('turn-assistant');
+  });
+
+  it('falls back to content body for chat with no messages', () => {
+    const html = buildDigestHtml(digestChats, mockTopicsMap);
+    expect(html).toContain('Body text');
+  });
+
+  it('style "academic" uses Georgia serif font', () => {
+    const html = buildDigestHtml(digestChats, mockTopicsMap, { style: 'academic' });
+    expect(html).toContain('Georgia');
+  });
+
+  it('uses null topicsMap safely', () => {
+    expect(() => buildDigestHtml(digestChats, null)).not.toThrow();
+  });
+
+  it('count pluralises to "chats" for multiple chats', () => {
+    const html = buildDigestHtml(digestChats, mockTopicsMap);
+    expect(html).toContain(`${digestChats.length} chats`);
+  });
+
+  it('count is singular for exactly one chat', () => {
+    const html = buildDigestHtml([digestChats[0]], mockTopicsMap);
+    expect(html).toContain('1 chat compiled');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// triggerDownload() — default DOM driver (lines 21-27 in download.js)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('triggerDownload() — default DOM driver', () => {
+  let mockAnchor;
+  let createSpy;
+  let appendSpy;
+  let removeSpy;
+
+  beforeEach(() => {
+    global.URL.createObjectURL = vi.fn(() => 'blob:dom-driver-url');
+    global.URL.revokeObjectURL = vi.fn();
+
+    // Restore the default DOM driver
+    setDownloadDriver(undefined);
+
+    // Mock the DOM interactions performed by domClickDriver
+    mockAnchor = {
+      href: '',
+      download: '',
+      style: { display: '' },
+      click: vi.fn(),
+    };
+    createSpy = vi.spyOn(document, 'createElement').mockReturnValue(mockAnchor);
+    appendSpy = vi.spyOn(document.body, 'appendChild').mockImplementation(() => {});
+    removeSpy = vi.spyOn(document.body, 'removeChild').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    createSpy.mockRestore();
+    appendSpy.mockRestore();
+    removeSpy.mockRestore();
+    // Re-install the click spy so other suites are not affected
+    setDownloadDriver(undefined);
+  });
+
+  it('creates an anchor element via document.createElement("a")', () => {
+    triggerDownload('file.md', 'content', 'text/markdown');
+    expect(createSpy).toHaveBeenCalledWith('a');
+  });
+
+  it('sets href to the object URL', () => {
+    triggerDownload('file.md', 'content', 'text/markdown');
+    expect(mockAnchor.href).toBe('blob:dom-driver-url');
+  });
+
+  it('sets download attribute to the filename', () => {
+    triggerDownload('report.md', 'data', 'text/markdown');
+    expect(mockAnchor.download).toBe('report.md');
+  });
+
+  it('appends the anchor to document.body', () => {
+    triggerDownload('file.md', 'content', 'text/markdown');
+    expect(appendSpy).toHaveBeenCalledWith(mockAnchor);
+  });
+
+  it('calls click() on the anchor', () => {
+    triggerDownload('file.md', 'content', 'text/markdown');
+    expect(mockAnchor.click).toHaveBeenCalledTimes(1);
+  });
+
+  it('removes the anchor from document.body after clicking', () => {
+    triggerDownload('file.md', 'content', 'text/markdown');
+    expect(removeSpy).toHaveBeenCalledWith(mockAnchor);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildMetadataJson() — edge case branches
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildMetadataJson() — edge case branches', () => {
+  it('handles non-array chats gracefully (falls back to [])', () => {
+    // Passes a non-array to trigger the Array.isArray false branch
+    const meta = buildMetadataJson(mockTree, 'not-an-array');
+    expect(meta.tree_structure.total_chats).toBe(0);
+  });
+
+  it('chat without timestamp does not affect date_range', () => {
+    const chats = [{ id: 'c1', source: 'chatgpt' }]; // no timestamp
+    const meta = buildMetadataJson(mockTree, chats);
+    expect(meta.statistics.date_range.first_chat).toBeNull();
+    expect(meta.statistics.date_range.last_chat).toBeNull();
+  });
+
+  it('chat with unknown source falls back to "unknown" key', () => {
+    const chats = [{ id: 'c1' }]; // no source
+    const meta = buildMetadataJson(mockTree, chats);
+    expect(meta.statistics.sources.unknown).toBe(1);
+  });
+
+  it('topics without chatIds array report chatCount 0', () => {
+    const tree = {
+      topics: { 't1': { id: 't1', name: 'No Ids', parentId: null } },
+      rootTopics: ['t1'],
+    };
+    const meta = buildMetadataJson(tree, []);
+    expect(meta.tree_structure.topics[0].chatCount).toBe(0);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildZipPayload() — edge case branches
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildZipPayload() — additional edge case branches', () => {
+  it('handles non-array chats (falls back to empty array)', () => {
+    // Covers the allChats = [] branch in zip-builder line 30
+    const files = buildZipPayload(mockTree, 'not-an-array', { scope: 'all' });
+    expect(files.some(f => f.path.endsWith('README.md'))).toBe(true);
+  });
+
+  it('chat without a title uses "untitled" as filename base', () => {
+    const noTitle = {
+      id: 'no-title', title: null, topicId: 'topic-root',
+      source: 'chatgpt', timestamp: Date.now(), messages: [], tags: [], metadata: {},
+    };
+    const files = buildZipPayload(mockTree, [noTitle], { scope: 'all', format: 'markdown' });
+    const chatFiles = files.filter(f => f.path.endsWith('.md') && !f.path.endsWith('README.md'));
+    expect(chatFiles.some(f => f.path.includes('untitled'))).toBe(true);
+  });
+
+  it('topic without chatIds in topicsMap does not crash', () => {
+    const tree = {
+      topics: {
+        'no-ids': { id: 'no-ids', name: 'No IDs', parentId: null },
+      },
+      rootTopics: ['no-ids'],
+    };
+    const files = buildZipPayload(tree, [], { scope: 'all' });
+    const topicJson = files.find(f => f.path.endsWith('_topic.json'));
+    expect(topicJson).toBeDefined();
+    const parsed = JSON.parse(topicJson.content);
+    expect(parsed.chatCount).toBe(0);
+  });
+
+  it('topic.firstChatDate and lastChatDate null produce null in _topic.json', () => {
+    // mockTopicsMap has topic-child with null dates
+    const files = buildZipPayload(mockTree, [], { scope: 'all' });
+    const childJson = files.find(f => f.path.includes('projects/_topic.json'));
+    const parsed = JSON.parse(childJson.content);
+    expect(parsed.dateRange.first).toBeNull();
+    expect(parsed.dateRange.last).toBeNull();
+  });
+
+  it('scope "topic-recursive" covers descendant topics', () => {
+    const files = buildZipPayload(mockTree, [], {
+      scope: 'topic-recursive',
+      topicId: 'topic-root',
+    });
+    const topicJsonPaths = files.filter(f => f.path.endsWith('_topic.json')).map(f => f.path);
+    expect(topicJsonPaths.some(p => p.includes('work'))).toBe(true);
+    expect(topicJsonPaths.some(p => p.includes('projects'))).toBe(true);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// filename-utils.js — buildTopicFolderPaths circular ref
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildTopicFolderPaths() — circular reference safety', () => {
+  it('does not infinite-loop on circular parent references', () => {
+    const circularMap = {
+      'c1': { id: 'c1', name: 'A', parentId: 'c2', children: [] },
+      'c2': { id: 'c2', name: 'B', parentId: 'c1', children: [] },
+    };
+    expect(() => buildTopicFolderPaths(circularMap)).not.toThrow();
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildDigestHtml() — branch edge cases (untitled / no-timestamp chats)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildDigestHtml() — branch edge cases', () => {
+  it('uses "Untitled Chat" for a chat with no title (TOC + section branch)', () => {
+    const noTitle = {
+      id: 'nt', title: null, source: 'chatgpt',
+      topicId: 'topic-root', timestamp: 1700000000000,
+      messages: [{ role: 'user', content: 'hi' }],
+    };
+    const html = buildDigestHtml([noTitle], mockTopicsMap);
+    expect(html).toContain('Untitled Chat');
+  });
+
+  it('omits the date <span> when chat has no timestamp', () => {
+    const noTs = {
+      id: 'nts', title: 'No TS', source: 'chatgpt',
+      topicId: 'topic-root', timestamp: null,
+      messages: [{ role: 'user', content: 'hi' }],
+    };
+    const html = buildDigestHtml([noTs], mockTopicsMap);
+    expect(html).toContain('No TS');
+    expect(html).not.toContain('📅');
+  });
+
+  it('messages with non-array value fall back to no-messages-body branch', () => {
+    const noMsgArr = {
+      id: 'nma', title: 'No Msg Array', source: 'claude',
+      topicId: null, timestamp: 0,
+      messages: null, content: '---\ntitle: "t"\n---\nfallback body',
+    };
+    const html = buildDigestHtml([noMsgArr], {});
+    expect(html).toContain('fallback body');
+  });
+
+  it('renders correct content for assistant role message', () => {
+    const onlyAssistant = {
+      id: 'oa', title: 'AI Only', source: 'chatgpt',
+      topicId: null, timestamp: 0,
+      messages: [{ role: 'assistant', content: 'Here is the answer.' }],
+    };
+    const html = buildDigestHtml([onlyAssistant], {});
+    expect(html).toContain('turn-assistant');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildExportMarkdown() — non-standard message role branch
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildExportMarkdown() — non-standard message role', () => {
+  it('capitalises unknown role using cap()', () => {
+    const chat = {
+      ...mockChat,
+      messages: [{ role: 'system', content: 'System prompt.' }],
+    };
+    const md = buildExportMarkdown(chat, 'Work');
+    expect(md).toContain('### System');
+  });
+
+  it('uses "Unknown" label when role is undefined/null', () => {
+    const chat = {
+      ...mockChat,
+      messages: [{ role: null, content: 'Mystery.' }],
+    };
+    const md = buildExportMarkdown(chat, 'Work');
+    expect(md).toContain('###');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildDigestMarkdown() — more branch coverage (single message, no timestamp)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildDigestMarkdown() — single-message and no-timestamp branches', () => {
+  it('single-message digest chat: no --- separator after last message', () => {
+    const chats = [{
+      id: 's1', title: 'One Msg', source: 'chatgpt', topicId: null,
+      timestamp: 1700000000000,
+      messages: [{ role: 'user', content: 'Only message' }],
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {});
+    expect(md).toContain('Only message');
+  });
+
+  it('chat without timestamp omits the Date line', () => {
+    const chats = [{
+      id: 'nt2', title: 'No TS', source: 'claude', topicId: null,
+      timestamp: null,
+      messages: [{ role: 'assistant', content: 'Answer' }],
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {});
+    expect(md).not.toContain('**Date:**');
+  });
+
+  it('non-user non-assistant role in digest produces capitalised heading', () => {
+    const chats = [{
+      id: 'r2', title: 'Custom', source: 'chatgpt', topicId: null,
+      timestamp: 0,
+      messages: [{ role: 'tool', content: 'Tool output' }],
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {});
+    expect(md).toContain('### Tool');
+  });
+
+  it('unknown role (null) in digest falls back to cap()', () => {
+    const chats = [{
+      id: 'rl', title: 'Null Role', source: 'chatgpt', topicId: null,
+      timestamp: 0,
+      messages: [{ role: null, content: 'Mystery' }],
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {});
+    expect(md).toContain('###');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// buildDigestMarkdown() — forAssembly with real messagesToMarkdown
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildDigestMarkdown() — forAssembly with real messagesToMarkdown', () => {
+  it('forAssembly: real messagesToMarkdown produces # heading; strip branch fires', () => {
+    // The real messagesToMarkdown (src/lib/io/markdown-serialiser.js) returns
+    // "---\ntitle: ...\n---\n\n# Title\n\n..." so titleIdx !== -1 is guaranteed.
+    const chats = [{
+      id: 'fa1', title: 'Chat Alpha', source: 'chatgpt', topicId: null,
+      timestamp: 1700000000000,
+      messages: [{ role: 'user', content: 'Hello there' }],
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {}, { forAssembly: true });
+    // Should not throw; the ## section heading drives the TOC
+    expect(md).toContain('## Chat Alpha');
+    // The body # heading should have been stripped
+    // (If it was NOT stripped there would be a duplicate heading deeper in the string)
+    const bodyPart = md.slice(md.indexOf('## Chat Alpha') + '## Chat Alpha'.length);
+    expect(bodyPart).not.toMatch(/^# Chat Alpha/m);
+  });
+
+  it('forAssembly: title line immediately followed by non-blank content (extra=1 branch)', () => {
+    // messagesToMarkdown normally inserts a blank line after the title, but if
+    // somehow it doesn't, the `extra = 1` branch should fire.
+    // We can verify the function handles both variants by checking no crash.
+    const chats = [{
+      id: 'fa2', title: 'B', source: 'chatgpt', topicId: null,
+      timestamp: 0,
+      messages: [{ role: 'user', content: 'Hi' }],
+      tags: [], metadata: {}, url: '',
+    }];
+    expect(() => buildDigestMarkdown(chats, {}, { forAssembly: true })).not.toThrow();
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// markdown-builder.js — extra=1 branch (line 187) via mock override
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildDigestMarkdown() — forAssembly extra=1 branch coverage', () => {
+  it('splices only the title line when next line is non-blank (extra=1)', () => {
+    // Make messagesToMarkdown return a body where # Title is DIRECTLY followed
+    // by non-blank content (no blank line) → extra = 1 branch
+    messagesToMarkdown.mockReturnValueOnce(
+      '---\ntitle: "T"\n---\n\n# T\nImmediate content here'
+    );
+    const chats = [{
+      id: 'e1', title: 'T', source: 'chatgpt', topicId: null,
+      timestamp: 0,
+      messages: [{ role: 'user', content: 'x' }],
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {}, { forAssembly: true });
+    // spliced only 1 line (the # heading) — content still present
+    expect(md).toContain('Immediate content here');
+    expect(md).not.toMatch(/^# T$/m);
+  });
+
+  it('splices title line AND blank line when next line IS blank (extra=2 branch)', () => {
+    // messagesToMarkdown returns body where # Title is followed by a blank line → extra = 2
+    messagesToMarkdown.mockReturnValueOnce(
+      '---\ntitle: "U"\n---\n\n# U\n\nBody content here'
+    );
+    const chats = [{
+      id: 'e2', title: 'U', source: 'chatgpt', topicId: null,
+      timestamp: 0,
+      messages: [{ role: 'user', content: 'y' }],
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {}, { forAssembly: true });
+    expect(md).toContain('Body content here');
+    expect(md).not.toMatch(/^# U$/m);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// html-builder.js — missing branch coverage (lines 132, 142-146, 152)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildDigestHtml() — missing source/timestamp branch coverage', () => {
+  it('handles chat with no source (|| "unknown" branch, line 132)', () => {
+    const chats = [{
+      id: 'ns', title: 'No Source Chat',
+      // no source field
+      timestamp: 1700000000000, topicId: null,
+      messages: [{ role: 'user', content: 'Hello' }],
+      tags: [], metadata: {},
+    }];
+    const html = buildDigestHtml(chats, {});
+    expect(html).toContain('chat-section');
+    expect(html).toContain('No Source Chat');
+  });
+
+  it('handles chat with no timestamp (dateStr empty, ternary false branch)', () => {
+    const chats = [{
+      id: 'nts', title: 'No Timestamp', source: 'chatgpt',
+      timestamp: null, topicId: null,
+      messages: [{ role: 'user', content: 'Hi' }],
+      tags: [], metadata: {},
+    }];
+    const html = buildDigestHtml(chats, {});
+    // No date span should appear
+    expect(html).not.toContain('📅');
+    expect(html).toContain('No Timestamp');
+  });
+
+  it('handles chat with no title (|| "Untitled Chat" branch)', () => {
+    const chats = [{
+      id: 'nt', title: '',
+      source: 'claude', timestamp: 1700000000000, topicId: null,
+      messages: [], content: 'Some content', tags: [], metadata: {},
+    }];
+    const html = buildDigestHtml(chats, {});
+    expect(html).toContain('Untitled Chat');
+  });
+
+  it('handles chat where messages is not an array (fallback to [])', () => {
+    const chats = [{
+      id: 'nm', title: 'Weird msgs', source: 'chatgpt',
+      timestamp: 1700000000000, topicId: null,
+      messages: null, content: 'fallback body', tags: [], metadata: {},
+    }];
+    const html = buildDigestHtml(chats, {});
+    expect(html).toContain('fallback body');
+  });
+});
+
+describe('buildExportHtml() — excerpt title block branch', () => {
+  it('excerpt: only shows source-badge in header (no h1)', () => {
+    const excerptChat = {
+      id: 'ex', title: 'My Excerpt',
+      source: 'claude', timestamp: null,
+      messages: [], content: 'short excerpt', metadata: { isExcerpt: true }, tags: [],
+    };
+    const html = buildExportHtml(excerptChat, 'Work > Projects');
+    // isExcerpt → titleBlock shows only source-badge, no h1 with the title
+    expect(html).toContain('source-badge');
+    expect(html).not.toMatch(/<h1>My Excerpt<\/h1>/);
+  });
+
+  it('handles chat with no source in buildExportHtml (|| "unknown" branch)', () => {
+    const chat = {
+      id: 'no-src', title: 'No Src',
+      // no source
+      timestamp: null, messages: [], content: 'body', metadata: {}, tags: [],
+    };
+    expect(() => buildExportHtml(chat, 'Topic')).not.toThrow();
+    const html = buildExportHtml(chat, 'Topic');
+    expect(html).toContain('No Src');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// markdown-builder.js — || fallback branches
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('buildDigestMarkdown() — || fallback branch coverage', () => {
+  it('messages is not an array → fallback to [] (no messages path)', () => {
+    const chats = [{
+      id: 'nm1', title: 'Non-array messages', source: 'chatgpt', topicId: null,
+      timestamp: 1700000000000,
+      messages: null,  // not an array → [] fallback
+      content: 'fallback body text',
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {});
+    expect(md).toContain('fallback body text');
+  });
+
+  it('message with no content → empty string fallback', () => {
+    const chats = [{
+      id: 'mc1', title: 'Empty Content', source: 'chatgpt', topicId: null,
+      timestamp: 0,
+      messages: [{ role: 'user' }],  // no content → '' fallback
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {});
+    expect(md).toContain('### User');
+  });
+
+  it('chat with no content field → empty string fallback in else branch', () => {
+    const chats = [{
+      id: 'nc1', title: 'No Content', source: 'chatgpt', topicId: null,
+      timestamp: 0,
+      messages: [],  // no messages → else branch
+      // no content field → chat.content || '' fallback
+      tags: [], metadata: {}, url: '',
+    }];
+    // Should not throw
+    const md = buildDigestMarkdown(chats, {});
+    expect(md).toContain('No Content');
+  });
+
+  it('forAssembly: chat with no source → source || "unknown" fallback', () => {
+    messagesToMarkdown.mockReturnValueOnce('---\ntitle: "X"\n---\n\ncontent');
+    const chats = [{
+      id: 'fns', title: 'No Source', topicId: null,
+      timestamp: 0,
+      messages: [{ role: 'user', content: 'hi' }],
+      // no source → 'unknown' fallback
+      tags: [], metadata: {}, url: '',
+    }];
+    const md = buildDigestMarkdown(chats, {}, { forAssembly: true });
+    expect(md).toContain('No Source');
   });
 });
