@@ -1,7 +1,7 @@
-/**
- * sidepanel.js — bAInder Side Panel entry point
+﻿/**
+ * sidepanel.js â€” bAInder Side Panel entry point
  *
- * Responsibility: bootstrap the application — create service instances,
+ * Responsibility: bootstrap the application â€” create service instances,
  * load persisted data, wire DOM event listeners, and hand off to feature
  * and controller modules.
  *
@@ -18,7 +18,6 @@
  *   controllers/import-export-actions.js  toolbar export / import / clear-all
  *   features/save-banner.js         "Save to bAInder" banner
  *   features/backup-reminder.js     periodic backup reminder banner
- *   features/theme-picker.js        theme picker panel
  *   features/multi-select.js        multi-select + digest export
  *   features/settings-panel.js      settings slide-in panel
  *   features/recent-rail.js         recently-saved chip rail
@@ -32,7 +31,6 @@ import { TopicDialogs }    from '../lib/dialogs/topic-dialogs.js';
 import { ChatDialogs }     from '../lib/dialogs/chat-dialogs.js';
 import { ExportDialog }    from '../lib/dialogs/export-dialog.js';
 import { ImportDialog }    from '../lib/dialogs/import-dialog.js';
-import { loadTheme }       from '../lib/theme/useTheme.js';
 import browser             from '../lib/vendor/browser.js';
 import { logger }          from '../lib/utils/logger.js';
 
@@ -64,7 +62,6 @@ import { handleExportAll, handleImport, handleClearAll } from './controllers/imp
 
 import { initSaveBanner, setSaveBtnState, handlePanelSave } from './features/save-banner.js';
 import { initBackupReminder }  from './features/backup-reminder.js';
-import { setupThemePicker, closeThemePicker } from './features/theme-picker.js';
 import {
   handleMultiSelectToggle,
   handleAssemble,
@@ -83,16 +80,12 @@ logger.log('Side Panel loaded');
 // ---------------------------------------------------------------------------
 
 async function init() {
-  logger.log('Initializing bAInder…');
+  logger.log('Initializing bAInderâ€¦');
 
   // Services
   state.storage  = StorageService.getInstance('chrome');
   state.dialog   = new DialogManager(elements.modalContainer);
   state.chatRepo = new ChatRepository();
-
-  // Load theme
-  const savedThemeId = localStorage.getItem('themeId') ?? 'light';
-  await loadTheme(savedThemeId).catch(() => {/* default already applied */});
 
   // Load persisted data
   await loadTree();
@@ -104,7 +97,7 @@ async function init() {
   state.exportDialog = new ExportDialog(state.dialog);
   state.importDialog = new ImportDialog(state.dialog);
 
-  // C.9 — sync sort selector
+  // C.9 â€” sync sort selector
   if (elements.topicSortSelect) elements.topicSortSelect.value = state.sortMode;
 
   // Wire all DOM event listeners
@@ -139,7 +132,7 @@ function setupEventListeners() {
   elements.clearSearchBtn.addEventListener('click', clearSearch);
   setupFilterBar();
 
-  // C.9 — topic sort
+  // C.9 â€” topic sort
   elements.topicSortSelect?.addEventListener('change', () => {
     state.sortMode = elements.topicSortSelect.value;
     localStorage.setItem('topicSortMode', state.sortMode);
@@ -166,7 +159,7 @@ function setupEventListeners() {
   elements.exportAllBtn?.addEventListener('click', handleExportAll);
   elements.clearAllBtn?.addEventListener('click', handleClearAll);
 
-  // C.17 — multi-select
+  // C.17 â€” multi-select
   elements.multiSelectToggleBtn?.addEventListener('click', handleMultiSelectToggle);
   elements.assembleBtn?.addEventListener('click', handleAssemble);
   elements.exportDigestBtn?.addEventListener('click', handleExportDigest);
@@ -175,9 +168,6 @@ function setupEventListeners() {
 
   // Settings
   elements.settingsBtn.addEventListener('click', openSettingsPanel);
-
-  // Theme picker
-  setupThemePicker();
 
   // Context menus: hide on outside click
   document.addEventListener('click', (e) => {
@@ -189,14 +179,13 @@ function setupEventListeners() {
       hideChatContextMenu();
       state.contextMenuChat = null;
     }
-    closeThemePicker();
   });
 
   // Context-menu action handlers
   setupContextMenuActions();
   setupChatContextMenuActions();
 
-  // Tree keyboard navigation (U6): ↑↓ move focus, Enter clicks, Space toggles
+  // Tree keyboard navigation (U6): â†‘â†“ move focus, Enter clicks, Space toggles
   elements.treeView?.addEventListener('keydown', (e) => {
     if (!['ArrowUp', 'ArrowDown', 'Enter', ' '].includes(e.key)) return;
     const focusable = [...elements.treeView.querySelectorAll('.tree-node-content[tabindex="0"]')];
@@ -223,12 +212,12 @@ function setupEventListeners() {
     }
   });
 
-  // Modal backdrop — close on click outside
+  // Modal backdrop â€” close on click outside
   elements.modalContainer.addEventListener('click', (e) => {
     if (e.target === elements.modalContainer) state.dialog?.close();
   });
 
-  // U1 — TOC section collapse toggle
+  // U1 â€” TOC section collapse toggle
   const tocBtn = document.getElementById('tocCollapseBtn');
   if (tocBtn) {
     const tocSection = tocBtn.closest('.toc-section');
@@ -251,7 +240,7 @@ function setupEventListeners() {
         if (tab?.id) await browser.tabs.reload(tab.id);
       } catch (_) { /* ignore */ }
       setSaveBtnState('default');
-      if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = 'Reloading…';
+      if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = 'Reloadingâ€¦';
     } else {
       handlePanelSave();
     }

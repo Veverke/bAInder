@@ -155,6 +155,14 @@ export function buildChatItem(chat, level, ctx) {
 
     // Floating hover overlay showing coloured tag pills
     let _overlay = null;
+    let _docOverListener = null;
+    const _hideOverlay = () => {
+      if (_overlay) { _overlay.remove(); _overlay = null; }
+      if (_docOverListener) {
+        document.removeEventListener('mouseover', _docOverListener);
+        _docOverListener = null;
+      }
+    };
     const _showOverlay = (anchorRect) => {
       if (_overlay) return;
       _overlay = document.createElement('div');
@@ -171,9 +179,15 @@ export function buildChatItem(chat, level, ctx) {
       const top  = anchorRect.bottom + 4;
       _overlay.style.left = `${left}px`;
       _overlay.style.top  = `${top}px`;
-    };
-    const _hideOverlay = () => {
-      if (_overlay) { _overlay.remove(); _overlay = null; }
+      // Safety net: if content is removed from the DOM (e.g. tree re-render,
+      // virtual scroll) the mouseleave never fires. Hide on the next mouseover
+      // that lands outside content or after content has been detached.
+      _docOverListener = (e) => {
+        if (!document.contains(content) || !content.contains(e.target)) {
+          _hideOverlay();
+        }
+      };
+      document.addEventListener('mouseover', _docOverListener);
     };
     content.addEventListener('mouseenter', () => _showOverlay(content.getBoundingClientRect()));
     content.addEventListener('mouseleave', _hideOverlay);
