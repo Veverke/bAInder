@@ -13,6 +13,8 @@ const NS      = 'http://www.w3.org/2000/svg';
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const WIDTH   = WEEKS * (BAR_W + GAP) - GAP;
 
+const WEEK_LABELS = ['5 weeks ago', '4 weeks ago', '3 weeks ago', '2 weeks ago', 'Last week', 'This week'];
+
 /**
  * Build an SVG sparkline element showing weekly chat activity for `topicId`.
  * @param {string}   topicId  — topic whose chats are counted
@@ -38,6 +40,11 @@ export function buildSparklineEl(topicId, chats) {
   svg.setAttribute('viewBox',   `0 0 ${WIDTH} ${HEIGHT}`);
   svg.setAttribute('aria-hidden', 'true');
 
+  const total = counts.reduce((a, b) => a + b, 0);
+  const svgTitle = document.createElementNS(NS, 'title');
+  svgTitle.textContent = `Activity last 6 weeks: ${total} ${total === 1 ? 'chat' : 'chats'} total`;
+  svg.appendChild(svgTitle);
+
   counts.forEach((count, i) => {
     const h    = Math.max(Math.round((count / max) * HEIGHT), 2);
     const rect = document.createElementNS(NS, 'rect');
@@ -46,6 +53,9 @@ export function buildSparklineEl(topicId, chats) {
     rect.setAttribute('width',  BAR_W);
     rect.setAttribute('height', h);
     rect.setAttribute('rx',     '1');
+    const barTitle = document.createElementNS(NS, 'title');
+    barTitle.textContent = `${WEEK_LABELS[i]}: ${count} ${count === 1 ? 'chat' : 'chats'}`;
+    rect.appendChild(barTitle);
     svg.appendChild(rect);
   });
 

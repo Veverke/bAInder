@@ -305,7 +305,12 @@ export function renderMarkdown(markdown) {
 
     // â”€â”€ Blockquote â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    // Assembled-chat section divider (===) -- marks where one chat ends, next begins
+
+
+
+
+
+    // Assembled-chat section divider (===) — marks where one chat ends, the next begins
     if (/^={3,}\s*$/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
@@ -317,6 +322,7 @@ export function renderMarkdown(markdown) {
       i++;
       continue;
     }
+
     if (/^>\s?/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
@@ -1064,7 +1070,7 @@ export function renderChat(chat) {
   // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const isExcerpt = Boolean(meta.isExcerpt || fm.excerpt);
   const source    = fm.source || chat.source || 'unknown';
-  const title     = fm.title  || chat.title  || 'Untitled Chat';
+  const title     = chat.title || fm.title  || 'Untitled Chat';
   const date      = fm.date   || (chat.timestamp ? new Date(chat.timestamp).toISOString() : '');
   const count     = typeof fm.messageCount === 'number' ? fm.messageCount : (chat.messageCount || 0);
 

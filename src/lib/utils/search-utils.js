@@ -113,12 +113,13 @@ export function formatBreadcrumb(path) {
  *   @param {string|null}  [filters.dateTo]    ISO date string "YYYY-MM-DD"
  *   @param {string}       [filters.topicId]   Root topic id to scope to subtree
  *   @param {number|null}  [filters.minRating] Minimum star rating (1–5), null = all
+ *   @param {Set<string>}  [filters.tags]      Active tag strings (empty = all)
  * @param {object|null}   tree   TopicTree instance (needed for topicId scope)
  * @returns {Array}
  */
 export function applySearchFilters(results, filters, tree = null) {
   if (!filters) return results;
-  const { sources, dateFrom, dateTo, topicId, minRating } = filters;
+  const { sources, dateFrom, dateTo, topicId, minRating, tags } = filters;
 
   let out = results;
 
@@ -152,6 +153,11 @@ export function applySearchFilters(results, filters, tree = null) {
   // C.15 — Min-rating filter
   if (minRating != null && minRating > 0) {
     out = out.filter(c => (c.rating || 0) >= minRating);
+  }
+
+  // Tag filter — keep chats that have at least one of the selected tags
+  if (tags && tags.size > 0) {
+    out = out.filter(c => (c.tags || []).some(t => tags.has(t)));
   }
 
   return out;

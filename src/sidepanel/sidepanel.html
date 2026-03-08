@@ -85,6 +85,12 @@
             <button class="filter-pill filter-pill--star" data-min-rating="5" title="5 stars only">★★★★★</button>
           </div>
         </div>
+        <div class="filter-group">
+          <span class="filter-group__label">Tags</span>
+          <div class="filter-pills filter-pills--tags" id="filterTagPills" aria-label="Filter by tag">
+            <span class="filter-pills__empty">No tags saved yet</span>
+          </div>
+        </div>
         <button id="filterClearBtn" class="filter-clear-btn">Clear filters</button>
       </div>
     </header>
@@ -481,14 +487,14 @@
             <label class="settings-row__label" for="logLevelSelect">Log level</label>
             <select id="logLevelSelect" class="settings-select" aria-label="Log level">
               <option value="ALL">All</option>
-              <option value="TRACE">Trace</option>
+              <option value="DEBUG">Debug</option>
               <option value="INFO"  selected>Info</option>
               <option value="WARN">Warning</option>
               <option value="ERROR">Error</option>
               <option value="OFF">Off</option>
             </select>
           </div>
-          <p class="settings-hint">Controls how much bAInder writes to the browser DevTools console. <strong>Info</strong> is the default. Use <strong>All</strong> or <strong>Trace</strong> for verbose troubleshooting output.</p>
+          <p class="settings-hint">Controls how much bAInder writes to the browser DevTools console. <strong>Info</strong> is the default. Use <strong>All</strong> or <strong>Debug</strong> for verbose troubleshooting output.</p>
         </section>
 
       </div>
