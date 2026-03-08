@@ -80,7 +80,6 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 
 ![bAInder themed screenshot 1](assets/screenshots/bAInder%20themed%20screenshot%201.png)
 ![bAInder themed screenshot 2](assets/screenshots/bAInder%20themed%20screenshot%202.png)
-![bAInder themed screenshot 3](assets/screenshots/bAInder%20themed%20screenshot%203.png)
 ![bAInder themed screenshot 4](assets/screenshots/bAInder%20themed%20screenshot%204.png)
 
 ---
