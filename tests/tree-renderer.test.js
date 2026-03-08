@@ -335,8 +335,8 @@ describe('TreeRenderer', () => {
     it('should show timespan for topic with chats', () => {
       const topicId = tree.addTopic('Topic');
       const topic = tree.topics[topicId];
-      topic.firstChatDate = new Date('2024-01-15');
-      topic.lastChatDate = new Date('2024-03-20');
+      topic.firstChatDate = new Date('2026-01-15');
+      topic.lastChatDate = new Date('2026-03-20');
 
       renderer = new TreeRenderer(container, tree);
       renderer.render();
@@ -847,7 +847,7 @@ describe('TreeRenderer – Stage 7 chat items', () => {
     it('shows date badge when chat has timestamp', () => {
       const topicId = tree.addTopic('T');
       renderer = new TreeRenderer(container, tree);
-      renderer.setChatData([makeChat('c1', topicId, { timestamp: new Date('2024-06-01').getTime() })]);
+      renderer.setChatData([makeChat('c1', topicId, { timestamp: new Date('2026-06-01').getTime() })]);
       renderer.expandNode(topicId);
       renderer.render();
 

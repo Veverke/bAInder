@@ -119,7 +119,7 @@ function basename(filePath) {
 
 /**
  * Strip the root export folder prefix from a path.
- * E.g. "bAInder-export-2024-03-15/Work/Projects/chat.md" →
+ * E.g. "bAInder-export-2026-03-15/Work/Projects/chat.md" →
  *      "Work/Projects/chat.md"
  * The root folder is assumed to be the first path segment when
  * every entry shares the same leading segment.

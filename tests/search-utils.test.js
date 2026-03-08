@@ -238,28 +238,28 @@ describe('applySearchFilters — minRating', () => {
 
 describe('applySearchFilters — date range filter', () => {
   const chats = [
-    { id: '1', timestamp: new Date('2024-01-10').getTime() },
-    { id: '2', timestamp: new Date('2024-03-15').getTime() },
-    { id: '3', timestamp: new Date('2024-06-20').getTime() },
+    { id: '1', timestamp: new Date('2026-01-10').getTime() },
+    { id: '2', timestamp: new Date('2026-03-15').getTime() },
+    { id: '3', timestamp: new Date('2026-06-20').getTime() },
     { id: '4', timestamp: 0 },
   ];
 
   it('filters by dateFrom only', () => {
-    const result = applySearchFilters(chats, { dateFrom: '2024-03-01' });
+    const result = applySearchFilters(chats, { dateFrom: '2026-03-01' });
     expect(result.map(c => c.id)).toContain('2');
     expect(result.map(c => c.id)).toContain('3');
     expect(result.map(c => c.id)).not.toContain('1');
   });
 
   it('filters by dateTo only', () => {
-    const result = applySearchFilters(chats, { dateTo: '2024-03-31' });
+    const result = applySearchFilters(chats, { dateTo: '2026-03-31' });
     expect(result.map(c => c.id)).toContain('1');
     expect(result.map(c => c.id)).toContain('2');
     expect(result.map(c => c.id)).not.toContain('3');
   });
 
   it('filters by dateFrom and dateTo range', () => {
-    const result = applySearchFilters(chats, { dateFrom: '2024-01-01', dateTo: '2024-04-30' });
+    const result = applySearchFilters(chats, { dateFrom: '2026-01-01', dateTo: '2026-04-30' });
     expect(result.map(c => c.id)).toContain('1');
     expect(result.map(c => c.id)).toContain('2');
     expect(result.map(c => c.id)).not.toContain('3');
@@ -271,20 +271,20 @@ describe('applySearchFilters — date range filter', () => {
   });
 
   it('handles chat with no timestamp (treats as 0)', () => {
-    // timestamp 0 is Jan 1 1970 — before any 2024 dateFrom
-    const result = applySearchFilters(chats, { dateFrom: '2024-01-01' });
+    // timestamp 0 is Jan 1 1970 — before any 2026 dateFrom
+    const result = applySearchFilters(chats, { dateFrom: '2026-01-01' });
     expect(result.map(c => c.id)).not.toContain('4');
   });
 
   it('covers the to = Infinity branch (no dateTo)', () => {
     // dateFrom set, dateTo absent → to = Infinity, any future timestamps included
-    const result = applySearchFilters(chats, { dateFrom: '2024-06-01' });
+    const result = applySearchFilters(chats, { dateFrom: '2026-06-01' });
     expect(result.map(c => c.id)).toEqual(['3']);
   });
 
   it('covers the from = 0 branch (no dateFrom)', () => {
     // dateTo set, dateFrom absent → from = 0, everything up to cutoff included
-    const result = applySearchFilters(chats, { dateTo: '2024-01-31' });
+    const result = applySearchFilters(chats, { dateTo: '2026-01-31' });
     expect(result.map(c => c.id)).toContain('1');
     expect(result.map(c => c.id)).toContain('4'); // ts 0 <= cutoff
   });
@@ -420,8 +420,8 @@ describe('extractSnippet – branch gaps', () => {
 
 describe('applySearchFilters – branch gaps', () => {
   const chats = [
-    { id: 'c1', source: 'chatgpt', timestamp: new Date('2024-03-01').getTime(), topicId: 't1', rating: 4 },
-    { id: 'c2', source: 'claude',  timestamp: new Date('2024-06-01').getTime(), topicId: 't2', rating: 2 },
+    { id: 'c1', source: 'chatgpt', timestamp: new Date('2026-03-01').getTime(), topicId: 't1', rating: 4 },
+    { id: 'c2', source: 'claude',  timestamp: new Date('2026-06-01').getTime(), topicId: 't2', rating: 2 },
   ];
 
   it('returns all results when sources Set is empty (size 0)', () => {
@@ -445,13 +445,13 @@ describe('applySearchFilters – branch gaps', () => {
   });
 
   it('applies only dateFrom when dateTo is absent', () => {
-    const result = applySearchFilters(chats, { dateFrom: '2024-04-01' });
+    const result = applySearchFilters(chats, { dateFrom: '2026-04-01' });
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('c2');
   });
 
   it('applies only dateTo when dateFrom is absent', () => {
-    const result = applySearchFilters(chats, { dateTo: '2024-04-30' });
+    const result = applySearchFilters(chats, { dateTo: '2026-04-30' });
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('c1');
   });

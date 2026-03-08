@@ -44,7 +44,7 @@ export function sourceLabel(source) {
 
 /**
  * Format a millisecond timestamp as a human-readable date string.
- * e.g. "March 15, 2024 at 10:30 AM"
+ * e.g. "March 15, 2026 at 10:30 AM"
  * @param {number} ts
  * @returns {string}
  */

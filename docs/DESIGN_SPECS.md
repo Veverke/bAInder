@@ -123,7 +123,7 @@ Store tree structure in `chrome.storage.local` and actual chat content in Indexe
 │   ▼ 📁 Claude [Mar 2025 - Feb 2026]    │
 │     💬 Coding help (Feb 15, 2026)       │ ← Individual chat
 │     💬 Writing review (Feb 10, 2026)    │
-│ ▶ 📁 Learning [Dec 2024 - Jan 2026]    │
+│ ▶ 📁 Learning [Dec 2026 - Jan 2026]    │
 │ ▶ 📁 Projects                           │ ← Empty topic (no dates)
 │ ▼ 📁 Research [Sep 2025 - Feb 2026]    │
 │   ▶ 📁 Science                          │
@@ -140,7 +140,7 @@ Store tree structure in `chrome.storage.local` and actual chat content in Indexe
 **Key Design Elements:**
 - **Collapsible tree** - Show only 2-3 levels initially to prevent overwhelming
 - **Icons for hierarchy** - 📁 for topics/folders, 💬 for individual chats
-- **Timespan indicators** - Display date range for each topic (e.g., "[Feb 2023 - Apr 2024]")
+- **Timespan indicators** - Display date range for each topic (e.g., "[Feb 2023 - Apr 2026]")
 - **Timestamps on chats** - Individual chat dates for granular reference
 - **Context menu** - Right-click for: merge, move, delete, export, create report
 - **Drag & drop** - Intuitive reorganization of topics and chats
@@ -442,7 +442,7 @@ Organize AI browser chats (ChatGPT, Claude, Gemini, etc.) into a hierarchical no
 #### 1.1 Hierarchical Topic Organization
 - **Tree structure** with unlimited nesting levels (parent → child → grandchild topics)
 - **Alphabetical sorting** at each tree level (A-Z)
-- **Timespan display** showing date range of chats in each topic (e.g., "Health Issues [Feb 2023 - Apr 2024]")
+- **Timespan display** showing date range of chats in each topic (e.g., "Health Issues [Feb 2023 - Apr 2026]")
 - Topics serve as organizational containers for related chats
 - Support for topic renaming, moving, and deleting
 
@@ -754,7 +754,7 @@ Notes are stored as an array on (or alongside) the `ChatEntry` object and persis
   - Timespan badge styling (subtle, gray text)
 - Create `TreeRenderer` class:
   - Render tree from data model
-  - Display topic name with timespan (e.g., "Topic [Feb 2023 - Apr 2024]")
+  - Display topic name with timespan (e.g., "Topic [Feb 2023 - Apr 2026]")
   - Format dates appropriately (Month Year for readability)
   - Hide timespan if topic has no chats yet
   - Expandable/collapsible nodes
@@ -1003,7 +1003,7 @@ Export the entire topic tree as a ZIP file containing:
 
 *Folder Structure:*
 ```
-bAInder-export-2024-03-15/
+bAInder-export-2026-03-15/
 ├── README.md (export info, navigation guide)
 ├── _metadata.json (tree structure, export date, version)
 ├── Work/
@@ -1032,7 +1032,7 @@ bAInder-export-2024-03-15/
 title: "Project Alpha Discussion"
 source: chatgpt
 url: https://chat.openai.com/c/abc123
-date: 2024-03-15T10:30:00Z
+date: 2026-03-15T10:30:00Z
 topic: Work > Projects
 chat_id: chat-001
 ---
@@ -1040,7 +1040,7 @@ chat_id: chat-001
 # Project Alpha Discussion
 
 **Source:** ChatGPT  
-**Date:** March 15, 2024 at 10:30 AM  
+**Date:** March 15, 2026 at 10:30 AM  
 **Topic Path:** Work > Projects
 
 ---
@@ -1060,14 +1060,14 @@ chat_id: chat-001
 
 ---
 
-*Exported from bAInder on March 15, 2024*
+*Exported from bAInder on March 15, 2026*
 ```
 
 *_metadata.json Format:*
 ```json
 {
   "export_version": "1.0",
-  "export_date": "2024-03-15T14:30:00Z",
+  "export_date": "2026-03-15T14:30:00Z",
   "bainder_version": "1.0.0",
   "tree_structure": {
     "topics": [...],
@@ -1076,8 +1076,8 @@ chat_id: chat-001
   },
   "statistics": {
     "date_range": {
-      "first_chat": "2024-01-15T10:00:00Z",
-      "last_chat": "2024-03-15T10:30:00Z"
+      "first_chat": "2026-01-15T10:00:00Z",
+      "last_chat": "2026-03-15T10:30:00Z"
     },
     "sources": {
       "chatgpt": 5,
@@ -1228,7 +1228,7 @@ Extract metadata from frontmatter:
 title: "Chat Title"
 source: chatgpt
 url: https://...
-date: 2024-03-15T10:30:00Z
+date: 2026-03-15T10:30:00Z
 topic: Work > Projects
 chat_id: chat-001
 ---

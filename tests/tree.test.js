@@ -92,27 +92,27 @@ describe('Topic Model', () => {
     expect(topic.getDateRangeString()).toBeNull();
     
     // Same month
-    const date1 = new Date('2024-02-15').getTime();
-    const date2 = new Date('2024-02-20').getTime();
+    const date1 = new Date('2026-02-15').getTime();
+    const date2 = new Date('2026-02-20').getTime();
     topic.updateDateRange(date1);
     topic.updateDateRange(date2);
     
     const rangeStr = topic.getDateRangeString();
     expect(rangeStr).toContain('Feb');
-    expect(rangeStr).toContain('2024');
+    expect(rangeStr).toContain('2026');
   });
 
   it('should format date range for different months', () => {
     const topic = new Topic('Test');
-    const date1 = new Date('2024-02-15').getTime();
-    const date2 = new Date('2024-05-20').getTime();
+    const date1 = new Date('2026-02-15').getTime();
+    const date2 = new Date('2026-05-20').getTime();
     
     topic.updateDateRange(date1);
     topic.updateDateRange(date2);
     
     const rangeStr = topic.getDateRangeString();
-    expect(rangeStr).toContain('Feb 2024');
-    expect(rangeStr).toContain('May 2024');
+    expect(rangeStr).toContain('Feb 2026');
+    expect(rangeStr).toContain('May 2026');
     expect(rangeStr).toContain('-');
   });
 });
@@ -593,15 +593,15 @@ describe('TopicTree', () => {
 
     it('should get formatted date range', () => {
       const topicId = tree.addTopic('Test');
-      const date1 = new Date('2024-02-15').getTime();
-      const date2 = new Date('2024-05-20').getTime();
+      const date1 = new Date('2026-02-15').getTime();
+      const date2 = new Date('2026-05-20').getTime();
       
       tree.updateTopicDateRange(topicId, date1);
       tree.updateTopicDateRange(topicId, date2);
       
       const range = tree.getTopicDateRange(topicId);
       expect(range).toBeDefined();
-      expect(range).toContain('2024');
+      expect(range).toContain('2026');
     });
 
     it('should return null for topic with no chats', () => {
@@ -723,7 +723,7 @@ describe('Topic – touch() updates updatedAt', () => {
 describe('Topic – getDateRangeString() partial dates', () => {
   it('should return null when only firstChatDate is set (lastChatDate null)', () => {
     const topic = new Topic('Test');
-    topic.firstChatDate = new Date('2024-03-01').getTime();
+    topic.firstChatDate = new Date('2026-03-01').getTime();
     topic.lastChatDate = null;
     expect(topic.getDateRangeString()).toBeNull();
   });
@@ -731,28 +731,28 @@ describe('Topic – getDateRangeString() partial dates', () => {
   it('should return null when only lastChatDate is set (firstChatDate null)', () => {
     const topic = new Topic('Test');
     topic.firstChatDate = null;
-    topic.lastChatDate = new Date('2024-03-01').getTime();
+    topic.lastChatDate = new Date('2026-03-01').getTime();
     expect(topic.getDateRangeString()).toBeNull();
   });
 
   it('should return single month string when first and last are in same month', () => {
     const topic = new Topic('Test');
-    const d1 = new Date('2024-06-05').getTime();
-    const d2 = new Date('2024-06-28').getTime();
+    const d1 = new Date('2026-06-05').getTime();
+    const d2 = new Date('2026-06-28').getTime();
     topic.updateDateRange(d1);
     topic.updateDateRange(d2);
     const str = topic.getDateRangeString();
-    expect(str).toBe('Jun 2024');
+    expect(str).toBe('Jun 2026');
   });
 
   it('should return range string when first and last are in different months', () => {
     const topic = new Topic('Test');
-    const d1 = new Date('2024-01-10').getTime();
-    const d2 = new Date('2024-12-25').getTime();
+    const d1 = new Date('2026-01-10').getTime();
+    const d2 = new Date('2026-12-25').getTime();
     topic.updateDateRange(d1);
     topic.updateDateRange(d2);
     const str = topic.getDateRangeString();
-    expect(str).toBe('Jan 2024 - Dec 2024');
+    expect(str).toBe('Jan 2026 - Dec 2026');
   });
 });
 
@@ -827,8 +827,8 @@ describe('TopicTree – mergeTopics() date range edge cases', () => {
     const sourceId = tree.addTopic('Source');
     const targetId = tree.addTopic('Target');
 
-    const targetFirst = new Date('2024-01-01').getTime();
-    const targetLast  = new Date('2024-06-30').getTime();
+    const targetFirst = new Date('2026-01-01').getTime();
+    const targetLast  = new Date('2026-06-30').getTime();
     tree.topics[targetId].firstChatDate = targetFirst;
     tree.topics[targetId].lastChatDate  = targetLast;
     // source has no dates
@@ -843,8 +843,8 @@ describe('TopicTree – mergeTopics() date range edge cases', () => {
     const sourceId = tree.addTopic('Source');
     const targetId = tree.addTopic('Target');
 
-    const srcFirst = new Date('2024-03-01').getTime();
-    const srcLast  = new Date('2024-09-01').getTime();
+    const srcFirst = new Date('2026-03-01').getTime();
+    const srcLast  = new Date('2026-09-01').getTime();
     tree.topics[sourceId].firstChatDate = srcFirst;
     tree.topics[sourceId].lastChatDate  = srcLast;
     // target has no dates
