@@ -37,7 +37,6 @@ export const elements = {
   saveBanner:           document.getElementById('saveBanner'),
   saveBtn:              document.getElementById('saveChatBtn'),
   saveBannerMsg:        document.getElementById('saveBannerMsg'),
-  themeBtn:             document.getElementById('themeBtn'),
   // C.9 — sort selector
   topicSortSelect:      document.getElementById('topicSortSelect'),
   // C.3 — search filter bar

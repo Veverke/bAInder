@@ -1,12 +1,11 @@
-/**
- * bAInder Reader — reader.js
+﻿/**
+ * bAInder Reader â€” reader.js
  *
  * Loads a saved chat from browser.storage.local and renders it in the reader page.
  * Pure functions are exported so they can be unit tested independently.
  */
 
 import { parseFrontmatter } from '../lib/io/markdown-serialiser.js';
-import { loadTheme } from '../lib/theme/useTheme.js';
 import {
   loadAnnotations, saveAnnotation, deleteAnnotation,
   serializeRange,  applyAnnotations, parseBacklinks,
@@ -16,7 +15,7 @@ import browser from '../lib/vendor/browser.js';
 import { escapeHtml, generateId } from '../lib/utils/search-utils.js';
 export { escapeHtml };  // re-export: callers that import escapeHtml from reader.js continue to work
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Count words in raw markdown text (strips frontmatter and code blocks).
@@ -94,7 +93,7 @@ export function badgeClass(source, isExcerpt) {
   return known.includes(source) ? `badge badge--${source}` : 'badge badge--unknown';
 }
 
-// ─── Markdown Renderer ────────────────────────────────────────────────────────
+// â”€â”€â”€ Markdown Renderer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Apply inline markdown formatting to a text segment.
@@ -105,7 +104,7 @@ export function badgeClass(source, isExcerpt) {
  * @returns {string}  HTML with inline elements applied
  */
 export function applyInline(escaped) {
-  // ── Pass 1: protect inline code spans (\x00 placeholders) ──────────────
+  // â”€â”€ Pass 1: protect inline code spans (\x00 placeholders) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // These must be shielded earliest so nothing inside backticks gets parsed.
   const codeMap = [];
   let s = escaped.replace(/`([^`]+)`/g, (_, code) => {
@@ -113,12 +112,12 @@ export function applyInline(escaped) {
     return `\x00${codeMap.length - 1}\x00`;
   });
 
-  // ── Pass 2: protect images + explicit markdown links (\x01 placeholders) ─
+  // â”€â”€ Pass 2: protect images + explicit markdown links (\x01 placeholders) â”€
   // Shielding them prevents the bare-URL pass from double-linking the href.
   const linkMap = [];
   const protect = html => { linkMap.push(html); return `\x01${linkMap.length - 1}\x01`; };
 
-  // Inline images ![alt](src) — must come before link handling
+  // Inline images ![alt](src) â€” must come before link handling
   s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) => {
     return protect(`<img class="chat-image" src="${src}" alt="${alt}" loading="lazy">`);
   });
@@ -133,9 +132,9 @@ export function applyInline(escaped) {
     return protect(`<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`);
   });
 
-  // ── Pass 3: auto-link bare https?:// URLs ──────────────────────────────
+  // â”€â”€ Pass 3: auto-link bare https?:// URLs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // All explicit links/images are placeholders here, so we can't accidentally
-  // double-match inside an href="…" attribute.
+  // double-match inside an href="â€¦" attribute.
   s = s.replace(/https?:\/\/[^\s<>"\x01]+/g, (url) => {
     // Trim trailing punctuation chars that are almost certainly sentence
     // punctuation rather than part of the URL (e.g. "see https://foo.com.")
@@ -145,13 +144,13 @@ export function applyInline(escaped) {
     return protect(`<a href="${trimmed}" target="_blank" rel="noopener noreferrer">${display}</a>`) + trailing;
   });
 
-  // ── Pass 4: bold / italic ─────────────────────────────────────────────
+  // â”€â”€ Pass 4: bold / italic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   s = s
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(/(?<!\w)_([^_]+)_(?!\w)/g, '<em>$1</em>');
 
-  // ── Restore placeholders (links first, then code) ─────────────────────
+  // â”€â”€ Restore placeholders (links first, then code) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   s = s.replace(/\x01(\d+)\x01/g, (_, i) => linkMap[parseInt(i, 10)]);
   return s.replace(/\x00(\d+)\x00/g, (_, i) => codeMap[parseInt(i, 10)]);
 }
@@ -195,7 +194,7 @@ export function renderMarkdown(markdown) {
   function flushPara(buf) {
     const trimmed = buf.trim();
     if (!trimmed) return;
-    // Soft-break segments (each was a line ending with '  ') → <br>
+    // Soft-break segments (each was a line ending with '  ') â†’ <br>
     const segments = trimmed.split('\n');
     const html = segments.map(seg => applyInline(escapeHtml(seg))).join('<br>');
     htmlParts.push(`<p>${html}</p>`);
@@ -216,7 +215,7 @@ export function renderMarkdown(markdown) {
   while (i < lines.length) {
     const raw  = lines[i];
     const line = raw; // keep original for whitespace checks
-    // ── Microsoft Designer generated-image card ──────────────────────────
+    // â”€â”€ Microsoft Designer generated-image card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     {
       const designerMatch = line.match(/^\[Microsoft Designer generated image\]\(([^)]+)\)$/);
       if (designerMatch) {
@@ -226,10 +225,10 @@ export function renderMarkdown(markdown) {
         const designerSrcEsc = designerSrc.replace(/&/g, '&amp;');
         htmlParts.push(
           `<div class="designer-card">` +
-            `<div class="designer-card__icon">🎨</div>` +
+            `<div class="designer-card__icon">ðŸŽ¨</div>` +
             `<div class="designer-card__body">` +
               `<div class="designer-card__title">AI Generated Image</div>` +
-              `<div class="designer-card__note">Session-bound · embedded preview unavailable</div>` +
+              `<div class="designer-card__note">Session-bound Â· embedded preview unavailable</div>` +
             `</div>` +
             `<a class="designer-card__link" href="${designerSrcEsc}" target="_blank" rel="noopener noreferrer">` +
               `Open in Designer &#8599;` +
@@ -240,16 +239,16 @@ export function renderMarkdown(markdown) {
         continue;
       }
     }
-    // ── Standalone image line  ![alt](src) ─────────────────────────────
+    // â”€â”€ Standalone image line  ![alt](src) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (/^!\[/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
-      // applyInline handles the ![alt](src) → <img> conversion
+      // applyInline handles the ![alt](src) â†’ <img> conversion
       htmlParts.push(`<p>${applyInline(escapeHtml(line))}</p>`);
       i++;
       continue;
     }
-    // ── Fenced code block ──────────────────────────────────────────
+    // â”€â”€ Fenced code block â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (/^```/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
@@ -283,7 +282,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // ── Heading ────────────────────────────────────────────────────────────
+    // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const headingMatch = line.match(/^(#{1,3})\s+(.*)/);
     if (headingMatch) {
       flushPara(paraBuf); paraBuf = '';
@@ -295,7 +294,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // ── Horizontal rule ────────────────────────────────────────────────────
+    // â”€â”€ Horizontal rule â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (/^-{3,}\s*$/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
@@ -304,7 +303,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // ── Blockquote ─────────────────────────────────────────────────────────
+    // â”€â”€ Blockquote â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (/^>\s?/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
@@ -314,7 +313,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // ── Unordered list item ────────────────────────────────────────────────
+    // â”€â”€ Unordered list item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const ulMatch = line.match(/^[-*]\s+(.*)/);
     if (ulMatch) {
       flushPara(paraBuf); paraBuf = '';
@@ -324,7 +323,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // ── Ordered list item ──────────────────────────────────────────────────
+    // â”€â”€ Ordered list item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const olMatch = line.match(/^\d+\.\s+(.*)/);
     if (olMatch) {
       flushPara(paraBuf); paraBuf = '';
@@ -334,7 +333,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // ── Blank line — paragraph break ───────────────────────────────────────
+    // â”€â”€ Blank line â€” paragraph break â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (line.trim() === '') {
       flushList();
       if (paraBuf.trim()) {
@@ -345,15 +344,15 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // ── HTML comment — skip silently (e.g. TOC anchor comments in digests) ──
+    // â”€â”€ HTML comment â€” skip silently (e.g. TOC anchor comments in digests) â”€â”€
     if (/^\s*<!--.*-->\s*$/.test(line)) {
       i++;
       continue;
     }
 
-    // ── Regular text — accumulate into paragraph ───────────────────────────
+    // â”€â”€ Regular text â€” accumulate into paragraph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     flushList();
-    // Markdown soft break: line ending with two spaces → insert \n as <br> marker
+    // Markdown soft break: line ending with two spaces â†’ insert \n as <br> marker
     const softBreak = line.endsWith('  ');
     const cleanLine = softBreak ? line.slice(0, -2) : line;
     paraBuf += (paraBuf ? (softBreak ? '\n' : ' ') : '') + cleanLine;
@@ -366,18 +365,18 @@ export function renderMarkdown(markdown) {
   return htmlParts.join('\n');
 }
 
-// ─── Post-render DOM processing ───────────────────────────────────────────────
+// â”€â”€â”€ Post-render DOM processing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Walk the flat rendered-markdown children of `contentEl` and group them into
  * role-aware `.chat-turn--user` / `.chat-turn--assistant` wrapper divs.
  *
  * The reader's markdown format produces a flat sequence of:
- *   <h3>User</h3>, <p>…</p>, <hr>, <h3>Assistant</h3>, <p>…</p>, <hr>, …
+ *   <h3>User</h3>, <p>â€¦</p>, <hr>, <h3>Assistant</h3>, <p>â€¦</p>, <hr>, â€¦
  *
  * This function turns that into:
- *   <div class="chat-turn chat-turn--user">…</div>
- *   <div class="chat-turn chat-turn--assistant">…</div>
+ *   <div class="chat-turn chat-turn--user">â€¦</div>
+ *   <div class="chat-turn chat-turn--assistant">â€¦</div>
  *
  * If no recognised role headings are found the DOM is left unchanged.
  * @param {Element} contentEl
@@ -440,7 +439,7 @@ export function wrapChatTurns(contentEl) {
       }
     }
 
-    // Non-role group — append nodes directly (preserves leading meta content)
+    // Non-role group â€” append nodes directly (preserves leading meta content)
     for (const n of nodes) contentEl.appendChild(n);
   }
 }
@@ -452,7 +451,7 @@ export function wrapChatTurns(contentEl) {
  * `renderMarkdown` turns the serialiser's output of:
  *   **Sources:**
  *   - [Title](url)
- * into `<p><strong>Sources:</strong></p><ul><li><a href="…">…</a></li></ul>`.
+ * into `<p><strong>Sources:</strong></p><ul><li><a href="â€¦">â€¦</a></li></ul>`.
  * This function replaces that `<p>` + `<ul>` pair with a single button whose
  * `data-sources` attribute carries the JSON-serialised link list.
  *
@@ -494,15 +493,15 @@ export function processSources(contentEl) {
 
 /**
  * Create the sources side-panel singleton and wire all interactions:
- *   – clicking any `.sources-trigger` button populates and opens the panel
- *   – the close button, overlay click, and Escape key all close it
+ *   â€“ clicking any `.sources-trigger` button populates and opens the panel
+ *   â€“ the close button, overlay click, and Escape key all close it
  *
  * Idempotent: safe to call multiple times (returns early after first call).
  */
 export function setupSourcesPanel() {
   if (document.getElementById('sources-panel')) return;
 
-  // ── Panel ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const panel = document.createElement('aside');
   panel.id        = 'sources-panel';
   panel.className = 'sources-panel';
@@ -532,7 +531,7 @@ export function setupSourcesPanel() {
     `<ul class="sources-panel__list" id="sources-panel-list" role="list"></ul>`;
   document.body.appendChild(panel);
 
-  // ── Dim overlay — clicking outside closes the panel ────────────────────────
+  // â”€â”€ Dim overlay â€” clicking outside closes the panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const overlay   = document.createElement('div');
   overlay.id        = 'sources-overlay';
   overlay.className = 'sources-overlay';
@@ -615,7 +614,7 @@ export function setupSourcesPanel() {
     overlay.classList.remove('sources-overlay--visible');
   }
 
-  // Trigger clicks — event delegation so dynamically added chips work too
+  // Trigger clicks â€” event delegation so dynamically added chips work too
   document.addEventListener('click', (e) => {
     const trigger = e.target.closest('.sources-trigger');
     if (!trigger) return;
@@ -631,7 +630,7 @@ export function setupSourcesPanel() {
  * Set up the text-selection annotation toolbar (R2).
  * Safe no-op when annotation elements are absent (e.g. unit tests).
  * @param {string} chatId
- * @param {object} storage  — browser.storage.local-like API
+ * @param {object} storage  â€” browser.storage.local-like API
  */
 export async function setupAnnotations(chatId, storage) {
   if (!chatId || !storage) return;
@@ -643,8 +642,8 @@ export async function setupAnnotations(chatId, storage) {
   let pendingRange   = null;
   let allAnnotations = [];
 
-  // ── Annotation count summary in header — built synchronously, before any
-  //    await, so it lands in the DOM on every load regardless of timing. ────
+  // â”€â”€ Annotation count summary in header â€” built synchronously, before any
+  //    await, so it lands in the DOM on every load regardless of timing. â”€â”€â”€â”€
   const readerHeader = document.getElementById('reader-header');
   let annWrapper     = document.getElementById('ann-summary-wrapper');
   let annBtn         = document.getElementById('ann-summary-btn');
@@ -676,14 +675,14 @@ export async function setupAnnotations(chatId, storage) {
     else readerHeader.querySelector('.reader-header__inner')?.appendChild(annWrapper);
   }
 
-  // ── Re-apply stored annotations ──────────────────────────────────────────
+  // â”€â”€ Re-apply stored annotations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   try {
     const existing = await loadAnnotations(chatId, storage);
     allAnnotations = existing;
     applyAnnotations(contentEl, existing);
   } catch (_) {}
 
-  // ── Colour swatch selection ───────────────────────────────────────────────
+  // â”€â”€ Colour swatch selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   toolbar.querySelectorAll('.ann-color-btn').forEach(btn => {
     if (btn.dataset.color === selectedColor) btn.classList.add('selected');
     btn.addEventListener('click', () => {
@@ -693,7 +692,7 @@ export async function setupAnnotations(chatId, storage) {
     });
   });
 
-  // ── Render / update the header summary ───────────────────────────────────
+  // â”€â”€ Render / update the header summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function renderAnnSummary() {
     if (!annBtn || !annDropdown) return;
     const count = allAnnotations.length;
@@ -740,7 +739,7 @@ export async function setupAnnotations(chatId, storage) {
 
   renderAnnSummary();
 
-  // ── Summary dropdown hover wiring ─────────────────────────────────────────
+  // â”€â”€ Summary dropdown hover wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let _annHideTimer = null;
   function _showAnnDropdown() {
     if (!allAnnotations.length) return;
@@ -759,11 +758,11 @@ export async function setupAnnotations(chatId, storage) {
     annDropdown.addEventListener('mouseleave', _scheduleAnnHide);
   }
 
-  // ── Prevent toolbar interactions from clearing the text selection ────────
+  // â”€â”€ Prevent toolbar interactions from clearing the text selection â”€â”€â”€â”€â”€â”€â”€â”€
   // preventDefault on ALL toolbar mousedowns stops the browser from clearing
   // the document text selection (which it does as part of the default focus
   // handling on mousedown).  For the note <input> we then call .focus()
-  // manually — programmatic focus does NOT clear the document selection.
+  // manually â€” programmatic focus does NOT clear the document selection.
   toolbar.addEventListener('mousedown', (e) => {
     e.preventDefault();
     if (e.target === noteInput || noteInput?.contains(e.target)) {
@@ -771,7 +770,7 @@ export async function setupAnnotations(chatId, storage) {
     }
   });
 
-  // ── Show toolbar on text selection ───────────────────────────────────────
+  // â”€â”€ Show toolbar on text selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   document.addEventListener('mouseup', (e) => {
     // Clicks inside the toolbar should not dismiss it
     if (toolbar.contains(e.target)) return;
@@ -800,7 +799,7 @@ export async function setupAnnotations(chatId, storage) {
 
     pendingRange = serialized;
 
-    // Position toolbar ABOVE the selection (toolbar is position:fixed — no scrollY needed)
+    // Position toolbar ABOVE the selection (toolbar is position:fixed â€” no scrollY needed)
     const rect = range.getBoundingClientRect();
     // Use translateY(-100%) so the toolbar bottom sits 8 px above the selection top.
     // This avoids needing to measure offsetHeight before the element is visible.
@@ -810,7 +809,7 @@ export async function setupAnnotations(chatId, storage) {
     toolbar.hidden          = false;
   });
 
-  // ── Cancel button ─────────────────────────────────────────────────────────
+  // â”€â”€ Cancel button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const cancelBtn = document.getElementById('annotation-cancel');
   if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
@@ -820,7 +819,7 @@ export async function setupAnnotations(chatId, storage) {
     });
   }
 
-  // ── Save / highlight button ───────────────────────────────────────────────
+  // â”€â”€ Save / highlight button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const saveBtn   = document.getElementById('annotation-save');
   const noteInput = document.getElementById('annotation-note');
   if (saveBtn) {
@@ -845,7 +844,7 @@ export async function setupAnnotations(chatId, storage) {
     });
   }
 
-  // ── Click existing annotation to delete ──────────────────────────────────
+  // â”€â”€ Click existing annotation to delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   contentEl.addEventListener('click', async (e) => {
     const mark  = e.target.closest('.annotation-highlight');
     if (!mark) return;
@@ -867,7 +866,7 @@ export async function setupAnnotations(chatId, storage) {
   });
 }
 
-// ─── C.22 — Reading Progress Persistence ─────────────────────────────────────
+// â”€â”€â”€ C.22 â€” Reading Progress Persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SCROLL_STORAGE_KEY   = 'bAInder_scrollPositions';
 const SCROLL_MAX_ENTRIES   = 100;
@@ -905,7 +904,7 @@ export function saveScrollPosition(chatId, scrollY) {
   }
   try {
     localStorage.setItem(SCROLL_STORAGE_KEY, JSON.stringify(positions));
-  } catch (_) { /* storage quota exceeded — skip silently */ }
+  } catch (_) { /* storage quota exceeded â€” skip silently */ }
 }
 
 /**
@@ -942,7 +941,7 @@ export function setupScrollFeatures(chatId) {
     if (jumpBtn) {
       jumpBtn.classList.toggle('jump-top--visible', scrollTop > 300);
     }
-    // C.22 — debounced persistence (500 ms)
+    // C.22 â€” debounced persistence (500 ms)
     if (chatId) {
       clearTimeout(scrollSaveTimer);
       scrollSaveTimer = setTimeout(() => saveScrollPosition(chatId, scrollTop), 500);
@@ -958,9 +957,9 @@ export function setupScrollFeatures(chatId) {
   }
 }
 
-// ─── Page initialisation ──────────────────────────────────────────────────────
+// â”€â”€â”€ Page initialisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ─── C.8 Backlinks ──────────────────────────────────────────────────────────
+// â”€â”€â”€ C.8 Backlinks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Scan all other chats' annotations for `[[current chat title]]` references
@@ -985,7 +984,7 @@ export async function renderBacklinksSection(chatId, chatTitle, chats, storage) 
   } catch (_) { return; }
 
   const titleLower = chatTitle.toLowerCase();
-  const referrers = new Map(); // chatId → chat metadata
+  const referrers = new Map(); // chatId â†’ chat metadata
 
   for (const chat of otherChats) {
     const key = `annotations:${chat.id}`;
@@ -1041,7 +1040,7 @@ export function showError(message) {
 
 /**
  * Render a loaded chat object into the page.
- * Pure-ish (operates on document) — exported for testing with a DOM.
+ * Pure-ish (operates on document) â€” exported for testing with a DOM.
  * @param {Object} chat
  */
 export function renderChat(chat) {
@@ -1049,14 +1048,14 @@ export function renderChat(chat) {
   const meta    = chat.metadata || {};
   const fm      = parseFrontmatter(content);
 
-  // ── Header ────────────────────────────────────────────────────────────────
+  // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const isExcerpt = Boolean(meta.isExcerpt || fm.excerpt);
   const source    = fm.source || chat.source || 'unknown';
   const title     = fm.title  || chat.title  || 'Untitled Chat';
   const date      = fm.date   || (chat.timestamp ? new Date(chat.timestamp).toISOString() : '');
   const count     = typeof fm.messageCount === 'number' ? fm.messageCount : (chat.messageCount || 0);
 
-  document.title = `${title} — bAInder`;
+  document.title = `${title} â€” bAInder`;
 
   const srcEl    = document.getElementById('meta-source');
   const dateEl   = document.getElementById('meta-date');
@@ -1070,7 +1069,7 @@ export function renderChat(chat) {
   countEl.textContent = count > 0 ? `${count} messages` : '';
   titleEl.textContent = title;
 
-  // ── Reading time (R3) ──────────────────────────────────────────────────────
+  // â”€â”€ Reading time (R3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const readTimeEl = document.getElementById('meta-reading-time');
   if (readTimeEl) {
     const words = countWords(content);
@@ -1079,7 +1078,7 @@ export function renderChat(chat) {
     readTimeEl.hidden = false;
   }
 
-  // ── Per-source body tint (T3) ──────────────────────────────────────────────
+  // â”€â”€ Per-source body tint (T3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const knownSources = ['chatgpt', 'claude', 'gemini', 'copilot'];
   if (knownSources.includes(source)) {
     document.body.setAttribute('data-source', source);
@@ -1087,7 +1086,7 @@ export function renderChat(chat) {
 
   header.hidden = false;
 
-  // ── Content ──────────────────────────────────────────────────────────────
+  // â”€â”€ Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const contentEl = document.getElementById('reader-content');
 
   contentEl.innerHTML = renderMarkdown(content);
@@ -1095,7 +1094,7 @@ export function renderChat(chat) {
   processSources(contentEl);
   setupSourcesPanel();
 
-  // ── C.7 — Per-message copy button ────────────────────────────────────────
+  // â”€â”€ C.7 â€” Per-message copy button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   contentEl.querySelectorAll('.chat-turn').forEach(turn => {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'turn-copy-btn';
@@ -1123,9 +1122,9 @@ export function renderChat(chat) {
 
   contentEl.hidden = false;
 
-  // ── Prompts count + hover overlay ─────────────────────────────────────────
+  // â”€â”€ Prompts count + hover overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Supports two markdown formats produced by the serializer:
-  //   1. Emoji format (current): <p> elements whose text starts with 🙋
+  //   1. Emoji format (current): <p> elements whose text starts with ðŸ™‹
   //   2. Heading format (legacy): .chat-turn--user divs from wrapChatTurns
   const promptsEl = document.getElementById('meta-prompts');
   if (promptsEl) {
@@ -1142,14 +1141,14 @@ export function renderChat(chat) {
         return { el, text: el.querySelector('.chat-turn__body')?.textContent?.trim() || '' };
       });
     } else {
-      // Current emoji format: paragraphs that begin with the 🙋 emoji
-      const USER_EMOJI = '\uD83D\uDE4B'; // 🙋
+      // Current emoji format: paragraphs that begin with the ðŸ™‹ emoji
+      const USER_EMOJI = '\uD83D\uDE4B'; // ðŸ™‹
       const emojiEls = Array.from(contentEl.querySelectorAll('p')).filter(
         p => p.textContent.trimStart().startsWith(USER_EMOJI)
       );
       userTurns = emojiEls.map((el, i) => {
         el.id = `prompt-${i + 1}`;
-        // Strip the leading 🙋 glyph (may be followed by gender/skin modifiers)
+        // Strip the leading ðŸ™‹ glyph (may be followed by gender/skin modifiers)
         // and any surrounding whitespace to obtain a clean snippet.
         const raw = el.textContent.replace(/^\s*\uD83D\uDE4B[\uD83C\uDFFB-\uD83C\uDFFF\u200D\u2640\u2642\uFE0F]*/u, '').trim();
         return { el, text: raw };
@@ -1184,7 +1183,7 @@ export function renderChat(chat) {
     }
   }
 
-  // ── Assembled-chats header consolidation ──────────────────────────────
+  // â”€â”€ Assembled-chats header consolidation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // When the chat was created by assembling multiple source chats, show a
   // header badge listing each source section with a click-to-scroll link.
   const assembledEl = document.getElementById('meta-assembled');
@@ -1204,7 +1203,7 @@ export function renderChat(chat) {
         const n = sectionHeadings.length;
         const trigger = document.createElement('span');
         trigger.className = 'meta-assembled__trigger';
-        trigger.textContent = `🔗 ${n} chat${n !== 1 ? 's' : ''} assembled`;
+        trigger.textContent = `ðŸ”—Â ${n} chat${n !== 1 ? 's' : ''} assembled`;
 
         const overlay = document.createElement('div');
         overlay.className = 'assembled-overlay';
@@ -1212,7 +1211,7 @@ export function renderChat(chat) {
 
         sectionHeadings.forEach((h, i) => {
           const title   = h.textContent.trim();
-          const snippet = title.length > 68 ? title.slice(0, 65) + '…' : title;
+          const snippet = title.length > 68 ? title.slice(0, 65) + 'â€¦' : title;
           const a = document.createElement('a');
           a.href      = `#assembled-section-${i}`;
           a.className = 'assembled-overlay__item';
@@ -1233,12 +1232,12 @@ export function renderChat(chat) {
     }
   }
 
-  // ── Copy-code button wiring ─────────────────────────────────────────
+  // â”€â”€ Copy-code button wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Use event delegation on the content container so no per-button listeners.
   contentEl.addEventListener('click', (e) => {
     const btn = e.target.closest('.code-block__copy');
     if (!btn) return;
-    // Read raw text from the <code> element — textContent auto-decodes HTML entities.
+    // Read raw text from the <code> element â€” textContent auto-decodes HTML entities.
     const code = btn.closest('.code-block')?.querySelector('.code-block__pre code')?.textContent || '';
     const label = btn.querySelector('.code-block__copy-label');
     navigator.clipboard.writeText(code).then(() => {
@@ -1251,7 +1250,7 @@ export function renderChat(chat) {
     }).catch(() => {});
   });
 
-  // ── Source-chat link wiring — select originating chat in sidepanel tree ──
+  // â”€â”€ Source-chat link wiring â€” select originating chat in sidepanel tree â”€â”€
   contentEl.addEventListener('click', (e) => {
     const link = e.target.closest('.source-chat-link');
     if (!link) return;
@@ -1263,91 +1262,15 @@ export function renderChat(chat) {
 }
 
 /**
- * Apply theme / skin / accent values to <html>.
- * Resolves special theme IDs (oled → dark, auto → light|dark), then delegates
- * CSS variable injection to loadTheme() — the same SDK used by the sidepanel.
- * @param {{ theme?: string, skin?: string, accent?: string }} values
- * @returns {Promise<void>}
- */
-export async function applySettingsFromValues({ theme, skin, accent } = {}) {
-  const html = document.documentElement;
-
-  // ─ Resolve theme to a concrete loadable ID ───────────────────
-  let resolvedId = theme || 'light';
-  if (resolvedId === 'oled') {
-    html.setAttribute('data-oled', '');
-    resolvedId = 'dark';
-  } else {
-    html.removeAttribute('data-oled');
-    if (resolvedId === 'auto') {
-      const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-      resolvedId = prefersDark ? 'dark' : 'light';
-    }
-  }
-
-  // ─ Skin / Accent ─────────────────────────────────────────────
-  // Set synchronously so attribute-based CSS (skins, accents) is active
-  // immediately, independently of the async theme load below.
-  if (skin) html.setAttribute('data-skin', skin);
-  else      html.removeAttribute('data-skin');
-
-  if (accent) html.setAttribute('data-accent', accent);
-  else        html.removeAttribute('data-accent');
-
-  // ─ Theme ─────────────────────────────────────────────────────
-  // Delegate to the shared useTheme SDK (same path as the sidepanel).
-  // applyCustomTheme() injects CSS custom properties inline so all
-  // var(--token) references in reader.css pick up the active theme.
-  await loadTheme(resolvedId);
-}
-
-/**
- * Apply the stored theme to <html> before the first render.
- * Reads the 'themeId' key from storage (matching useTheme.js / persistTheme)
- * and delegates to applySettingsFromValues() → loadTheme().
- * Injectable storage object is the same one used by init().
- * @param {Object} storage
- */
-export async function applyReaderSettings(storage) {
-  try {
-    const result = await storage.get('themeId');
-    await applySettingsFromValues({ theme: result.themeId });
-  } catch (_) {
-    // Non-fatal — fall back to :root defaults
-  }
-}
-
-/**
- * Register a browser.storage.onChanged listener so the reader page updates
- * instantly when the user changes the theme in the sidepanel.
- * Listens for 'themeId' — the key written by persistTheme() in useTheme.js.
- *
- * Safe no-op when browser.storage.onChanged is unavailable (unit tests).
- */
-export function watchReaderSettings() {
-  /* c8 ignore next */
-  if (typeof browser === 'undefined' || !browser.storage?.onChanged) return;
-
-  browser.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local') return;
-    // 'themeId' is the key written by persistTheme() in useTheme.js.
-    // skin / accent are part of the theme JSON — not separate storage keys.
-    if (!('themeId' in changes)) return;
-
-    applySettingsFromValues({ theme: changes.themeId.newValue });
-  });
-}
-
-/**
- * C.15 — Set up the interactive star-rating widget in the reader header.
+ * C.15 â€” Set up the interactive star-rating widget in the reader header.
  * Renders 5 clickable stars into #reader-rating and persists changes to storage.
  *
  * @param {string} chatId         ID of the currently displayed chat
- * @param {number|null} initRating Current rating (1–5) or null/0
+ * @param {number|null} initRating Current rating (1â€“5) or null/0
  * @param {Object} storage        browser.storage.local-like object
  */
 /**
- * C.19 — Show a dismissible stale-review banner when a chat is overdue.
+ * C.19 â€” Show a dismissible stale-review banner when a chat is overdue.
  * Banner renders inside #stale-banner and lets the user mark as reviewed.
  *
  * @param {string} chatId
@@ -1363,7 +1286,7 @@ export function setupStaleBanner(chatId, chat, storage) {
     : 'This content has been flagged as stale';
 
   banner.innerHTML =
-    `<span class="stale-banner__icon" aria-hidden="true">⚠</span>` +
+    `<span class="stale-banner__icon" aria-hidden="true">âš </span>` +
     `<span class="stale-banner__text">${dateText}.</span>` +
     `<button class="stale-banner__dismiss" type="button">Mark as reviewed</button>`;
   banner.hidden = false;
@@ -1419,14 +1342,11 @@ export function setupRating(chatId, initRating, storage) {
 }
 
 /**
- * Main entry point — reads chatId from URL, loads from storage, renders.
- * @param {Object} storage  Object with a `.get(keys)` method — injectable for testing
+ * Main entry point â€” reads chatId from URL, loads from storage, renders.
+ * @param {Object} storage  Object with a `.get(keys)` method â€” injectable for testing
  */
 export async function init(storage) {
   try {
-    // Apply theme/skin/accent first so the page never flashes unstyled.
-    await applyReaderSettings(storage);
-
     const params  = new URLSearchParams(window.location.search);
     const chatId  = params.get('chatId');
 
@@ -1448,21 +1368,20 @@ export async function init(storage) {
     restoreScrollPosition(chatId);        // C.22
     setupRating(chatId, chat.rating, storage);
     setupStaleBanner(chatId, chat, storage);
-    setupScrollFeatures(chatId);          // C.22 — pass chatId for persistence
+    setupScrollFeatures(chatId);          // C.22 â€” pass chatId for persistence
     setupAnnotations(chatId, storage);
     setupStickyNotes(chatId, storage, renderMarkdown);
-    // C.8 — render backlinks: chats that reference this one in annotation notes
+    // C.8 â€” render backlinks: chats that reference this one in annotation notes
     await renderBacklinksSection(chatId, chat.title, chats, storage);
   } catch (err) {
     showError(`Failed to load conversation: ${err.message}`);
   }
 }
 
-// ── Auto-run when loaded as a browser extension page ──────────────────────────
+// â”€â”€ Auto-run when loaded as a browser extension page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Only run when the actual reader DOM (reader-content element) is present.
 // This guard prevents accidental execution when reader.js is imported in tests.
 /* c8 ignore next 4 */
 if (typeof browser !== 'undefined' && browser.storage && document.getElementById('reader-content')) {
   init(browser.storage.local);
-  watchReaderSettings();
 }
