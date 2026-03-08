@@ -9,8 +9,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { checkStaleChats } from '../src/background/stale-check.js';
 import { setupStaleBanner } from '../src/reader/reader.js';
-import { TreeRenderer } from '../src/lib/tree-renderer.js';
-import { TopicTree } from '../src/lib/tree.js';
+import { TreeRenderer } from '../src/lib/renderer/tree-renderer.js';
+import { TopicTree } from '../src/lib/tree/tree.js';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

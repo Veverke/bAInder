@@ -1,5 +1,5 @@
 /**
- * Tests for src/lib/sticky-notes.js
+ * Tests for src/lib/sticky-notes/sticky-notes.js
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
@@ -9,7 +9,7 @@ import {
   deleteStickyNote,
   loadNotesVisible,
   saveNotesVisible,
-} from '../src/lib/sticky-notes.js';
+} from '../src/lib/sticky-notes/sticky-notes.js';
 
 // ─── Mock storage factory ─────────────────────────────────────────────────────
 

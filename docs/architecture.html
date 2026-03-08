@@ -1,0 +1,2517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bAInder — System Architecture</title>
+<style>
+  /* ── Reset & base ─────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:        #0f1117;
+    --panel:     #1a1d27;
+    --panel2:    #21253a;
+    --border:    #2e3350;
+    --accent:    #6c63ff;
+    --accent2:   #3ecf8e;
+    --accent3:   #f7c948;
+    --text:      #e2e8f0;
+    --muted:     #8892a4;
+    --tag-bg:    #1e2440;
+    --shadow:    0 4px 24px rgba(0,0,0,.45);
+    --radius:    10px;
+
+    /* layer colours */
+    --l-bg:      #2a1d3f;
+    --l-bg-b:    #7c3aed;
+    --l-content: #1a2e3f;
+    --l-content-b:#0ea5e9;
+    --l-panel:   #1f2e1f;
+    --l-panel-b: #22c55e;
+    --l-reader:  #2e2b1a;
+    --l-reader-b:#f59e0b;
+    --l-lib:     #2e1e1e;
+    --l-lib-b:   #ef4444;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ────────────────────────────────────────────────────────────── */
+  #app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header .logo {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header .subtitle { color: var(--muted); font-size: 13px; }
+
+  #breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+  #breadcrumb span { cursor: pointer; }
+  #breadcrumb span:hover { color: var(--text); text-decoration: underline; }
+  #breadcrumb .sep { color: var(--border); user-select: none; }
+  #breadcrumb .active { color: var(--text); cursor: default; }
+  #breadcrumb .active:hover { text-decoration: none; }
+
+  main {
+    flex: 1;
+    padding: 32px 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── Views ─────────────────────────────────────────────────────────────── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── Section header ────────────────────────────────────────────────────── */
+  .section-header {
+    margin-bottom: 28px;
+  }
+  .section-header h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .section-header p { color: var(--muted); max-width: 700px; }
+
+  /* Back button */
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background .15s;
+    margin-bottom: 20px;
+  }
+  .back-btn:hover { background: var(--panel2); }
+  .back-btn svg { width: 14px; height: 14px; }
+
+  /* ── Overview: layer stack ─────────────────────────────────────────────── */
+  #overview-description {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 24px;
+    margin-bottom: 32px;
+    color: var(--muted);
+    max-width: 860px;
+  }
+  #overview-description strong { color: var(--text); }
+
+  .arch-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* Connector arrows between layers */
+  .arch-diagram .connector {
+    display: flex;
+    justify-content: center;
+    height: 36px;
+    align-items: center;
+    user-select: none;
+    pointer-events: none;
+  }
+  .arch-diagram .connector .arrow-line {
+    width: 2px;
+    height: 100%;
+    background: var(--border);
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .arch-diagram .connector .arrow-line::after {
+    content: '▼';
+    font-size: 12px;
+    color: var(--muted);
+    position: absolute;
+    bottom: -2px;
+  }
+
+  .layer-card {
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .18s, box-shadow .18s;
+    position: relative;
+  }
+  .layer-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .layer-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 24px;
+  }
+  .layer-icon {
+    font-size: 26px;
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .layer-title { font-size: 17px; font-weight: 600; }
+  .layer-desc  { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .layer-pill-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 24px 16px 84px;
+  }
+  .pill {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* per-layer colour theming */
+  .layer-bg      { background: var(--l-bg);      border-color: var(--l-bg-b); }
+  .layer-bg .layer-header    { border-bottom: 1px solid rgba(124,58,237,.25); }
+  .layer-bg .layer-icon      { background: rgba(124,58,237,.2); }
+  .layer-bg .layer-title     { color: #c4b5fd; }
+  .layer-bg:hover            { border-color: var(--l-bg-b); box-shadow: 0 4px 24px rgba(124,58,237,.3); }
+
+  .layer-content { background: var(--l-content);  border-color: var(--l-content-b); }
+  .layer-content .layer-header  { border-bottom: 1px solid rgba(14,165,233,.25); }
+  .layer-content .layer-icon    { background: rgba(14,165,233,.2); }
+  .layer-content .layer-title   { color: #7dd3fc; }
+  .layer-content:hover          { border-color: var(--l-content-b); box-shadow: 0 4px 24px rgba(14,165,233,.3); }
+
+  .layer-panel { background: var(--l-panel);    border-color: var(--l-panel-b); }
+  .layer-panel .layer-header    { border-bottom: 1px solid rgba(34,197,94,.25); }
+  .layer-panel .layer-icon      { background: rgba(34,197,94,.2); }
+  .layer-panel .layer-title     { color: #86efac; }
+  .layer-panel:hover            { border-color: var(--l-panel-b); box-shadow: 0 4px 24px rgba(34,197,94,.3); }
+
+  .layer-reader { background: var(--l-reader);   border-color: var(--l-reader-b); }
+  .layer-reader .layer-header   { border-bottom: 1px solid rgba(245,158,11,.25); }
+  .layer-reader .layer-icon     { background: rgba(245,158,11,.2); }
+  .layer-reader .layer-title    { color: #fcd34d; }
+  .layer-reader:hover           { border-color: var(--l-reader-b); box-shadow: 0 4px 24px rgba(245,158,11,.3); }
+
+  .layer-lib  { background: var(--l-lib);      border-color: var(--l-lib-b); }
+  .layer-lib .layer-header      { border-bottom: 1px solid rgba(239,68,68,.25); }
+  .layer-lib .layer-icon        { background: rgba(239,68,68,.2); }
+  .layer-lib .layer-title       { color: #fca5a5; }
+  .layer-lib:hover              { border-color: var(--l-lib-b); box-shadow: 0 4px 24px rgba(239,68,68,.3); }
+
+
+  /* Click hint */
+  .click-hint {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-size: 11px;
+    color: var(--muted);
+    opacity: .6;
+  }
+
+  /* ── Layer drill-down view ─────────────────────────────────────────────── */
+  .component-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .comp-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: background .15s, transform .18s, box-shadow .18s;
+    position: relative;
+  }
+  .comp-card:hover {
+    background: var(--panel2);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .comp-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .comp-file {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    margin-bottom: 10px;
+  }
+  .comp-summary {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .comp-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+  .badge-core    { background: rgba(108,99,255,.25); color: #a5b4fc; border: 1px solid rgba(108,99,255,.35); }
+  .badge-ui      { background: rgba(34,197,94,.2);   color: #86efac; border: 1px solid rgba(34,197,94,.3); }
+  .badge-service { background: rgba(14,165,233,.2);  color: #7dd3fc; border: 1px solid rgba(14,165,233,.3); }
+  .badge-util    { background: rgba(245,158,11,.2);  color: #fcd34d; border: 1px solid rgba(245,158,11,.3); }
+  .badge-data    { background: rgba(239,68,68,.2);   color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
+  .badge-feature { background: rgba(62,207,142,.2);  color: #6ee7b7; border: 1px solid rgba(62,207,142,.3); }
+
+  /* ── Detail view ───────────────────────────────────────────────────────── */
+  #detail-view .detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .detail-icon {
+    font-size: 32px;
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel2);
+    flex-shrink: 0;
+  }
+  .detail-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .detail-file  {
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .detail-layer-tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: var(--panel2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+
+  .detail-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 800px) {
+    .detail-body { grid-template-columns: 1fr; }
+  }
+  .detail-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .detail-section.full-width { grid-column: 1 / -1; }
+  .detail-section h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .responsibility-list { list-style: none; }
+  .responsibility-list li {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    color: var(--text);
+  }
+  .responsibility-list li:last-child { border-bottom: none; }
+  .responsibility-list li::before {
+    content: '▸';
+    color: var(--accent);
+    flex-shrink: 0;
+    font-size: 11px;
+  }
+
+  .dep-list { display: flex; flex-direction: column; gap: 8px; }
+  .dep-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 12px;
+    background: var(--panel2);
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .dep-item:hover { background: #2a2f4a; color: var(--text); }
+  .dep-dir { color: var(--accent); margin-right: 2px; }
+
+  .sub-module-grid { display: flex; flex-direction: column; gap: 8px; }
+  .sub-module {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+  .sub-module .sm-name {
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 3px;
+  }
+  .sub-module .sm-desc { font-size: 12.5px; color: var(--muted); }
+
+  .flow-steps { display: flex; flex-direction: column; gap: 0; }
+  .flow-step  {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 0;
+    position: relative;
+  }
+  .flow-step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 32px;
+    bottom: -8px;
+    width: 2px;
+    background: var(--border);
+  }
+  .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .step-text { font-size: 13px; color: var(--text); padding-top: 4px; }
+  .step-text .step-code {
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    background: rgba(62,207,142,.1);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .note-box {
+    background: rgba(108,99,255,.1);
+    border: 1px solid rgba(108,99,255,.25);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #c4b5fd;
+    line-height: 1.6;
+    margin-top: 4px;
+  }
+
+  /* ── Tab bar (Overview & Layer views) ────────────────────────────────── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .tab-btn {
+    padding: 8px 18px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .15s, border-color .15s;
+    border-radius: 0;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ── SVG relationship diagram ─────────────────────────────────────────── */
+  .rel-diagram-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    overflow-x: auto;
+    margin-bottom: 24px;
+  }
+  .rel-diagram-wrap svg { display: block; margin: 0 auto; }
+  .rel-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .rel-legend-item { display: flex; align-items: center; gap: 8px; }
+  .rel-legend-line {
+    width: 36px;
+    height: 2px;
+    display: inline-block;
+    position: relative;
+  }
+  .rel-legend-line::after {
+    content: '▶';
+    position: absolute;
+    right: -6px;
+    top: -6px;
+    font-size: 10px;
+  }
+  .leg-solid  { background: #6c63ff; }
+  .leg-solid::after  { color: #6c63ff; }
+  .leg-dashed {
+    background: repeating-linear-gradient(90deg,#f7c948 0,#f7c948 5px,transparent 5px,transparent 9px);
+  }
+  .leg-dashed::after { color: #f7c948; }
+  .leg-dotted {
+    background: repeating-linear-gradient(90deg,#8892a4 0,#8892a4 2px,transparent 2px,transparent 6px);
+  }
+  .leg-dotted::after { color: #8892a4; }
+
+  /* ── Layer dep graph ──────────────────────────────────────────────────── */
+  .dep-graph-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    overflow-x: auto;
+    margin-bottom: 8px;
+  }
+  .dep-graph-wrap svg { display: block; margin: 0 auto; }
+
+  /* ── Component mini-dep-graph ──────────────────────────────────────────── */
+  .mini-dep-graph {
+    overflow-x: auto;
+    margin-top: 12px;
+  }
+  .mini-dep-graph svg { display: block; margin: 0 auto; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header>
+    <div>
+      <div class="logo">bAInder</div>
+      <div class="subtitle">AI Chat Organizer — System Architecture</div>
+    </div>
+    <div id="breadcrumb">
+      <span id="bc-overview" onclick="showOverview()">Overview</span>
+      <span class="sep" id="bc-sep1" style="display:none"> › </span>
+      <span id="bc-layer"    style="display:none"></span>
+      <span class="sep" id="bc-sep2" style="display:none"> › </span>
+      <span id="bc-detail"   style="display:none" class="active"></span>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── View 1: Overview ──────────────────────────────────────────────── -->
+    <div id="overview-view" class="view active">
+      <div class="section-header">
+        <h2>System Architecture</h2>
+        <p>bAInder is a <strong>Chrome / Edge Manifest V3 browser extension</strong> that captures, organises, and
+           searches conversations from AI chat platforms (ChatGPT, Claude, Gemini, Copilot).</p>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchOverviewTab('layers',this)">🗂 Architecture Layers</button>
+        <button class="tab-btn"        onclick="switchOverviewTab('relations',this)">🔗 Relationships &amp; Data Flow</button>
+      </div>
+
+      <!-- Tab: layers -->
+      <div id="ov-tab-layers" class="tab-pane active">
+      <div id="overview-description">
+        <strong>Five architectural layers</strong> — each with a clearly bounded responsibility.
+        The data flows top-down: the <em>Content Script</em> extracts conversations from AI pages and posts
+        them to the <em>Background Service Worker</em>, which persists them via the <em>Shared Library</em>.
+        The <em>Side Panel</em> and <em>Reader</em> read from the same shared storage and render the saved data.
+      </div>
+
+      <div class="arch-diagram">
+
+        <!-- Layer 1 -->
+        <div class="layer-card layer-bg" onclick="showLayer('background')">
+          <span class="click-hint">click to explore →</span>
+          <div class="layer-header">
+            <div class="layer-icon">⚙️</div>
+            <div>
+              <div class="layer-title">Background Service Worker</div>
+              <div class="layer-desc">Lifecycle coordinator, context menus, message bus, stale-chat alarms</div>
+            </div>
+          </div>
+          <div class="layer-pill-bar">
+            <span class="pill">background.js</span>
+            <span class="pill">chat-save-handler.js</span>
+            <span class="pill">stale-check.js</span>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow-line"></div></div>
+
+        <!-- Layer 2 -->
+        <div class="layer-card layer-content" onclick="showLayer('content')">
+          <span class="click-hint">click to explore →</span>
+          <div class="layer-header">
+            <div class="layer-icon">💬</div>
+            <div>
+              <div class="layer-title">Content Script</div>
+              <div class="layer-desc">Injected into AI pages — detects platform, extracts chat, injects Save button</div>
+            </div>
+          </div>
+          <div class="layer-pill-bar">
+            <span class="pill">content.js</span>
+            <span class="pill">chat-extractor.js</span>
+            <span class="pill">extractors/chatgpt</span>
+            <span class="pill">extractors/claude</span>
+            <span class="pill">extractors/gemini</span>
+            <span class="pill">extractors/copilot</span>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow-line"></div></div>
+
+        <!-- Layer 3 -->
+        <div class="layer-card layer-panel" onclick="showLayer('sidepanel')">
+          <span class="click-hint">click to explore →</span>
+          <div class="layer-header">
+            <div class="layer-icon">🗂️</div>
+            <div>
+              <div class="layer-title">Side Panel (UI Shell)</div>
+              <div class="layer-desc">Main extension UI — topic tree, search, chat list, export, import, settings</div>
+            </div>
+          </div>
+          <div class="layer-pill-bar">
+            <span class="pill">sidepanel.js (bootstrap)</span>
+            <span class="pill">5 controllers</span>
+            <span class="pill">4 services</span>
+            <span class="pill">7 features</span>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow-line"></div></div>
+
+        <!-- Layer 4 -->
+        <div class="layer-card layer-reader" onclick="showLayer('reader')">
+          <span class="click-hint">click to explore →</span>
+          <div class="layer-header">
+            <div class="layer-icon">📖</div>
+            <div>
+              <div class="layer-title">Reader</div>
+              <div class="layer-desc">Full-page chat viewer with annotations, sticky notes, and word-count</div>
+            </div>
+          </div>
+          <div class="layer-pill-bar">
+            <span class="pill">reader.js</span>
+            <span class="pill">reader.html</span>
+            <span class="pill">reader.css</span>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow-line"></div></div>
+
+        <!-- Layer 5 -->
+        <div class="layer-card layer-lib" onclick="showLayer('lib')">
+          <span class="click-hint">click to explore →</span>
+          <div class="layer-header">
+            <div class="layer-icon">📚</div>
+            <div>
+              <div class="layer-title">Shared Library</div>
+              <div class="layer-desc">All domain logic — storage, tree, search, export/import, annotations, dialogs, theming</div>
+            </div>
+          </div>
+          <div class="layer-pill-bar">
+            <span class="pill">storage.js</span>
+            <span class="pill">tree.js</span>
+            <span class="pill">tree-renderer.js</span>
+            <span class="pill">chat-manager.js</span>
+            <span class="pill">export-engine.js</span>
+            <span class="pill">import-parser.js</span>
+            <span class="pill">markdown-serialiser.js</span>
+            <span class="pill">search-utils.js</span>
+            <span class="pill">annotations.js</span>
+            <span class="pill">sticky-notes.js</span>
+            <span class="pill">+ more</span>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /overview-view -->
+
+
+    <!-- ── View 2: Layer drill-down ───────────────────────────────────────── -->
+    <div id="layer-view" class="view">
+      <button class="back-btn" onclick="showOverview()">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M10.78 3.22a.75.75 0 0 1 0 1.06L7.06 8l3.72 3.72a.75.75 0 1 1-1.06 1.06L5.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z"/></svg>
+        Back to Overview
+      </button>
+      <div class="section-header">
+        <h2 id="layer-title"></h2>
+        <p  id="layer-desc"></p>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchLayerTab('cards',this)">📋 Components</button>
+        <button class="tab-btn"        onclick="switchLayerTab('graph',this)">🔗 Dependency Graph</button>
+      </div>
+
+      <div id="lv-tab-cards" class="tab-pane active">
+        <div id="component-grid" class="component-grid"></div>
+      </div>
+      <div id="lv-tab-graph" class="tab-pane">
+        <div class="dep-graph-wrap">
+          <svg id="layer-dep-svg" xmlns="http://www.w3.org/2000/svg"
+               style="max-width:100%;display:block;margin:0 auto"></svg>
+        </div>
+        <div class="rel-legend" style="margin-top:0;padding:12px 0 0">
+          <div class="rel-legend-item"><span class="rel-legend-line leg-solid"></span> imports (within layer)</div>
+          <div class="rel-legend-item"><span class="rel-legend-line leg-dotted"></span> imports (shared library)</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ── View 3: Component detail ─────────────────────────────────────── -->
+    <div id="detail-view" class="view">
+      <button class="back-btn" id="detail-back-btn" onclick="backToLayer()">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M10.78 3.22a.75.75 0 0 1 0 1.06L7.06 8l3.72 3.72a.75.75 0 1 1-1.06 1.06L5.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z"/></svg>
+        Back to <span id="detail-back-label"></span>
+      </button>
+      <div class="detail-header">
+        <div class="detail-icon" id="detail-icon"></div>
+        <div>
+          <div class="detail-title" id="detail-title"></div>
+          <div class="detail-file"  id="detail-file"></div>
+          <span class="detail-layer-tag" id="detail-layer-tag"></span>
+        </div>
+      </div>
+      <div class="detail-body" id="detail-body"></div>
+    </div>
+
+  </main>
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════════════════════════════
+
+const LAYERS = {
+  background: {
+    title: 'Background Service Worker',
+    desc:  'Runs as a Manifest V3 service worker — handles browser lifecycle events, the context menu, inter-module messaging, and periodic stale-chat alarms.',
+    components: ['bg-background','bg-save-handler','bg-stale-check'],
+  },
+  content: {
+    title: 'Content Script',
+    desc:  'Bundled by Vite into a plain IIFE and injected into every supported AI page. Detects platform, renders a Save button, extracts conversation DOM, and relays data to the background worker.',
+    components: ['cs-content','cs-extractor','cs-chatgpt','cs-claude','cs-gemini','cs-copilot','cs-shared','cs-dom-utils','cs-msg-utils','cs-source-links','cs-html-md'],
+  },
+  sidepanel: {
+    title: 'Side Panel (UI Shell)',
+    desc:  'The main extension interface. Bootstrapped by sidepanel.js which wires up controllers, services, and feature modules — each with a clearly bounded responsibility.',
+    components: ['sp-sidepanel','sp-app-context','sp-tree-ctrl','sp-search-ctrl','sp-topic-actions','sp-chat-actions','sp-ie-actions','sp-chat-repo','sp-msg-validator','sp-reminder-prefs','sp-storage-sync','sp-save-banner','sp-backup-reminder','sp-theme-picker','sp-multi-select','sp-settings-panel','sp-recent-rail','sp-storage-usage','sp-notification'],
+  },
+  reader: {
+    title: 'Reader',
+    desc:  'A full-page view for reading a saved chat. Loaded in a new browser tab. Provides word count, estimated reading time, text annotation (highlights + notes), and sticky notes.',
+    components: ['rd-reader','rd-html','rd-css'],
+  },
+  lib: {
+    title: 'Shared Library',
+    desc:  'Pure, side-effect-free modules imported by all other layers. Contains all domain logic and data structures.',
+    components: ['lib-storage','lib-tree','lib-tree-renderer','lib-chat-manager','lib-export-engine','lib-import-parser','lib-markdown-ser','lib-search-utils','lib-annotations','lib-sticky-notes','lib-sticky-ui','lib-dialog-manager','lib-chat-dialogs','lib-topic-dialogs','lib-export-dialog','lib-import-dialog','lib-style-transformer','lib-url-utils','lib-useTheme','lib-theme-sdk','lib-logger'],
+  },
+};
+
+const COMPONENTS = {
+
+  // ── Background ───────────────────────────────────────────────────────────
+  'bg-background': {
+    name: 'background.js',
+    file: 'src/background/background.js',
+    icon: '⚙️',
+    badge: 'core',
+    layer: 'Background Service Worker',
+    layerKey: 'background',
+    summary: 'Main service worker — extension lifecycle, context menu setup, and message router.',
+    responsibilities: [
+      'Registers and clears the "Save selection" context menu on install / startup',
+      'Listens for contextMenus.onClicked and orchestrates a three-tiered excerpt retrieval (cached rich markdown → live EXTRACT_EXCERPT → plain selectionText fallback)',
+      'Routes SAVE_CHAT, EXTRACT_EXCERPT, STORE_EXCERPT_CACHE, CAPTURE_SCREENSHOT messages to the correct handler',
+      'Manages a session-storage cache for rich markdown excerpts (survives service-worker restart)',
+      'Opens the side panel on toolbar icon click',
+      'Schedules and fires the stale-chat alarm via chrome.alarms',
+    ],
+    deps: ['bg-save-handler', 'bg-stale-check', 'lib-markdown-ser', 'lib-search-utils'],
+    flow: [
+      { text: 'User right-clicks on AI chat page' },
+      { text: 'Content script pre-caches rich markdown via', code: 'STORE_EXCERPT_CACHE' },
+      { text: 'User clicks "Save selection to bAInder"', code: 'contextMenus.onClicked' },
+      { text: 'background.js picks up cached markdown (or requests live extraction)' },
+      { text: 'Calls', code: 'handleSaveChat()', extra: ' in chat-save-handler.js' },
+      { text: 'Broadcasts', code: 'CHAT_SAVED', extra: ' to all side-panel instances' },
+    ],
+  },
+
+  'bg-save-handler': {
+    name: 'chat-save-handler.js',
+    file: 'src/background/chat-save-handler.js',
+    icon: '💾',
+    badge: 'service',
+    layer: 'Background Service Worker',
+    layerKey: 'background',
+    summary: 'Pure handler functions extracted for testability — validation, deduplication, and persistence of chat saves.',
+    responsibilities: [
+      'detectSource(url) — maps a URL to one of: chatgpt | claude | gemini | copilot | unknown',
+      'validateChatData(chatData) — throws descriptive errors for missing/invalid fields',
+      'isRecentDuplicate(existingChats, url, windowMs) — prevents double-saves within a time window',
+      'buildExcerptPayload(info, markdown) — constructs a normalised excerpt chat object',
+      'handleSaveChat(payload, storage) — full save pipeline: validate → dedup → persist → return saved entry',
+    ],
+    deps: ['lib-markdown-ser', 'lib-search-utils'],
+    subModules: [],
+    note: 'No DOM access, no browser global — importable directly in unit tests.',
+  },
+
+  'bg-stale-check': {
+    name: 'stale-check.js',
+    file: 'src/background/stale-check.js',
+    icon: '🕐',
+    badge: 'service',
+    layer: 'Background Service Worker',
+    layerKey: 'background',
+    summary: 'Checks for chats whose URLs have gone stale (e.g. deleted / changed AI conversations) and marks them accordingly.',
+    responsibilities: [
+      'checkStaleChats(storage) — reads all saved chats and probes each URL',
+      'Marks chats with a stale flag when the originating URL is no longer reachable',
+      'Called periodically by the chrome.alarms.onAlarm handler in background.js',
+    ],
+    deps: ['lib-storage'],
+  },
+
+  // ── Content Script ────────────────────────────────────────────────────────
+  'cs-content': {
+    name: 'content.js',
+    file: 'src/content/content.js',
+    icon: '💬',
+    badge: 'core',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'Entry point injected into every supported AI page. Orchestrates platform detection, UI injection, and message relaying.',
+    responsibilities: [
+      'Guards against double-injection with window.__bAInderInjected',
+      'Intercepts Microsoft Designer postMessage events to capture AI-generated images',
+      'Detects which AI platform the current page belongs to',
+      'Injects the "Save to bAInder" floating button into the AI page DOM',
+      'Triggers extraction on button click and sends SAVE_CHAT message to background',
+      'Listens for contextmenu events and pre-caches rich markdown (STORE_EXCERPT_CACHE)',
+      'Responds to EXTRACT_EXCERPT requests from background for live selection extraction',
+    ],
+    deps: ['cs-extractor','cs-shared','cs-dom-utils','cs-source-links'],
+    flow: [
+      { text: 'Script injected at document_idle' },
+      { text: 'Platform detected from URL / DOM signatures' },
+      { text: 'Save button injected; mutation observer watches for new messages' },
+      { text: 'On click → extraction → serialise to markdown' },
+      { text: 'Post', code: 'SAVE_CHAT', extra: ' message to background service worker' },
+    ],
+  },
+
+  'cs-extractor': {
+    name: 'chat-extractor.js',
+    file: 'src/content/chat-extractor.js',
+    icon: '🔍',
+    badge: 'core',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'Platform dispatcher — receives a DOM snapshot and delegates to the correct platform-specific extractor.',
+    responsibilities: [
+      'extractChat(platform, document) — dispatches to the appropriate extractor module',
+      'Normalises extracted messages into a consistent { role, content, images } shape',
+      'Handles Multi-turn extraction (user ↔ assistant interleaving)',
+    ],
+    deps: ['cs-chatgpt','cs-claude','cs-gemini','cs-copilot'],
+  },
+
+  'cs-chatgpt': {
+    name: 'extractors/chatgpt.js',
+    file: 'src/content/extractors/chatgpt.js',
+    icon: '🟢',
+    badge: 'util',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'ChatGPT / chat.openai.com DOM extractor.',
+    responsibilities: [
+      'Queries the ChatGPT conversation DOM for user and assistant turns',
+      'Handles code blocks, formatted output, and image attachments',
+      'Extracts conversation title from page heading',
+    ],
+    deps: ['cs-shared', 'cs-dom-utils', 'cs-html-md'],
+  },
+
+  'cs-claude': {
+    name: 'extractors/claude.js',
+    file: 'src/content/extractors/claude.js',
+    icon: '🟠',
+    badge: 'util',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'Anthropic Claude DOM extractor.',
+    responsibilities: [
+      'Queries Claude conversation DOM for human and assistant turns',
+      'Handles Claude\'s artifact rendering and tool-use blocks',
+      'Extracts title and metadata',
+    ],
+    deps: ['cs-shared', 'cs-dom-utils', 'cs-html-md'],
+  },
+
+  'cs-gemini': {
+    name: 'extractors/gemini.js',
+    file: 'src/content/extractors/gemini.js',
+    icon: '🔵',
+    badge: 'util',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'Google Gemini DOM extractor.',
+    responsibilities: [
+      'Queries Gemini conversation elements for model and user turns',
+      'Handles Gemini-specific response rendering and streaming states',
+    ],
+    deps: ['cs-shared', 'cs-dom-utils', 'cs-html-md'],
+  },
+
+  'cs-copilot': {
+    name: 'extractors/copilot.js',
+    file: 'src/content/extractors/copilot.js',
+    icon: '🟣',
+    badge: 'util',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'Microsoft Copilot / M365 DOM extractor.',
+    responsibilities: [
+      'Handles both copilot.microsoft.com and m365.cloud.microsoft',
+      'Extracts Designer-generated images via the postMessage screenshot pipeline in content.js',
+    ],
+    deps: ['cs-shared', 'cs-dom-utils', 'cs-html-md'],
+  },
+
+  'cs-shared': {
+    name: 'extractors/shared.js',
+    file: 'src/content/extractors/shared.js',
+    icon: '🔧',
+    badge: 'util',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'Utilities shared across all platform extractors.',
+    responsibilities: [
+      'Common DOM query helpers used by every extractor',
+      'Normalisation helpers for message role names',
+      'Image/attachment detection utilities',
+    ],
+    deps: [],
+  },
+
+  'cs-dom-utils': {
+    name: 'extractors/dom-utils.js',
+    file: 'src/content/extractors/dom-utils.js',
+    icon: '🏗️',
+    badge: 'util',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'Low-level DOM traversal helpers.',
+    responsibilities: [
+      'Safe querySelector wrappers that never throw on missing elements',
+      'Text-content extraction with whitespace normalisation',
+      'Visibility checks for extracting only fully rendered messages',
+    ],
+    deps: [],
+  },
+
+  'cs-msg-utils': {
+    name: 'extractors/message-utils.js',
+    file: 'src/content/extractors/message-utils.js',
+    icon: '📝',
+    badge: 'util',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'Message normalisation and formatting helpers.',
+    responsibilities: [
+      'Deduplication of identical consecutive messages',
+      'Role normalisation (user / assistant / system)',
+      'Timestamp parsing from page attributes',
+    ],
+    deps: [],
+  },
+
+  'cs-source-links': {
+    name: 'extractors/source-links.js',
+    file: 'src/content/extractors/source-links.js',
+    icon: '🔗',
+    badge: 'util',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'Extracts source/citation links surfaced by AI assistants.',
+    responsibilities: [
+      'Scrapes cited URL cards from ChatGPT, Claude, Gemini, and Copilot',
+      'Returns a deduplicated list of {title, url} pairs appended to the markdown output',
+    ],
+    deps: [],
+  },
+
+  'cs-html-md': {
+    name: 'extractors/html-to-markdown.js',
+    file: 'src/content/extractors/html-to-markdown.js',
+    icon: '🔄',
+    badge: 'util',
+    layer: 'Content Script',
+    layerKey: 'content',
+    summary: 'Converts AI-rendered HTML (headings, lists, code blocks, tables) to clean Markdown.',
+    responsibilities: [
+      'Traverses DOM nodes and emits Markdown equivalents',
+      'Handles nested lists, fenced code blocks with language hints, and inline code',
+      'Converts <table> elements to GitHub-flavoured Markdown tables',
+      'Strips non-content elements (buttons, tooltips, UI chrome)',
+    ],
+    deps: [],
+  },
+
+  // ── Side Panel ─────────────────────────────────────────────────────────────
+  'sp-sidepanel': {
+    name: 'sidepanel.js',
+    file: 'src/sidepanel/sidepanel.js',
+    icon: '🔌',
+    badge: 'core',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Bootstrap entry point — creates service instances, loads persisted data, wires DOM events, and hands off to focused modules.',
+    responsibilities: [
+      'Instantiates StorageService, ChatRepository, TreeRenderer, DialogManager',
+      'Calls loadTree() to rehydrate persisted TopicTree from storage',
+      'Attaches all DOM event listeners by delegating to controller and feature modules',
+      'Handles the CHAT_SAVED message from background (re-renders tree & recent rail)',
+      'Intentionally thin — no business logic lives here',
+    ],
+    deps: ['sp-app-context','sp-tree-ctrl','sp-search-ctrl','sp-topic-actions','sp-chat-actions','sp-ie-actions','sp-chat-repo','sp-reminder-prefs','sp-storage-sync','sp-msg-validator','sp-save-banner','sp-backup-reminder','sp-theme-picker','sp-multi-select','sp-settings-panel','sp-recent-rail','sp-storage-usage','sp-notification','lib-storage','lib-dialog-manager','lib-useTheme'],
+  },
+
+  'sp-app-context': {
+    name: 'app-context.js',
+    file: 'src/sidepanel/app-context.js',
+    icon: '🗃️',
+    badge: 'core',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Singleton shared state and cached DOM element references.',
+    responsibilities: [
+      'Exports a `state` object holding chats[], topicTree, searchQuery, multiSelectIds, etc.',
+      'Exports an `elements` object with all cached querySelector results',
+      'Single source of truth for cross-module state — avoids global variables',
+    ],
+    deps: [],
+  },
+
+  'sp-tree-ctrl': {
+    name: 'controllers/tree-controller.js',
+    file: 'src/sidepanel/controllers/tree-controller.js',
+    icon: '🌳',
+    badge: 'core',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Loads, saves, and renders the topic tree.',
+    responsibilities: [
+      'loadTree() — reads TopicTree from storage, populates state',
+      'initTreeRenderer() — creates the TreeRenderer instance bound to the DOM container',
+      'renderTreeView() — triggers a full re-render of the tree with current state',
+      'saveExpandedState() — persists collapsed/expanded node states between sessions',
+    ],
+    deps: ['sp-app-context','lib-tree','lib-tree-renderer','lib-storage'],
+  },
+
+  'sp-search-ctrl': {
+    name: 'controllers/search-controller.js',
+    file: 'src/sidepanel/controllers/search-controller.js',
+    icon: '🔎',
+    badge: 'core',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Full-text search and topic-scoped filter bar.',
+    responsibilities: [
+      'handleSearch(query) — debounced search through all saved chats via StorageService.searchChats()',
+      'clearSearch() — resets search query and reverts to default tree view',
+      'setupFilterBar() — wires the "All / Unassigned / By Topic" dropdown',
+      'populateTopicScopeSelect() — fills the topic dropdown with current tree topics',
+    ],
+    deps: ['sp-app-context','lib-storage','lib-search-utils'],
+  },
+
+  'sp-topic-actions': {
+    name: 'controllers/topic-actions.js',
+    file: 'src/sidepanel/controllers/topic-actions.js',
+    icon: '🏷️',
+    badge: 'core',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Topic CRUD and context menu handling.',
+    responsibilities: [
+      'handleAddTopic() — opens modal and persists a new topic node',
+      'handleTopicClick(topicId) — expand/collapse or navigate to topic',
+      'handleTopicContextMenu() — shows Rename / Add Child / Delete menu',
+      'setupContextMenuActions() — wires all context menu buttons',
+      'hideContextMenu() — dismisses the context menu overlay',
+    ],
+    deps: ['sp-app-context','lib-tree','lib-storage','lib-topic-dialogs'],
+  },
+
+  'sp-chat-actions': {
+    name: 'controllers/chat-actions.js',
+    file: 'src/sidepanel/controllers/chat-actions.js',
+    icon: '💬',
+    badge: 'core',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Chat CRUD, context menu, and new-chat notification handler.',
+    responsibilities: [
+      'handleChatClick(chatId) — opens the Reader for a saved chat',
+      'handleChatContextMenu() — shows Move / Edit / Delete / Open Original menu',
+      'setupChatContextMenuActions() — wires context menu buttons',
+      'handleChatSaved(payload) — processes CHAT_SAVED broadcast from background, updates UI',
+      'hideChatContextMenu() — dismisses the chat context menu',
+    ],
+    deps: ['sp-app-context','sp-chat-repo','lib-chat-manager','lib-chat-dialogs'],
+  },
+
+  'sp-ie-actions': {
+    name: 'controllers/import-export-actions.js',
+    file: 'src/sidepanel/controllers/import-export-actions.js',
+    icon: '📦',
+    badge: 'core',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Toolbar Export, Import, and Clear-All handlers.',
+    responsibilities: [
+      'handleExportAll() — builds a ZIP archive of all chats + tree and triggers download',
+      'handleImport() — opens file picker, parses a ZIP export, merges into current storage',
+      'handleClearAll() — prompts and wipes all saved chats and topics',
+    ],
+    deps: ['sp-app-context','sp-chat-repo','lib-export-engine','lib-import-parser','lib-export-dialog','lib-import-dialog'],
+  },
+
+  'sp-chat-repo': {
+    name: 'services/chat-repository.js',
+    file: 'src/sidepanel/services/chat-repository.js',
+    icon: '🗄️',
+    badge: 'service',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Single abstraction over all browser.storage I/O for the chats array.',
+    responsibilities: [
+      'loadChats() — reads all chats, returns metadata-only array (content stripped for performance)',
+      'loadChatContent(chatId) — returns a single chat with full content',
+      'saveChat(chat) — upserts a chat into storage',
+      'deleteChat(chatId) — removes a chat by id',
+      'updateChat(chatId, patch) — partial update (title, topicId, etc.)',
+    ],
+    deps: ['lib-storage','lib-chat-manager'],
+    note: 'Does NOT own tree persistence. NOT responsible for UI rendering or business logic.',
+  },
+
+  'sp-msg-validator': {
+    name: 'services/message-validator.js',
+    file: 'src/sidepanel/services/message-validator.js',
+    icon: '✅',
+    badge: 'service',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Runtime validation of messages received from background.',
+    responsibilities: [
+      'validateRuntimeMessage(msg) — type-checks action, payload shape, and required fields',
+      'Returns a normalised message or throws a descriptive error',
+    ],
+    deps: [],
+  },
+
+  'sp-reminder-prefs': {
+    name: 'services/reminder-prefs-repository.js',
+    file: 'src/sidepanel/services/reminder-prefs-repository.js',
+    icon: '🔔',
+    badge: 'service',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Storage I/O for backup-reminder preferences.',
+    responsibilities: [
+      'loadPrefs() — reads reminder interval, snooze state, and last-export timestamp',
+      'savePrefs(prefs) — persists updated preferences',
+    ],
+    deps: ['lib-storage'],
+  },
+
+  'sp-storage-sync': {
+    name: 'services/storage-sync.js',
+    file: 'src/sidepanel/services/storage-sync.js',
+    icon: '🔁',
+    badge: 'service',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Listens for storage changes from other tabs/windows and keeps state in sync.',
+    responsibilities: [
+      'initStorageSync(state, onChanged) — registers a browser.storage.onChanged listener',
+      'Calls onChanged when the chats or tree key changes in another context (e.g. after a save)',
+    ],
+    deps: ['sp-app-context'],
+  },
+
+  'sp-save-banner': {
+    name: 'features/save-banner.js',
+    file: 'src/sidepanel/features/save-banner.js',
+    icon: '📌',
+    badge: 'feature',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: '"Save to bAInder" banner shown when an AI chat page is active.',
+    responsibilities: [
+      'initSaveBanner() — detects active tab, shows/hides the banner for supported platforms',
+      'setSaveBtnState(loading | idle) — toggles spinner during save operation',
+      'handlePanelSave() — dispatches SAVE_CHAT and updates UI on success/error',
+    ],
+    deps: ['sp-app-context','sp-chat-repo'],
+  },
+
+  'sp-backup-reminder': {
+    name: 'features/backup-reminder.js',
+    file: 'src/sidepanel/features/backup-reminder.js',
+    icon: '🗃️',
+    badge: 'feature',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Periodic reminder banner prompting the user to export a backup.',
+    responsibilities: [
+      'initBackupReminder() — checks last export time against configured interval (default 30 days)',
+      'Shows a banner with chat count and days-since-last-export',
+      'Offers Export Now and Snooze (7 days) actions',
+      'Delegates export to handleExportAll(); delegates prefs I/O to ReminderPrefsRepository',
+    ],
+    deps: ['sp-app-context','sp-reminder-prefs','sp-ie-actions'],
+  },
+
+  'sp-theme-picker': {
+    name: 'features/theme-picker.js',
+    file: 'src/sidepanel/features/theme-picker.js',
+    icon: '🎨',
+    badge: 'feature',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Slide-in theme picker panel.',
+    responsibilities: [
+      'setupThemePicker() — renders theme swatches from the available theme list',
+      'Applies selected theme instantly and persists preference',
+      'closeThemePicker() — collapses the panel',
+    ],
+    deps: ['sp-app-context','lib-useTheme','lib-theme-sdk'],
+  },
+
+  'sp-multi-select': {
+    name: 'features/multi-select.js',
+    file: 'src/sidepanel/features/multi-select.js',
+    icon: '☑️',
+    badge: 'feature',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Multi-select mode for bulk operations and digest export.',
+    responsibilities: [
+      'handleMultiSelectToggle() — enters/exits multi-select mode; shows action bar',
+      'handleSelectionChange(chatId) — toggles a chat in the selection set',
+      'handleAssemble() — combines selected chats into a single document',
+      'handleExportDigest() — exports selected chats as a digest ZIP',
+      'exitMultiSelectMode() — clears selection and restores normal UI',
+    ],
+    deps: ['sp-app-context','sp-chat-repo','lib-export-engine'],
+  },
+
+  'sp-settings-panel': {
+    name: 'features/settings-panel.js',
+    file: 'src/sidepanel/features/settings-panel.js',
+    icon: '⚙️',
+    badge: 'feature',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Settings slide-in panel.',
+    responsibilities: [
+      'openSettingsPanel() — reveals the settings overlay',
+      'Renders backup-reminder interval control and theme selection shortcut',
+      'Reading preference toggles (e.g. default reader font)',
+    ],
+    deps: ['sp-app-context','sp-reminder-prefs'],
+  },
+
+  'sp-recent-rail': {
+    name: 'features/recent-rail.js',
+    file: 'src/sidepanel/features/recent-rail.js',
+    icon: '🕘',
+    badge: 'feature',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Horizontal chip rail showing recently saved chats.',
+    responsibilities: [
+      'updateRecentRail(chats) — renders chips for the N most recently saved chats',
+      'Clicking a chip opens the Reader for that chat',
+      'Clears and rebuilds on every CHAT_SAVED event',
+    ],
+    deps: ['sp-app-context'],
+  },
+
+  'sp-storage-usage': {
+    name: 'features/storage-usage.js',
+    file: 'src/sidepanel/features/storage-usage.js',
+    icon: '📊',
+    badge: 'feature',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'Displays current storage consumption in the panel footer.',
+    responsibilities: [
+      'Reads StorageService.getStorageUsage() and formats the result for display',
+      'Shows percentage of chrome.storage.local quota used',
+      'Updates after every save / delete operation',
+    ],
+    deps: ['sp-app-context','lib-storage'],
+  },
+
+  'sp-notification': {
+    name: 'notification.js',
+    file: 'src/sidepanel/notification.js',
+    icon: '🔔',
+    badge: 'ui',
+    layer: 'Side Panel',
+    layerKey: 'sidepanel',
+    summary: 'In-panel toast notification system.',
+    responsibilities: [
+      'showNotification(message, type) — renders a short-lived toast (success | error | info)',
+      'Auto-dismisses after a timeout; stacks multiple toasts vertically',
+    ],
+    deps: [],
+  },
+
+  // ── Reader ────────────────────────────────────────────────────────────────
+  'rd-reader': {
+    name: 'reader.js',
+    file: 'src/reader/reader.js',
+    icon: '📖',
+    badge: 'core',
+    layer: 'Reader',
+    layerKey: 'reader',
+    summary: 'Full-page chat viewer. Loads a single saved chat from storage and renders it with annotations and sticky notes.',
+    responsibilities: [
+      'countWords(text) — strips frontmatter/code-blocks then counts words',
+      'estimateReadTime(wordCount) — reading-time estimate at 200 wpm',
+      'formatDate(isoStr) — human-readable locale date',
+      'Parses YAML frontmatter from saved Markdown via markdown-serialiser.js',
+      'Applies persisted text annotations (highlights) on top of rendered HTML',
+      'Initialises sticky notes sidebar via sticky-notes-ui.js',
+      'Renders source chip, word count, and read-time in the header',
+      'Supports print layout and "open original URL" action',
+    ],
+    deps: ['lib-markdown-ser','lib-annotations','lib-sticky-ui','lib-search-utils','lib-useTheme'],
+    flow: [
+      { text: 'Page loads with', code: '?id=<chatId>', extra: ' query parameter' },
+      { text: 'Reads full chat content from storage' },
+      { text: 'Parses frontmatter, converts Markdown → HTML' },
+      { text: 'Renders into #chat-content container' },
+      { text: 'Loads and applies saved annotations (coloured highlights)' },
+      { text: 'Mounts sticky notes panel' },
+    ],
+  },
+
+  'rd-html': {
+    name: 'reader.html',
+    file: 'src/reader/reader.html',
+    icon: '🗒️',
+    badge: 'ui',
+    layer: 'Reader',
+    layerKey: 'reader',
+    summary: 'Reader page shell — static HTML loaded as a browser tab.',
+    responsibilities: [
+      'Provides the DOM structure: header bar, content area, annotations sidebar, sticky-notes panel',
+      'References reader.css and reader.js',
+    ],
+    deps: ['rd-reader','rd-css'],
+  },
+
+  'rd-css': {
+    name: 'reader.css',
+    file: 'src/reader/reader.css',
+    icon: '🖌️',
+    badge: 'ui',
+    layer: 'Reader',
+    layerKey: 'reader',
+    summary: 'Reader-specific styles: article typography, annotation highlight colours, sidebar layout.',
+    responsibilities: [
+      'Responsive single-column article layout with comfortable reading line-length',
+      'Coloured text-highlight layers for five annotation colours',
+      'Sticky-notes panel slide-in animation',
+      'Print stylesheet overrides (hides UI chrome)',
+    ],
+    deps: [],
+  },
+
+  // ── Shared Library ────────────────────────────────────────────────────────
+  'lib-storage': {
+    name: 'storage.js',
+    file: 'src/lib/storage.js',
+    icon: '🗄️',
+    badge: 'core',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Storage service abstraction and singleton. Provides a consistent API over chrome.storage.local.',
+    responsibilities: [
+      'IStorageService interface — defines the contract all adapters must satisfy',
+      'StorageService singleton — production adapter backed by chrome.storage.local',
+      'saveTopicTree / loadTopicTree — tree persistence',
+      'searchChats(query, chats?) — full-text search with optional pre-loaded chats',
+      'getStorageUsage(counts?) — quota usage stats',
+      'get(keys) / set(data) — low-level key/value pass-through for repositories',
+      'clearAll() — wipes all bAInder data (used by Clear All action and tests)',
+      'StorageUsageTracker — tracks last export timestamp',
+    ],
+    deps: [],
+    note: 'All I/O goes through this class. Never call chrome.storage directly from feature modules.',
+  },
+
+  'lib-tree': {
+    name: 'tree.js + tree/',
+    file: 'src/lib/tree.js',
+    icon: '🌳',
+    badge: 'data',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Topic/chat tree data model — TopicTree acts as coordinator, delegating to 4 focused sub-modules.',
+    responsibilities: [
+      'TopicTree.addTopic(name, parentId?) — validates + inserts a new node',
+      'TopicTree.removeTopic(topicId) — removes node and re-parents orphaned children',
+      'TopicTree.getAllTopics() / getRootTopics() / getChildren() — traversal',
+      'TopicTree.getStatistics() — topic count, chat count, depth',
+      'Topic model — id, name, parentId, chatIds, dateRange, childIds, order',
+      'ChatEntry model — id, title, source, url, timestamp, topicId, content',
+    ],
+    subModules: [
+      { name: 'tree/models.js',          desc: 'Topic and ChatEntry data classes with per-object serialisation' },
+      { name: 'tree/tree-validator.js',  desc: 'validateTopicName(), hasDuplicateName() — pure validation' },
+      { name: 'tree/tree-traversal.js',  desc: 'getAllTopics, getChildren, getTopicPath, isDescendant, findOrphans, getStatistics — pure DI functions' },
+      { name: 'tree/tree-serializer.js', desc: 'serialize() / deserialize() — converts tree to/from plain JSON-safe object' },
+    ],
+    deps: [],
+  },
+
+  'lib-tree-renderer': {
+    name: 'tree-renderer.js + renderer/',
+    file: 'src/lib/tree-renderer.js',
+    icon: '🖥️',
+    badge: 'ui',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Virtualised tree UI renderer with sparklines, search highlighting, and tag colours.',
+    responsibilities: [
+      'TreeRenderer — single class owning state: expandedNodes, searchQuery, selectedChatId',
+      'Virtual-scroll: only renders visible rows for performance with large trees',
+      'flattenVisible() — computes the ordered list of visible nodes',
+      'buildTopicNode(topic) / buildChatItem(chat) — DOM factory functions',
+      'buildSparklineEl(topic) — SVG weekly-activity sparkline',
+      'highlightSearch(query) / clearHighlight() — DOM search highlight overlay',
+      'getTagColor(name) — deterministic hue hash for topic tag colours',
+    ],
+    subModules: [
+      { name: 'renderer/tag-color.js',          desc: 'getTagColor() — deterministic hue hash' },
+      { name: 'renderer/tree-sort.js',           desc: 'sortTopics() — sort by name / date / manual order' },
+      { name: 'renderer/sparkline.js',           desc: 'buildSparklineEl() — weekly-activity SVG bar chart' },
+      { name: 'renderer/search-highlight.js',    desc: 'highlightSearch(), clearHighlight()' },
+      { name: 'renderer/flatten.js',             desc: 'flattenVisible() — pure tree flattening for virtual scroll' },
+      { name: 'renderer/virtual-scroll.js',      desc: 'startVirtualScroll(), renderVirtualRow()' },
+      { name: 'renderer/chat-item-builder.js',   desc: 'buildChatItem() — DOM chat row factory' },
+      { name: 'renderer/topic-node-builder.js',  desc: 'buildTopicNode() — DOM topic row factory' },
+    ],
+    deps: ['lib-search-utils'],
+  },
+
+  'lib-chat-manager': {
+    name: 'chat-manager.js',
+    file: 'src/lib/chat-manager.js',
+    icon: '💼',
+    badge: 'core',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Pure functions for chat assignment, movement, and deletion logic.',
+    responsibilities: [
+      'getUnassignedChats(chats) — filter chats with no topicId',
+      'getChatsForTopic(topicId, chats) — filter chats belonging to a topic',
+      'assignChatToTopic(chat, topicId, tree) — mutates topic.chatIds and updates date range',
+      'unassignChatFromTopic(chat, tree) — removes chatId from topic.chatIds',
+      'moveChatToTopic(chat, newTopicId, tree) — unassign then re-assign',
+      'updateChatInArray(chats, patch) — immutable update helper',
+      'removeChatFromArray(chats, chatId) — immutable delete helper',
+    ],
+    deps: [],
+    note: 'Pure functions only — all storage persistence is the caller\'s responsibility.',
+  },
+
+  'lib-export-engine': {
+    name: 'export-engine.js + export/',
+    file: 'src/lib/export-engine.js',
+    icon: '📤',
+    badge: 'core',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Thin orchestrator that re-exports the complete export API from 9 focused sub-modules.',
+    responsibilities: [
+      'buildExportMarkdown(tree, chats) — full Markdown tree export',
+      'buildExportHtml(tree, chats) — self-contained HTML export with embedded CSS',
+      'buildDigestMarkdown / buildDigestHtml — multi-chat digest documents',
+      'buildZipPayload(tree, chats) — composes per-chat files + metadata into a ZIP',
+      'buildMetadataJson / buildReadme — manifest and human-readable index',
+      'triggerDownload(blob, filename) — browser download dispatch',
+      'sanitizeFilename / buildTopicPath — path helpers',
+    ],
+    subModules: [
+      { name: 'export/filename-utils.js',   desc: 'sanitizeFilename, buildTopicPath, path helpers' },
+      { name: 'export/format-helpers.js',   desc: 'esc, sourceLabel, formatDateHuman, other text utilities' },
+      { name: 'export/md-to-html.js',       desc: 'Markdown → HTML converter for export documents' },
+      { name: 'export/html-styles.js',      desc: 'Embedded CSS for HTML exports' },
+      { name: 'export/markdown-builder.js', desc: 'buildExportMarkdown, buildDigestMarkdown' },
+      { name: 'export/html-builder.js',     desc: 'buildExportHtml, buildDigestHtml' },
+      { name: 'export/zip-builder.js',      desc: 'buildZipPayload — composes per-file archive' },
+      { name: 'export/metadata-builder.js', desc: 'buildMetadataJson, buildReadme' },
+      { name: 'export/download.js',         desc: 'triggerDownload — browser Blob URL dispatch' },
+    ],
+    deps: [],
+  },
+
+  'lib-import-parser': {
+    name: 'import-parser.js',
+    file: 'src/lib/import-parser.js',
+    icon: '📥',
+    badge: 'core',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Pure ES-module parser for bAInder ZIP export archives.',
+    responsibilities: [
+      'parseZipExport(zipEntries) — ingests pre-extracted ZIP file content',
+      'Parses YAML frontmatter from each chat\'s Markdown file',
+      'Reconstructs TopicTree structure from metadata.json',
+      'Returns { tree, chats, stats } ready for storage — no side effects',
+      'Handles partial/corrupt archives gracefully with per-file error recovery',
+    ],
+    deps: [],
+    note: 'No DOM access, no browser global — fully testable in Node.',
+  },
+
+  'lib-markdown-ser': {
+    name: 'markdown-serialiser.js',
+    file: 'src/lib/io/markdown-serialiser.js',
+    icon: '📝',
+    badge: 'util',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Converts between the internal message array format and YAML-frontmatter Markdown.',
+    responsibilities: [
+      'messagesToMarkdown(messages, meta) — serialises chat to Markdown with YAML frontmatter',
+      'parseFrontmatter(markdown) — extracts title, source, url, timestamp from frontmatter block',
+      'markdownToMessages(markdown) — deserialises Markdown back to message array (used by Reader)',
+    ],
+    deps: [],
+  },
+
+  'lib-search-utils': {
+    name: 'search-utils.js',
+    file: 'src/lib/utils/search-utils.js',
+    icon: '🔍',
+    badge: 'util',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Pure search and text utilities — no DOM, no storage.',
+    responsibilities: [
+      'escapeHtml(text) — canonical HTML entity escaping (shared by all modules)',
+      'extractSnippet(content, query, contextChars) — context-centred search snippet',
+      'scoreMatch(content, query) — relevance score for search result ranking',
+      'generateId() — generates "timestamp-random" unique IDs',
+      'highlightTerms(html, query) — wraps matched terms in <mark> elements',
+    ],
+    deps: [],
+  },
+
+  'lib-annotations': {
+    name: 'annotations.js',
+    file: 'src/lib/chat/annotations.js',
+    icon: '🖊️',
+    badge: 'data',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Text highlight and note annotations stored per chat.',
+    responsibilities: [
+      'saveAnnotation(chatId, annotation, storage) — persists a new highlight + optional note',
+      'loadAnnotations(chatId, storage) — retrieves all annotations for a chat',
+      'deleteAnnotation(chatId, annotationId, storage) — removes by id',
+      'applyAnnotations(contentEl, annotations) — wraps matching text ranges in <mark> elements',
+      'serializeRange / parseBacklinks — Range ↔ char-offset serialisation (survives re-render)',
+      'ANNOTATION_COLORS — five predefined highlight colour presets',
+    ],
+    deps: [],
+  },
+
+  'lib-sticky-notes': {
+    name: 'sticky-notes.js',
+    file: 'src/lib/sticky-notes/sticky-notes.js',
+    icon: '📌',
+    badge: 'data',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'CRUD for sticky notes attached to saved chats.',
+    responsibilities: [
+      'loadStickyNotes(chatId, storage) — returns StickyNote[] for a chat',
+      'saveStickyNote(chatId, note, storage) — creates and persists a new note',
+      'updateStickyNote(chatId, id, patch, storage) — partial update',
+      'deleteStickyNote(chatId, id, storage) — removes by id',
+      'getStickyNotesVisible / setStickyNotesVisible — show/hide toggle persistence',
+      'Storage keys: sticky-notes:<chatId> and sticky-notes-visible:<chatId>',
+    ],
+    deps: [],
+  },
+
+  'lib-sticky-ui': {
+    name: 'sticky-notes-ui.js',
+    file: 'src/lib/sticky-notes/sticky-notes-ui.js',
+    icon: '🗒️',
+    badge: 'ui',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'DOM layer for the sticky notes panel rendered inside the Reader.',
+    responsibilities: [
+      'setupStickyNotes(container, chatId, storage) — mounts the notes panel and renders existing notes',
+      'Provides add / edit / delete note interactions',
+      'Positions notes at the anchor page-Y-coordinate and keeps them in sync on scroll',
+    ],
+    deps: ['lib-sticky-notes'],
+  },
+
+  'lib-dialog-manager': {
+    name: 'dialog-manager.js',
+    file: 'src/lib/dialogs/dialog-manager.js',
+    icon: '💬',
+    badge: 'ui',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Generic modal dialog engine.',
+    responsibilities: [
+      'DialogManager.show(config) — renders a modal with configurable title, body, and action buttons',
+      'DialogManager.confirm(message) → Promise<boolean> — standard confirm dialog',
+      'DialogManager.prompt(message, defaultVal) → Promise<string|null> — text input dialog',
+      'Manages focus trap and keyboard (Escape) dismissal',
+    ],
+    deps: ['lib-search-utils'],
+  },
+
+  'lib-chat-dialogs': {
+    name: 'chat-dialogs.js',
+    file: 'src/lib/dialogs/chat-dialogs.js',
+    icon: '💬',
+    badge: 'ui',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Domain-specific dialogs for chat operations (rename, move, delete, edit).',
+    responsibilities: [
+      'ChatDialogs.editChatTitle(chat) — inline rename dialog',
+      'ChatDialogs.moveChatToTopic(chat, topics) — topic picker modal',
+      'ChatDialogs.confirmDeleteChat(chat) — delete confirmation',
+    ],
+    deps: ['lib-dialog-manager'],
+  },
+
+  'lib-topic-dialogs': {
+    name: 'topic-dialogs.js',
+    file: 'src/lib/dialogs/topic-dialogs.js',
+    icon: '🏷️',
+    badge: 'ui',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Domain-specific dialogs for topic operations (add, rename, delete).',
+    responsibilities: [
+      'TopicDialogs.addTopic(parentId?) — prompt for new topic name',
+      'TopicDialogs.renameTopic(topic) — inline rename dialog',
+      'TopicDialogs.confirmDeleteTopic(topic) — delete-with-cascade confirmation',
+    ],
+    deps: ['lib-dialog-manager'],
+  },
+
+  'lib-export-dialog': {
+    name: 'export-dialog.js',
+    file: 'src/lib/dialogs/export-dialog.js',
+    icon: '📤',
+    badge: 'ui',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Export format and scope selection dialog.',
+    responsibilities: [
+      'ExportDialog.show(options) → Promise<{format, scope}|null>',
+      'Offers format choices: ZIP, Markdown, HTML',
+      'Offers scope choices: All chats, Selected topic, Multi-select',
+    ],
+    deps: ['lib-dialog-manager'],
+  },
+
+  'lib-import-dialog': {
+    name: 'import-dialog.js',
+    file: 'src/lib/dialogs/import-dialog.js',
+    icon: '📥',
+    badge: 'ui',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Import options dialog (merge vs. replace).',
+    responsibilities: [
+      'ImportDialog.show() → Promise<{mode}|null> where mode is merge | replace',
+      'Warns about data loss in replace mode',
+    ],
+    deps: ['lib-dialog-manager'],
+  },
+
+  'lib-style-transformer': {
+    name: 'style-transformer.js',
+    file: 'src/lib/style-transformer.js',
+    icon: '🎨',
+    badge: 'util',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Transforms raw AI HTML into sanitised, reader-friendly HTML.',
+    responsibilities: [
+      'stripScripts(html) — removes <script> and event-handler attributes',
+      'relativiseLinks(html, baseUrl) — resolves relative hrefs to absolute URLs',
+      'sanitiseHtml(html) — allowlist-based sanitisation for safe embedding',
+    ],
+    deps: ['lib-search-utils'],
+  },
+
+  'lib-url-utils': {
+    name: 'url-utils.js',
+    file: 'src/lib/url-utils.js',
+    icon: '🔗',
+    badge: 'util',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'URL parsing and normalisation utilities.',
+    responsibilities: [
+      'normaliseUrl(url) — strips tracking params, normalises trailing slash',
+      'isSupportedPlatform(url) — checks against the known AI platform list',
+      'extractPlatformName(url) — returns human-readable platform label',
+    ],
+    deps: [],
+  },
+
+  'lib-useTheme': {
+    name: 'useTheme.js',
+    file: 'src/lib/theme/useTheme.js',
+    icon: '🌓',
+    badge: 'util',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Applies a stored theme by injecting CSS custom properties onto the root element.',
+    responsibilities: [
+      'loadTheme(storage?) — reads persisted theme key and calls applyTheme()',
+      'applyTheme(themeKey) — sets CSS variables from the theme definition map',
+      'Used by both sidepanel.js and reader.js to establish consistent colours',
+    ],
+    deps: ['lib-theme-sdk','lib-theme-defaults'],
+  },
+
+  'lib-theme-sdk': {
+    name: 'theme-sdk.js',
+    file: 'src/lib/theme-sdk.js',
+    icon: '🎨',
+    badge: 'util',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Theme definition registry and CSS variable generation.',
+    responsibilities: [
+      'Defines the set of CSS custom property tokens for each theme',
+      'getThemeList() — returns available themes for the theme picker UI',
+      'generateCSSVars(themeKey) — returns a map of --var: value entries',
+    ],
+    deps: ['lib-theme-defaults'],
+  },
+
+  'lib-logger': {
+    name: 'logger.js',
+    file: 'src/lib/utils/logger.js',
+    icon: '🪵',
+    badge: 'util',
+    layer: 'Shared Library',
+    layerKey: 'lib',
+    summary: 'Thin logger wrapper — suppresses debug output in production builds.',
+    responsibilities: [
+      'logger.debug / info / warn / error — level-filtered logging',
+      'In production builds, levels below the configured minimum are silenced',
+      'Prefix-tags all messages with [bAInder] for easy DevTools filtering',
+    ],
+    deps: [],
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════════════════
+let _currentLayer = null;
+let _currentComp  = null;
+let _overviewTab  = 'layers';
+let _layerTab     = 'cards';
+
+const BADGE_LABELS = { core: 'Core', ui: 'UI', service: 'Service', util: 'Util', data: 'Data', feature: 'Feature' };
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showOverview() {
+  _currentLayer = null;
+  _currentComp  = null;
+  showView('overview-view');
+  setBreadcrumb('overview');
+}
+
+function showLayer(layerKey) {
+  _currentLayer = layerKey;
+  _currentComp  = null;
+  const layer = LAYERS[layerKey];
+  document.getElementById('layer-title').textContent = layer.title;
+  document.getElementById('layer-desc').textContent  = layer.desc;
+  document.getElementById('detail-back-label').textContent = layer.title;
+  buildComponentGrid(layer.components);
+  // reset layer tabs to cards
+  _layerTab = 'cards';
+  document.querySelectorAll('#layer-view .tab-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  document.getElementById('lv-tab-cards').classList.add('active');
+  document.getElementById('lv-tab-graph').classList.remove('active');
+  showView('layer-view');
+  setBreadcrumb('layer', layer.title);
+}
+
+function showDetail(compId) {
+  _currentComp = compId;
+  const c = COMPONENTS[compId];
+  if (!c) return;
+  document.getElementById('detail-icon').textContent = c.icon;
+  document.getElementById('detail-title').textContent = c.name;
+  document.getElementById('detail-file').textContent  = c.file;
+  document.getElementById('detail-layer-tag').textContent = c.layer;
+  buildDetailBody(c);
+  showView('detail-view');
+  setBreadcrumb('detail', LAYERS[c.layerKey].title, c.name);
+}
+
+function backToLayer() {
+  if (_currentLayer) showLayer(_currentLayer);
+  else showOverview();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════════════════
+
+function switchOverviewTab(tab, btn) {
+  _overviewTab = tab;
+  document.querySelectorAll('#overview-view .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ov-tab-layers').classList.toggle('active', tab === 'layers');
+  document.getElementById('ov-tab-relations').classList.toggle('active', tab === 'relations');
+  if (tab === 'relations') renderRelDiagram();
+}
+
+function switchLayerTab(tab, btn) {
+  _layerTab = tab;
+  document.querySelectorAll('#layer-view .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('lv-tab-cards').classList.toggle('active', tab === 'cards');
+  document.getElementById('lv-tab-graph').classList.toggle('active', tab === 'graph');
+  if (tab === 'graph') renderLayerDepGraph(_currentLayer);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SVG HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+  return el;
+}
+
+function svgText(txt, x, y, opts={}) {
+  const el = svgEl('text', {
+    x, y,
+    'text-anchor':   opts.anchor  || 'middle',
+    'font-size':     opts.size    || 12,
+    'font-family':   opts.mono    ? "'Cascadia Code','Consolas',monospace" : "'Segoe UI',system-ui,sans-serif",
+    fill:            opts.fill    || '#e2e8f0',
+    'font-weight':   opts.bold    ? 700 : 400,
+  });
+  el.textContent = txt;
+  return el;
+}
+
+/**
+ * Draw an arrow from (x1,y1) to (x2,y2).
+ * type: 'solid' | 'dashed' | 'dotted'
+ * bidir: draw arrowhead at both ends
+ */
+function svgArrow(svg, x1, y1, x2, y2, label, type, bidir) {
+  const colors = { solid: '#6c63ff', dashed: '#f7c948', dotted: '#545d6e' };
+  const stroke = colors[type] || '#6c63ff';
+  const dashArray = type === 'dashed' ? '6,4' : type === 'dotted' ? '2,4' : 'none';
+
+  // Marker ids
+  let mid = `arrow-${type}`;
+  if (!svg.querySelector(`#${mid}`)) {
+    const defs = svg.querySelector('defs') || (() => { const d = svgEl('defs',{}); svg.prepend(d); return d; })();
+    const marker = svgEl('marker', { id: mid, markerWidth:8, markerHeight:8,
+      refX:6, refY:3, orient:'auto', markerUnits:'strokeWidth' });
+    const path = svgEl('path', { d:'M0,0 L0,6 L8,3 z', fill: stroke });
+    marker.appendChild(path);
+    defs.appendChild(marker);
+  }
+
+  // Curvature: slight bezier
+  const dx = x2-x1, dy = y2-y1;
+  const cx = x1 + dx/2 - dy*0.12;
+  const cy = y1 + dy/2 + dx*0.12;
+
+  const lineAttrs = {
+    d: `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`,
+    stroke,
+    'stroke-width': 1.5,
+    fill: 'none',
+    'marker-end': `url(#${mid})`,
+    opacity: 0.85,
+  };
+  if (dashArray !== 'none') lineAttrs['stroke-dasharray'] = dashArray;
+  if (bidir) lineAttrs['marker-start'] = `url(#${mid}-start)`;
+
+  svg.appendChild(svgEl('path', lineAttrs));
+
+  // Label
+  if (label) {
+    const lx = (x1 + cx + x2) / 3;
+    const ly = (y1 + cy + y2) / 3;
+    const bg = svgEl('rect', {
+      x: lx - label.length*3, y: ly-9,
+      width: label.length*6, height: 14,
+      rx: 3, fill: '#0f1117', opacity: 0.82,
+    });
+    svg.appendChild(bg);
+    svg.appendChild(svgText(label, lx, ly+1, { size: 10, fill: stroke }));
+  }
+}
+
+/**
+ * Draw a rounded-rect node box.
+ * Returns edge connection points { top, bottom, left, right, cx, cy }.
+ */
+function svgNode(svg, id, label, sub, x, y, w, h, fillColor, strokeColor, clickFn) {
+  const g = svgEl('g', { cursor: clickFn ? 'pointer' : 'default' });
+  if (clickFn) g.addEventListener('click', clickFn);
+
+  const rect = svgEl('rect', {
+    x, y, width: w, height: h, rx: 8,
+    fill: fillColor, stroke: strokeColor,
+    'stroke-width': 1.5,
+  });
+  g.appendChild(rect);
+
+  // Hover glow
+  if (clickFn) {
+    g.addEventListener('mouseenter', () => rect.setAttribute('filter','url(#glow)'));
+    g.addEventListener('mouseleave', () => rect.removeAttribute('filter'));
+  }
+
+  const cx = x + w/2, cy = y + h/2;
+  const mainY = sub ? cy - 6 : cy + 4;
+  g.appendChild(svgText(label, cx, mainY, { bold: true, size: 12 }));
+  if (sub) {
+    g.appendChild(svgText(sub, cx, cy + 10, { size: 10, fill: '#8892a4' }));
+  }
+  svg.appendChild(g);
+  return { top:{x:cx,y}, bottom:{x:cx,y:y+h}, left:{x,y:cy}, right:{x:x+w,y:cy}, cx, cy, x, y, w, h };
+}
+
+function ensureGlowFilter(svg) {
+  if (svg.querySelector('#glow')) return;
+  const defs = svg.querySelector('defs') || (() => { const d = svgEl('defs',{}); svg.prepend(d); return d; })();
+  const filter = svgEl('filter', { id:'glow', x:'-20%', y:'-20%', width:'140%', height:'140%' });
+  const fb = svgEl('feGaussianBlur', { stdDeviation:3, result:'blur' });
+  const fm = svgEl('feMerge', {});
+  const n1 = svgEl('feMergeNode', { in:'blur' });
+  const n2 = svgEl('feMergeNode', { in:'SourceGraphic' });
+  fm.appendChild(n1); fm.appendChild(n2);
+  filter.appendChild(fb); filter.appendChild(fm);
+  defs.appendChild(filter);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  OVERVIEW RELATIONSHIP DIAGRAM
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderRelDiagram() {
+  const svg = document.getElementById('rel-svg');
+  svg.innerHTML = '';
+  ensureGlowFilter(svg);
+
+  const W = 900, H = 490;
+
+  // ── Node definitions ──────────────────────────────────────────────────────
+  //  [label, sub-label, x, y, w, h, fill, stroke, layerKey]
+  const nodeDefs = [
+    ['AI Pages',         'chatgpt / claude\ngemini / copilot', 18,  195, 118, 54, '#1a1a2e', '#475569', null],
+    ['Content Script',  'src/content/',                        170, 195, 148, 54, '#1a2e3f', '#0ea5e9', 'content'],
+    ['Background SW',   'src/background/',                     420, 50,  175, 54, '#2a1d3f', '#7c3aed', 'background'],
+    ['chrome.storage',  '.local  (chats + tree)',              420, 230, 155, 48, '#1e2020', '#22c55e', null],
+    ['Side Panel',      'src/sidepanel/',                      648, 120, 138, 54, '#1f2e1f', '#22c55e', 'sidepanel'],
+    ['Reader',          'src/reader/',                         660, 270, 118, 48, '#2e2b1a', '#f59e0b', 'reader'],
+    ['Shared Library',  'src/lib/  — storage, tree, export, search, annotations…', 18, 405, 860, 60, '#2e1e1e', '#ef4444', 'lib'],
+  ];
+
+  const nodes = {};
+  nodeDefs.forEach(([lbl, sub, x, y, w, h, fill, stroke, layerKey]) => {
+    const key = lbl.replace(/[^a-z]/gi,'').toLowerCase().slice(0,8);
+    nodes[key] = svgNode(svg, key, lbl, sub, x, y, w, h, fill, stroke, layerKey ? () => showLayer(layerKey) : null);
+  });
+  // aliases
+  const N = {
+    ai:      nodes['aipages'],
+    content: nodes['contents'],
+    bg:      nodes['backgrou'],
+    storage: nodes['chromest'],
+    panel:   nodes['sidepane'],
+    reader:  nodes['reader'],
+    lib:     nodes['sharedli'],
+  };
+
+  // ── Edge helper ───────────────────────────────────────────────────────────
+  function edge(from, to, label, type, bidir) {
+    svgArrow(svg, from.x, from.y, to.x, to.y, label, type, bidir);
+  }
+
+  // AI Pages → Content Script
+  edge(N.ai.right,      N.content.left,   'DOM extraction', 'solid');
+
+  // Content Script → Background
+  edge(N.content.top,   {x: N.bg.cx-30, y: N.bg.bottom.y},  'SAVE_CHAT', 'solid');
+
+  // Background → Content Script (EXTRACT_EXCERPT back-channel)
+  edge({x: N.bg.cx+10, y: N.bg.bottom.y}, {x: N.content.top.x+20, y: N.content.top.y}, 'EXTRACT_EXCERPT', 'dashed');
+
+  // Content Script also does STORE_EXCERPT_CACHE → Background
+  edge({x: N.content.top.x-20, y: N.content.top.y},
+       {x: N.bg.bottom.x-20, y: N.bg.bottom.y},
+       'STORE_EXCERPT_CACHE', 'solid');
+
+  // Background ↔ chrome.storage
+  edge(N.bg.bottom,     N.storage.top,    'read / write', 'solid', true);
+
+  // Background → Side Panel (CHAT_SAVED)
+  edge(N.bg.right,      N.panel.top,      'CHAT_SAVED', 'solid');
+
+  // Side Panel ↔ chrome.storage
+  edge({x: N.panel.left.x, y: N.panel.left.y+8},
+       {x: N.storage.right.x, y: N.storage.right.y},
+       'read tree+chats', 'solid', true);
+
+  // Reader → chrome.storage
+  edge(N.reader.left,   {x: N.storage.right.x, y: N.storage.right.y+8}, 'read chat', 'solid');
+
+  // Imports into Shared Library (dotted)
+  edge(N.content.bottom, {x: N.lib.left.x + 120, y: N.lib.top.y}, null, 'dotted');
+  edge(N.bg.bottom,      {x: N.lib.left.x + 300, y: N.lib.top.y}, null, 'dotted');
+  edge(N.panel.bottom,   {x: N.lib.left.x + 530, y: N.lib.top.y}, null, 'dotted');
+  edge(N.reader.bottom,  {x: N.lib.left.x + 690, y: N.lib.top.y}, null, 'dotted');
+
+  // ── Layer labels (click prompts) ──────────────────────────────────────────
+  nodeDefs.forEach(([lbl,,x,y,w,h,,, layerKey]) => {
+    if (!layerKey) return;
+    const hint = svgEl('text', {
+      x: x + w - 6, y: y + 11,
+      'text-anchor': 'end', 'font-size': 9,
+      fill: '#8892a4', cursor: 'pointer',
+    });
+    hint.textContent = 'click →';
+    svg.appendChild(hint);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  LAYER DEPENDENCY GRAPH
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderLayerDepGraph(layerKey) {
+  const svg = document.getElementById('layer-dep-svg');
+  svg.innerHTML = '';
+  ensureGlowFilter(svg);
+
+  const layer = LAYERS[layerKey];
+  const compIds = layer.components;
+  // Separate own-layer deps from cross-layer (lib) deps
+  const compSet = new Set(compIds);
+  const libIds  = new Set();
+
+  compIds.forEach(id => {
+    (COMPONENTS[id]?.deps || []).forEach(d => {
+      if (!compSet.has(d)) libIds.add(d);
+    });
+  });
+
+  const COLS   = Math.min(compIds.length, 4);
+  const ROWS   = Math.ceil(compIds.length / COLS);
+  const NW = 160, NH = 48, GAPX = 24, GAPY = 36;
+  const libExtCount = libIds.size;
+
+  const W = COLS * (NW + GAPX) + 40;
+  const H = ROWS * (NH + GAPY) + 100 + (libExtCount ? 90 : 0);
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width',  W);
+  svg.setAttribute('height', H);
+
+  const positions = {};
+
+  // Place layer-own components in a grid
+  compIds.forEach((id, i) => {
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    const x   = 20 + col * (NW + GAPX);
+    const y   = 20 + row * (NH + GAPY);
+    const c   = COMPONENTS[id];
+    const LAYER_COLORS = {
+      background: { fill:'#2a1d3f', stroke:'#7c3aed' },
+      content:    { fill:'#1a2e3f', stroke:'#0ea5e9' },
+      sidepanel:  { fill:'#1f2e1f', stroke:'#22c55e' },
+      reader:     { fill:'#2e2b1a', stroke:'#f59e0b' },
+      lib:        { fill:'#2e1e1e', stroke:'#ef4444' },
+    };
+    const col_ = LAYER_COLORS[layerKey] || { fill:'#1a1d27', stroke:'#6c63ff' };
+    positions[id] = svgNode(svg, id, c.name.split('/').pop().replace('.js',''), null,
+      x, y, NW, NH, col_.fill, col_.stroke, () => showDetail(id));
+  });
+
+  // Place shared-lib dependencies in a row at the bottom
+  const libArr = [...libIds];
+  if (libArr.length) {
+    const libY = ROWS * (NH + GAPY) + 60;
+    const libRowW = libArr.length * (NW + GAPX) - GAPX;
+    const libStartX = (W - libRowW) / 2;
+    libArr.forEach((id, i) => {
+      const c = COMPONENTS[id];
+      if (!c) return;
+      const lx = libStartX + i * (NW + GAPX);
+      positions[id] = svgNode(svg, id, c.name.replace('.js',''), null,
+        lx, libY, NW, NH, '#2e1e1e', '#ef4444', () => { _currentLayer = 'lib'; showDetail(id); });
+    });
+    // "Shared Library" label
+    svg.appendChild(svgText('▼  Shared Library', W/2, libY - 14, { size: 11, fill: '#fca5a5' }));
+  }
+
+  // Draw edges
+  compIds.forEach(id => {
+    const from = positions[id];
+    if (!from) return;
+    (COMPONENTS[id]?.deps || []).forEach(depId => {
+      const to = positions[depId];
+      if (!to) return;
+      const isLib = libIds.has(depId);
+      svgArrow(svg, from.bottom.x, from.bottom.y, to.top.x, to.top.y, null, isLib ? 'dotted' : 'solid');
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  COMPONENT MINI DEP GRAPH
+// ═══════════════════════════════════════════════════════════════════════════
+
+function buildMiniDepGraph(compId) {
+  const c = COMPONENTS[compId];
+  if (!c || (!c.deps?.length && !findReverseDeps(compId).length)) return null;
+
+  const revDeps = findReverseDeps(compId);
+  const deps    = (c.deps || []).filter(d => COMPONENTS[d]);
+
+  const NW = 140, NH = 40, GAP = 16;
+  const topCount  = revDeps.length;
+  const botCount  = deps.length;
+  const maxCount  = Math.max(topCount, botCount, 1);
+  const W = Math.max(320, maxCount * (NW + GAP) + 40);
+  const H = topCount ? 240 : 160;
+
+  const svg = svgEl('svg', {
+    viewBox: `0 0 ${W} ${H}`,
+    width: W, height: H,
+    style: 'max-width:100%',
+    xmlns: SVG_NS,
+  });
+  ensureGlowFilter(svg);
+
+  const cx = W / 2;
+  // Central node
+  const LAYER_COLORS = {
+    background: { fill:'#2a1d3f', stroke:'#7c3aed' },
+    content:    { fill:'#1a2e3f', stroke:'#0ea5e9' },
+    sidepanel:  { fill:'#1f2e1f', stroke:'#22c55e' },
+    reader:     { fill:'#2e2b1a', stroke:'#f59e0b' },
+    lib:        { fill:'#2e1e1e', stroke:'#ef4444' },
+  };
+  const lc = LAYER_COLORS[c.layerKey] || { fill:'#21253a', stroke:'#6c63ff' };
+  const selfY  = topCount ? (H/2 - NH/2) : 20;
+  const selfNd = svgNode(svg, 'self', c.name.split('/').pop().replace('.js',''), null,
+    cx-NW/2, selfY, NW, NH, lc.fill, lc.stroke, null);
+
+  // Reverse-dep nodes (callers) above
+  if (topCount) {
+    const rowW = topCount * (NW + GAP) - GAP;
+    const startX = (W - rowW) / 2;
+    revDeps.forEach((rid, i) => {
+      const rc = COMPONENTS[rid];
+      if (!rc) return;
+      const rlc = LAYER_COLORS[rc.layerKey] || { fill:'#1a1d27', stroke:'#6c63ff' };
+      const rx   = startX + i * (NW + GAP);
+      const nd   = svgNode(svg, rid, rc.name.split('/').pop().replace('.js',''), null,
+        rx, 14, NW, NH, rlc.fill, rlc.stroke, () => { _currentLayer = rc.layerKey; showDetail(rid); });
+      svgArrow(svg, nd.bottom.x, nd.bottom.y, selfNd.top.x, selfNd.top.y, null, 'dotted');
+    });
+    svg.appendChild(svgText('▲  used by', cx, 10, { size: 10, fill: '#8892a4' }));
+  }
+
+  // Dep nodes (imports) below
+  if (deps.length) {
+    const rowW = deps.length * (NW + GAP) - GAP;
+    const startX = (W - rowW) / 2;
+    const depsY  = topCount ? (H - NH - 14) : (selfY + NH + 40);
+    deps.forEach((did, i) => {
+      const dc = COMPONENTS[did];
+      if (!dc) return;
+      const dlc = LAYER_COLORS[dc.layerKey] || { fill:'#1a1d27', stroke:'#ef4444' };
+      const dx   = startX + i * (NW + GAP);
+      const nd   = svgNode(svg, did, dc.name.split('/').pop().replace('.js',''), null,
+        dx, depsY, NW, NH, dlc.fill, dlc.stroke, () => { _currentLayer = dc.layerKey; showDetail(did); });
+      svgArrow(svg, selfNd.bottom.x, selfNd.bottom.y, nd.top.x, nd.top.y, null, 'dotted');
+    });
+    svg.appendChild(svgText('▼  imports', cx, depsY - 8, { size: 10, fill: '#8892a4' }));
+  }
+
+  return svg;
+}
+
+function findReverseDeps(compId) {
+  return Object.entries(COMPONENTS)
+    .filter(([,c]) => (c.deps || []).includes(compId))
+    .map(([id]) => id);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BREADCRUMB
+// ═══════════════════════════════════════════════════════════════════════════
+function setBreadcrumb(level, layerName, compName) {
+  const bc1  = document.getElementById('bc-overview');
+  const sep1 = document.getElementById('bc-sep1');
+  const bc2  = document.getElementById('bc-layer');
+  const sep2 = document.getElementById('bc-sep2');
+  const bc3  = document.getElementById('bc-detail');
+
+  bc1.classList.remove('active');
+  bc2.classList.remove('active');
+  bc3.classList.remove('active');
+
+  if (level === 'overview') {
+    bc1.classList.add('active');
+    sep1.style.display = 'none';
+    bc2.style.display  = 'none';
+    sep2.style.display = 'none';
+    bc3.style.display  = 'none';
+  } else if (level === 'layer') {
+    sep1.style.display = '';
+    bc2.style.display  = '';
+    sep2.style.display = 'none';
+    bc3.style.display  = 'none';
+    bc2.textContent = layerName;
+    bc2.classList.add('active');
+    bc2.onclick = null;
+  } else if (level === 'detail') {
+    sep1.style.display = '';
+    bc2.style.display  = '';
+    sep2.style.display = '';
+    bc3.style.display  = '';
+    bc2.textContent = layerName;
+    bc2.onclick = () => showLayer(_currentLayer);
+    bc3.textContent = compName;
+    bc3.classList.add('active');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  COMPONENT GRID
+// ═══════════════════════════════════════════════════════════════════════════
+function buildComponentGrid(compIds) {
+  const grid = document.getElementById('component-grid');
+  grid.innerHTML = '';
+  compIds.forEach(id => {
+    const c = COMPONENTS[id];
+    if (!c) return;
+    const card = document.createElement('div');
+    card.className = 'comp-card';
+    card.innerHTML = `
+      <div class="comp-name">
+        <span>${c.icon}</span>
+        ${c.name}
+        <span class="comp-badge badge-${c.badge}">${BADGE_LABELS[c.badge]}</span>
+      </div>
+      <div class="comp-file">${c.file}</div>
+      <div class="comp-summary">${c.summary}</div>
+    `;
+    card.onclick = () => showDetail(id);
+    grid.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  DETAIL BODY
+// ═══════════════════════════════════════════════════════════════════════════
+function buildDetailBody(c) {
+  const body = document.getElementById('detail-body');
+  body.innerHTML = '';
+
+  // Responsibilities
+  const respSec = makeSection('📋 Responsibilities', '');
+  const ul = document.createElement('ul');
+  ul.className = 'responsibility-list';
+  (c.responsibilities || []).forEach(r => {
+    const li = document.createElement('li');
+    li.textContent = r;
+    ul.appendChild(li);
+  });
+  respSec.appendChild(ul);
+  body.appendChild(respSec);
+
+  // Data flow (if present)
+  if (c.flow && c.flow.length) {
+    const flowSec = makeSection('🔄 Data Flow', '');
+    const steps = document.createElement('div');
+    steps.className = 'flow-steps';
+    c.flow.forEach((f, i) => {
+      const step = document.createElement('div');
+      step.className = 'flow-step';
+      let html = '';
+      if (f.code) {
+        html = `${f.text || ''} <span class="step-code">${f.code}</span>${f.extra || ''}`;
+      } else {
+        html = f.text || '';
+      }
+      step.innerHTML = `<div class="step-num">${i+1}</div><div class="step-text">${html}</div>`;
+      steps.appendChild(step);
+    });
+    flowSec.appendChild(steps);
+    body.appendChild(flowSec);
+  }
+
+  // Sub-modules (if present)
+  if (c.subModules && c.subModules.length) {
+    const smSec = makeSection('📦 Sub-modules', 'full-width');
+    const grid = document.createElement('div');
+    grid.className = 'sub-module-grid';
+    c.subModules.forEach(sm => {
+      const div = document.createElement('div');
+      div.className = 'sub-module';
+      div.innerHTML = `<div class="sm-name">${sm.name}</div><div class="sm-desc">${sm.desc}</div>`;
+      grid.appendChild(div);
+    });
+    smSec.appendChild(grid);
+    body.appendChild(smSec);
+  }
+
+  // Dependencies + mini dep graph
+  const revDeps = findReverseDeps(compId);
+  if ((c.deps && c.deps.length) || revDeps.length) {
+    const depSec = makeSection('🔗 Dependency Graph', 'full-width');
+
+    // Mini SVG graph
+    const miniGraph = buildMiniDepGraph(compId);
+    if (miniGraph) {
+      const wrap = document.createElement('div');
+      wrap.className = 'mini-dep-graph';
+      wrap.appendChild(miniGraph);
+      depSec.appendChild(wrap);
+    }
+
+    // List of direct deps (clickable)
+    if (c.deps && c.deps.length) {
+      const depLabel = document.createElement('div');
+      depLabel.style.cssText = 'font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px';
+      depLabel.textContent = 'Direct imports';
+      depSec.appendChild(depLabel);
+
+      const depList = document.createElement('div');
+      depList.className = 'dep-list';
+      c.deps.forEach(depId => {
+        const dep = COMPONENTS[depId];
+        if (!dep) return;
+        const item = document.createElement('div');
+        item.className = 'dep-item';
+        item.innerHTML = `<span class="dep-dir">${dep.icon}</span><span>${dep.file}</span>`;
+        item.title = dep.summary;
+        item.onclick = () => {
+          _currentLayer = dep.layerKey;
+          showDetail(depId);
+        };
+        depList.appendChild(item);
+      });
+      depSec.appendChild(depList);
+    }
+
+    // Reverse dependencies (who uses this component)
+    if (revDeps.length) {
+      const revLabel = document.createElement('div');
+      revLabel.style.cssText = 'font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px';
+      revLabel.textContent = 'Used by';
+      depSec.appendChild(revLabel);
+
+      const revList = document.createElement('div');
+      revList.className = 'dep-list';
+      revDeps.slice(0, 12).forEach(rid => {
+        const rc = COMPONENTS[rid];
+        if (!rc) return;
+        const item = document.createElement('div');
+        item.className = 'dep-item';
+        item.innerHTML = `<span class="dep-dir">${rc.icon}</span><span>${rc.file}</span>`;
+        item.title = rc.summary;
+        item.onclick = () => { _currentLayer = rc.layerKey; showDetail(rid); };
+        revList.appendChild(item);
+      });
+      if (revDeps.length > 12) {
+        const more = document.createElement('div');
+        more.style.cssText = 'font-size:12px;color:var(--muted);padding:4px 12px';
+        more.textContent = `+ ${revDeps.length - 12} more`;
+        revList.appendChild(more);
+      }
+      depSec.appendChild(revList);
+    }
+
+    body.appendChild(depSec);
+  }
+
+  // Architecture note
+  if (c.note) {
+    const noteSec = makeSection('💡 Note', '');
+    const noteBox = document.createElement('div');
+    noteBox.className = 'note-box';
+    noteBox.textContent = c.note;
+    noteSec.appendChild(noteBox);
+    body.appendChild(noteSec);
+  }
+}
+
+function makeSection(title, extra) {
+  const sec = document.createElement('div');
+  sec.className = 'detail-section' + (extra ? ' ' + extra : '');
+  const h = document.createElement('h3');
+  h.textContent = title;
+  sec.appendChild(h);
+  return sec;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════════════════
+setBreadcrumb('overview');
+</script>
+</body>
+</html>

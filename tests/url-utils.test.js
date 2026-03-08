@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSpecificChatUrl } from '../src/lib/url-utils.js';
+import { isSpecificChatUrl } from '../src/lib/utils/url-utils.js';
 
 describe('isSpecificChatUrl()', () => {
   // ── Non-Copilot platforms ────────────────────────────────────────────────

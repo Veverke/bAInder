@@ -1,5 +1,5 @@
 /**
- * Tests for src/lib/markdown-serialiser.js
+ * Tests for src/lib/io/markdown-serialiser.js
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -8,7 +8,7 @@ import {
   formatTimestamp,
   messagesToMarkdown,
   parseFrontmatter,
-} from '../src/lib/markdown-serialiser.js';
+} from '../src/lib/io/markdown-serialiser.js';
 
 // ─── escapeYaml ──────────────────────────────────────────────────────────────
 

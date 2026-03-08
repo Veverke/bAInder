@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TreeRenderer, getTagColor } from '../src/lib/tree-renderer.js';
-import { TopicTree, Topic } from '../src/lib/tree.js';
+import { TreeRenderer, getTagColor } from '../src/lib/renderer/tree-renderer.js';
+import { TopicTree, Topic } from '../src/lib/tree/tree.js';
 
 describe('TreeRenderer', () => {
   let container;
@@ -504,6 +504,15 @@ describe('TreeRenderer', () => {
       const itemCount = document.getElementById('itemCount');
       expect(itemCount.textContent).toBe('0 topics');
     });
+
+    it('does not throw when tree is null (if condition FALSE branch)', () => {
+      renderer = new TreeRenderer(container, null);
+      // itemCount is in DOM but this.tree is null → condition FALSE → no-op
+      expect(() => renderer.updateTopicCount()).not.toThrow();
+      const itemCount = document.getElementById('itemCount');
+      // textContent unchanged (empty) since condition was not entered
+      expect(itemCount.textContent).toBe('');
+    });
   });
 
   describe('State Persistence', () => {
@@ -998,5 +1007,571 @@ describe('getTagColor()', () => {
         expect(hue).not.toBe('');
       });
     });
+  });
+});
+
+// ─── Virtual scroll path ──────────────────────────────────────────────────────
+
+describe('TreeRenderer – virtual scroll', () => {
+  let container;
+  let tree;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    const emptyState = document.createElement('div');
+    emptyState.id = 'emptyState';
+    document.body.appendChild(emptyState);
+    const itemCount = document.createElement('span');
+    itemCount.id = 'itemCount';
+    document.body.appendChild(itemCount);
+    tree = new TopicTree();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('renderVirtual is triggered when flatNodes exceed virtualThreshold', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.virtualThreshold = 0; // force virtual mode immediately
+    tree.addTopic('T1');
+    renderer.render();
+    // virtual mode sets container as tree-virtual-container
+    expect(container.classList.contains('tree-virtual-container')).toBe(true);
+  });
+
+  it('renderVirtual with existing handler clears old one', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.virtualThreshold = 0;
+    tree.addTopic('T1');
+    renderer.render(); // first virtual render
+    expect(() => renderer.render()).not.toThrow(); // second render re-enters virtual path
+  });
+
+  it('_makeVirtualCtx toggleExpand adds missing id', () => {
+    const renderer = new TreeRenderer(container, tree);
+    const ctx = renderer._makeVirtualCtx();
+    ctx.toggleExpand('new-id');
+    expect(renderer.expandedNodes.has('new-id')).toBe(true);
+  });
+
+  it('_makeVirtualCtx toggleExpand removes existing id', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.expandedNodes.add('existing-id');
+    const ctx = renderer._makeVirtualCtx();
+    ctx.toggleExpand('existing-id');
+    expect(renderer.expandedNodes.has('existing-id')).toBe(false);
+  });
+
+  it('_makeVirtualCtx setSelectedNode updates selectedNodeId', () => {
+    const renderer = new TreeRenderer(container, tree);
+    const ctx = renderer._makeVirtualCtx();
+    ctx.setSelectedNode('topic-abc');
+    expect(renderer.selectedNodeId).toBe('topic-abc');
+  });
+
+  it('_makeVirtualCtx rerenderVirtual calls renderVirtual when above threshold', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.virtualThreshold = 0;
+    const topicId = tree.addTopic('T1');
+    renderer.render(); // entering virtual mode
+    const ctx = renderer._makeVirtualCtx();
+    const flatNodes = [
+      { type: 'topic', id: topicId, depth: 0, data: tree.topics[topicId] },
+    ];
+    expect(() => ctx.rerenderVirtual(flatNodes)).not.toThrow();
+  });
+
+  it('_makeVirtualCtx rerenderVirtual calls render() when below threshold', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.virtualThreshold = 100;
+    tree.addTopic('T1');
+    const ctx = renderer._makeVirtualCtx();
+    // passing empty flat list (length 0 ≤ 100) → calls render()
+    expect(() => ctx.rerenderVirtual([])).not.toThrow();
+  });
+
+  it('_makeVirtualCtx flattenVisible returns array', () => {
+    const renderer = new TreeRenderer(container, tree);
+    tree.addTopic('T');
+    const ctx = renderer._makeVirtualCtx();
+    expect(Array.isArray(ctx.flattenVisible())).toBe(true);
+  });
+
+  it('_makeVirtualCtx onTopicClick callback fires when set', () => {
+    const renderer = new TreeRenderer(container, tree);
+    const fn = vi.fn();
+    renderer.onTopicClick = fn;
+    const ctx = renderer._makeVirtualCtx();
+    ctx.onTopicClick('topic-1');
+    expect(fn).toHaveBeenCalledWith('topic-1');
+  });
+
+  it('_makeVirtualCtx onChatClick callback fires when set', () => {
+    const renderer = new TreeRenderer(container, tree);
+    const fn = vi.fn();
+    renderer.onChatClick = fn;
+    const ctx = renderer._makeVirtualCtx();
+    ctx.onChatClick('cid', 'tid');
+    expect(fn).toHaveBeenCalledWith('cid', 'tid');
+  });
+});
+
+// ─── Root-ul drag events ──────────────────────────────────────────────────────
+
+describe('TreeRenderer – root ul drag drop zone', () => {
+  let container;
+  let tree;
+  let renderer;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    const emptyState = document.createElement('div');
+    emptyState.id = 'emptyState';
+    document.body.appendChild(emptyState);
+    const itemCount = document.createElement('span');
+    itemCount.id = 'itemCount';
+    document.body.appendChild(itemCount);
+    tree = new TopicTree();
+    tree.addTopic('Root');
+    renderer = new TreeRenderer(container, tree);
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('dragover root ul adds drop-target class when topic drag is active', () => {
+    renderer.render();
+    renderer._drag = { type: 'topic', id: 'some-id' };
+    const ul = container.querySelector('.tree-root');
+    const event = new MouseEvent('dragover', { bubbles: true, cancelable: true });
+    const dt = { dropEffect: '' };
+    Object.defineProperty(event, 'dataTransfer', { value: dt, writable: true });
+    ul.dispatchEvent(event);
+    expect(ul.classList.contains('drop-target')).toBe(true);
+  });
+
+  it('dragover root ul is no-op when drag is null', () => {
+    renderer.render();
+    renderer._drag = null;
+    const ul = container.querySelector('.tree-root');
+    expect(() => ul.dispatchEvent(new MouseEvent('dragover', { bubbles: true, cancelable: true }))).not.toThrow();
+    expect(ul.classList.contains('drop-target')).toBe(false);
+  });
+
+  it('dragleave root ul removes drop-target class', () => {
+    renderer.render();
+    const ul = container.querySelector('.tree-root');
+    ul.classList.add('drop-target');
+    ul.dispatchEvent(new MouseEvent('dragleave', { bubbles: true, relatedTarget: document.body }));
+    expect(ul.classList.contains('drop-target')).toBe(false);
+  });
+
+  it('drop on root ul calls onTopicDrop with null parent when drag is a topic', () => {
+    const onTopicDrop = vi.fn();
+    renderer.onTopicDrop = onTopicDrop;
+    renderer.render();
+    renderer._drag = { type: 'topic', id: 'dragged-topic' };
+    const ul = container.querySelector('.tree-root');
+    ul.dispatchEvent(new MouseEvent('drop', { bubbles: true, cancelable: true }));
+    expect(onTopicDrop).toHaveBeenCalledWith('dragged-topic', null);
+  });
+
+  it('drop on root ul is no-op when drag is null', () => {
+    renderer.onTopicDrop = vi.fn();
+    renderer.render();
+    renderer._drag = null;
+    const ul = container.querySelector('.tree-root');
+    ul.dispatchEvent(new MouseEvent('drop', { bubbles: true, cancelable: true }));
+    expect(renderer.onTopicDrop).not.toHaveBeenCalled();
+  });
+
+  it('dragover root ul is no-op when drag type is not "topic" (chat drag)', () => {
+    renderer.render();
+    renderer._drag = { type: 'chat', id: 'chat-123' }; // type !== 'topic' → early return
+    const ul = container.querySelector('.tree-root');
+    const event = new MouseEvent('dragover', { bubbles: true, cancelable: true });
+    const dt = { dropEffect: '' };
+    Object.defineProperty(event, 'dataTransfer', { value: dt, writable: true });
+    ul.dispatchEvent(event);
+    expect(ul.classList.contains('drop-target')).toBe(false);
+  });
+
+  it('dragover on child of root ul is no-op (e.target !== ul branch)', () => {
+    renderer.render();
+    renderer._drag = { type: 'topic', id: 'some-id' };
+    const ul = container.querySelector('.tree-root');
+    // Dispatch event on a child LI (bubbles to ul listener with e.target = LI, not ul)
+    const li = ul.querySelector('li') || (() => {
+      const el = document.createElement('li');
+      ul.appendChild(el);
+      return el;
+    })();
+    const event = new MouseEvent('dragover', { bubbles: true, cancelable: true });
+    const dt = { dropEffect: '' };
+    Object.defineProperty(event, 'dataTransfer', { value: dt, writable: true });
+    li.dispatchEvent(event);
+    expect(ul.classList.contains('drop-target')).toBe(false);
+  });
+
+  it('dragleave when relatedTarget is inside root ul does NOT remove drop-target', () => {
+    renderer.render();
+    const ul = container.querySelector('.tree-root');
+    ul.classList.add('drop-target');
+    // Create a child inside ul and use it as relatedTarget
+    const child = document.createElement('li');
+    ul.appendChild(child);
+    const leaveEvent = new MouseEvent('dragleave', { bubbles: true });
+    Object.defineProperty(leaveEvent, 'relatedTarget', { value: child, configurable: true });
+    ul.dispatchEvent(leaveEvent);
+    // drop-target should remain because relatedTarget is inside ul
+    expect(ul.classList.contains('drop-target')).toBe(true);
+  });
+});
+
+// ─── Internal delegate helpers ────────────────────────────────────────────────
+
+describe('TreeRenderer – internal delegates', () => {
+  let container;
+  let tree;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    const emptyState = document.createElement('div');
+    emptyState.id = 'emptyState';
+    document.body.appendChild(emptyState);
+    const itemCount = document.createElement('span');
+    itemCount.id = 'itemCount';
+    document.body.appendChild(itemCount);
+    tree = new TopicTree();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('_buildSparklineEl returns an element', () => {
+    const renderer = new TreeRenderer(container, tree);
+    const result = renderer._buildSparklineEl('topic-id');
+    expect(result).toBeTruthy();
+  });
+
+  it('_flattenVisible returns empty array when tree is null', () => {
+    const renderer = new TreeRenderer(container, null);
+    expect(renderer._flattenVisible()).toEqual([]);
+  });
+
+  it('_sortTopics returns sorted topics', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.sortMode = 'alpha-asc';
+    const topics = [
+      { id: 't2', name: 'B', children: [], chatIds: [], pinned: false },
+      { id: 't1', name: 'A', children: [], chatIds: [], pinned: false },
+    ];
+    const sorted = renderer._sortTopics(topics);
+    expect(sorted[0].name).toBe('A');
+  });
+
+  it('renderNode returns an element', () => {
+    const topicId = tree.addTopic('Test');
+    const topic = tree.topics[topicId];
+    const renderer = new TreeRenderer(container, tree);
+    const el = renderer.renderNode(topic, 0);
+    expect(el.tagName).toBe('LI');
+  });
+
+  it('_renderChatItem returns an element', () => {
+    const renderer = new TreeRenderer(container, tree);
+    const chat = { id: 'c1', title: 'Chat', topicId: 'topic-1', source: 'chatgpt', metadata: {} };
+    const el = renderer._renderChatItem(chat, 1);
+    expect(el.tagName).toBe('LI');
+  });
+
+  it('_makeCtx getDrag returns current drag state', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer._drag = { type: 'chat', id: 'c1' };
+    const ctx = renderer._makeCtx({ value: 0 });
+    expect(ctx.getDrag()).toEqual({ type: 'chat', id: 'c1' });
+  });
+
+  it('_makeCtx setDrag updates drag state', () => {
+    const renderer = new TreeRenderer(container, tree);
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.setDrag({ type: 'topic', id: 't1' });
+    expect(renderer._drag).toEqual({ type: 'topic', id: 't1' });
+  });
+
+  it('_makeCtx onTopicClick fires renderer callback', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onTopicClick = fn;
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.onTopicClick('topic-1');
+    expect(fn).toHaveBeenCalledWith('topic-1');
+  });
+
+  it('_makeCtx toggleNode calls renderer.toggleNode', () => {
+    const renderer = new TreeRenderer(container, tree);
+    const topicId = tree.addTopic('T');
+    renderer.render();
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.toggleNode(topicId);
+    // toggleNode toggles the expansion state
+    expect(renderer.expandedNodes.has(topicId)).toBe(true);
+  });
+
+  it('_makeCtx selectNode calls renderer.selectNode', () => {
+    const renderer = new TreeRenderer(container, tree);
+    const topicId = tree.addTopic('T');
+    renderer.render();
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.selectNode(topicId);
+    expect(renderer.selectedNodeId).toBe(topicId);
+  });
+
+  it('_makeCtx getSelectedChats returns filtered chat list', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.chats = [{ id: 'c1' }, { id: 'c2' }];
+    renderer.selectedChatIds = new Set(['c1']);
+    const ctx = renderer._makeCtx({ value: 0 });
+    const selected = ctx.getSelectedChats();
+    expect(selected).toHaveLength(1);
+    expect(selected[0].id).toBe('c1');
+  });
+
+  it('_makeCtx toggleChatSelection calls renderer.toggleChatSelection', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.render();
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.toggleChatSelection('c1');
+    expect(renderer.selectedChatIds.has('c1')).toBe(true);
+  });
+
+  it('setSortMode re-renders the tree', () => {
+    const renderer = new TreeRenderer(container, tree);
+    tree.addTopic('Alpha');
+    renderer.render();
+    expect(() => renderer.setSortMode('alpha-desc')).not.toThrow();
+    expect(renderer.sortMode).toBe('alpha-desc');
+  });
+
+  it('_makeCtx onTopicContextMenu fires renderer callback', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onTopicContextMenu = fn;
+    const ctx = renderer._makeCtx({ value: 0 });
+    const evt = new MouseEvent('contextmenu');
+    ctx.onTopicContextMenu('t1', evt);
+    expect(fn).toHaveBeenCalledWith('t1', evt);
+  });
+
+  it('_makeCtx onTopicPin fires renderer callback', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onTopicPin = fn;
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.onTopicPin('t1', true);
+    expect(fn).toHaveBeenCalledWith('t1', true);
+  });
+
+  it('_makeCtx onTopicDrop fires renderer callback', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onTopicDrop = fn;
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.onTopicDrop('src', 'tgt');
+    expect(fn).toHaveBeenCalledWith('src', 'tgt');
+  });
+
+  it('_makeCtx onChatDrop fires renderer callback', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onChatDrop = fn;
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.onChatDrop('c1', 't1');
+    expect(fn).toHaveBeenCalledWith('c1', 't1');
+  });
+
+  it('_makeCtx onChatClick fires renderer callback', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onChatClick = fn;
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.onChatClick({ id: 'c1' });
+    expect(fn).toHaveBeenCalled();
+  });
+
+  it('_makeCtx onChatContextMenu fires renderer callback', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onChatContextMenu = fn;
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.onChatContextMenu({ id: 'c1' }, new MouseEvent('contextmenu'));
+    expect(fn).toHaveBeenCalled();
+  });
+
+  it('_makeCtx onSelectionChange fires renderer callback', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onSelectionChange = fn;
+    const ctx = renderer._makeCtx({ value: 0 });
+    ctx.onSelectionChange(new Set(['c1']), [{ id: 'c1' }]);
+    expect(fn).toHaveBeenCalled();
+  });
+
+  it('virtual scroll path clears existing scroll handler then re-enters', () => {
+    const renderer = new TreeRenderer(container, tree);
+    // Simulate an existing handler reference
+    const fakeHandler = vi.fn();
+    renderer._virtualScrollHandler = fakeHandler;
+    tree.addTopic('T1');
+    renderer.render(); // non-virtual path removes old handler
+    expect(renderer._virtualScrollHandler).toBeNull();
+  });
+
+  it('clearSelection calls onSelectionChange with empty set', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onSelectionChange = fn;
+    renderer.clearSelection();
+    expect(fn).toHaveBeenCalledWith(new Set(), []);
+  });
+
+  it('toggleChatSelection updates rendered checkbox and fires onSelectionChange', () => {
+    const fn = vi.fn();
+    const topicId = tree.addTopic('T');
+    const chat = { id: 'c-toggle', title: 'Toggle Chat', topicId, source: 'chatgpt', timestamp: Date.now(), tags: [], rating: 0, flaggedAsStale: false, metadata: {} };
+    const renderer = new TreeRenderer(container, tree);
+    renderer.setChatData([chat]);
+    renderer.expandNode(topicId);
+    renderer.multiSelectMode = true;
+    renderer.onSelectionChange = fn;
+    renderer.render();
+    // Select the chat
+    renderer.toggleChatSelection('c-toggle');
+    // The rendered li should have the checkbox checked
+    const li = container.querySelector('[data-chat-id="c-toggle"]');
+    expect(li).not.toBeNull();
+    const cb = li?.querySelector('.tree-chat-checkbox');
+    expect(cb?.checked).toBe(true);
+    expect(fn).toHaveBeenCalled();
+  });
+
+  it('clearSelection removes selected class from all rendered chat items', () => {
+    const topicId = tree.addTopic('T');
+    const chat = { id: 'c-clear', title: 'Clear Chat', topicId, source: 'chatgpt', timestamp: Date.now(), tags: [], rating: 0, flaggedAsStale: false, metadata: {} };
+    const renderer = new TreeRenderer(container, tree);
+    renderer.setChatData([chat]);
+    renderer.expandNode(topicId);
+    renderer.multiSelectMode = true;
+    renderer.render();
+    renderer.toggleChatSelection('c-clear');
+    const li = container.querySelector('[data-chat-id="c-clear"]');
+    expect(li?.classList.contains('tree-chat-item--selected')).toBe(true);
+    renderer.clearSelection();
+    expect(li?.classList.contains('tree-chat-item--selected')).toBe(false);
+  });
+
+  it('_renderVirtualRow returns a div element for a topic node', () => {
+    const topicId = tree.addTopic('VRow');
+    const renderer = new TreeRenderer(container, tree);
+    const flatNode = { type: 'topic', id: topicId, depth: 0, data: tree.topics[topicId] };
+    const el = renderer._renderVirtualRow(flatNode);
+    expect(el.tagName).toBe('DIV');
+    expect(el.classList.contains('tree-virtual-row--topic')).toBe(true);
+  });
+
+  it('_makeVirtualCtx onTopicContextMenu fires renderer callback', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onTopicContextMenu = fn;
+    const ctx = renderer._makeVirtualCtx();
+    const evt = new MouseEvent('contextmenu');
+    ctx.onTopicContextMenu(evt, 'topic-1');
+    expect(fn).toHaveBeenCalledWith(evt, 'topic-1');
+  });
+
+  it('_makeVirtualCtx onChatContextMenu fires renderer callback', () => {
+    const fn = vi.fn();
+    const renderer = new TreeRenderer(container, tree);
+    renderer.onChatContextMenu = fn;
+    const ctx = renderer._makeVirtualCtx();
+    const evt = new MouseEvent('contextmenu');
+    ctx.onChatContextMenu(evt, 'chat-1');
+    expect(fn).toHaveBeenCalledWith(evt, 'chat-1');
+  });
+});
+
+// ─── Multi-select mode & data setters ─────────────────────────────────────────
+
+describe('TreeRenderer — multi-select mode & data setters', () => {
+  let container, tree;
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    tree = new TopicTree();
+  });
+  afterEach(() => { document.body.removeChild(container); });
+
+  it('setTree updates the tree reference', () => {
+    const renderer = new TreeRenderer(container, tree);
+    const newTree = new TopicTree();
+    renderer.setTree(newTree);
+    expect(renderer.tree).toBe(newTree);
+  });
+
+  it('setChatData falls back to [] when given non-array', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.setChatData('not-an-array');
+    expect(renderer.chats).toEqual([]);
+  });
+
+  it('enterMultiSelectMode is a no-op when already in multiSelectMode', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.multiSelectMode = true;
+    // Setting it true first; calling enter again should not toggle it off
+    renderer.enterMultiSelectMode();
+    expect(renderer.multiSelectMode).toBe(true);
+  });
+
+  it('enterMultiSelectMode transitions from false to true', () => {
+    const renderer = new TreeRenderer(container, tree);
+    expect(renderer.multiSelectMode).toBe(false);
+    renderer.enterMultiSelectMode();
+    expect(renderer.multiSelectMode).toBe(true);
+  });
+
+  it('exitMultiSelectMode is a no-op when not in multiSelectMode', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.multiSelectMode = false;
+    renderer.exitMultiSelectMode(); // Should not throw
+    expect(renderer.multiSelectMode).toBe(false);
+  });
+
+  it('exitMultiSelectMode transitions from true to false', () => {
+    const renderer = new TreeRenderer(container, tree);
+    renderer.multiSelectMode = true;
+    renderer.exitMultiSelectMode();
+    expect(renderer.multiSelectMode).toBe(false);
+  });
+
+  it('toggleChatSelection deselects an already-selected chat (delete branch)', () => {
+    const topicId = tree.addTopic('T');
+    const chat = { id: 'ch-desel', title: 'Deselect', topicId, source: 'chatgpt', timestamp: Date.now(), tags: [], rating: 0, flaggedAsStale: false, metadata: {} };
+    const renderer = new TreeRenderer(container, tree);
+    renderer.setChatData([chat]);
+    renderer.expandNode(topicId);
+    renderer.multiSelectMode = true;
+    renderer.render();
+    // First select
+    renderer.toggleChatSelection('ch-desel');
+    expect(renderer.selectedChatIds.has('ch-desel')).toBe(true);
+    // Then deselect
+    renderer.toggleChatSelection('ch-desel');
+    expect(renderer.selectedChatIds.has('ch-desel')).toBe(false);
   });
 });

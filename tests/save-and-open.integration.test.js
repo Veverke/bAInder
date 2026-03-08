@@ -15,8 +15,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { handleSaveChat, buildExcerptPayload } from '../src/background/chat-save-handler.js';
-import { assignChatToTopic } from '../src/lib/chat-manager.js';
-import { TopicTree } from '../src/lib/tree.js';
+import { assignChatToTopic } from '../src/lib/chat/chat-manager.js';
+import { TopicTree } from '../src/lib/tree/tree.js';
 import { init } from '../src/reader/reader.js';
 
 // ─── Shared DOM fixture (mirrors reader.html) ─────────────────────────────────

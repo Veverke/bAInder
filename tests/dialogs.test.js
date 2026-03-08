@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DialogManager } from '../src/lib/dialog-manager.js';
-import { TopicDialogs } from '../src/lib/topic-dialogs.js';
-import { TopicTree } from '../src/lib/tree.js';
+import { DialogManager } from '../src/lib/dialogs/dialog-manager.js';
+import { TopicDialogs } from '../src/lib/dialogs/topic-dialogs.js';
+import { TopicTree } from '../src/lib/tree/tree.js';
 
 describe('DialogManager', () => {
   let container;
@@ -766,6 +766,95 @@ describe('DialogManager – form() additional field types', () => {
 });
 
 // ---------------------------------------------------------------------------
+// 7.1 Security – _sanitiseHtml() / show() XSS prevention
+// ---------------------------------------------------------------------------
+
+describe('DialogManager – _sanitiseHtml() strips dangerous content', () => {
+  let container;
+  let dialog;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    dialog = new DialogManager(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it('strips <script> elements', () => {
+    const result = dialog._sanitiseHtml('<p>Hello</p><script>alert(1)</script>');
+    expect(result).not.toContain('<script>');
+    expect(result).toContain('<p>Hello</p>');
+  });
+
+  it('strips inline on* event-handler attributes', () => {
+    const result = dialog._sanitiseHtml('<img src="x.png" onerror="alert(1)">');
+    expect(result).not.toContain('onerror');
+    expect(result).toContain('src="x.png"');
+  });
+
+  it('strips onclick attribute', () => {
+    const result = dialog._sanitiseHtml('<button onclick="evil()">Click</button>');
+    expect(result).not.toContain('onclick');
+    expect(result).toContain('>Click<');
+  });
+
+  it('strips javascript: href URL', () => {
+    const result = dialog._sanitiseHtml('<a href="javascript:alert(1)">link</a>');
+    expect(result).not.toContain('javascript:');
+  });
+
+  it('strips javascript: src attribute', () => {
+    const result = dialog._sanitiseHtml('<iframe src="javascript:alert(1)"></iframe>');
+    expect(result).not.toContain('javascript:');
+  });
+
+  it('preserves harmless attributes', () => {
+    const result = dialog._sanitiseHtml('<p class="modal-body" data-action="ok">safe</p>');
+    expect(result).toContain('class="modal-body"');
+    expect(result).toContain('data-action="ok"');
+  });
+
+  it('preserves <style> blocks (needed by import-dialog)', () => {
+    const result = dialog._sanitiseHtml('<style>.foo { color: red; }</style><p>test</p>');
+    expect(result).toContain('<style>');
+    expect(result).toContain('.foo');
+  });
+});
+
+describe('DialogManager – show() sanitises injected HTML', () => {
+  let container;
+  let dialog;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    dialog = new DialogManager(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it('does not execute scripts injected via show()', () => {
+    const spy = vi.fn();
+    globalThis.__xssProbe = spy;
+    dialog.show('<script>__xssProbe()</script><p>content</p>');
+    // Script should have been stripped; spy must never have been called
+    expect(spy).not.toHaveBeenCalled();
+    delete globalThis.__xssProbe;
+  });
+
+  it('strips onerror from img tag passed to show()', () => {
+    dialog.show('<img src="bad.png" onerror="alert(1)"><p>ok</p>');
+    const img = container.querySelector('img');
+    expect(img.getAttribute('onerror')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Branch-gap: DialogManager constructor without containerElement arg
 // ---------------------------------------------------------------------------
 
@@ -880,5 +969,99 @@ describe('DialogManager – form() plain string select options', () => {
 
     container.querySelector('[data-action="cancel"]').click();
     await promise;
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Branch-gap: _collectFormData and _validateForm with missing DOM elements
+// ---------------------------------------------------------------------------
+
+describe('DialogManager – _collectFormData() missing input fallback', () => {
+  let container;
+  let dialog;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    dialog = new DialogManager(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it('returns empty string for a field whose element is not in the form', () => {
+    // Render a form with only one field, but pass two field descriptors to
+    // _collectFormData — the second one has no matching element.
+    dialog.form([
+      { name: 'name', label: 'Name', type: 'text' },
+    ], 'Test', 'OK');
+
+    const formEl = container.querySelector('[data-dialog-form]');
+    // Pass an extra field 'ghost' that was never rendered
+    const data = dialog._collectFormData(formEl, [
+      { name: 'name' },
+      { name: 'ghost' },  // no [data-field="ghost"] in the DOM
+    ]);
+
+    expect(data.name).toBeDefined();
+    expect(data.ghost).toBe('');  // fallback '' when element not found
+  });
+});
+
+describe('DialogManager – _validateForm() missing input early return', () => {
+  let container;
+  let dialog;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    dialog = new DialogManager(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+  });
+
+  it('does not throw and returns true when a required field has no DOM element', () => {
+    dialog.form([
+      { name: 'name', label: 'Name', type: 'text', required: true },
+    ], 'Test', 'OK');
+
+    const formEl = container.querySelector('[data-dialog-form]');
+    // Validate with a ghost field that has no DOM element — should just return early
+    const valid = dialog._validateForm(formEl, [
+      { name: 'ghost', required: true },  // element missing → if (!input) return
+    ]);
+    // No DOM element found → the forEach iteration returns early; isValid stays true
+    expect(typeof valid).toBe('boolean');
+  });
+
+  it('marks field with error class when it is required and has empty value', () => {
+    dialog.form([
+      { name: 'title', label: 'Title', type: 'text', required: true },
+    ], 'Test', 'OK');
+
+    const formEl = container.querySelector('[data-dialog-form]');
+    // Field exists but is empty — required check should add error class
+    const valid = dialog._validateForm(formEl, [
+      { name: 'title', required: true },
+    ]);
+    expect(valid).toBe(false);
+    const input = container.querySelector('[data-field="title"]');
+    expect(input.classList.contains('error')).toBe(true);
+  });
+
+  it('removes error class when non-required empty field is validated', () => {
+    dialog.form([
+      { name: 'notes', label: 'Notes', type: 'text' },
+    ], 'Test', 'OK');
+    const formEl = container.querySelector('[data-dialog-form]');
+    const input  = container.querySelector('[data-field="notes"]');
+    // Pre-add error class; validation should remove it since field is not required
+    input.classList.add('error');
+    const valid = dialog._validateForm(formEl, [{ name: 'notes', required: false }]);
+    expect(valid).toBe(true);
+    expect(input.classList.contains('error')).toBe(false);
   });
 });

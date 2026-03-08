@@ -6,7 +6,9 @@
  * so unit tests can import and exercise them directly.
  */
 
-import { messagesToMarkdown } from '../lib/markdown-serialiser.js';
+import { messagesToMarkdown } from '../lib/io/markdown-serialiser.js';
+import { generateId } from '../lib/utils/search-utils.js';
+import { logger } from '../lib/utils/logger.js';
 
 /**
  * Detect the AI source platform from a URL string.
@@ -24,10 +26,12 @@ export function detectSource(url) {
 
 /**
  * Generate a simple unique ID for a chat entry.
+ * Delegates to the shared generateId() utility from search-utils.js.
+ * Format: `{timestamp}-{random}` (no prefix — backwards-compatible).
  * @returns {string}
  */
 export function generateChatId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  return generateId();
 }
 
 /**
@@ -155,7 +159,7 @@ export async function handleSaveChat(chatData, sender, storage) {
   // Deduplication
   const duplicate = findDuplicate(chats, chatData.url || tabUrl);
   if (duplicate) {
-    console.log('bAInder: Skipping duplicate save', duplicate.id);
+    logger.info('Duplicate save skipped — returning existing:', duplicate.id);
     return duplicate;
   }
 
@@ -163,6 +167,6 @@ export async function handleSaveChat(chatData, sender, storage) {
   chats.push(newChat);
   await storage.set({ chats });
 
-  console.log('Chat saved successfully:', newChat.id);
+  logger.info('Chat saved:', newChat.id);
   return newChat;
 }
