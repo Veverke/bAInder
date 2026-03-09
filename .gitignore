@@ -40,3 +40,7 @@ yarn-error.log*
 # OS files
 Thumbs.db
 Desktop.ini
+
+# ThemeStudio SDK — installed theme files (managed by installer.ps1, not committed)
+src/**/themes/*.json
+theme-sdk-install.json
