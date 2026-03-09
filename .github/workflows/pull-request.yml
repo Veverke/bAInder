@@ -2,6 +2,11 @@ name: pull-request
 
 on:
   pull_request:
+    branches:
+      - '**'
+  push:
+    branches:
+      - main
 
 jobs:
   build-and-test:
