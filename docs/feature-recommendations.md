@@ -1,5 +1,8 @@
 # bAInder — Additional Feature Recommendations
 
+---
+
+
 > Generated: March 3, 2026  
 > Source: AI-assisted brainstorming session — features not already covered by the roadmap or design specs.  
 > These are catalogued as **C.13 – C.22** in Appendix C of `DESIGN_SPECS.md` and `roadmap.html`.
@@ -22,6 +25,20 @@
 | C.22 | Reading progress persistence | Low | Moderate | ✅ Completed (March 4, 2026) |
 | C.23 | Platform expansion: DeepSeek, Grok & Perplexity | Medium | Very High | Candidate |
 | C.24 | Internal API-based extraction — platform-wide strategy (ChatGPT next, Perplexity after) | Low/platform | Moderate | Candidate |
+| C.25 | Chat hover overlay (tree preview) | Medium | High | Candidate |
+
+## C.25 — Chat Hover Overlay (Tree Preview)
+
+**Idea:**
+When hovering over a chat in the saved chat tree, show an overlay containing:
+  1. Size in KBs
+  2. Message summary in the format: `Messages: N | Prompts: M/N | Responses: K/N` (where M + K = N)
+  3. Code Snippets: count per coding language/script (e.g., `Python: 3, JavaScript: 2`)
+
+**Value:**
+Gives users instant insight into chat content and code density without opening each chat.
+
+**Effort:** Medium. **Differentiator:** High — advanced tree navigation with granular content preview.
 
 ---
 
@@ -37,6 +54,22 @@
 - "Copy" button copies the raw text; "Re-fire" opens the appropriate platform URL with the prompt pre-filled in the URL query param (where supported — ChatGPT and Claude both accept `?q=` or similar deep links).
 
 **Effort:** Medium. **Differentiator:** High — no mainstream extension does this today.
+
+---
+
+### C.13.1 — Prompt Manager (Tabbed Tree View)
+
+**Feature:**
+- Add a Prompt Manager as another tree view. The main screen will now be tabbed:
+  - Tab 1: Topic tree viewer
+  - Tab 2: Prompt tree viewer
+  - Tab 3: Code snippets tree viewer
+- Clicking a prompt in tab 2 or a code snippet in tab 3 opens the saved chat from which that prompt or code snippet was taken, highlighting the prompt or code snippet in the chat contents.
+
+**Value:**
+Streamlines navigation and retrieval of prompts and code, supporting power-user workflows.
+
+**Effort:** Medium. **Differentiator:** High — combines advanced navigation with cross-linking and content highlighting.
 
 ---
 
