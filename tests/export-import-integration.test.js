@@ -352,17 +352,15 @@ describe('ExportDialog — showExportTopic() — format visibility', () => {
   it('selecting PDF format hides style section', async () => {
     exportDialog.showExportTopic(mockTopic, mockTree, mockChats);
     selectFormat('pdf');
-    const styleGroup = container.querySelector('#export-style-group');
-    const legend = styleGroup.querySelector('legend');
-    expect(legend.style.visibility).toBe('hidden');
+    const styleSection = container.querySelector('#export-style-section');
+    expect(styleSection.style.display).toBe('none');
   });
 
   it('selecting ZIP format hides style section', async () => {
     exportDialog.showExportTopic(mockTopic, mockTree, mockChats);
     selectFormat('zip');
-    const styleGroup = container.querySelector('#export-style-group');
-    const legend = styleGroup.querySelector('legend');
-    expect(legend.style.visibility).toBe('hidden');
+    const styleSection = container.querySelector('#export-style-section');
+    expect(styleSection.style.display).toBe('none');
   });
 
   it('selecting Markdown format shows style section', async () => {
@@ -370,18 +368,16 @@ describe('ExportDialog — showExportTopic() — format visibility', () => {
     // First hide by selecting pdf, then restore with markdown
     selectFormat('pdf');
     selectFormat('markdown');
-    const styleGroup = container.querySelector('#export-style-group');
-    const legend = styleGroup.querySelector('legend');
-    expect(legend.style.visibility).not.toBe('hidden');
+    const styleSection = container.querySelector('#export-style-section');
+    expect(styleSection.style.display).not.toBe('none');
   });
 
   it('selecting HTML format shows style section', async () => {
     exportDialog.showExportTopic(mockTopic, mockTree, mockChats);
     selectFormat('pdf');
     selectFormat('html');
-    const styleGroup = container.querySelector('#export-style-group');
-    const legend = styleGroup.querySelector('legend');
-    expect(legend.style.visibility).not.toBe('hidden');
+    const styleSection = container.querySelector('#export-style-section');
+    expect(styleSection.style.display).not.toBe('none');
   });
 
   it('ZIP format makes zip-note visible', async () => {
@@ -517,7 +513,7 @@ describe('ExportDialog — showExportChat() — dialog rendering', () => {
   it('shows style section in chat mode', async () => {
     exportDialog.showExportChat(mockChat, mockTree);
     await flush();
-    expect(container.querySelector('#export-style-group')).not.toBeNull();
+    expect(container.querySelector('#export-style-section')).not.toBeNull();
     const styleInputs = container.querySelectorAll('input[name="export-style"]');
     expect(styleInputs.length).toBeGreaterThan(0);
   });
@@ -900,7 +896,7 @@ describe('ImportDialog — showImportDialog() — Phase 3 (Import)', () => {
 
   it('done header says Import Complete', async () => {
     await openPreviewAndImport(vi.fn().mockResolvedValue(undefined));
-    expect(document.querySelector('.done-header').textContent).toContain('Import Complete');
+    expect(document.querySelector('.dim-done-header').textContent).toContain('Import complete');
   });
 
   it('Done button calls dialog.close', async () => {

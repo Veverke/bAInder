@@ -47,318 +47,154 @@ export class ImportDialog {
   /** @returns {string} */
   _buildDialogHtml() {
     return /* html */ `
-<style>
-  /* ── Import dialog scoped styles ──────────────────────────────────────── */
-  .import-dialog { font-size: 0.92rem; }
 
-  /* Phase visibility */
-  .import-dialog .phase { display: none; }
-  .import-dialog .phase.active { display: block; }
-
-  /* Drop zone — <label> opens file picker natively without JS .click() */
-  .import-dialog .drop-zone {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    border: 2px dashed var(--border-secondary);
-    border-radius: var(--radius-md);
-    padding: 28px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color var(--transition-fast), background var(--transition-fast),
-                color var(--transition-fast);
-    user-select: none;
-    margin-bottom: 16px;
-    color: var(--text-secondary);
-  }
-  .import-dialog .drop-zone:hover,
-  .import-dialog .drop-zone.drag-over {
-    border-color: var(--primary);
-    background: var(--primary-light);
-    color: var(--primary);
-  }
-  .import-dialog .drop-zone.file-selected {
-    border-color: var(--success);
-    background: var(--success-bg);
-    color: var(--success);
-  }
-  .import-dialog .drop-zone .dz-icon  { font-size: 2em; line-height: 1; }
-  .import-dialog .drop-zone .dz-label { font-size: 0.95em; font-weight: 500; }
-  .import-dialog .drop-zone .dz-sub   { font-size: 0.82em; color: var(--text-tertiary); }
-  .import-dialog .drop-zone.file-selected .dz-sub { color: inherit; opacity: 0.75; }
-
-  /* File selected chip — shown below drop zone once a file is chosen */
-  .import-dialog .file-chip {
-    display: none;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: var(--success-bg);
-    border: 1px solid var(--success);
-    border-radius: var(--radius-sm);
-    font-size: 0.88em;
-    color: var(--success);
-    font-weight: 500;
-    margin-bottom: 14px;
-    margin-top: -10px;
-  }
-  .import-dialog .file-chip.visible { display: flex; }
-  .import-dialog .file-chip .fc-name {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--text-primary);
-  }
-  .import-dialog .file-chip .fc-size { color: var(--text-tertiary); font-size: 0.9em; white-space: nowrap; }
-
-  /* Inline error */
-  .import-dialog .inline-error {
-    display: none;
-    padding: 10px 14px;
-    background: var(--danger-bg);
-    border-left: 3px solid var(--danger);
-    border-radius: var(--radius-sm);
-    font-size: 0.88em;
-    color: var(--text-primary);
-    margin-bottom: 12px;
-  }
-  .import-dialog .inline-error.visible { display: block; }
-
-  /* Strategy radios */
-  .import-dialog .strategy-section { margin-bottom: 16px; }
-  .import-dialog .section-label {
-    font-weight: 600;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-tertiary);
-    margin-bottom: 6px;
-  }
-  .import-dialog .radio-group { display: flex; flex-direction: column; gap: 2px; }
-  .import-dialog .radio-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 10px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background var(--transition-fast);
-    font-size: 0.92em;
-    line-height: 1.4;
-  }
-  .import-dialog .radio-label:hover { background: var(--bg-hover); }
-  .import-dialog .radio-label:has(input:checked) {
-    background: var(--primary-light);
-    color: var(--primary);
-    font-weight: 500;
-  }
-  .import-dialog .radio-label input[type="radio"] {
-    accent-color: var(--primary);
-    width: 14px; height: 14px; flex-shrink: 0;
-  }
-
-  /* Summary box */
-  .import-dialog .summary-box {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
-    margin-bottom: 14px;
-  }
-  .import-dialog .summary-title {
-    font-weight: 600;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-tertiary);
-    margin-bottom: 10px;
-  }
-  .import-dialog .summary-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 0;
-    font-size: 0.92em;
-    border-bottom: 1px solid var(--border-primary);
-  }
-  .import-dialog .summary-row:last-child { border-bottom: none; }
-  .import-dialog .s-label { color: var(--text-secondary); flex: 1; }
-  .import-dialog .s-value { font-weight: 600; min-width: 28px; text-align: right; color: var(--text-primary); }
-  .import-dialog .s-icon { width: 20px; flex-shrink: 0; text-align: center; }
-  .import-dialog .s-icon.create   { color: var(--success); }
-  .import-dialog .s-icon.merge    { color: var(--primary); }
-  .import-dialog .s-icon.chat     { color: var(--info); }
-  .import-dialog .s-icon.conflict { color: var(--warning); }
-
-  /* Notices (warnings / errors) */
-  .import-dialog .notice-box {
-    list-style: none;
-    padding: 10px 14px;
-    border-radius: var(--radius-sm);
-    font-size: 0.88em;
-    max-height: 110px;
-    overflow-y: auto;
-    margin-bottom: 12px;
-  }
-  .import-dialog .notice-box.warning {
-    background: var(--warning-bg);
-    border-left: 3px solid var(--warning);
-    color: var(--text-primary);
-  }
-  .import-dialog .notice-box.error {
-    background: var(--danger-bg);
-    border-left: 3px solid var(--danger);
-    color: var(--text-primary);
-  }
-  .import-dialog .notice-box li { padding: 2px 0; }
-
-  /* Done screen */
-  .import-dialog .done-header {
-    font-size: 1em;
-    font-weight: 700;
-    color: var(--success);
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .import-dialog .done-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    font-size: 0.92em;
-    border-bottom: 1px solid var(--border-primary);
-    color: var(--text-secondary);
-  }
-  .import-dialog .done-row:last-child { border-bottom: none; }
-  .import-dialog .done-row span:last-child { font-weight: 600; color: var(--text-primary); }
-
-  /* Status text while importing */
-  .import-dialog .status-text {
-    color: var(--text-tertiary);
-    font-size: 0.9em;
-    text-align: center;
-    padding: 20px 0;
-  }
-
-  /* Button row */
-  .import-dialog .btn-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 20px;
-    gap: 8px;
-  }
-  .import-dialog .btn-row.end { justify-content: flex-end; }
-</style>
 
 <div class="modal-header">
   <h2>Import from ZIP</h2>
   <button class="modal-close-btn" id="importCloseBtn" aria-label="Close">✕</button>
 </div>
 
-<div class="modal-body import-dialog" id="importDialogRoot">
+<div class="modal-body" id="importDialogRoot">
 
-  <!-- ===== Phase 1: File Selection ===== -->
-  <div class="phase active" id="importPhase1">
+  <!-- ===== Phase 1 : File selection + strategy ===== -->
+  <div class="dim-phase active" id="importPhase1">
 
     <input type="file" id="importFileInput" accept=".zip" style="display:none">
 
-    <label for="importFileInput" class="drop-zone" id="importDropZone"
-           aria-label="Drop ZIP file here or click to browse">
-      <span class="dz-icon" id="importDropIcon">📦</span>
-      <span class="dz-label" id="importDropLabel">Drag &amp; drop a bAInder ZIP here</span>
-      <span class="dz-sub">or click to browse</span>
+    <label for="importFileInput" class="dim-dropzone" id="importDropZone"
+           aria-label="Drop a bAInder ZIP here or click to browse">
+      <span class="dim-dz-icon" id="importDropIcon">📦</span>
+      <span class="dim-dz-label" id="importDropLabel">Drag &amp; drop your bAInder ZIP here</span>
+      <span class="dim-dz-sub">or</span>
+      <span class="dim-dz-browse" id="importBrowseBtn">Browse files</span>
     </label>
 
-    <div class="file-chip" id="importFileChip">
+    <div class="dim-file-chip" id="importFileChip">
       <span>✓</span>
-      <span class="fc-name" id="importFileName"></span>
-      <span class="fc-size" id="importFileSize"></span>
-      <span style="margin-left:auto;opacity:0.6;font-size:0.85em;">click drop zone to change</span>
+      <span class="dim-file-name" id="importFileName"></span>
+      <span class="dim-file-size" id="importFileSize"></span>
+      <span class="dim-file-change">click to change</span>
     </div>
 
-    <div class="inline-error" id="importPhase1Error"></div>
+    <div class="dim-error" id="importPhase1Error"></div>
 
-    <div class="strategy-section">
-      <div class="section-label">Import Strategy</div>
-      <div class="radio-group">
-        <label class="radio-label">
+    <div class="dim-section" id="importStrategySection" style="display:none">
+      <p class="dim-section-label">Import Strategy</p>
+      <div class="dim-strategy-list">
+
+        <label class="dim-strategy-row">
           <input type="radio" name="importStrategy" value="merge" checked>
-          <span><strong>Merge</strong> — combine with existing data</span>
+          <span class="dim-str-icon" aria-hidden="true">🔀</span>
+          <span class="dim-str-body">
+            <span class="dim-str-name">Merge</span>
+            <span class="dim-str-desc">Combine ZIP contents with your existing data</span>
+          </span>
+          <svg class="dim-str-check" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </label>
-        <label class="radio-label">
+
+        <label class="dim-strategy-row">
           <input type="radio" name="importStrategy" value="replace">
-          <span><strong>Replace</strong> — clear existing data first</span>
+          <span class="dim-str-icon" aria-hidden="true">⚠️</span>
+          <span class="dim-str-body">
+            <span class="dim-str-name">Replace</span>
+            <span class="dim-str-desc">Clear all existing data, then import</span>
+          </span>
+          <svg class="dim-str-check" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </label>
-        <label class="radio-label">
+
+        <label class="dim-strategy-row">
           <input type="radio" name="importStrategy" value="new-root">
-          <span><strong>New Root</strong> — import under a new parent topic</span>
+          <span class="dim-str-icon" aria-hidden="true">📂</span>
+          <span class="dim-str-body">
+            <span class="dim-str-name">New Root</span>
+            <span class="dim-str-desc">Import under a brand-new parent topic</span>
+          </span>
+          <svg class="dim-str-check" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </label>
+
       </div>
     </div>
 
-    <div class="btn-row">
-      <button id="importCancelBtn1" class="btn btn-secondary">Cancel</button>
-      <button id="importStartBtn" class="btn btn-primary" disabled>Import ▶</button>
-    </div>
-  </div>
-
-  <!-- ===== Phase 2: Preview ===== -->
-  <div class="phase" id="importPhase2">
-
-    <div class="summary-box" id="importSummaryBox">
-      <div class="summary-title">Import Summary</div>
-      <div class="summary-row">
-        <span class="s-icon create">✓</span>
-        <span class="s-label">Topics to create</span>
-        <span class="s-value" id="sumTopicsCreate">0</span>
-      </div>
-      <div class="summary-row">
-        <span class="s-icon merge">⟳</span>
-        <span class="s-label">Topics to merge</span>
-        <span class="s-value" id="sumTopicsMerge">0</span>
-      </div>
-      <div class="summary-row">
-        <span class="s-icon chat">💬</span>
-        <span class="s-label">Chats to import</span>
-        <span class="s-value" id="sumChats">0</span>
-      </div>
-      <div class="summary-row">
-        <span class="s-icon conflict">⚠</span>
-        <span class="s-label">Conflicts</span>
-        <span class="s-value" id="sumConflicts">0</span>
-      </div>
-    </div>
-
-    <ul class="notice-box warning" id="importWarningsList" style="display:none"></ul>
-
-    <div class="btn-row">
-      <button id="importBackBtn" class="btn btn-secondary">← Back</button>
-      <button id="importNowBtn" class="btn btn-primary">Import Now ▶</button>
+    <div class="dim-btn-row" id="importPhase1Btns" style="display:none">
+      <button id="importCancelBtn1" class="btn-secondary">Cancel</button>
+      <button id="importStartBtn" class="btn-primary" disabled>Preview Import</button>
     </div>
   </div>
 
-  <!-- ===== Phase 3: Progress / Done ===== -->
-  <div class="phase" id="importPhase3">
+  <!-- ===== Phase 2 : Preview ===== -->
+  <div class="dim-phase" id="importPhase2">
 
-    <p class="status-text" id="importInProgress">Importing, please wait…</p>
+    <p class="dim-section-label" style="margin-bottom:var(--space-md)">Import Preview</p>
+
+    <div class="dim-stats-grid">
+      <div class="dim-stat dim-stat--create">
+        <span class="dim-stat-value" id="sumTopicsCreate">0</span>
+        <span class="dim-stat-label">Topics to create</span>
+      </div>
+      <div class="dim-stat dim-stat--merge">
+        <span class="dim-stat-value" id="sumTopicsMerge">0</span>
+        <span class="dim-stat-label">Topics to merge</span>
+      </div>
+      <div class="dim-stat dim-stat--chat">
+        <span class="dim-stat-value" id="sumChats">0</span>
+        <span class="dim-stat-label">Chats to import</span>
+      </div>
+      <div class="dim-stat dim-stat--conflict">
+        <span class="dim-stat-value" id="sumConflicts">0</span>
+        <span class="dim-stat-label">Conflicts</span>
+      </div>
+    </div>
+
+    <ul class="dim-notice dim-notice--warning" id="importWarningsList" style="display:none"></ul>
+
+    <div class="dim-btn-row">
+      <button id="importBackBtn" class="btn-secondary">← Back</button>
+      <button id="importNowBtn" class="btn-primary">Import Now</button>
+    </div>
+  </div>
+
+  <!-- ===== Phase 3 : Progress / Done ===== -->
+  <div class="dim-phase" id="importPhase3">
+
+    <div class="dim-progress" id="importInProgress" style="display:none">
+      <div class="dim-spinner"></div>
+      <p class="dim-progress-text">Importing, please wait…</p>
+    </div>
 
     <div id="importDoneContent" style="display:none">
-      <div class="done-header">✅ Import Complete</div>
-      <div class="done-row"><span>Topics created</span> <span id="doneTopicsCreated">0</span></div>
-      <div class="done-row"><span>Topics merged</span>  <span id="doneTopicsMerged">0</span></div>
-      <div class="done-row"><span>Chats imported</span> <span id="doneChatsImported">0</span></div>
-      <div class="done-row"><span>Errors</span>         <span id="doneErrors">0</span></div>
-      <ul class="notice-box error" id="doneErrorsList" style="display:none"></ul>
+      <div class="dim-done-header">
+        <span>✅</span>
+        <span>Import complete</span>
+      </div>
+      <div class="dim-done-grid">
+        <div class="dim-done-row">
+          <span class="dim-done-label">Topics created</span>
+          <span class="dim-done-value" id="doneTopicsCreated">0</span>
+        </div>
+        <div class="dim-done-row">
+          <span class="dim-done-label">Topics merged</span>
+          <span class="dim-done-value" id="doneTopicsMerged">0</span>
+        </div>
+        <div class="dim-done-row">
+          <span class="dim-done-label">Chats imported</span>
+          <span class="dim-done-value" id="doneChatsImported">0</span>
+        </div>
+        <div class="dim-done-row">
+          <span class="dim-done-label">Errors</span>
+          <span class="dim-done-value dim-done-value--errors" id="doneErrors">0</span>
+        </div>
+      </div>
+      <ul class="dim-notice dim-notice--error" id="doneErrorsList" style="display:none"></ul>
     </div>
 
-    <div class="btn-row end" id="importDoneBtnRow" style="display:none">
-      <button id="importDoneBtn" class="btn btn-primary">Done ✓</button>
+    <div class="dim-btn-row dim-btn-row--end" id="importDoneBtnRow" style="display:none">
+      <button id="importDoneBtn" class="btn-primary">Done ✓</button>
     </div>
   </div>
 
@@ -448,6 +284,10 @@ export class ImportDialog {
       dropLabel.textContent = 'File ready to import';
       dropZone.classList.add('file-selected');
 
+      // Update browse button label
+      const browseBtn = document.getElementById('importBrowseBtn');
+      if (browseBtn) browseBtn.textContent = 'Change file';
+
       // Persistent chip showing the filename underneath
       fileName.textContent = file.name;
       fileSize.textContent = `${sizeKB} KB`;
@@ -456,6 +296,12 @@ export class ImportDialog {
       // Clear any previous error
       phase1Error.textContent = '';
       phase1Error.classList.remove('visible');
+
+      // Reveal strategy and button row (progressive disclosure)
+      const strategySection = document.getElementById('importStrategySection');
+      const phase1Btns = document.getElementById('importPhase1Btns');
+      if (strategySection) strategySection.style.display = '';
+      if (phase1Btns) phase1Btns.style.display = '';
 
       importStartBtn.disabled = false;
     };
@@ -511,8 +357,8 @@ export class ImportDialog {
         phase1Error.textContent = `❌ ${this.dialog.escapeHtml(msg)}`;
         phase1Error.classList.add('visible');
       } finally {
-        importStartBtn.disabled   = false;
-        importStartBtn.textContent = 'Import ▶';
+        importStartBtn.disabled    = false;
+        importStartBtn.textContent = 'Preview Import';
       }
     });
 
@@ -531,9 +377,9 @@ export class ImportDialog {
       }
 
       showPhase(3);
-      doneContent.style.display = 'none';
-      inProgress.style.display  = 'block';
-      doneBtnRow.style.display  = 'none';
+      doneContent.style.display  = 'none';
+      inProgress.style.display   = 'block';
+      doneBtnRow.style.display   = 'none';
 
       try {
         const result = executeImport(importPlan, tree, chats);
