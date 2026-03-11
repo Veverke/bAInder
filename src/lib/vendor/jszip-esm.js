@@ -1,26 +1,29 @@
 /**
- * ES module wrapper for the vendored JSZip UMD bundle.
+ * ES module wrapper for JSZip with test-isolation proxy.
  *
- * jszip.min.js is a UMD file. In a browser ES-module context `module` and
- * `exports` are both undefined, so its UMD wrapper falls through to the
- * else-branch and assigns the library to `window.JSZip` as a side-effect.
- * This shim triggers that side-effect and then re-exports the global, giving
- * consumers a proper `import JSZip from '…'` interface without a build step.
+ * In production (Vite/Rollup build) we import from the 'jszip' npm package.
+ * Vite pre-bundles it with esbuild's CJS→ESM conversion, which synthesises a
+ * proper default export — so `_JSZip` is the real JSZip constructor.
  *
- * The export is a Proxy that reads `globalThis.JSZip` at **call time** rather
- * than capturing the reference once at import time. This keeps test isolation
- * intact: test files can set `globalThis.JSZip = MockJSZip` after import and
- * the dialogs will see the mock, not the real library.
+ * The Proxy reads `globalThis.JSZip` at **call time** for test isolation:
+ * test files set `globalThis.JSZip = MockJSZip` after import, and those mocks
+ * take priority via the `??` fallback.  When no override is present (normal
+ * runtime), `_JSZip` from the npm package is used instead.
+ *
+ * Note: the old vendored `jszip.min.js` side-effect import does NOT work with
+ * Rollup's CJS interop — the UMD factory runs inside a synthetic module scope
+ * where `exports` is defined, so it takes the CJS branch and never sets
+ * `window.JSZip`, causing `loadAsync is not a function` at runtime.
  */
-import './jszip.min.js';
+import _JSZip from 'jszip';
 export default new Proxy(function () {}, {
   get(_, prop) {
-    return globalThis.JSZip?.[prop];
+    return (globalThis.JSZip ?? _JSZip)?.[prop];
   },
   construct(_, args) {
-    return new globalThis.JSZip(...args);
+    return new (globalThis.JSZip ?? _JSZip)(...args);
   },
   apply(_, thisArg, args) {
-    return globalThis.JSZip?.apply(thisArg, args);
+    return (globalThis.JSZip ?? _JSZip)?.apply(thisArg, args);
   },
 });

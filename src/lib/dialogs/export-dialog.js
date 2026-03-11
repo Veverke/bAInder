@@ -118,11 +118,12 @@ export class ExportDialog {
     }
 
     const html = this._buildDialogHtml({
-      title:        'Entire Tree',
-      formats:      TOPIC_FORMATS,
-      scopes:       SCOPE_OPTIONS,
-      showScope:    true,
-      defaultScope: 'entire-tree',
+      title:         'Entire Tree',
+      formats:       TOPIC_FORMATS,
+      scopes:        SCOPE_OPTIONS,
+      showScope:     true,
+      defaultFormat: 'zip',
+      defaultScope:  'entire-tree',
     });
 
     this.dialog.show(html, { size: 'large' });
@@ -176,161 +177,102 @@ export class ExportDialog {
    * Build the full inner HTML (contentHTML) passed to DialogManager.show().
    *
    * @private
-   * @param {{ title: string, formats: Array, scopes: Array, showScope: boolean }} opts
+   * @param {{ title: string, formats: Array, scopes: Array, showScope: boolean, defaultFormat?: string, defaultScope?: string }} opts
    * @returns {string}
    */
-  _buildDialogHtml({ title, formats, scopes, showScope, defaultScope = null }) {
-    const formatRadios = formats.map(({ value, label }, i) => /* html */`
-      <label class="radio-label">
-        <input type="radio" name="export-format" value="${value}"${i === 0 ? ' checked' : ''}>
-        ${label}
-      </label>`).join('');
+  _buildDialogHtml({ title, formats, scopes, showScope, defaultFormat = null, defaultScope = null }) {
+    // ── Format card metadata ───────────────────────────────────────────────
+    const FMT_META = {
+      markdown: { icon: '📝', ext: '.md'   },
+      html:     { icon: '🌐', ext: '.html' },
+      pdf:      { icon: '📄', ext: 'print' },
+      zip:      { icon: '📦', ext: '.zip'  },
+    };
 
-    const scopeRadios = scopes.map(({ value, label }, i) => /* html */`
-      <label class="radio-label">
-        <input type="radio" name="export-scope" value="${value}"${
-          defaultScope ? (value === defaultScope ? ' checked' : '') : (i === 0 ? ' checked' : '')
-        }>
-        ${label}
-      </label>`).join('');
+    const formatCards = formats.map(({ value, label }, i) => {
+      const checked = defaultFormat ? value === defaultFormat : i === 0;
+      const meta    = FMT_META[value] ?? { icon: '📄', ext: '' };
+      return /* html */`
+        <label class="dex-fmt-card">
+          <input type="radio" name="export-format" value="${value}"${checked ? ' checked' : ''}>
+          <span class="dex-fmt-icon" aria-hidden="true">${meta.icon}</span>
+          <span class="dex-fmt-name">${label}</span>
+          <span class="dex-fmt-ext">${meta.ext}</span>
+        </label>`;
+    }).join('');
 
-    const styleRadios = Object.entries(STYLE_LABELS).map(([value, label], i) => /* html */`
-      <label class="radio-label">
+    // ── Scope row metadata ─────────────────────────────────────────────────
+    const SCOPE_META = {
+      'this-topic':      { icon: '📁', desc: 'Chats in this topic only'         },
+      'topic-recursive': { icon: '📂', desc: 'This topic and all subtopics'     },
+      'entire-tree':     { icon: '🌳', desc: 'Your complete bAInder library'    },
+    };
+
+    const scopeRows = scopes.map(({ value, label }, i) => {
+      const checked = defaultScope ? value === defaultScope : i === 0;
+      const meta    = SCOPE_META[value] ?? { icon: '📁', desc: '' };
+      return /* html */`
+        <label class="dex-scope-row">
+          <input type="radio" name="export-scope" value="${value}"${checked ? ' checked' : ''}>
+          <span class="dex-scope-icon" aria-hidden="true">${meta.icon}</span>
+          <span class="dex-scope-body">
+            <span class="dex-scope-name">${label}</span>
+            <span class="dex-scope-desc">${meta.desc}</span>
+          </span>
+          <svg class="dex-scope-check" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </label>`;
+    }).join('');
+
+    const styleChips = Object.entries(STYLE_LABELS).map(([value, label], i) => /* html */`
+      <label class="dex-style-chip">
         <input type="radio" name="export-style" value="${value}"${i === 0 ? ' checked' : ''}>
         ${label}
       </label>`).join('');
 
     const scopeSection = showScope ? /* html */`
-      <fieldset class="export-fieldset" id="export-scope-group">
-        <legend class="export-legend">Scope</legend>
-        <div class="radio-group vertical">
-          ${scopeRadios}
+      <div class="dex-section" id="export-scope-group">
+        <p class="dex-section-label">Scope</p>
+        <div class="dex-scope-list">
+          ${scopeRows}
         </div>
-      </fieldset>` : '';
+      </div>` : '';
 
     return /* html */`
-      <style>
-        /* ── Export dialog scoped styles ─────────────────────────────────── */
-        .export-dialog {
-          font-size: 0.92rem;
-        }
 
-        .export-form {
-          display: grid;
-          grid-template-columns: 110px 1fr;
-          gap: 20px 0;
-          align-items: start;
-          padding: 4px 0;
-        }
-
-        .export-fieldset {
-          display: contents;
-          border: none;
-          padding: 0;
-          margin: 0;
-        }
-
-        .export-legend {
-          font-weight: 600;
-          font-size: 0.8rem;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: var(--text-muted, #888);
-          padding-top: 5px;
-          white-space: nowrap;
-        }
-
-        .radio-group {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px 12px;
-          align-items: center;
-        }
-
-        .radio-group.vertical {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 6px;
-        }
-
-        .radio-label {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 4px 10px;
-          border-radius: 5px;
-          cursor: pointer;
-          transition: background 0.12s;
-          line-height: 1.3;
-          white-space: nowrap;
-        }
-
-        .radio-label:hover {
-          background: var(--hover-bg, rgba(0, 0, 0, 0.05));
-        }
-
-        .radio-label:has(input[type="radio"]:checked) {
-          background: var(--accent-light, rgba(99, 102, 241, 0.12));
-          color: var(--accent, #6366f1);
-          font-weight: 500;
-        }
-
-        .radio-label input[type="radio"] {
-          accent-color: var(--accent, #6366f1);
-          width: 14px;
-          height: 14px;
-          flex-shrink: 0;
-        }
-
-        .export-note {
-          display: none;
-          grid-column: 2;
-          font-size: 0.8rem;
-          color: var(--text-muted, #888);
-          padding: 2px 10px;
-          font-style: italic;
-          margin-top: -12px;
-        }
-
-        .export-note.visible {
-          display: block;
-        }
-      </style>
 
       <div class="modal-header">
         <h2>Export — ${title}</h2>
         <button class="modal-close-btn" data-action="close" aria-label="Close">✕</button>
       </div>
 
-      <div class="modal-body export-dialog">
-        <div class="export-form">
+      <div class="modal-body">
 
-          <fieldset class="export-fieldset" id="export-format-group">
-            <legend class="export-legend">Format</legend>
-            <div class="radio-group" id="format-radios">
-              ${formatRadios}
-            </div>
-          </fieldset>
-
-          <p class="export-note" id="export-zip-note">
-            ZIP exports raw Markdown with full folder structure.
+        <div class="dex-section">
+          <p class="dex-section-label">Format</p>
+          <div class="dex-fmt-grid">
+            ${formatCards}
+          </div>
+          <p class="dex-note" id="export-zip-note">
+            ZIP bundles all chats as Markdown files, preserving your topic folder structure.
           </p>
-
-          ${scopeSection}
-
-          <fieldset class="export-fieldset" id="export-style-group">
-            <legend class="export-legend">Style</legend>
-            <div class="radio-group vertical" id="style-radios">
-              ${styleRadios}
-            </div>
-          </fieldset>
-
         </div>
+
+        ${scopeSection}
+
+        <div class="dex-section" id="export-style-section">
+          <p class="dex-section-label">Output Style</p>
+          <div class="dex-style-chips">
+            ${styleChips}
+          </div>
+        </div>
+
       </div>
 
       <div class="modal-footer">
         <button class="btn-secondary" data-action="cancel">Cancel</button>
-        <button class="btn-primary" data-action="export">Export ▼</button>
+        <button class="btn-primary" data-action="export">Export</button>
       </div>`;
   }
 
@@ -342,73 +284,69 @@ export class ExportDialog {
    * @returns {string}
    */
   _buildDigestDialogHtml(count) {
-    const formatRadios = CHAT_FORMATS.map(({ value, label }, i) => /* html */`
-      <label class="radio-label">
-        <input type="radio" name="export-format" value="${value}"${i === 0 ? ' checked' : ''}>
-        ${label}
-      </label>`).join('');
+    const FMT_META = {
+      markdown: { icon: '📝', ext: '.md'   },
+      html:     { icon: '🌐', ext: '.html' },
+      pdf:      { icon: '📄', ext: 'print' },
+    };
 
-    const styleRadios = Object.entries(STYLE_LABELS).map(([value, label], i) => /* html */`
-      <label class="radio-label">
+    const formatCards = CHAT_FORMATS.map(({ value, label }, i) => {
+      const meta = FMT_META[value] ?? { icon: '📄', ext: '' };
+      return /* html */`
+        <label class="dex-fmt-card">
+          <input type="radio" name="export-format" value="${value}"${i === 0 ? ' checked' : ''}>
+          <span class="dex-fmt-icon" aria-hidden="true">${meta.icon}</span>
+          <span class="dex-fmt-name">${label}</span>
+          <span class="dex-fmt-ext">${meta.ext}</span>
+        </label>`;
+    }).join('');
+
+    const styleChips = Object.entries(STYLE_LABELS).map(([value, label], i) => /* html */`
+      <label class="dex-style-chip">
         <input type="radio" name="export-style" value="${value}"${i === 0 ? ' checked' : ''}>
         ${label}
       </label>`).join('');
 
     return /* html */`
-      <style>
-        /* reuse export-dialog scoped styles */
-        .export-dialog { font-size: 0.92rem; }
-        .export-form { display: grid; grid-template-columns: 110px 1fr; gap: 20px 0; align-items: start; padding: 4px 0; }
-        .export-fieldset { display: contents; border: none; padding: 0; margin: 0; }
-        .export-legend { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted, #888); padding-top: 5px; white-space: nowrap; }
-        .radio-group { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
-        .radio-group.vertical { flex-direction: column; align-items: flex-start; gap: 6px; }
-        .radio-label { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 5px; cursor: pointer; transition: background 0.12s; line-height: 1.3; white-space: nowrap; }
-        .radio-label:hover { background: var(--hover-bg, rgba(0,0,0,0.05)); }
-        .radio-label:has(input[type="radio"]:checked) { background: var(--accent-light, rgba(99,102,241,0.12)); color: var(--accent, #6366f1); font-weight: 500; }
-        .radio-label input[type="radio"] { accent-color: var(--accent, #6366f1); width: 14px; height: 14px; flex-shrink: 0; }
-        .export-toc-row { display: contents; }
-        .toc-toggle-label { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 0.9rem; }
-        .toc-toggle-label:hover { background: var(--hover-bg, rgba(0,0,0,0.05)); }
-        .toc-toggle-label input[type="checkbox"] { accent-color: var(--accent, #6366f1); width: 14px; height: 14px; }
-      </style>
+
 
       <div class="modal-header">
         <h2>Export Digest — ${count} chats</h2>
         <button class="modal-close-btn" data-action="close" aria-label="Close">✕</button>
       </div>
 
-      <div class="modal-body export-dialog">
-        <div class="export-form">
+      <div class="modal-body">
 
-          <fieldset class="export-fieldset" id="export-format-group">
-            <legend class="export-legend">Format</legend>
-            <div class="radio-group" id="format-radios">
-              ${formatRadios}
-            </div>
-          </fieldset>
-
-          <fieldset class="export-fieldset" id="export-style-group">
-            <legend class="export-legend">Style</legend>
-            <div class="radio-group vertical" id="style-radios">
-              ${styleRadios}
-            </div>
-          </fieldset>
-
-          <div class="export-toc-row">
-            <legend class="export-legend">Options</legend>
-            <label class="toc-toggle-label">
-              <input type="checkbox" id="digest-include-toc" checked>
-              Include table of contents
-            </label>
+        <div class="dex-section">
+          <p class="dex-section-label">Format</p>
+          <div class="dex-fmt-grid">
+            ${formatCards}
           </div>
-
         </div>
+
+        <div class="dex-section" id="export-style-section">
+          <p class="dex-section-label">Output Style</p>
+          <div class="dex-style-chips">
+            ${styleChips}
+          </div>
+        </div>
+
+        <div class="dex-section">
+          <p class="dex-section-label">Options</p>
+          <label class="dex-toggle-chip">
+            <input type="checkbox" id="digest-include-toc" checked>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink:0">
+              <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Include table of contents
+          </label>
+        </div>
+
       </div>
 
       <div class="modal-footer">
         <button class="btn-secondary" data-action="cancel">Cancel</button>
-        <button class="btn-primary" data-action="export">Export Digest ▼</button>
+        <button class="btn-primary" data-action="export">Export Digest</button>
       </div>`;
   }
 
@@ -427,18 +365,15 @@ export class ExportDialog {
 
     // ── Format change → toggle style / zip-note sections ──────────────────
     const formatInputs   = container.querySelectorAll('input[name="export-format"]');
-    const styleGroup     = container.querySelector('#export-style-group');
+    const styleSection   = container.querySelector('#export-style-section');
     const zipNote        = container.querySelector('#export-zip-note');
 
     const updateVisibility = () => {
       const fmt = container.querySelector('input[name="export-format"]:checked')?.value;
       const hideStyle = fmt === 'pdf' || fmt === 'zip';
 
-      if (styleGroup) {
-        // legend + radio-group div are the two grid children produced by display:contents
-        styleGroup.querySelectorAll('legend, .radio-group').forEach(el => {
-          el.style.visibility = hideStyle ? 'hidden' : '';
-        });
+      if (styleSection) {
+        styleSection.style.display = hideStyle ? 'none' : '';
       }
 
       if (zipNote) {
