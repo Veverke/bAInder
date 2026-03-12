@@ -5,7 +5,7 @@
 > Generated: March 3, 2026  
 > Source: AI-assisted brainstorming session — features not already covered by the roadmap or design specs.  
 > These are catalogued as **C.13 – C.32** in Appendix C of `DESIGN_SPECS.md` and `roadmap.html`.  
-> Last updated: March 12, 2026 — sorted by impact/complexity ROI; completed features moved to end. C.20 completed March 12, 2026. C.26 completed March 12, 2026. C.28 completed March 12, 2026.
+> Last updated: March 13, 2026 — sorted by impact/complexity ROI; completed features moved to end. C.18 completed March 13, 2026. C.20 completed March 12, 2026. C.26 completed March 12, 2026. C.28 completed March 12, 2026.
 
 ---
 
@@ -15,9 +15,7 @@ Items are ordered by return on investment: highest differentiator with lowest ef
 
 | Ref | Feature | Effort | Differentiator |
 |-----|---------|--------|----------------|
-| ~~C.28~~ | ~~Enumerate prompts & responses in chat header~~ | ~~Low~~ | ~~Moderate~~ | ✅ Done |
 | C.24 | Internal API-based extraction — platform-wide strategy | Low/platform | Moderate |
-| C.18 | Model comparison (side-by-side diff view) | Medium | Very High |
 | C.16 | Cross-platform prompt launch | Medium | Very High |
 | C.23 | Platform expansion: DeepSeek, Grok & Perplexity | Medium | Very High |
 | C.25 | Chat hover overlay (tree preview) | Medium | High |
@@ -118,7 +116,7 @@ This is fundamentally different from paid generation APIs (e.g. `api.anthropic.c
 
 ---
 
-## C.18 — Model Comparison View (Side-by-Side Diff)
+## C.18 — Model Comparison View (Side-by-Side Diff) ✅ COMPLETED March 13, 2026
 
 **Idea:** Side-by-side reader view for two or more saved chats answering the same (or similar) question, with structured analysis highlighting how different models responded.
 
@@ -418,8 +416,11 @@ Streamlines navigation and retrieval of prompts and code, supporting power-user 
 | C.15 | Chat star rating (1–5) | Low | Moderate | ✅ Completed (March 4, 2026) |
 | C.17 | Multi-chat assembly / digest export | Medium | High | ✅ Completed |
 | C.19 | Review-by date / expiry flag | Low | Moderate | ✅ Completed (March 4, 2026) |
+| C.18 | Model comparison (side-by-side diff view) | Medium | Very High | ✅ Completed (March 13, 2026) |
 | C.20 | JSONL fine-tuning export | Low–Medium | Very High | ✅ Completed (March 12, 2026) |
 | C.22 | Reading progress persistence | Low | Moderate | ✅ Completed (March 4, 2026) |
+| C.26 | Copy chat content(s) to clipboard | Low–Medium | High | ✅ Completed (March 12, 2026) |
+| C.28 | Enumerate prompts & responses in chat header | Low | Moderate | ✅ Completed (March 12, 2026) |
 
 ---
 
@@ -533,4 +534,37 @@ Streamlines navigation and retrieval of prompts and code, supporting power-user 
 
 ---
 
-*Document generated: March 3, 2026 — last updated: March 12, 2026*
+## C.18 — Model Comparison View (Side-by-Side Diff) ✅ COMPLETED March 13, 2026
+
+**Idea:** Side-by-side reader view for two or more saved chats answering the same (or similar) question, with structured analysis highlighting how different models responded.
+
+**Value:** Researchers and power users who query multiple models need to compare outputs. A visual compare view without leaving the extension is a compelling capability.
+
+**Detailed work plan:** see [Compare-Feature-Work-Plan.md](Compare-Feature-Work-Plan.md).
+
+**Effort:** Medium (phased). **Differentiator:** Very High — unique in the extension market.
+
+---
+
+## C.28 — Enumerate Prompts & Responses in Chat Header ✅ COMPLETED March 12, 2026
+
+**Idea:** In the saved chat header (and the hover overlay introduced in C.25), display the total count of user prompts and assistant responses. Each prompt and each response within the chat view itself is additionally labelled with its own sequential number — prompts numbered independently (P1, P2, …) and responses numbered independently (R1, R2, …) — making it trivial to cross-reference hover stats with actual content.
+
+**Value:** Long chats with many back-and-forth turns become navigable at a glance. A user who sees "Prompts: 8 | Responses: 8" in the hover overlay can immediately jump to P5/R5 without mentally counting.
+
+**Implementation (as built):**
+- **Header/overlay counts:** `countTurns(contentEl)` counts `.chat-turn--user/.chat-turn--assistant` (legacy wrapped format) with a fallback for `🙋`/`🤖` paragraph prefixes (current emoji serialiser format). Counts are displayed in `#meta-responses` in the reader header.
+- **Per-message labels:** `addOrdinalLabels(contentEl)` prepends a `<span class="msg-ordinal">` to each user/assistant turn before the emoji role indicator:
+  - User turns: `P1`, `P2`, … — prepended to the `<p>🙋 …</p>` element
+  - Assistant turns: `R1`, `R2`, … — prepended to the `<p>🤖 …</p>` element
+  - Legacy wrapped-format chats: labels are prepended inside `.chat-turn__role`
+- Labels are styled as bold pill badges (weight 800, `--primary` colour on a translucent background) so they are clearly visible without cluttering the content.
+- **Deep-link anchor:** Each labelled element is assigned `id="p1"` / `id="r3"` (etc.), matching the prompts-overlay `href` anchors — enabling direct in-page navigation.
+- **Dual-format support:** Both the current emoji format and the legacy `### User` / `### Assistant` heading format are handled; the function auto-detects which is in use.
+- Settings toggle: "Show message ordinals" (default: on) in the Reader settings section — `body.ordinals-hidden .msg-ordinal { display: none }` hides all labels when toggled off.
+
+**Effort:** Low. **Differentiator:** Moderate — a small but meaningful navigability improvement for power users working with long research chats.
+
+---
+
+*Document generated: March 3, 2026 — last updated: March 13, 2026*
