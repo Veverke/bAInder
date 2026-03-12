@@ -108,56 +108,56 @@ function buildCopilotDoc(turns = []) {
 // ─── detectPlatform ───────────────────────────────────────────────────────────
 
 describe('detectPlatform()', () => {
-  it('returns chatgpt for chat.openai.com', () => {
+  it('returns chatgpt for chat.openai.com', async () => {
     expect(detectPlatform('chat.openai.com')).toBe('chatgpt');
   });
 
-  it('returns claude for claude.ai', () => {
+  it('returns claude for claude.ai', async () => {
     expect(detectPlatform('claude.ai')).toBe('claude');
   });
 
-  it('returns gemini for gemini.google.com', () => {
+  it('returns gemini for gemini.google.com', async () => {
     expect(detectPlatform('gemini.google.com')).toBe('gemini');
   });
 
-  it('returns null for an unknown hostname', () => {
+  it('returns null for an unknown hostname', async () => {
     expect(detectPlatform('example.com')).toBeNull();
   });
 
-  it('returns null for empty string', () => {
+  it('returns null for empty string', async () => {
     expect(detectPlatform('')).toBeNull();
   });
 
-  it('returns null for null', () => {
+  it('returns null for null', async () => {
     expect(detectPlatform(null)).toBeNull();
   });
 
-  it('returns null for undefined', () => {
+  it('returns null for undefined', async () => {
     expect(detectPlatform(undefined)).toBeNull();
   });
 
-  it('detects copilot from copilot.microsoft.com hostname', () => {
+  it('detects copilot from copilot.microsoft.com hostname', async () => {
     expect(detectPlatform('copilot.microsoft.com')).toBe('copilot');
   });
 
-  it('detects copilot with path on copilot.microsoft.com', () => {
+  it('detects copilot with path on copilot.microsoft.com', async () => {
     expect(detectPlatform('copilot.microsoft.com')).toBe('copilot');
   });
 
-  it('detects copilot from m365.cloud.microsoft (redirect target)', () => {
+  it('detects copilot from m365.cloud.microsoft (redirect target)', async () => {
     expect(detectPlatform('m365.cloud.microsoft')).toBe('copilot');
   });
 
-  it('detects copilot from m365.cloud.microsoft with subdomain', () => {
+  it('detects copilot from m365.cloud.microsoft with subdomain', async () => {
     expect(detectPlatform('m365.cloud.microsoft')).toBe('copilot');
   });
 
-  it('is case-insensitive', () => {
+  it('is case-insensitive', async () => {
     expect(detectPlatform('CHAT.OPENAI.COM')).toBe('chatgpt');
     expect(detectPlatform('Claude.AI')).toBe('claude');
   });
 
-  it('matches on substrings (e.g. subdomain)', () => {
+  it('matches on substrings (e.g. subdomain)', async () => {
     expect(detectPlatform('chat.openai.com')).toBe('chatgpt');
   });
 });
@@ -165,11 +165,11 @@ describe('detectPlatform()', () => {
 // ─── sanitizeContent ─────────────────────────────────────────────────────────
 
 describe('sanitizeContent()', () => {
-  it('strips HTML tags', () => {
+  it('strips HTML tags', async () => {
     expect(sanitizeContent('<b>Hello</b> <i>world</i>')).toBe('Hello world');
   });
 
-  it('decodes HTML entities', () => {
+  it('decodes HTML entities', async () => {
     // &nbsp; becomes a space, then whitespace normalisation collapses/trims
     expect(sanitizeContent('&amp;')).toBe('&');
     expect(sanitizeContent('&lt;')).toBe('<');
@@ -180,31 +180,31 @@ describe('sanitizeContent()', () => {
     expect(sanitizeContent('Hello &amp; World')).toBe('Hello & World');
   });
 
-  it('normalises whitespace', () => {
+  it('normalises whitespace', async () => {
     expect(sanitizeContent('  hello   world  ')).toBe('hello world');
   });
 
-  it('handles nested tags', () => {
+  it('handles nested tags', async () => {
     expect(sanitizeContent('<div><p>Text</p></div>')).toBe('Text');
   });
 
-  it('returns empty string for empty input', () => {
+  it('returns empty string for empty input', async () => {
     expect(sanitizeContent('')).toBe('');
   });
 
-  it('returns empty string for null', () => {
+  it('returns empty string for null', async () => {
     expect(sanitizeContent(null)).toBe('');
   });
 
-  it('returns empty string for undefined', () => {
+  it('returns empty string for undefined', async () => {
     expect(sanitizeContent(undefined)).toBe('');
   });
 
-  it('handles plain text without HTML', () => {
+  it('handles plain text without HTML', async () => {
     expect(sanitizeContent('Hello world')).toBe('Hello world');
   });
 
-  it('handles mixed tags and entities', () => {
+  it('handles mixed tags and entities', async () => {
     const result = sanitizeContent('<p>Hello &amp; <b>world</b></p>');
     expect(result).toBe('Hello & world');
   });
@@ -213,23 +213,23 @@ describe('sanitizeContent()', () => {
 // ─── getTextContent ───────────────────────────────────────────────────────────
 
 describe('getTextContent()', () => {
-  it('extracts text from a DOM element', () => {
+  it('extracts text from a DOM element', async () => {
     const el = document.createElement('div');
     el.textContent = 'Hello world';
     expect(getTextContent(el)).toBe('Hello world');
   });
 
-  it('strips tags from innerHTML', () => {
+  it('strips tags from innerHTML', async () => {
     const el = document.createElement('div');
     el.innerHTML = '<b>Bold</b> text';
     expect(getTextContent(el)).toBe('Bold text');
   });
 
-  it('returns empty string for null', () => {
+  it('returns empty string for null', async () => {
     expect(getTextContent(null)).toBe('');
   });
 
-  it('falls back to textContent when innerHTML is empty', () => {
+  it('falls back to textContent when innerHTML is empty', async () => {
     const el = document.createElement('div');
     // Override innerHTML to return '' (falsy) so textContent path is taken
     Object.defineProperty(el, 'innerHTML', { get: () => '', configurable: true });
@@ -237,7 +237,7 @@ describe('getTextContent()', () => {
     expect(getTextContent(el)).toContain('plain text');
   });
 
-  it('returns empty string when both innerHTML and textContent are empty', () => {
+  it('returns empty string when both innerHTML and textContent are empty', async () => {
     const el = document.createElement('div');
     // Both '' → sanitizeContent('') → ''
     expect(getTextContent(el)).toBe('');
@@ -253,103 +253,103 @@ describe('htmlToMarkdown()', () => {
     return div;
   }
 
-  it('returns empty string for null', () => {
+  it('returns empty string for null', async () => {
     expect(htmlToMarkdown(null)).toBe('');
   });
 
-  it('returns plain text unchanged', () => {
+  it('returns plain text unchanged', async () => {
     expect(htmlToMarkdown(el('Hello world'))).toBe('Hello world');
   });
 
-  it('converts <strong> to **bold**', () => {
+  it('converts <strong> to **bold**', async () => {
     expect(htmlToMarkdown(el('<strong>bold</strong>'))).toBe('**bold**');
   });
 
-  it('converts <b> to **bold**', () => {
+  it('converts <b> to **bold**', async () => {
     expect(htmlToMarkdown(el('<b>bold</b>'))).toBe('**bold**');
   });
 
-  it('converts <em> to *italic*', () => {
+  it('converts <em> to *italic*', async () => {
     expect(htmlToMarkdown(el('<em>italic</em>'))).toBe('*italic*');
   });
 
-  it('converts <i> to *italic*', () => {
+  it('converts <i> to *italic*', async () => {
     expect(htmlToMarkdown(el('<i>italic</i>'))).toBe('*italic*');
   });
 
-  it('converts inline <code> to backtick-code', () => {
+  it('converts inline <code> to backtick-code', async () => {
     expect(htmlToMarkdown(el('<code>x = 1</code>'))).toBe('`x = 1`');
   });
 
-  it('converts <pre><code> to fenced code block', () => {
+  it('converts <pre><code> to fenced code block', async () => {
     const result = htmlToMarkdown(el('<pre><code>console.log(1)</code></pre>'));
     expect(result).toBe('```\nconsole.log(1)\n```');
   });
 
-  it('preserves language class in fenced code block', () => {
+  it('preserves language class in fenced code block', async () => {
     const result = htmlToMarkdown(el('<pre><code class="language-python">print(1)</code></pre>'));
     expect(result).toBe('```python\nprint(1)\n```');
   });
 
-  it('converts <h1> to # heading', () => {
+  it('converts <h1> to # heading', async () => {
     expect(htmlToMarkdown(el('<h1>Title</h1>'))).toBe('# Title');
   });
 
-  it('converts <h2> to ## heading', () => {
+  it('converts <h2> to ## heading', async () => {
     expect(htmlToMarkdown(el('<h2>Sub</h2>'))).toBe('## Sub');
   });
 
-  it('converts <h3> to ### heading', () => {
+  it('converts <h3> to ### heading', async () => {
     expect(htmlToMarkdown(el('<h3>Sub</h3>'))).toBe('### Sub');
   });
 
-  it('converts <ul><li> to unordered list', () => {
+  it('converts <ul><li> to unordered list', async () => {
     const result = htmlToMarkdown(el('<ul><li>One</li><li>Two</li></ul>'));
     expect(result).toBe('- One\n- Two');
   });
 
-  it('converts <ol><li> to ordered list', () => {
+  it('converts <ol><li> to ordered list', async () => {
     const result = htmlToMarkdown(el('<ol><li>First</li><li>Second</li></ol>'));
     expect(result).toBe('1. First\n2. Second');
   });
 
-  it('converts <blockquote> to > quote lines', () => {
+  it('converts <blockquote> to > quote lines', async () => {
     const result = htmlToMarkdown(el('<blockquote>Note this</blockquote>'));
     expect(result).toBe('> Note this');
   });
 
-  it('converts <a href> to [text](url)', () => {
+  it('converts <a href> to [text](url)', async () => {
     const result = htmlToMarkdown(el('<a href="https://example.com">Example</a>'));
     expect(result).toBe('[Example](https://example.com)');
   });
 
-  it('uses link text only when href is absent', () => {
+  it('uses link text only when href is absent', async () => {
     const result = htmlToMarkdown(el('<a>just text</a>'));
     expect(result).toBe('just text');
   });
 
-  it('skips aria-hidden elements', () => {
+  it('skips aria-hidden elements', async () => {
     const result = htmlToMarkdown(el('<span aria-hidden="true">hidden</span>visible'));
     expect(result).toBe('visible');
   });
 
-  it('skips <svg>, <button>, <script> elements', () => {
+  it('skips <svg>, <button>, <script> elements', async () => {
     const result = htmlToMarkdown(el('<svg>icon</svg><button>click</button><script>bad</script>text'));
     expect(result).toBe('text');
   });
 
-  it('collapses 3+ consecutive newlines to 2', () => {
+  it('collapses 3+ consecutive newlines to 2', async () => {
     const result = htmlToMarkdown(el('<p>A</p><p>B</p><p>C</p>'));
     expect(result).not.toMatch(/\n{3,}/);
   });
 
-  it('handles mixed rich content: bold inside list item', () => {
+  it('handles mixed rich content: bold inside list item', async () => {
     const result = htmlToMarkdown(el('<ul><li><strong>Key</strong>: value</li></ul>'));
     expect(result).toContain('**Key**');
     expect(result).toContain('- ');
   });
 
-  it('handles a realistic assistant response with heading, list, and code', () => {
+  it('handles a realistic assistant response with heading, list, and code', async () => {
     const html = [
       '<h2>Steps</h2>',
       '<ol><li>Install Node</li><li>Run <code>npm install</code></li></ol>',
@@ -365,7 +365,7 @@ describe('htmlToMarkdown()', () => {
 
   // ── Code block improvements ────────────────────────────────────────────
 
-  it('renders multi-line <code> without <pre> as a fenced code block', () => {
+  it('renders multi-line <code> without <pre> as a fenced code block', async () => {
     // Some AI renderers omit the <pre> wrapper
     const codeEl = document.createElement('code');
     codeEl.textContent = 'def hello():\n    print("world")';
@@ -377,7 +377,7 @@ describe('htmlToMarkdown()', () => {
     expect(result).toContain('print("world")');
   });
 
-  it('detects language from <code class="language-python"> inside standalone code', () => {
+  it('detects language from <code class="language-python"> inside standalone code', async () => {
     const codeEl = document.createElement('code');
     codeEl.className = 'language-python';
     codeEl.textContent = 'def hello():\n    pass';
@@ -387,7 +387,7 @@ describe('htmlToMarkdown()', () => {
     expect(result).toContain('```python');
   });
 
-  it('detects language from parent <div class="highlight-source-python"><pre>', () => {
+  it('detects language from parent <div class="highlight-source-python"><pre>', async () => {
     // GitHub-style syntax-highlighted code blocks
     const container = document.createElement('div');
     container.className = 'highlight-source-python';
@@ -400,7 +400,7 @@ describe('htmlToMarkdown()', () => {
     expect(result).toContain('```python');
   });
 
-  it('<pre> without <code> child still produces a fenced code block', () => {
+  it('<pre> without <code> child still produces a fenced code block', async () => {
     // Some renderers put code directly in <pre> with <span> syntax highlighting
     const pre = document.createElement('pre');
     pre.innerHTML = '<span class="hljs-keyword">const</span> x = <span class="hljs-number">1</span>;';
@@ -413,36 +413,36 @@ describe('htmlToMarkdown()', () => {
 
   // ── Copilot role-label heading skipping ───────────────────────────────
 
-  it('skips h5 headings with text "You said:" (Copilot role label)', () => {
+  it('skips h5 headings with text "You said:" (Copilot role label)', async () => {
     const result = htmlToMarkdown(el('<h5>You said:</h5><p>My question</p>'));
     expect(result).not.toContain('You said:');
     expect(result).not.toContain('#####');
     expect(result).toContain('My question');
   });
 
-  it('skips role-label headings case-insensitively ("YOU SAID:")', () => {
+  it('skips role-label headings case-insensitively ("YOU SAID:")', async () => {
     const result = htmlToMarkdown(el('<h5>YOU SAID:</h5>actual content'));
     expect(result).toBe('actual content');
   });
 
-  it('skips h5 with text "Copilot said:"', () => {
+  it('skips h5 with text "Copilot said:"', async () => {
     const result = htmlToMarkdown(el('<h5>Copilot said:</h5>'));
     expect(result).toBe('');
   });
 
-  it('skips "I said:" role-label headings', () => {
+  it('skips "I said:" role-label headings', async () => {
     const result = htmlToMarkdown(el('<h2>I said:</h2><p>real content</p>'));
     expect(result).not.toContain('I said:');
     expect(result).toContain('real content');
   });
 
-  it('does NOT skip a real content heading like "Key Concepts"', () => {
+  it('does NOT skip a real content heading like "Key Concepts"', async () => {
     expect(htmlToMarkdown(el('<h2>Key Concepts</h2>'))).toBe('## Key Concepts');
   });
 
   // ── Code-block header (language label) skipping ────────────────────────
 
-  it('skips a language-label div that is a sibling of <pre>', () => {
+  it('skips a language-label div that is a sibling of <pre>', async () => {
     const container = document.createElement('div');
     const langDiv = document.createElement('div');
     langDiv.textContent = 'JavaScript';
@@ -460,7 +460,7 @@ describe('htmlToMarkdown()', () => {
     expect(result).not.toMatch(/^JavaScript$/m);
   });
 
-  it('does NOT skip a <div> sibling of <pre> that itself contains <code>', () => {
+  it('does NOT skip a <div> sibling of <pre> that itself contains <code>', async () => {
     const container = document.createElement('div');
     const contentDiv = document.createElement('div');
     const inlineCode = document.createElement('code');
@@ -476,18 +476,18 @@ describe('htmlToMarkdown()', () => {
     expect(result).toContain('npm install');
   });
 
-  it('skips <img> with blob: src (session-only URL)', () => {
-    // blob: URLs are not persisted → img should be skipped
+  it('skips <img> with blob: src (session-only URL)', async () => {
+    // blob: URLs can't be persisted — htmlToMarkdown emits a placeholder (Option E)
     const result = htmlToMarkdown(el('<img src="blob:https://chat.openai.com/abc123" alt="image">'));
-    expect(result).toBe('');
+    expect(result).toContain('[\u{1F5BC}\uFE0F Image: image]');
   });
 
-  it('renders <img> with https: src as markdown image', () => {
+  it('renders <img> with https: src as markdown image', async () => {
     const result = htmlToMarkdown(el('<img src="https://example.com/photo.png" alt="A photo">'));
     expect(result).toContain('![A photo](https://example.com/photo.png)');
   });
 
-  it('renders <img> with https: src and no alt attribute (alt || "" fallback)', () => {
+  it('renders <img> with https: src and no alt attribute (alt || "" fallback)', async () => {
     // img without alt attribute → getAttribute('alt') returns null → null || '' = ''
     const img = document.createElement('img');
     img.setAttribute('src', 'https://example.com/icon.png');
@@ -502,20 +502,20 @@ describe('htmlToMarkdown()', () => {
 // ─── formatMessage ────────────────────────────────────────────────────────────
 
 describe('formatMessage()', () => {
-  it('creates a message with role and content', () => {
+  it('creates a message with role and content', async () => {
     const msg = formatMessage('user', 'Hello');
     expect(msg).toEqual({ role: 'user', content: 'Hello' });
   });
 
-  it('trims content', () => {
+  it('trims content', async () => {
     expect(formatMessage('user', '  Hello  ').content).toBe('Hello');
   });
 
-  it('falls back role to "unknown" if empty', () => {
+  it('falls back role to "unknown" if empty', async () => {
     expect(formatMessage('', 'text').role).toBe('unknown');
   });
 
-  it('handles null content gracefully', () => {
+  it('handles null content gracefully', async () => {
     expect(formatMessage('user', null).content).toBe('');
   });
 });
@@ -523,7 +523,7 @@ describe('formatMessage()', () => {
 // ─── generateTitle ────────────────────────────────────────────────────────────
 
 describe('generateTitle()', () => {
-  it('uses the first user message as the title when assistant has no heading', () => {
+  it('uses the first user message as the title when assistant has no heading', async () => {
     const messages = [
       { role: 'assistant', content: 'Hi there!' },
       { role: 'user',      content: 'What is the capital of France?' }
@@ -531,33 +531,33 @@ describe('generateTitle()', () => {
     expect(generateTitle(messages, '')).toBe('What is the capital of France?');
   });
 
-  it('does NOT truncate long first user messages (regression: was 80 chars)', () => {
+  it('does NOT truncate long first user messages (regression: was 80 chars)', async () => {
     const long = 'A'.repeat(200);
     const title = generateTitle([{ role: 'user', content: long }], '');
     expect(title).toBe(long);   // full content returned — no truncation
     expect(title.endsWith('...')).toBe(false);
   });
 
-  it('exactly-80-char message is not truncated', () => {
+  it('exactly-80-char message is not truncated', async () => {
     const exact = 'A'.repeat(80);
     const title = generateTitle([{ role: 'user', content: exact }], '');
     expect(title).toBe(exact);
   });
 
-  it('falls back to URL path segment when no messages', () => {
+  it('falls back to URL path segment when no messages', async () => {
     const title = generateTitle([], 'https://chat.openai.com/c/abc123def456');
     expect(title).toBe('Chat abc123def456');
   });
 
-  it('falls back to "Untitled Chat" when no messages and no useful URL', () => {
+  it('falls back to "Untitled Chat" when no messages and no useful URL', async () => {
     expect(generateTitle([], '')).toBe('Untitled Chat');
   });
 
-  it('returns "Untitled Chat" when messages array is empty and URL is null', () => {
+  it('returns "Untitled Chat" when messages array is empty and URL is null', async () => {
     expect(generateTitle([], null)).toBe('Untitled Chat');
   });
 
-  it('skips short URL segments and falls back to Untitled', () => {
+  it('skips short URL segments and falls back to Untitled', async () => {
     // Segment 'c' is skipped; no other segments
     const title = generateTitle([], 'https://chat.openai.com/c');
     expect(title).toBe('Untitled Chat');
@@ -565,29 +565,29 @@ describe('generateTitle()', () => {
 
   // ── New behaviour: content is stored as markdown after htmlToMarkdown ────
 
-  it('strips ** bold markers from user content when building the title', () => {
+  it('strips ** bold markers from user content when building the title', async () => {
     const title = generateTitle([{ role: 'user', content: '**Hello** world' }], '');
     expect(title).toBe('Hello world');
     expect(title).not.toContain('**');
   });
 
-  it('strips # heading markers from user content when building the title', () => {
+  it('strips # heading markers from user content when building the title', async () => {
     const title = generateTitle([{ role: 'user', content: '## My Question' }], '');
     expect(title).toBe('My Question');
     expect(title).not.toContain('#');
   });
 
-  it('strips inline `code` markers from user content', () => {
+  it('strips inline `code` markers from user content', async () => {
     const title = generateTitle([{ role: 'user', content: 'Use `npm install` to start' }], '');
     expect(title).toBe('Use npm install to start');
   });
 
-  it('uses first non-empty line from multi-line user content', () => {
+  it('uses first non-empty line from multi-line user content', async () => {
     const multiLine = '\nFirst line\nSecond line\nThird line';
     expect(generateTitle([{ role: 'user', content: multiLine }], '')).toBe('First line');
   });
 
-  it('skips blank lines and code fences to find first real text', () => {
+  it('skips blank lines and code fences to find first real text', async () => {
     const content = '\n\n```javascript\nconst x = 1;\n```\n\nActual question here';
     // First non-empty non-code-fence line is the ``` fence itself — we want whatever comes through
     // The important thing: title is not empty
@@ -597,7 +597,7 @@ describe('generateTitle()', () => {
 
   // ── Strategy 1: user message (assistant headings no longer used for title) ────
 
-  it('uses user message even when assistant has h1 heading', () => {
+  it('uses user message even when assistant has h1 heading', async () => {
     const messages = [
       { role: 'user',      content: 'How do closures work in JS?' },
       { role: 'assistant', content: '# JavaScript Closures\nA closure is a function...' },
@@ -605,7 +605,7 @@ describe('generateTitle()', () => {
     expect(generateTitle(messages, '')).toBe('How do closures work in JS?');
   });
 
-  it('uses user message even when assistant has h2 heading', () => {
+  it('uses user message even when assistant has h2 heading', async () => {
     const messages = [
       { role: 'user',      content: 'How do I centre a div?' },
       { role: 'assistant', content: '## Centering a Div with Flexbox\nUse flex...' },
@@ -613,7 +613,7 @@ describe('generateTitle()', () => {
     expect(generateTitle(messages, '')).toBe('How do I centre a div?');
   });
 
-  it('falls through to user message when assistant has no heading', () => {
+  it('falls through to user message when assistant has no heading', async () => {
     const messages = [
       { role: 'assistant', content: 'Sure, here is my answer.' },
       { role: 'user',      content: 'Explain recursion' },
@@ -621,7 +621,7 @@ describe('generateTitle()', () => {
     expect(generateTitle(messages, '')).toBe('Explain recursion');
   });
 
-  it('skips assistant heading shorter than 4 chars', () => {
+  it('skips assistant heading shorter than 4 chars', async () => {
     const messages = [
       { role: 'assistant', content: '# Hi\nSome content here.' },
       { role: 'user',      content: 'Say hi to me' },
@@ -632,39 +632,39 @@ describe('generateTitle()', () => {
 
   // ── Strategy 2: first complete sentence ────────────────────────────────
 
-  it('extracts first complete sentence when followed by more text', () => {
+  it('extracts first complete sentence when followed by more text', async () => {
     const messages = [{ role: 'user', content: 'How do I sort an array? I tried various methods.' }];
     expect(generateTitle(messages, '')).toBe('How do I sort an array?');
   });
 
-  it('returns full first line when there is no sentence terminator', () => {
+  it('returns full first line when there is no sentence terminator', async () => {
     const messages = [{ role: 'user', content: 'Explain the difference between let and const' }];
     expect(generateTitle(messages, '')).toBe('Explain the difference between let and const');
   });
 
   // ── Copilot role-label skipping in title ───────────────────────────────
 
-  it('skips "You said:" Copilot label and uses the actual question as title', () => {
+  it('skips "You said:" Copilot label and uses the actual question as title', async () => {
     const messages = [{ role: 'user', content: '##### You said:\nMy actual question' }];
     const title = generateTitle(messages, '');
     expect(title).toBe('My actual question');
     expect(title).not.toContain('You said');
   });
 
-  it('skips "I said:" and uses subsequent line as title', () => {
+  it('skips "I said:" and uses subsequent line as title', async () => {
     const messages = [{ role: 'user', content: 'I said:\nReal prompt here' }];
     const title = generateTitle(messages, '');
     expect(title).toBe('Real prompt here');
     expect(title).not.toContain('I said');
   });
 
-  it('skips Copilot label even without colon ("Copilot")', () => {
+  it('skips Copilot label even without colon ("Copilot")', async () => {
     const messages = [{ role: 'user', content: '## Copilot\nThis is the content' }];
     const title = generateTitle(messages, '');
     expect(title).toBe('This is the content');
   });
 
-  it('uses || "" fallback when all user content lines are empty after stripping (line 19 branch)', () => {
+  it('uses || "" fallback when all user content lines are empty after stripping (line 19 branch)', async () => {
     // Content that after cleaning produces no non-empty lines → [0] = undefined → || '' → firstLine = ''
     // → if (firstLine) is false → falls through to URL/Untitled
     const messages = [{ role: 'user', content: '\n\n\n' }]; // only blank lines
@@ -672,7 +672,7 @@ describe('generateTitle()', () => {
     expect(title).toBe('Untitled Chat');
   });
 
-  it('returns full cleaned line when sentence is too short (< 8 chars) to extract sentence', () => {
+  it('returns full cleaned line when sentence is too short (< 8 chars) to extract sentence', async () => {
     // sentenceMatch finds "Yes." (3 chars) which is < 8 → falls through to return full line
     const messages = [{ role: 'user', content: 'Yes. But I need more details on this topic.' }];
     const title = generateTitle(messages, '');
@@ -686,7 +686,7 @@ describe('generateTitle()', () => {
 describe('extractors — rich formatting preserved via htmlToMarkdown', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
-  it('extractChatGPT: preserves bold, inline code, and list from assistant HTML', () => {
+  it('extractChatGPT: preserves bold, inline code, and list from assistant HTML', async () => {
     // Build a ChatGPT-style DOM where the .markdown div has rich HTML
     const div = document.createElement('div');
     const article = document.createElement('article');
@@ -701,14 +701,14 @@ describe('extractors — rich formatting preserved via htmlToMarkdown', () => {
     div.appendChild(article);
     document.body.appendChild(div);
 
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     const content = result.messages[0].content;
     expect(content).toContain('**flexbox**');
     expect(content).toContain('`display: flex`');
     expect(content).toContain('- ');
   });
 
-  it('extractCopilot: preserves heading, code block, and bold from assistant HTML', () => {
+  it('extractCopilot: preserves heading, code block, and bold from assistant HTML', async () => {
     document.body.innerHTML = '';
     const wrapper = document.createElement('div');
     const userEl = document.createElement('div');
@@ -727,7 +727,7 @@ describe('extractors — rich formatting preserved via htmlToMarkdown', () => {
     wrapper.appendChild(assistantEl);
     document.body.appendChild(wrapper);
 
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     const assistantMsg = result.messages.find(m => m.role === 'assistant');
     expect(assistantMsg).toBeDefined();
     expect(assistantMsg.content).toContain('## Answer');
@@ -736,7 +736,7 @@ describe('extractors — rich formatting preserved via htmlToMarkdown', () => {
     expect(assistantMsg.content).toContain('.parent { display: flex; }');
   });
 
-  it('prepareChatForSave: markdown content contains preserved formatting', () => {
+  it('prepareChatForSave: markdown content contains preserved formatting', async () => {
     document.body.innerHTML = '';
     const wrapper = document.createElement('div');
     const userEl = document.createElement('div');
@@ -749,7 +749,7 @@ describe('extractors — rich formatting preserved via htmlToMarkdown', () => {
     wrapper.appendChild(assistantEl);
     document.body.appendChild(wrapper);
 
-    const extracted = extractCopilot(document);
+    const extracted = await extractCopilot(document);
     const savePayload = prepareChatForSave({
       platform: 'copilot',
       url: 'https://copilot.microsoft.com/chats/test',
@@ -766,7 +766,7 @@ describe('extractors — rich formatting preserved via htmlToMarkdown', () => {
 
   // ── Sidebar scoping: extractCopilot only reads from the main area ─────────
 
-  it('extractCopilot: ignores user elements outside <main> when <main> is present', () => {
+  it('extractCopilot: ignores user elements outside <main> when <main> is present', async () => {
     document.body.innerHTML = '';
 
     // Sidebar element OUTSIDE main – should be ignored
@@ -789,14 +789,14 @@ describe('extractors — rich formatting preserved via htmlToMarkdown', () => {
     main.appendChild(assistantEl);
     document.body.appendChild(main);
 
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     const allContent = result.messages.map(m => m.content).join(' ');
     expect(allContent).toContain('Real user prompt');
     expect(allContent).not.toContain('Sidebar history summary');
     expect(result.messageCount).toBe(2);
   });
 
-  it('extractCopilot: title comes from actual first user message, not sidebar', () => {
+  it('extractCopilot: title comes from actual first user message, not sidebar', async () => {
     document.body.innerHTML = '';
 
     const sidebar = document.createElement('aside');
@@ -817,7 +817,7 @@ describe('extractors — rich formatting preserved via htmlToMarkdown', () => {
     main.appendChild(assistantEl);
     document.body.appendChild(main);
 
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.title).toBe('My full original prompt text');
     expect(result.title).not.toContain('Summarised');
   });
@@ -828,32 +828,32 @@ describe('extractors — rich formatting preserved via htmlToMarkdown', () => {
 describe('extractChatGPT()', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
-  it('throws if document is null', () => {
-    expect(() => extractChatGPT(null)).toThrow('Document is required');
+  it('throws if document is null', async () => {
+    await expect(extractChatGPT(null)).rejects.toThrow('Document is required');
   });
 
-  it('returns empty messages for a page with no conversation', () => {
+  it('returns empty messages for a page with no conversation', async () => {
     document.body.innerHTML = '<main></main>';
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages).toHaveLength(0);
     expect(result.messageCount).toBe(0);
   });
 
-  it('extracts a single user message', () => {
+  it('extracts a single user message', async () => {
     buildChatGPTDoc([{ role: 'user', content: 'Hello ChatGPT' }]);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0]).toEqual({ role: 'user', content: 'Hello ChatGPT' });
   });
 
-  it('extracts a full conversation in order', () => {
+  it('extracts a full conversation in order', async () => {
     buildChatGPTDoc([
       { role: 'user',      content: 'What is 2+2?' },
       { role: 'assistant', content: '4' },
       { role: 'user',      content: 'Thanks!' },
       { role: 'assistant', content: 'You are welcome.' }
     ]);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages).toHaveLength(4);
     expect(result.messages[0].role).toBe('user');
     expect(result.messages[1].role).toBe('assistant');
@@ -861,16 +861,16 @@ describe('extractChatGPT()', () => {
     expect(result.messages[3].role).toBe('assistant');
   });
 
-  it('sets the title from the first user message', () => {
+  it('sets the title from the first user message', async () => {
     buildChatGPTDoc([
       { role: 'user',      content: 'What is the weather today?' },
       { role: 'assistant', content: 'I cannot access real-time data.' }
     ]);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.title).toBe('What is the weather today?');
   });
 
-  it('uses the fallback selector when no .markdown exists', () => {
+  it('uses the fallback selector when no .markdown exists', async () => {
     // No .markdown class – falls back to the role element text
     const article = document.createElement('article');
     article.setAttribute('data-testid', 'conversation-turn-0');
@@ -880,22 +880,22 @@ describe('extractChatGPT()', () => {
     article.appendChild(roleEl);
     document.body.appendChild(article);
 
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages[0].content).toBe('Direct text content');
   });
 
-  it('skips turns without a role element', () => {
+  it('skips turns without a role element', async () => {
     const article = document.createElement('article');
     article.setAttribute('data-testid', 'conversation-turn-0');
     // No role element inside
     article.textContent = 'Orphan text';
     document.body.appendChild(article);
 
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages).toHaveLength(0);
   });
 
-  it('maps unknown role to "assistant"', () => {
+  it('maps unknown role to "assistant"', async () => {
     const article = document.createElement('article');
     article.setAttribute('data-testid', 'conversation-turn-0');
     const roleEl = document.createElement('div');
@@ -904,42 +904,42 @@ describe('extractChatGPT()', () => {
     article.appendChild(roleEl);
     document.body.appendChild(article);
 
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages[0].role).toBe('assistant');
   });
 
-  it('uses the global fallback selector when no articles found', () => {
+  it('uses the global fallback selector when no articles found', async () => {
     // Fallback: [data-message-author-role] elements not wrapped in articles
     const el = document.createElement('div');
     el.setAttribute('data-message-author-role', 'user');
     el.textContent = 'Fallback content';
     document.body.appendChild(el);
 
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages[0].content).toBe('Fallback content');
   });
 
-  it('returns messageCount equal to messages length', () => {
+  it('returns messageCount equal to messages length', async () => {
     buildChatGPTDoc([
       { role: 'user',      content: 'Q1' },
       { role: 'assistant', content: 'A1' }
     ]);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messageCount).toBe(result.messages.length);
   });
 
-  it('skips an article turn with no [data-message-author-role] child', () => {
+  it('skips an article turn with no [data-message-author-role] child', async () => {
     document.body.innerHTML = '';
     const article = document.createElement('article');
     article.setAttribute('data-testid', 'conversation-turn-0');
     article.innerHTML = '<p>No role element here</p>';
     document.body.appendChild(article);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     // The turn is skipped; fallback selector also finds nothing since no [data-message-author-role]
     expect(result.messages).toHaveLength(0);
   });
 
-  it('uses [class*="prose"] element when .markdown is absent', () => {
+  it('uses [class*="prose"] element when .markdown is absent', async () => {
     document.body.innerHTML = '';
     const article = document.createElement('article');
     article.setAttribute('data-testid', 'conversation-turn-0');
@@ -951,11 +951,11 @@ describe('extractChatGPT()', () => {
     roleEl.appendChild(proseEl);
     article.appendChild(roleEl);
     document.body.appendChild(article);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages[0]?.content).toContain('Prose text');
   });
 
-  it('uses || "" fallback for rawRole when attribute value is empty string', () => {
+  it('uses || "" fallback for rawRole when attribute value is empty string', async () => {
     // data-message-author-role="" → getAttribute returns "" (falsy) → || '' fires
     // empty rawRole → role maps to 'assistant' (not 'user')
     document.body.innerHTML = '';
@@ -966,12 +966,12 @@ describe('extractChatGPT()', () => {
     roleEl.textContent = 'Empty role content';
     article.appendChild(roleEl);
     document.body.appendChild(article);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     // rawRole = '' (falsy) → '' || '' = '' → not 'user' → maps to 'assistant'
     expect(result.messages[0]?.role).toBe('assistant');
   });
 
-  it('fallback path: maps non-user role to assistant and calls stripSourceContainers', () => {
+  it('fallback path: maps non-user role to assistant and calls stripSourceContainers', async () => {
     // Fallback path (no articles with data-testid): direct [data-message-author-role] elements
     // where role is NOT 'user' → maps to 'assistant' and processEl = stripSourceContainers(el)
     document.body.innerHTML = '';
@@ -979,12 +979,12 @@ describe('extractChatGPT()', () => {
     el.setAttribute('data-message-author-role', 'assistant');
     el.textContent = 'Fallback assistant content';
     document.body.appendChild(el);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages[0]?.role).toBe('assistant');
     expect(result.messages[0]?.content).toContain('Fallback assistant content');
   });
 
-  it('skips primary turn when htmlToMarkdown returns empty content (if (content) false branch)', () => {
+  it('skips primary turn when htmlToMarkdown returns empty content (if (content) false branch)', async () => {
     // An article with a role element but completely empty content → content = '' → not pushed
     document.body.innerHTML = '';
     const article = document.createElement('article');
@@ -994,18 +994,18 @@ describe('extractChatGPT()', () => {
     // No text content → htmlToMarkdown returns ''
     article.appendChild(roleEl);
     document.body.appendChild(article);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages).toHaveLength(0);
   });
 
-  it('fallback: skips element when htmlToMarkdown returns empty content (if (content) false branch)', () => {
+  it('fallback: skips element when htmlToMarkdown returns empty content (if (content) false branch)', async () => {
     // Fallback element with no text → content = '' → not pushed
     document.body.innerHTML = '';
     const el = document.createElement('div');
     el.setAttribute('data-message-author-role', 'user');
     // No text content
     document.body.appendChild(el);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     expect(result.messages).toHaveLength(0);
   });
 });
@@ -1173,64 +1173,64 @@ describe('extractClaude()', () => {
 describe('extractGemini()', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
-  it('throws if document is null', () => {
-    expect(() => extractGemini(null)).toThrow('Document is required');
+  it('throws if document is null', async () => {
+    await expect(extractGemini(null)).rejects.toThrow('Document is required');
   });
 
-  it('returns empty messages for a blank page', () => {
+  it('returns empty messages for a blank page', async () => {
     document.body.innerHTML = '<div></div>';
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     expect(result.messages).toHaveLength(0);
   });
 
-  it('extracts user queries and model responses', () => {
+  it('extracts user queries and model responses', async () => {
     buildGeminiDoc([
       { role: 'user',      content: 'What is ML?' },
       { role: 'assistant', content: 'Machine learning is...' }
     ]);
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     expect(result.messages).toHaveLength(2);
     expect(result.messages[0]).toEqual({ role: 'user',      content: 'What is ML?' });
     expect(result.messages[1]).toEqual({ role: 'assistant', content: 'Machine learning is...' });
   });
 
-  it('extracts using .query-text class fallback', () => {
+  it('extracts using .query-text class fallback', async () => {
     const el = document.createElement('div');
     el.className = 'query-text';
     el.textContent = 'User query via class';
     document.body.appendChild(el);
 
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     expect(result.messages[0].role).toBe('user');
   });
 
-  it('extracts using .response-text class fallback', () => {
+  it('extracts using .response-text class fallback', async () => {
     const el = document.createElement('div');
     el.className = 'response-text';
     el.textContent = 'Response via class';
     document.body.appendChild(el);
 
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     expect(result.messages[0].role).toBe('assistant');
   });
 
-  it('sets title from first user message', () => {
+  it('sets title from first user message', async () => {
     buildGeminiDoc([{ role: 'user', content: 'Summarise this document' }]);
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     expect(result.title).toBe('Summarise this document');
   });
 
-  it('returns messageCount equal to messages length', () => {
+  it('returns messageCount equal to messages length', async () => {
     buildGeminiDoc([
       { role: 'user',      content: 'A' },
       { role: 'assistant', content: 'B' },
       { role: 'user',      content: 'C' }
     ]);
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     expect(result.messageCount).toBe(3);
   });
 
-  it('does not duplicate user message when outer wrapper also matches [class*="user-query"]', () => {
+  it('does not duplicate user message when outer wrapper also matches [class*="user-query"]', async () => {
     // Gemini real DOM: an outer container div whose class contains "user-query"
     // (e.g. "user-query-container") wraps the actual content div "user-query-content".
     // Both match the wildcard selector — without removeDescendants this produces
@@ -1243,13 +1243,13 @@ describe('extractGemini()', () => {
     outer.appendChild(inner);
     document.body.appendChild(outer);
 
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].role).toBe('user');
     expect(result.messages[0].content).toBe('What is machine learning?');
   });
 
-  it('does not duplicate assistant message when outer wrapper also matches [class*="model-response"]', () => {
+  it('does not duplicate assistant message when outer wrapper also matches [class*="model-response"]', async () => {
     const outer = document.createElement('div');
     outer.className = 'model-response-container';
     const inner = document.createElement('div');
@@ -1258,21 +1258,50 @@ describe('extractGemini()', () => {
     outer.appendChild(inner);
     document.body.appendChild(outer);
 
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].role).toBe('assistant');
     expect(result.messages[0].content).toBe('ML is a subset of AI.');
   });
 
-  it('skips a turn whose content is empty (if(content) FALSE branch)', () => {
+  it('skips a turn whose content is empty (if(content) FALSE branch)', async () => {
     // An assistant element with no text → htmlToMarkdown returns '' → not pushed
     const emptyModel = document.createElement('div');
     emptyModel.className = 'model-response-text';
     // No text content
     document.body.appendChild(emptyModel);
 
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     expect(result.messages).toHaveLength(0);
+  });
+
+  it('strips "Gemini said" heading from assistant content', async () => {
+    // Gemini injects a "Gemini said" heading (h2/h3) before each model response.
+    // It should not appear in the saved content — only the 🤖 emoji prefix is used.
+    const el = document.createElement('div');
+    el.className = 'model-response-text';
+    el.innerHTML = '<h2>Gemini said</h2><p>The answer is 42.</p>';
+    document.body.appendChild(el);
+
+    const result = await extractGemini(document);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('assistant');
+    expect(result.messages[0].content).not.toMatch(/gemini said/i);
+    expect(result.messages[0].content).toContain('The answer is 42.');
+  });
+
+  it('strips "You stopped this response" text from assistant content', async () => {
+    // When a user interrupts a generation, Gemini renders this message inside
+    // the model-response element. It must not appear in the saved content.
+    const el = document.createElement('div');
+    el.className = 'model-response-text';
+    el.innerHTML = '<p>Partial answer here.</p><p>You stopped this response</p>';
+    document.body.appendChild(el);
+
+    const result = await extractGemini(document);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].content).toContain('Partial answer here.');
+    expect(result.messages[0].content).not.toMatch(/you stopped this response/i);
   });
 });
 
@@ -1281,42 +1310,42 @@ describe('extractGemini()', () => {
 describe('extractCopilot()', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
-  it('throws when document is null', () => {
-    expect(() => extractCopilot(null)).toThrow('Document is required');
+  it('throws when document is null', async () => {
+    await expect(extractCopilot(null)).rejects.toThrow('Document is required');
   });
 
-  it('returns empty messages when no elements found', () => {
+  it('returns empty messages when no elements found', async () => {
     document.body.innerHTML = '<div></div>';
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.messages).toHaveLength(0);
     expect(result.messageCount).toBe(0);
     expect(result.title).toBeDefined();
   });
 
-  it('extracts a single user message via data-testid="user-message"', () => {
+  it('extracts a single user message via data-testid="user-message"', async () => {
     buildCopilotDoc([{ role: 'user', content: 'Hello Copilot' }]);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].role).toBe('user');
     expect(result.messages[0].content).toBe('Hello Copilot');
   });
 
-  it('extracts a single assistant message via data-testid="copilot-message"', () => {
+  it('extracts a single assistant message via data-testid="copilot-message"', async () => {
     buildCopilotDoc([{ role: 'assistant', content: 'Hi there!' }]);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].role).toBe('assistant');
     expect(result.messages[0].content).toBe('Hi there!');
   });
 
-  it('extracts multi-turn conversation in DOM order', () => {
+  it('extracts multi-turn conversation in DOM order', async () => {
     buildCopilotDoc([
       { role: 'user',      content: 'What is TypeScript?' },
       { role: 'assistant', content: 'TypeScript is a typed superset of JavaScript.' },
       { role: 'user',      content: 'Give me an example.' },
       { role: 'assistant', content: 'const x: number = 42;' }
     ]);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.messages).toHaveLength(4);
     expect(result.messages[0].role).toBe('user');
     expect(result.messages[1].role).toBe('assistant');
@@ -1324,84 +1353,84 @@ describe('extractCopilot()', () => {
     expect(result.messages[3].role).toBe('assistant');
   });
 
-  it('sets title from the first user message', () => {
+  it('sets title from the first user message', async () => {
     buildCopilotDoc([{ role: 'user', content: 'Explain async/await' }]);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.title).toBe('Explain async/await');
   });
 
-  it('uses fallback title when no user message present', () => {
+  it('uses fallback title when no user message present', async () => {
     buildCopilotDoc([{ role: 'assistant', content: 'Hello!' }]);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(typeof result.title).toBe('string');
   });
 
-  it('returns messageCount equal to messages length', () => {
+  it('returns messageCount equal to messages length', async () => {
     buildCopilotDoc([
       { role: 'user',      content: 'Q1' },
       { role: 'assistant', content: 'A1' },
       { role: 'user',      content: 'Q2' }
     ]);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.messageCount).toBe(3);
   });
 
-  it('matches user elements with .UserMessage class fallback', () => {
+  it('matches user elements with .UserMessage class fallback', async () => {
     const el = document.createElement('div');
     el.className = 'UserMessage';
     el.textContent = 'Via class fallback';
     document.body.appendChild(el);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.messages.some(m => m.content === 'Via class fallback')).toBe(true);
   });
 
-  it('matches assistant elements with data-testid="assistant-message" fallback', () => {
+  it('matches assistant elements with data-testid="assistant-message" fallback', async () => {
     const el = document.createElement('div');
     el.setAttribute('data-testid', 'assistant-message');
     el.textContent = 'Fallback assistant';
     document.body.appendChild(el);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.messages.some(m => m.content === 'Fallback assistant')).toBe(true);
   });
 
   // ── Role-label stripping ──────────────────────────────────────────────────
 
-  it('strips "You said:" h5 injected by Copilot from user message content', () => {
+  it('strips "You said:" h5 injected by Copilot from user message content', async () => {
     document.body.innerHTML = '';
     const userEl = document.createElement('div');
     userEl.setAttribute('data-testid', 'user-message');
     userEl.innerHTML = '<h5>You said:</h5><p>How do closures work?</p>';
     document.body.appendChild(userEl);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.messages[0].content).toBe('How do closures work?');
     expect(result.messages[0].content).not.toContain('You said');
   });
 
-  it('strips "Copilot said:" h5 from assistant message content', () => {
+  it('strips "Copilot said:" h5 from assistant message content', async () => {
     document.body.innerHTML = '';
     const assistEl = document.createElement('div');
     assistEl.setAttribute('data-testid', 'copilot-message');
     assistEl.innerHTML = '<h5>Copilot said:</h5><p>A closure captures its surrounding scope.</p>';
     document.body.appendChild(assistEl);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.messages[0].content).toBe('A closure captures its surrounding scope.');
     expect(result.messages[0].content).not.toContain('Copilot said');
   });
 
-  it('title uses the real question, not the Copilot label', () => {
+  it('title uses the real question, not the Copilot label', async () => {
     document.body.innerHTML = '';
     const userEl = document.createElement('div');
     userEl.setAttribute('data-testid', 'user-message');
     userEl.innerHTML = '<h5>You said:</h5><p>Can I tell if arguments were passed to a JS function?</p>';
     document.body.appendChild(userEl);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.title).not.toContain('You said');
     expect(result.title).toContain('arguments');
   });
 
   // ── Ancestor deduplication ───────────────────────────────────────────
 
-  it('does not create duplicate messages when outer and inner element both match', () => {
+  it('does not create duplicate messages when outer and inner element both match', async () => {
     document.body.innerHTML = '';
     const outer = document.createElement('div');
     outer.setAttribute('data-testid', 'user-message');
@@ -1410,14 +1439,14 @@ describe('extractCopilot()', () => {
     inner.textContent = 'One message not duplicated';
     outer.appendChild(inner);
     document.body.appendChild(outer);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     const userMsgs = result.messages.filter(m => m.role === 'user');
     expect(userMsgs).toHaveLength(1);
   });
 
   // ── History sidebar exclusion ──────────────────────────────────────────
 
-  it('ignores user elements inside <aside> (history sidebar)', () => {
+  it('ignores user elements inside <aside> (history sidebar)', async () => {
     document.body.innerHTML = '';
     const aside = document.createElement('aside');
     const historyItem = document.createElement('div');
@@ -1431,20 +1460,20 @@ describe('extractCopilot()', () => {
     realMsg.textContent = 'Current real prompt';
     document.body.appendChild(realMsg);
 
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     const allContent = result.messages.map(m => m.content).join(' ');
     expect(allContent).toContain('Current real prompt');
     expect(allContent).not.toContain('Old history chat title');
   });
 
-  it('skips a turn whose htmlToMarkdown content is empty after stripRoleLabels (if(content) FALSE branch)', () => {
+  it('skips a turn whose htmlToMarkdown content is empty after stripRoleLabels (if(content) FALSE branch)', async () => {
     // An element containing only a "You said:" label → after stripping, content is ''
     document.body.innerHTML = '';
     const userEl = document.createElement('div');
     userEl.setAttribute('data-testid', 'user-message');
     userEl.innerHTML = '<h5>You said:</h5>'; // only the label, no actual content
     document.body.appendChild(userEl);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     // After role-label stripping, content = '' → not pushed
     expect(result.messages).toHaveLength(0);
   });
@@ -1459,23 +1488,23 @@ describe('extractSourceLinks()', () => {
     return div;
   }
 
-  it('returns empty string when turnEl is null', () => {
+  it('returns empty string when turnEl is null', async () => {
     expect(extractSourceLinks(null)).toBe('');
   });
 
-  it('returns empty string when no source links are present', () => {
+  it('returns empty string when no source links are present', async () => {
     const el = makeEl('<p>No links here</p>');
     expect(extractSourceLinks(el)).toBe('');
   });
 
-  it('returns empty string for internal / relative links only', () => {
+  it('returns empty string for internal / relative links only', async () => {
     const el = makeEl('<a href="#section">anchor</a><a href="/page">relative</a>');
     expect(extractSourceLinks(el)).toBe('');
   });
 
   // ── Part B: links inside <button> wrappers ──────────────────────────────
 
-  it('extracts links inside a <button aria-label="Sources"> (Copilot pattern)', () => {
+  it('extracts links inside a <button aria-label="Sources"> (Copilot pattern)', async () => {
     const el = makeEl(`
       <div>Main response text</div>
       <button aria-label="Sources">
@@ -1489,7 +1518,7 @@ describe('extractSourceLinks()', () => {
     expect(result).toContain('[Article B](https://example.com/b)');
   });
 
-  it('extracts links inside a <button> whose text contains "references"', () => {
+  it('extracts links inside a <button> whose text contains "references"', async () => {
     const el = makeEl(`
       <button>3 references
         <a href="https://ref1.com">Ref 1</a>
@@ -1499,7 +1528,7 @@ describe('extractSourceLinks()', () => {
     expect(result).toContain('[Ref 1](https://ref1.com)');
   });
 
-  it('ignores <button> elements unrelated to sources', () => {
+  it('ignores <button> elements unrelated to sources', async () => {
     const el = makeEl(`
       <button aria-label="Copy">Copy</button>
       <button aria-label="Share with sources clicked">
@@ -1513,14 +1542,14 @@ describe('extractSourceLinks()', () => {
     expect(typeof result).toBe('string');
   });
 
-  it('ignores <button> that mentions "sources" but has no <a href> links', () => {
+  it('ignores <button> that mentions "sources" but has no <a href> links', async () => {
     const el = makeEl('<button aria-label="Sources">No links</button>');
     expect(extractSourceLinks(el)).toBe('');
   });
 
   // ── Part A: sibling source containers outside contentEl ─────────────────
 
-  it('collects links from a [data-testid*="citation"] sibling of contentEl', () => {
+  it('collects links from a [data-testid*="citation"] sibling of contentEl', async () => {
     const turn = document.createElement('div');
     turn.innerHTML = `
       <div class="markdown"><p>Response</p></div>
@@ -1535,7 +1564,7 @@ describe('extractSourceLinks()', () => {
     expect(result).toContain('[Source 2](https://source2.com)');
   });
 
-  it('does NOT duplicate links that are already inside contentEl', () => {
+  it('does NOT duplicate links that are already inside contentEl', async () => {
     const turn = document.createElement('div');
     turn.innerHTML = `
       <div class="markdown">
@@ -1551,7 +1580,7 @@ describe('extractSourceLinks()', () => {
     expect(result).not.toContain('inside.com');
   });
 
-  it('deduplicates repeated URLs across source containers', () => {
+  it('deduplicates repeated URLs across source containers', async () => {
     const turn = document.createElement('div');
     turn.innerHTML = `
       <div class="markdown"></div>
@@ -1570,7 +1599,7 @@ describe('extractSourceLinks()', () => {
 
   // ── Integration: sources appear in platform extractor output ────────────
 
-  it('ChatGPT: sources in a citation sibling are appended to the assistant message', () => {
+  it('ChatGPT: sources in a citation sibling are appended to the assistant message', async () => {
     document.body.innerHTML = '';
     const article = document.createElement('article');
     article.setAttribute('data-testid', 'conversation-turn-1');
@@ -1583,14 +1612,14 @@ describe('extractSourceLinks()', () => {
       </div>
     `;
     document.body.appendChild(article);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     const assistantMsg = result.messages.find(m => m.role === 'assistant');
     expect(assistantMsg).toBeDefined();
     expect(assistantMsg.content).toContain('**Sources:**');
     expect(assistantMsg.content).toContain('[Wikipedia](https://wiki.example.com)');
   });
 
-  it('Copilot: sources inside a <button> are appended to the assistant message', () => {
+  it('Copilot: sources inside a <button> are appended to the assistant message', async () => {
     document.body.innerHTML = '';
     const div = document.createElement('div');
     div.setAttribute('data-testid', 'copilot-message');
@@ -1602,7 +1631,7 @@ describe('extractSourceLinks()', () => {
       </button>
     `;
     document.body.appendChild(div);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     const assistantMsg = result.messages.find(m => m.role === 'assistant');
     expect(assistantMsg).toBeDefined();
     expect(assistantMsg.content).toContain('**Sources:**');
@@ -1610,7 +1639,7 @@ describe('extractSourceLinks()', () => {
     expect(assistantMsg.content).toContain('[CS2](https://copilot-source2.com)');
   });
 
-  it('Gemini: sources inside a <button aria-label="Citations"> are appended', () => {
+  it('Gemini: sources inside a <button aria-label="Citations"> are appended', async () => {
     document.body.innerHTML = '';
     const div = document.createElement('div');
     div.className = 'model-response-text';
@@ -1621,14 +1650,14 @@ describe('extractSourceLinks()', () => {
       </button>
     `;
     document.body.appendChild(div);
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     const assistantMsg = result.messages.find(m => m.role === 'assistant');
     expect(assistantMsg).toBeDefined();
     expect(assistantMsg.content).toContain('**Sources:**');
     expect(assistantMsg.content).toContain('[Gemini Source](https://gemini-src.com)');
   });
 
-  it('Gemini: attribution links inside the response div are moved to the Sources block', () => {
+  it('Gemini: attribution links inside the response div are moved to the Sources block', async () => {
     document.body.innerHTML = '';
     const div = document.createElement('div');
     div.className = 'model-response-text';
@@ -1639,7 +1668,7 @@ describe('extractSourceLinks()', () => {
       </div>
     `;
     document.body.appendChild(div);
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     const assistantMsg = result.messages.find(m => m.role === 'assistant');
     expect(assistantMsg).toBeDefined();
     // Attribution is stripped from main content and appears only in Sources block
@@ -1647,7 +1676,7 @@ describe('extractSourceLinks()', () => {
     expect(assistantMsg.content).toContain('[Gemini Source](https://gemini-src.com)');
   });
 
-  it('user messages never get a Sources section appended', () => {
+  it('user messages never get a Sources section appended', async () => {
     document.body.innerHTML = '';
     const turn = document.createElement('article');
     turn.setAttribute('data-testid', 'conversation-turn-0');
@@ -1660,13 +1689,13 @@ describe('extractSourceLinks()', () => {
       </div>
     `;
     document.body.appendChild(turn);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     const userMsg = result.messages.find(m => m.role === 'user');
     expect(userMsg).toBeDefined();
     expect(userMsg.content).not.toContain('**Sources:**');
   });
 
-  it('Copilot: sources-button-testid container is stripped from main content and links are collected', () => {
+  it('Copilot: sources-button-testid container is stripped from main content and links are collected', async () => {
     document.body.innerHTML = '';
     const div = document.createElement('div');
     div.setAttribute('data-testid', 'copilot-message');
@@ -1681,7 +1710,7 @@ describe('extractSourceLinks()', () => {
       </button>
     `;
     document.body.appendChild(div);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     const msg = result.messages.find(m => m.role === 'assistant');
     expect(msg).toBeDefined();
     // Images from the sources button must NOT appear in main content
@@ -1698,7 +1727,7 @@ describe('extractSourceLinks()', () => {
     expect(msg.content).toContain('[Source C](https://source-c.com)');
   });
 
-  it('Copilot: data-test-id (hyphenated) sources container is stripped and links collected', () => {
+  it('Copilot: data-test-id (hyphenated) sources container is stripped and links collected', async () => {
     document.body.innerHTML = '';
     const div = document.createElement('div');
     div.setAttribute('data-testid', 'copilot-message');
@@ -1713,7 +1742,7 @@ describe('extractSourceLinks()', () => {
       </div>
     `;
     document.body.appendChild(div);
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     const msg = result.messages.find(m => m.role === 'assistant');
     expect(msg).toBeDefined();
     // Favicon images must NOT appear in main content
@@ -1728,7 +1757,7 @@ describe('extractSourceLinks()', () => {
     expect(msg.content).toContain('[Hyphen B](https://hyphen-source-b.com)');
   });
 
-  it('ChatGPT: sources-button content (images) excluded from message body', () => {
+  it('ChatGPT: sources-button content (images) excluded from message body', async () => {
     document.body.innerHTML = '';
     const article = document.createElement('article');
     article.setAttribute('data-testid', 'conversation-turn-1');
@@ -1744,7 +1773,7 @@ describe('extractSourceLinks()', () => {
       </div>
     `;
     document.body.appendChild(article);
-    const result = extractChatGPT(document);
+    const result = await extractChatGPT(document);
     const msg = result.messages.find(m => m.role === 'assistant');
     expect(msg).toBeDefined();
     expect(msg.content).not.toContain('favicon.test.com');
@@ -1861,11 +1890,11 @@ describe('extractChat()', () => {
 // ─── prepareChatForSave ───────────────────────────────────────────────────────
 
 describe('prepareChatForSave()', () => {
-  it('throws when chatData is null', () => {
+  it('throws when chatData is null', async () => {
     expect(() => prepareChatForSave(null)).toThrow('Chat data is required');
   });
 
-  it('returns an object with all storage-ready fields', () => {
+  it('returns an object with all storage-ready fields', async () => {
     const chatData = {
       platform:     'chatgpt',
       url:          'https://chat.openai.com/c/abc',
@@ -1883,7 +1912,7 @@ describe('prepareChatForSave()', () => {
     expect(result.metadata.extractedAt).toBe(1234567890);
   });
 
-  it('generates content as markdown with emoji role prefixes', () => {
+  it('generates content as markdown with emoji role prefixes', async () => {
     const chatData = {
       platform:     'claude',
       url:          '',
@@ -1902,7 +1931,7 @@ describe('prepareChatForSave()', () => {
     expect(result.content).not.toContain('**Assistant**');
   });
 
-  it('includes YAML frontmatter separator in content', () => {
+  it('includes YAML frontmatter separator in content', async () => {
     const chatData = {
       platform: 'gemini', url: '', title: 'T',
       messages: [
@@ -1915,7 +1944,7 @@ describe('prepareChatForSave()', () => {
     expect(result.content).toContain('---');
   });
 
-  it('handles empty messages array — content has frontmatter but no role labels', () => {
+  it('handles empty messages array — content has frontmatter but no role labels', async () => {
     const chatData = {
       platform: 'chatgpt', url: '', title: 'Empty',
       messages: [], messageCount: 0, extractedAt: 0
@@ -1926,7 +1955,7 @@ describe('prepareChatForSave()', () => {
     expect(result.messages).toHaveLength(0);
   });
 
-  it('includes contentFormat in metadata', () => {
+  it('includes contentFormat in metadata', async () => {
     const chatData = {
       platform: 'chatgpt', url: '', title: 'T',
       messages: [{ role: 'user', content: 'Q' }],
@@ -2073,7 +2102,7 @@ describe('extractClaude() – branch traversal from leaf to root', () => {
 describe('extractGemini() – sort returns 1 when model element precedes user in DOM', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
-  it('should still capture messages correctly when model turn appears before user in DOM', () => {
+  it('should still capture messages correctly when model turn appears before user in DOM', async () => {
     const div = document.createElement('div');
 
     const modelEl = document.createElement('div');
@@ -2089,7 +2118,7 @@ describe('extractGemini() – sort returns 1 when model element precedes user in
     div.appendChild(userEl);
     document.body.appendChild(div);
 
-    const result = extractGemini(document);
+    const result = await extractGemini(document);
     expect(result.messages.length).toBe(2);
     expect(result.messages[0].role).toBe('assistant');
     expect(result.messages[1].role).toBe('user');
@@ -2099,7 +2128,7 @@ describe('extractGemini() – sort returns 1 when model element precedes user in
 describe('extractCopilot() – sort returns 1 when assistant element precedes user in DOM', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
-  it('should still capture messages correctly when assistant turn appears before user in DOM', () => {
+  it('should still capture messages correctly when assistant turn appears before user in DOM', async () => {
     const div = document.createElement('div');
 
     const assistantEl = document.createElement('div');
@@ -2115,7 +2144,7 @@ describe('extractCopilot() – sort returns 1 when assistant element precedes us
     div.appendChild(userEl);
     document.body.appendChild(div);
 
-    const result = extractCopilot(document);
+    const result = await extractCopilot(document);
     expect(result.messages.length).toBe(2);
     // After sort, assistant (first in DOM) stays first
     expect(result.messages[0].role).toBe('assistant');
@@ -2170,7 +2199,7 @@ describe('extractSourceLinks() – additional branches', () => {
     return div;
   }
 
-  it('Part B: extracts from elements with data-testid containing "source"', () => {
+  it('Part B: extracts from elements with data-testid containing "source"', async () => {
     const el = makeEl(`
       <div data-testid="sources-container">
         <a href="https://partb-source.com">Part B Source</a>
@@ -2180,7 +2209,7 @@ describe('extractSourceLinks() – additional branches', () => {
     expect(result).toContain('[Part B Source](https://partb-source.com)');
   });
 
-  it('Part B: extracts from element with data-test-id containing "source"', () => {
+  it('Part B: extracts from element with data-test-id containing "source"', async () => {
     const el = makeEl(`
       <div data-test-id="source-info">
         <a href="https://hyphen-testid.com">Hyphen TestId</a>
@@ -2190,7 +2219,7 @@ describe('extractSourceLinks() – additional branches', () => {
     expect(result).toContain('[Hyphen TestId](https://hyphen-testid.com)');
   });
 
-  it('Part C: extracts favicon-based sources from Copilot button', () => {
+  it('Part C: extracts favicon-based sources from Copilot button', async () => {
     const el = makeEl(`
       <div data-testid="sources-button-testid">
         <img src="https://services.bingapis.com/favicon?url=example.com" />
@@ -2201,7 +2230,7 @@ describe('extractSourceLinks() – additional branches', () => {
     expect(result).toContain('example.com');
   });
 
-  it('Part C: skips favicon imgs with no matching query param', () => {
+  it('Part C: skips favicon imgs with no matching query param', async () => {
     const el = makeEl(`
       <div data-testid="sources-button-testid">
         <img src="https://services.bingapis.com/favicon?other=val" />
@@ -2211,7 +2240,7 @@ describe('extractSourceLinks() – additional branches', () => {
     expect(extractSourceLinks(el)).toBe('');
   });
 
-  it('Part C: deduplicates repeated favicon domains', () => {
+  it('Part C: deduplicates repeated favicon domains', async () => {
     const el = makeEl(`
       <div data-testid="sources-button-testid">
         <img src="https://services.bingapis.com/favicon?url=https%3A%2F%2Fsame.com%2F" />
@@ -2224,12 +2253,12 @@ describe('extractSourceLinks() – additional branches', () => {
     expect(listLines).toHaveLength(1);
   });
 
-  it('skips protocol-relative links that are not http/https', () => {
+  it('skips protocol-relative links that are not http/https', async () => {
     const el = makeEl('<a href="ftp://some-ftp.com">FTP Link</a>');
     expect(extractSourceLinks(el)).toBe('');
   });
 
-  it('uses href as title when anchor has no text', () => {
+  it('uses href as title when anchor has no text', async () => {
     const el = makeEl('<div data-testid="citation-x"><a href="https://bare-href.com"></a></div>');
     const result = extractSourceLinks(el);
     expect(result).toContain('[https://bare-href.com](https://bare-href.com)');
@@ -2245,7 +2274,7 @@ describe('stripSourceContainers()', () => {
     return div;
   }
 
-  it('returns a clone and does not mutate the original', () => {
+  it('returns a clone and does not mutate the original', async () => {
     const el = makeEl('<div data-testid="citation-x"><a href="https://x.com">X</a></div><p>Keep</p>');
     const clone = stripSourceContainers(el);
     // Original still has the citation div
@@ -2255,48 +2284,48 @@ describe('stripSourceContainers()', () => {
     expect(cloneCitation).toBeNull();
   });
 
-  it('removes elements matching SOURCE_CONTAINER_SELECTORS', () => {
+  it('removes elements matching SOURCE_CONTAINER_SELECTORS', async () => {
     const el = makeEl('<div class="CitationBubble"><a href="https://x.com">X</a></div><p>Keep</p>');
     const clone = stripSourceContainers(el);
     expect(clone.querySelector('.CitationBubble')).toBeNull();
     expect(clone.querySelector('p')).not.toBeNull();
   });
 
-  it('removes elements whose data-testid contains "source"', () => {
+  it('removes elements whose data-testid contains "source"', async () => {
     const el = makeEl('<div data-testid="sources-button-testid">Button</div><p>Keep</p>');
     const clone = stripSourceContainers(el);
     expect(clone.querySelector('[data-testid="sources-button-testid"]')).toBeNull();
     expect(clone.querySelector('p')).not.toBeNull();
   });
 
-  it('removes elements whose data-test-id contains "source"', () => {
+  it('removes elements whose data-test-id contains "source"', async () => {
     const el = makeEl('<div data-test-id="source-info">Info</div><p>Keep</p>');
     const clone = stripSourceContainers(el);
     expect(clone.querySelector('[data-test-id="source-info"]')).toBeNull();
     expect(clone.querySelector('p')).not.toBeNull();
   });
 
-  it('removes <button> elements with aria-label containing "sources"', () => {
+  it('removes <button> elements with aria-label containing "sources"', async () => {
     const el = makeEl('<button aria-label="Sources">3 sources</button><p>Keep</p>');
     const clone = stripSourceContainers(el);
     expect(clone.querySelector('button')).toBeNull();
     expect(clone.querySelector('p')).not.toBeNull();
   });
 
-  it('removes <button> with text containing "references"', () => {
+  it('removes <button> with text containing "references"', async () => {
     const el = makeEl('<button>See references</button><p>Keep</p>');
     const clone = stripSourceContainers(el);
     expect(clone.querySelector('button')).toBeNull();
     expect(clone.querySelector('p')).not.toBeNull();
   });
 
-  it('keeps <button> unrelated to sources', () => {
+  it('keeps <button> unrelated to sources', async () => {
     const el = makeEl('<button>Copy text</button><p>Keep</p>');
     const clone = stripSourceContainers(el);
     expect(clone.querySelector('button')).not.toBeNull();
   });
 
-  it('removes Copilot feedback banner elements', () => {
+  it('removes Copilot feedback banner elements', async () => {
     const el = makeEl('<div aria-label="provide your feedback">Feedback</div><p>Keep</p>');
     const clone = stripSourceContainers(el);
     // The feedback removal catches element with aria-label containing "provide your feedback"
@@ -2304,20 +2333,20 @@ describe('stripSourceContainers()', () => {
     expect(clone.querySelector('p')).not.toBeNull();
   });
 
-  it('removes Copilot UI chrome (messageAttributionIcon)', () => {
+  it('removes Copilot UI chrome (messageAttributionIcon)', async () => {
     const el = makeEl('<span data-testid="messageAttributionIcon">Logo</span><p>Keep</p>');
     const clone = stripSourceContainers(el);
     expect(clone.querySelector('[data-testid="messageAttributionIcon"]')).toBeNull();
     expect(clone.querySelector('p')).not.toBeNull();
   });
 
-  it('handles element with no children safely', () => {
+  it('handles element with no children safely', async () => {
     const el = makeEl('');
     const clone = stripSourceContainers(el);
     expect(clone).toBeTruthy();
   });
 
-  it('[role=button] matching sources is removed', () => {
+  it('[role=button] matching sources is removed', async () => {
     const el = makeEl('<div role="button" aria-label="Citations">Cites</div><p>Keep</p>');
     const clone = stripSourceContainers(el);
     expect(clone.querySelector('[role="button"][aria-label="Citations"]')).toBeNull();

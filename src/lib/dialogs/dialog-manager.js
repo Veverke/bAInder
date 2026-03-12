@@ -19,9 +19,17 @@ export class DialogManager {
   }
 
   setupEventListeners() {
-    // Close on backdrop click
+    // Track whether the mousedown started on the backdrop itself.
+    // This prevents a drag-to-select gesture (mousedown inside an input,
+    // mouseup landing on the backdrop) from incorrectly closing the dialog.
+    let mousedownOnBackdrop = false;
+    this.container.addEventListener('mousedown', (e) => {
+      mousedownOnBackdrop = e.target === this.container;
+    });
+
+    // Close on backdrop click — only when the click originated on the backdrop
     this.container.addEventListener('click', (e) => {
-      if (e.target === this.container) {
+      if (e.target === this.container && mousedownOnBackdrop) {
         this.close();
       }
     });

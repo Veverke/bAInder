@@ -156,7 +156,7 @@ When opening an issue:
 
 ## License
 
-By contributing to bAInder, you agree that your contributions will be licensed under the MIT License (see [LICENSE](LICENSE) for details).
+By contributing to bAInder, you agree that your contributions will be licensed under the MIT License with Commons Clause (see [LICENSE](LICENSE) for details).
 
 ---
 

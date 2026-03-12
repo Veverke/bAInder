@@ -63,18 +63,18 @@ export async function extractChat(platform, doc, url) {
   switch (platform) {
     case 'chatgpt':
       if (!doc) throw new Error('Document is required');
-      result = extractChatGPT(doc);
+      result = await extractChatGPT(doc);
       break;
     case 'claude':
       result = await extractClaude();
       break;
     case 'gemini':
       if (!doc) throw new Error('Document is required');
-      result = extractGemini(doc);
+      result = await extractGemini(doc);
       break;
     case 'copilot':
       if (!doc) throw new Error('Document is required');
-      result = extractCopilot(doc);
+      result = await extractCopilot(doc);
       break;
     default:
       throw new Error(`Unsupported platform: ${platform}`);

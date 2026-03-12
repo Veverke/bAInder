@@ -1,6 +1,6 @@
 # 🗂️ bAInder — AI Chat Organizer
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT + Commons Clause](https://img.shields.io/badge/License-MIT%20%2B%20Commons%20Clause-yellow.svg)](LICENSE)
 
 > Stop losing your best AI conversations. bAInder saves, organises, and lets you search every chat from ChatGPT, Claude, Gemini, and Copilot — all in a sleek browser side panel, entirely on your device.
 
@@ -182,11 +182,11 @@ Tests use Vitest and cover:
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License with Commons Clause** — see the [LICENSE](LICENSE) file for details.
 
 **Copyright © 2026 Avraham Y. Kahana**
 
-You are free to use, modify, and distribute this software for any purpose, including commercial use, provided you include the original copyright notice and license text.
+You are free to use, modify, and distribute this software for **personal and internal business use**, provided you include the original copyright notice and license text. You may **not** sell the Software or offer it as a commercial product or hosted service whose value derives substantially from the functionality of this Software.
 
 For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 

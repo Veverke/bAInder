@@ -1,5 +1,5 @@
 ﻿/**
- * bAInder Reader â€” reader.js
+ * bAInder Reader \u2014 reader.js
  *
  * Loads a saved chat from browser.storage.local and renders it in the reader page.
  * Pure functions are exported so they can be unit tested independently.
@@ -117,9 +117,14 @@ export function applyInline(escaped) {
   const linkMap = [];
   const protect = html => { linkMap.push(html); return `\x01${linkMap.length - 1}\x01`; };
 
-  // Inline images ![alt](src) â€” must come before link handling
-  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) => {
-    return protect(`<img class="chat-image" src="${src}" alt="${alt}" loading="lazy">`);
+  // Inline images ![alt](src) \u2014 must come before link handling
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)(\{[^}]*\})?/g, (_, alt, src, attrs) => {
+    let extra = '';
+    if (attrs) {
+      const wm = attrs.match(/width=(\d+)/);
+      if (wm) extra += ' style="width:' + wm[1] + 'px"';
+    }
+    return protect('<img class="chat-image" src="' + src + '" alt="' + alt + '" loading="lazy"' + extra + '>');
   });
 
   // Inline links [text](url)
@@ -134,7 +139,7 @@ export function applyInline(escaped) {
 
   // â”€â”€ Pass 3: auto-link bare https?:// URLs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // All explicit links/images are placeholders here, so we can't accidentally
-  // double-match inside an href="â€¦" attribute.
+  // double-match inside an href="\u2026" attribute.
   s = s.replace(/https?:\/\/[^\s<>"\x01]+/g, (url) => {
     // Trim trailing punctuation chars that are almost certainly sentence
     // punctuation rather than part of the URL (e.g. "see https://foo.com.")
@@ -225,10 +230,10 @@ export function renderMarkdown(markdown) {
         const designerSrcEsc = designerSrc.replace(/&/g, '&amp;');
         htmlParts.push(
           `<div class="designer-card">` +
-            `<div class="designer-card__icon">ðŸŽ¨</div>` +
+            `<div class="designer-card__icon">\u{1F3A8}</div>` +
             `<div class="designer-card__body">` +
               `<div class="designer-card__title">AI Generated Image</div>` +
-              `<div class="designer-card__note">Session-bound Â· embedded preview unavailable</div>` +
+              `<div class="designer-card__note">Session-bound \u00B7 embedded preview unavailable</div>` +
             `</div>` +
             `<a class="designer-card__link" href="${designerSrcEsc}" target="_blank" rel="noopener noreferrer">` +
               `Open in Designer &#8599;` +
@@ -352,7 +357,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // â”€â”€ Blank line â€” paragraph break â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â”€â”€ Blank line \u2014 paragraph break â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (line.trim() === '') {
       flushList();
       if (paraBuf.trim()) {
@@ -363,13 +368,13 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // â”€â”€ HTML comment â€” skip silently (e.g. TOC anchor comments in digests) â”€â”€
+    // â”€â”€ HTML comment \u2014 skip silently (e.g. TOC anchor comments in digests) â”€â”€
     if (/^\s*<!--.*-->\s*$/.test(line)) {
       i++;
       continue;
     }
 
-    // â”€â”€ Regular text â€” accumulate into paragraph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â”€â”€ Regular text \u2014 accumulate into paragraph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     flushList();
     // Markdown soft break: line ending with two spaces â†’ insert \n as <br> marker
     const softBreak = line.endsWith('  ');
@@ -391,11 +396,11 @@ export function renderMarkdown(markdown) {
  * role-aware `.chat-turn--user` / `.chat-turn--assistant` wrapper divs.
  *
  * The reader's markdown format produces a flat sequence of:
- *   <h3>User</h3>, <p>â€¦</p>, <hr>, <h3>Assistant</h3>, <p>â€¦</p>, <hr>, â€¦
+ *   <h3>User</h3>, <p>\u2026</p>, <hr>, <h3>Assistant</h3>, <p>\u2026</p>, <hr>, \u2026
  *
  * This function turns that into:
- *   <div class="chat-turn chat-turn--user">â€¦</div>
- *   <div class="chat-turn chat-turn--assistant">â€¦</div>
+ *   <div class="chat-turn chat-turn--user">\u2026</div>
+ *   <div class="chat-turn chat-turn--assistant">\u2026</div>
  *
  * If no recognised role headings are found the DOM is left unchanged.
  * @param {Element} contentEl
@@ -458,7 +463,7 @@ export function wrapChatTurns(contentEl) {
       }
     }
 
-    // Non-role group â€” append nodes directly (preserves leading meta content)
+    // Non-role group \u2014 append nodes directly (preserves leading meta content)
     for (const n of nodes) contentEl.appendChild(n);
   }
 }
@@ -470,7 +475,7 @@ export function wrapChatTurns(contentEl) {
  * `renderMarkdown` turns the serialiser's output of:
  *   **Sources:**
  *   - [Title](url)
- * into `<p><strong>Sources:</strong></p><ul><li><a href="â€¦">â€¦</a></li></ul>`.
+ * into `<p><strong>Sources:</strong></p><ul><li><a href="\u2026">\u2026</a></li></ul>`.
  * This function replaces that `<p>` + `<ul>` pair with a single button whose
  * `data-sources` attribute carries the JSON-serialised link list.
  *
@@ -550,7 +555,7 @@ export function setupSourcesPanel() {
     `<ul class="sources-panel__list" id="sources-panel-list" role="list"></ul>`;
   document.body.appendChild(panel);
 
-  // â”€â”€ Dim overlay â€” clicking outside closes the panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ Dim overlay \u2014 clicking outside closes the panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const overlay   = document.createElement('div');
   overlay.id        = 'sources-overlay';
   overlay.className = 'sources-overlay';
@@ -633,7 +638,7 @@ export function setupSourcesPanel() {
     overlay.classList.remove('sources-overlay--visible');
   }
 
-  // Trigger clicks â€” event delegation so dynamically added chips work too
+  // Trigger clicks \u2014 event delegation so dynamically added chips work too
   document.addEventListener('click', (e) => {
     const trigger = e.target.closest('.sources-trigger');
     if (!trigger) return;
@@ -649,7 +654,7 @@ export function setupSourcesPanel() {
  * Set up the text-selection annotation toolbar (R2).
  * Safe no-op when annotation elements are absent (e.g. unit tests).
  * @param {string} chatId
- * @param {object} storage  â€” browser.storage.local-like API
+ * @param {object} storage  \u2014 browser.storage.local-like API
  */
 export async function setupAnnotations(chatId, storage) {
   if (!chatId || !storage) return;
@@ -661,7 +666,7 @@ export async function setupAnnotations(chatId, storage) {
   let pendingRange   = null;
   let allAnnotations = [];
 
-  // â”€â”€ Annotation count summary in header â€” built synchronously, before any
+  // â”€â”€ Annotation count summary in header \u2014 built synchronously, before any
   //    await, so it lands in the DOM on every load regardless of timing. â”€â”€â”€â”€
   const readerHeader = document.getElementById('reader-header');
   let annWrapper     = document.getElementById('ann-summary-wrapper');
@@ -781,7 +786,7 @@ export async function setupAnnotations(chatId, storage) {
   // preventDefault on ALL toolbar mousedowns stops the browser from clearing
   // the document text selection (which it does as part of the default focus
   // handling on mousedown).  For the note <input> we then call .focus()
-  // manually â€” programmatic focus does NOT clear the document selection.
+  // manually \u2014 programmatic focus does NOT clear the document selection.
   toolbar.addEventListener('mousedown', (e) => {
     e.preventDefault();
     if (e.target === noteInput || noteInput?.contains(e.target)) {
@@ -818,7 +823,7 @@ export async function setupAnnotations(chatId, storage) {
 
     pendingRange = serialized;
 
-    // Position toolbar ABOVE the selection (toolbar is position:fixed â€” no scrollY needed)
+    // Position toolbar ABOVE the selection (toolbar is position:fixed \u2014 no scrollY needed)
     const rect = range.getBoundingClientRect();
     // Use translateY(-100%) so the toolbar bottom sits 8 px above the selection top.
     // This avoids needing to measure offsetHeight before the element is visible.
@@ -885,7 +890,7 @@ export async function setupAnnotations(chatId, storage) {
   });
 }
 
-// â”€â”€â”€ C.22 â€” Reading Progress Persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ C.22 \u2014 Reading Progress Persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SCROLL_STORAGE_KEY   = 'bAInder_scrollPositions';
 const SCROLL_MAX_ENTRIES   = 100;
@@ -923,7 +928,7 @@ export function saveScrollPosition(chatId, scrollY) {
   }
   try {
     localStorage.setItem(SCROLL_STORAGE_KEY, JSON.stringify(positions));
-  } catch (_) { /* storage quota exceeded â€” skip silently */ }
+  } catch (_) { /* storage quota exceeded \u2014 skip silently */ }
 }
 
 /**
@@ -960,7 +965,7 @@ export function setupScrollFeatures(chatId) {
     if (jumpBtn) {
       jumpBtn.classList.toggle('jump-top--visible', scrollTop > 300);
     }
-    // C.22 â€” debounced persistence (500 ms)
+    // C.22 \u2014 debounced persistence (500 ms)
     if (chatId) {
       clearTimeout(scrollSaveTimer);
       scrollSaveTimer = setTimeout(() => saveScrollPosition(chatId, scrollTop), 500);
@@ -1059,7 +1064,7 @@ export function showError(message) {
 
 /**
  * Render a loaded chat object into the page.
- * Pure-ish (operates on document) â€” exported for testing with a DOM.
+ * Pure-ish (operates on document) \u2014 exported for testing with a DOM.
  * @param {Object} chat
  */
 export function renderChat(chat) {
@@ -1074,7 +1079,7 @@ export function renderChat(chat) {
   const date      = fm.date   || (chat.timestamp ? new Date(chat.timestamp).toISOString() : '');
   const count     = typeof fm.messageCount === 'number' ? fm.messageCount : (chat.messageCount || 0);
 
-  document.title = `${title} â€” bAInder`;
+  document.title = `${title} \u2014 bAInder`;
 
   const srcEl    = document.getElementById('meta-source');
   const dateEl   = document.getElementById('meta-date');
@@ -1113,7 +1118,7 @@ export function renderChat(chat) {
   processSources(contentEl);
   setupSourcesPanel();
 
-  // â”€â”€ C.7 â€” Per-message copy button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ C.7 \u2014 Per-message copy button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   contentEl.querySelectorAll('.chat-turn').forEach(turn => {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'turn-copy-btn';
@@ -1222,7 +1227,7 @@ export function renderChat(chat) {
         const n = sectionHeadings.length;
         const trigger = document.createElement('span');
         trigger.className = 'meta-assembled__trigger';
-        trigger.textContent = `ðŸ”—Â ${n} chat${n !== 1 ? 's' : ''} assembled`;
+        trigger.textContent = `\u{1F517} ${n} chat${n !== 1 ? 's' : ''} assembled`;
 
         const overlay = document.createElement('div');
         overlay.className = 'assembled-overlay';
@@ -1230,7 +1235,7 @@ export function renderChat(chat) {
 
         sectionHeadings.forEach((h, i) => {
           const title   = h.textContent.trim();
-          const snippet = title.length > 68 ? title.slice(0, 65) + 'â€¦' : title;
+          const snippet = title.length > 68 ? title.slice(0, 65) + '\u2026' : title;
           const a = document.createElement('a');
           a.href      = `#assembled-section-${i}`;
           a.className = 'assembled-overlay__item';
@@ -1256,7 +1261,7 @@ export function renderChat(chat) {
   contentEl.addEventListener('click', (e) => {
     const btn = e.target.closest('.code-block__copy');
     if (!btn) return;
-    // Read raw text from the <code> element â€” textContent auto-decodes HTML entities.
+    // Read raw text from the <code> element \u2014 textContent auto-decodes HTML entities.
     const code = btn.closest('.code-block')?.querySelector('.code-block__pre code')?.textContent || '';
     const label = btn.querySelector('.code-block__copy-label');
     navigator.clipboard.writeText(code).then(() => {
@@ -1269,7 +1274,7 @@ export function renderChat(chat) {
     }).catch(() => {});
   });
 
-  // â”€â”€ Source-chat link wiring â€” select originating chat in sidepanel tree â”€â”€
+  // â”€â”€ Source-chat link wiring \u2014 select originating chat in sidepanel tree â”€â”€
   contentEl.addEventListener('click', (e) => {
     const link = e.target.closest('.source-chat-link');
     if (!link) return;
@@ -1281,7 +1286,7 @@ export function renderChat(chat) {
 }
 
 /**
- * C.15 â€” Set up the interactive star-rating widget in the reader header.
+ * C.15 \u2014 Set up the interactive star-rating widget in the reader header.
  * Renders 5 clickable stars into #reader-rating and persists changes to storage.
  *
  * @param {string} chatId         ID of the currently displayed chat
@@ -1289,7 +1294,7 @@ export function renderChat(chat) {
  * @param {Object} storage        browser.storage.local-like object
  */
 /**
- * C.19 â€” Show a dismissible stale-review banner when a chat is overdue.
+ * C.19 \u2014 Show a dismissible stale-review banner when a chat is overdue.
  * Banner renders inside #stale-banner and lets the user mark as reviewed.
  *
  * @param {string} chatId
@@ -1305,7 +1310,7 @@ export function setupStaleBanner(chatId, chat, storage) {
     : 'This content has been flagged as stale';
 
   banner.innerHTML =
-    `<span class="stale-banner__icon" aria-hidden="true">âš </span>` +
+    `<span class="stale-banner__icon" aria-hidden="true">\u26A0</span>` +
     `<span class="stale-banner__text">${dateText}.</span>` +
     `<button class="stale-banner__dismiss" type="button">Mark as reviewed</button>`;
   banner.hidden = false;
@@ -1361,8 +1366,8 @@ export function setupRating(chatId, initRating, storage) {
 }
 
 /**
- * Main entry point â€” reads chatId from URL, loads from storage, renders.
- * @param {Object} storage  Object with a `.get(keys)` method â€” injectable for testing
+ * Main entry point \u2014 reads chatId from URL, loads from storage, renders.
+ * @param {Object} storage  Object with a `.get(keys)` method \u2014 injectable for testing
  */
 export async function init(storage) {
   try {
@@ -1387,10 +1392,10 @@ export async function init(storage) {
     restoreScrollPosition(chatId);        // C.22
     setupRating(chatId, chat.rating, storage);
     setupStaleBanner(chatId, chat, storage);
-    setupScrollFeatures(chatId);          // C.22 â€” pass chatId for persistence
+    setupScrollFeatures(chatId);          // C.22 \u2014 pass chatId for persistence
     setupAnnotations(chatId, storage);
     setupStickyNotes(chatId, storage, renderMarkdown);
-    // C.8 â€” render backlinks: chats that reference this one in annotation notes
+    // C.8 \u2014 render backlinks: chats that reference this one in annotation notes
     await renderBacklinksSection(chatId, chat.title, chats, storage);
   } catch (err) {
     showError(`Failed to load conversation: ${err.message}`);
