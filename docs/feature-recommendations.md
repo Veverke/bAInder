@@ -26,6 +26,13 @@
 | C.23 | Platform expansion: DeepSeek, Grok & Perplexity | Medium | Very High | Candidate |
 | C.24 | Internal API-based extraction — platform-wide strategy (ChatGPT next, Perplexity after) | Low/platform | Moderate | Candidate |
 | C.25 | Chat hover overlay (tree preview) | Medium | High | Candidate |
+| C.26 | Copy chat content(s) to clipboard | Low–Medium | High | Candidate |
+| C.27 | Source auditing (citation provenance) | Medium–High | Very High | Candidate |
+| C.28 | Enumerate prompts & responses in chat header | Low | Moderate | Candidate |
+| C.29 | Manage embedded images (tree view) | Medium | High | Candidate |
+| C.30 | Manage attachments (tree view) | Medium | High | Candidate |
+| C.31 | Manage code snippets (tree view) | Medium | High | Candidate |
+| C.32 | Manage audio recordings (tree view) | Medium | Moderate | Candidate |
 
 ## C.25 — Chat Hover Overlay (Tree Preview)
 
@@ -290,4 +297,158 @@ This is fundamentally different from paid generation APIs (e.g. `api.anthropic.c
 
 ---
 
-*Document generated: March 3, 2026 — last updated: March 5, 2026*
+## C.26 — Copy Chat Content(s) to Clipboard
+
+**Idea:** Allow users to copy the full conversation text of one or more saved chats directly to the clipboard — from the side panel tree, from the reader view, or via the multi-select action bar.
+
+**Value:** The most common next step after reviewing a chat is pasting it somewhere else (a document, email, issue tracker, etc.). A one-click copy removes friction for single chats and enables batch paste for digest workflows without going through a full export.
+
+**Implementation sketch:**
+- **Single chat (tree item):** Right-clicking a chat item in the side panel tree exposes a **"Copy to clipboard"** option in the item's context menu. Serialise the `ChatEntry` messages into plain-text (or Markdown — user-selectable in Settings) and call `navigator.clipboard.writeText()`.
+- **Folder / topic node (tree item):** Right-clicking a topic/folder node in the side panel tree exposes **"Copy all chats to clipboard"**. Load all `ChatEntry` records under that node, serialise and concatenate them (separated by a horizontal rule with the chat title as a heading), then write to clipboard. Subject to the same large-payload guard as bulk copy below.
+- **Reader view:** Expose a **"Copy"** icon button in the reader view header (alongside the existing export/action buttons) so users can copy the currently open chat without returning to the side panel.
+- **Multi-select (bulk):** When ≥ 2 chats are checked in multi-select mode, add a **"Copy all"** button to the `#selectionBar` alongside the existing "Export Digest" button. Concatenate each chat's serialised text separated by a horizontal rule.
+- **Edge cases:**
+  - *Large payload:* Before copying, estimate the combined character count. If it exceeds ~1 MB (browser clipboard practical limit), show a warning toast: *"Content too large to copy — use Export Digest instead."* and abort the copy.
+  - *Many chats selected:* Add a soft warning at ≥ 20 chats selected: *"Copying N chats — this may be slow."*
+  - *Clipboard permission denied:* Fall back to a `<textarea>` pre-selected + `document.execCommand('copy')` with a user-visible prompt.
+- Format toggle in Settings: `Plain text` (default) / `Markdown` — so the clipboard output matches the user's intended destination.
+
+**Effort:** Low–Medium. **Differentiator:** High — eliminates the most common manual step after archiving.
+
+---
+
+## C.27 — Source Auditing (Citation Provenance)
+
+**Idea:** When a saved chat contains citations (common in Copilot, Perplexity, and Gemini responses), surface not just the source URL/title but also *where exactly* in the source article the cited information appears — identifying the specific paragraph, sentence, or section that was referenced.
+
+**Value:** Increases trust in archived AI research. Allows users to verify whether a cited fact is a direct quote, a paraphrase, or an inference — critical for knowledge workers, researchers, and anyone using bAInder as a reference library.
+
+**Implementation sketch:**
+
+### Tier 1 — Literal / Exact-match linking (Low complexity)
+- After saving a chat with citations, extract the cited claim (text preceding the citation marker) and the source URL.
+- Fetch the source page (via background service worker, respecting CORS/CSP), strip to plain text, and run a sliding-window exact-string search for the cited phrase.
+- If a match is found: store `{ quote: string, charOffset: number, snippet: string }` alongside the citation in `ChatEntry.sources[]`.
+- In the reader view, render matched citations with a **"View in source"** link that opens the source URL with a `#:~:text=<encoded>` fragment (Web Text Fragment — natively supported in Chromium) to scroll directly to the passage.
+
+### Tier 2 — Inferred / paraphrased content (High complexity)
+- For citations where no literal match exists, apply a lightweight local similarity search:
+  - Tokenise both the cited claim and candidate passages (TF-IDF or bag-of-words).
+  - Score each passage; surface the top-3 candidate passages ranked by similarity score.
+- Render as **"Possible source passage (N% match)"** with an expand-to-read inline preview — clearly labelled as inferred, not confirmed.
+- Flag with a `⚠ Inferred` badge to distinguish from exact matches.
+
+**Risks:**
+- Source pages may be paywalled, require login, or return 403/404 — handle gracefully with a "Source unavailable" fallback.
+- Large source documents increase processing time — run analysis lazily (on user request) rather than automatically at save time.
+- For Tier 2: similarity scoring without an embedding model is approximate; make confidence thresholds conservative to avoid misleading users.
+
+**Effort:** Medium (Tier 1) — High (Tier 2). **Differentiator:** Very High — no consumer AI chat manager provides citation-level provenance linking today.
+
+---
+
+## C.28 — Enumerate Prompts & Responses in Chat Header
+
+**Idea:** In the saved chat header (and the hover overlay introduced in C.25), display the total count of user prompts and assistant responses. Each prompt and each response within the chat view itself is additionally labelled with its own sequential number — prompts numbered independently (P1, P2, …) and responses numbered independently (R1, R2, …) — making it trivial to cross-reference hover stats with actual content.
+
+**Value:** Long chats with many back-and-forth turns become navigable at a glance. A user who sees "Prompts: 8 | Responses: 8" in the hover overlay can immediately jump to P5/R5 without mentally counting.
+
+**Implementation sketch:**
+- **Header/overlay counts:** Already partially implemented in C.25's hover overlay (`Prompts: M | Responses: K`). Promote these counts into the always-visible chat header in the reader view as well.
+- **Per-message labels:** In `reader.js`, when rendering the messages array, track two counters (`promptIdx`, `responseIdx`). Prepend a small, low-contrast ordinal label to each message bubble:
+  - User turns: `P1`, `P2`, … (e.g. displayed as `Prompt 1` in full)
+  - Assistant turns: `R1`, `R2`, … (e.g. displayed as `Response 1` in full)
+- Labels render as a small `<span class="msg-ordinal">` before the message content — styled subtly (muted colour, smaller font) so they do not distract from the content itself.
+- **Deep-link anchor:** Each label is also an `id` anchor (`id="p1"`, `id="r3"`) enabling future URL-fragment navigation (`reader.html?id=<chatId>#r3`).
+- Settings toggle: "Show message ordinals" (default: on) — lets users who find the labels distracting turn them off.
+
+**Effort:** Low. **Differentiator:** Moderate — a small but meaningful navigability improvement for power users working with long research chats.
+
+---
+
+## C.29 — Manage Embedded Images (Tree View)
+
+**Idea:** Build a dedicated **Images** tree view listing every image embedded across all saved chats, grouped by topic (mirroring the main chat tree hierarchy). Clicking any image thumbnail opens the source chat at the point where the image appears.
+
+**Value:** Users who save chats containing diagrams, screenshots, charts, or AI-generated images currently have no way to browse those assets without opening each chat individually. A centralised image gallery turns bAInder into a visual research archive.
+
+**Implementation sketch:**
+- At save time (or lazily on first view), scan each `ChatEntry` for embedded images: inline `<img>` tags, data-URI blobs, and image attachments in the messages array.
+- Store an `images[]` array on `ChatEntry`: `{ id, src, mimeType, altText, messageIndex, thumbnailDataUri }`.
+- Add an **Images** tab to the main tabbed view (alongside the existing topic tree and Prompt Manager from C.13.1).
+- Render as a two-level tree: **Topic → Chat title → image thumbnails** (grid layout within each chat node).
+- Clicking a thumbnail opens the reader at the correct message (`#r<N>` anchor from C.28).
+- Filter bar: filter by topic, by platform, or by image type (photo / diagram / generated).
+- **Edge cases:** Very large images (> 5 MB data URI) — store only the thumbnail; link to the full image in the reader rather than embedding in the tree.
+
+**Effort:** Medium. **Differentiator:** High — unique visual asset management for AI chat archives.
+
+---
+
+## C.30 — Manage Attachments (Tree View)
+
+**Idea:** Build a dedicated **Attachments** tree view listing every file attachment present across all saved chats — PDFs, spreadsheets, Word documents, code files, etc. — grouped by topic, with metadata (filename, type, size, originating chat).
+
+**Value:** Power users frequently attach documents to AI sessions for analysis. Locating a specific attachment currently requires opening every chat. A centralised attachment browser enables instant retrieval.
+
+**Implementation sketch:**
+- At save time, scan `ChatEntry` messages for attachment metadata: filename, MIME type, size (where available from the platform DOM/API), and the `messageIndex` where it appears.
+- Store as `attachments[]` on `ChatEntry`: `{ id, filename, mimeType, sizeBytes, messageIndex, platform }`.
+- Add an **Attachments** tab to the tabbed view (alongside Images, Prompts, topic tree).
+- Render as a two-level tree: **Topic → Chat title → attachment list** with file-type icons and size badges.
+- Clicking an attachment entry opens the reader at the message where the attachment appears.
+- Filter/sort: by file type, by date, by size; search by filename.
+- **Note:** bAInder stores chat text and metadata — it does not store the actual binary file contents (those remain on the AI platform). The attachment entry is a reference/pointer, not a local copy. Show a clear label: *"Original file on [Platform]"*.
+
+**Effort:** Medium. **Differentiator:** High — closes a significant gap for users who rely on document-upload AI workflows.
+
+---
+
+## C.31 — Manage Code Snippets (Tree View)
+
+**Idea:** Build a dedicated **Code Snippets** tree view listing every fenced code block across all saved chats, grouped by programming language and then by topic/chat. Each snippet is browsable and copyable without opening the full chat.
+
+**Value:** This is the primary retrieval workflow for developer users — they save a chat because it contains a useful function or script, then later need to find and copy that exact snippet. The current approach requires opening the chat and scrolling. The C.13.1 Prompt Manager already proposes a Code Snippets tab; this entry defines the full feature scope.
+
+**Implementation sketch:**
+- At save time, extract all fenced code blocks from assistant messages: parse ` ```lang \n code \n ``` ` patterns; store `{ id, language, code, lineCount, messageIndex, chatId }`.
+- Add a **Code** tab to the tabbed view (this is the "Tab 3" referenced in C.13.1).
+- **Two-level grouping modes** (toggle in header):
+  1. *By language* → **JavaScript → Topic / Chat → snippet preview**
+  2. *By topic* → **Topic → Chat → snippet list** (mirrors main tree)
+- Render each snippet as a compact card: language badge, first 3 lines preview, line count, copy button.
+- Clicking the card opens the reader at the correct message anchor.
+- **Copy button** on each card copies the raw code to clipboard directly from the tree — no need to open the chat.
+- **Search:** full-text search within code snippet contents (not just filenames).
+- **Export:** select multiple snippets → export as a single `.md` or `.zip` of individual files named `<language>-snippet-<N>.<ext>`.
+- Extends the hover overlay (C.25): "Code Snippets: Python: 3, JavaScript: 2" is already planned there — this view is the backing data source.
+
+**Effort:** Medium. **Differentiator:** High — the most developer-facing feature in the suite; directly increases daily utility for the core power-user segment.
+
+---
+
+## C.32 — Manage Audio Recordings (Tree View)
+
+**Idea:** Build a dedicated **Audio** tree view listing every audio recording or voice message embedded in saved chats, grouped by topic. Inline playback and transcript display are available directly from the tree without opening the full chat.
+
+**Value:** Voice-input AI workflows (Gemini voice mode, ChatGPT Advanced Voice, Copilot voice) are growing. Users who save voice-driven chats currently have no way to locate or replay specific recordings. A centralised audio browser closes this gap.
+
+**Implementation sketch:**
+- At save time, detect audio assets in chat messages: `<audio>` elements, blob URLs, or audio-attachment metadata from the platform DOM/API.
+- Store as `audioRecordings[]` on `ChatEntry`: `{ id, durationSeconds, mimeType, src, transcript, messageIndex }`.
+  - `transcript`: if the platform provides an auto-generated transcript (Gemini/Copilot often do), capture it alongside the audio reference.
+- Add an **Audio** tab to the tabbed view.
+- Render as a two-level tree: **Topic → Chat title → recording list** with duration badges and waveform placeholders.
+- Each entry shows:
+  - Duration, timestamp, platform badge.
+  - Inline `<audio>` player (if the src is accessible — note blob URLs expire with the page session).
+  - Expandable transcript (if available), with the assistant response rendered below it.
+- **Blob URL caveat:** Audio blob URLs created by the platform are session-scoped and will be invalid after the tab closes. At save time, attempt to read the blob via `fetch(blobUrl)` → `arrayBuffer()` and store as a base64 data URI within the `ChatEntry` (size-capped at a configurable limit, default 10 MB). If the blob is unavailable or too large, show a *"Audio not saved — original page required"* notice.
+- Filter/sort: by platform, by date, by duration; filter to only entries with transcripts.
+
+**Effort:** Medium. **Differentiator:** Moderate — relatively niche today but increasingly relevant as voice AI usage grows; positions bAInder ahead of the curve.
+
+---
+
+*Document generated: March 3, 2026 — last updated: March 11, 2026*

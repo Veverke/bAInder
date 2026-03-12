@@ -147,9 +147,29 @@ const logger = {
     function walk(node) {
       if (node.nodeType === 3) return (node.textContent || '').replace(/\u00a0/g, ' ');
       if (node.nodeType !== 1) return '';
-      if (node.getAttribute && node.getAttribute('aria-hidden') === 'true') return '';
+      // Skip decorative / hidden nodes — BUT preserve short text-only separator
+      // nodes (e.g. "•", " · ", "|") that ChatGPT marks aria-hidden for
+      // screen-readers yet which form visible punctuation between text spans.
+      if (node.getAttribute && node.getAttribute('aria-hidden') === 'true') {
+        if (node.childElementCount === 0) {
+          const txt = node.textContent || '';
+          if (/^\s*[\u2022\u00b7\u2019\u2013\u2014|\-\.]+\s*$/.test(txt)) return txt;
+        }
+        return '';
+      }
       const tag = node.tagName.toLowerCase();
-      if (['script','style','svg','noscript','button','template'].includes(tag)) return '';
+      if (['script','style','svg','noscript','template'].includes(tag)) return '';
+      // Buttons are skipped to avoid UI text (Copy, Send, Thumbs Up, etc.).
+      // Exception: buttons used as image wrappers (Copilot wraps AI-generated images
+      // in clickable <button> elements). Emit any resolved data: images inside them.
+      if (tag === 'button') {
+        const parts = [];
+        for (const img of node.querySelectorAll('img')) {
+          const r = walk(img);
+          if (r.trim()) parts.push(r);
+        }
+        return parts.join('');
+      }
 
       // ── M365 Copilot / Fluent UI code block ─────────────────────────────
       // These are rendered without <pre>/<code> — detected by ARIA label or
@@ -238,11 +258,23 @@ const logger = {
           return href && text ? `[${text}](${href})` : text;
         }
         case 'img': {
+          // Placeholder emitted when resolveImageBlobs() failed to fetch a blob: URL.
+          if (node.hasAttribute('data-binder-img-lost')) {
+            const desc = node.getAttribute('data-binder-img-lost') || 'Image';
+            return `\n[🖼️ Image not captured: ${desc}]\n`;
+          }
           const src = node.getAttribute('src') || '';
-          // Keep data: and https:// images; skip blob: (session-only) and empty.
-          if (!src || src.startsWith('blob:')) return '';
+          if (!src) return '';
+          // blob: that wasn't pre-processed (synchronous excerpt path) → placeholder.
+          if (src.startsWith('blob:')) {
+            const alt = (node.getAttribute('alt') || '').trim().replace(/\n/g, ' ');
+            return alt ? `\n[🖼️ Image: ${alt}]\n` : '\n[🖼️ Image]\n';
+          }
           const alt = (node.getAttribute('alt') || '').trim().replace(/\n/g, ' ');
-          return `\n![${alt}](${src})\n`;
+          const w = node.getAttribute('data-natural-width');
+          const h = node.getAttribute('data-natural-height');
+          const suffix = (w && h) ? `{width=${w} height=${h}}` : w ? `{width=${w}}` : '';
+          return `\n![${alt}](${src})${suffix}\n`;
         }
         case 'iframe': {
           // Microsoft Designer generated-image embeds (M365 Copilot)
@@ -307,6 +339,188 @@ const logger = {
     return walk(el).replace(/\n{3,}/g, '\n\n').trim();
   }
 
+  // ─── Image blob resolver ────────────────────────────────────────────
+  // Resolves blob: img srcs to persistent data: URLs before markdown conversion.
+  // Clones the element to avoid mutating the live page DOM.
+  // On fetch failure, marks the img with data-binder-img-lost so the placeholder
+  // branch in htmlToMarkdown() fires.
+  function _blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => reject(fr.error);
+      fr.readAsDataURL(blob);
+    });
+  }
+  async function resolveImageBlobs(el, fetchViaBackground, dimsEl) {
+    if (fetchViaBackground === undefined) fetchViaBackground = null;
+    if (dimsEl === undefined) dimsEl = null;
+    const liveImgs = Array.from(el.querySelectorAll('img'));
+    if (liveImgs.length === 0) return el;
+    // Use dimsEl (original live element) for BCR reads when el is a detached clone.
+    const dimImgs = dimsEl ? Array.from(dimsEl.querySelectorAll('img')) : liveImgs;
+    // Collect effective URL AND rendered dimensions.
+    const liveData = liveImgs.map(function(img, i) {
+      let src = img.currentSrc || img.getAttribute('src') || img.getAttribute('data-src') || '';
+      if (!src) {
+        const srcset = img.getAttribute('srcset') || '';
+        if (srcset) src = srcset.trim().split(/[,\s]+/)[0];
+      }
+      return (function() {
+        const dimImg = dimImgs[i] || img;
+        const rect = dimImg.getBoundingClientRect ? dimImg.getBoundingClientRect() : {};
+        let w = Math.round(rect.width  || 0);
+        let h = Math.round(rect.height || 0);
+        if (w === 0) {
+          const wrapper = dimImg.closest ? dimImg.closest('button, figure, [role="img"], a') : null;
+          if (wrapper) {
+            const wr = wrapper.getBoundingClientRect();
+            w = Math.round(wr.width  || 0);
+            h = Math.round(wr.height || 0);
+          }
+        }
+        const naturalWidth  = w || dimImg.naturalWidth  || 0;
+        const naturalHeight = h || dimImg.naturalHeight || 0;
+        logger.info('[bAInder] resolveImg dims:', src.slice(0, 60),
+          'rect:', Math.round(rect.width||0), 'x', Math.round(rect.height||0),
+          'wrapper:', w, 'x', h,
+          'natural:', dimImg.naturalWidth, 'x', dimImg.naturalHeight,
+          '→ captured:', naturalWidth, 'x', naturalHeight);
+        return { src, naturalWidth, naturalHeight };
+      })();
+    });
+    const liveUrls = liveData.map(function(d) { return d.src; });
+    const needsProcessing = liveUrls.some(function(src) {
+      return src.startsWith('blob:') ||
+        (fetchViaBackground && (src.startsWith('http:') || src.startsWith('https:')));
+    });
+    if (!needsProcessing) return el;
+    const clone = el.cloneNode(true);
+    const cloneImgs = Array.from(clone.querySelectorAll('img'));
+    await Promise.all(cloneImgs.map(async function(img, i) {
+      const src = liveUrls[i];
+      const d = liveData[i];
+      const naturalWidth = d ? d.naturalWidth : 0;
+      const naturalHeight = d ? d.naturalHeight : 0;
+      if (!src) return;
+      try {
+        let dataUrl;
+        if (src.startsWith('blob:')) {
+          const r = await fetch(src);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          dataUrl = await _blobToDataUrl(await r.blob());
+        } else if (fetchViaBackground && (src.startsWith('http:') || src.startsWith('https:'))) {
+          dataUrl = await fetchViaBackground(src);
+          if (!dataUrl || !dataUrl.startsWith('data:')) throw new Error('Invalid dataUrl: ' + String(dataUrl).slice(0, 20));
+        } else {
+          return;
+        }
+        img.setAttribute('src', dataUrl);
+        img.removeAttribute('data-src');
+        img.removeAttribute('srcset');
+        if (naturalWidth > 0) img.setAttribute('data-natural-width', String(naturalWidth));
+        if (naturalHeight > 0) img.setAttribute('data-natural-height', String(naturalHeight));
+      } catch (_) {
+        const altText = (img.getAttribute('alt') || '').trim() || 'Image';
+        img.removeAttribute('src');
+        img.removeAttribute('data-src');
+        img.removeAttribute('srcset');
+        img.setAttribute('data-binder-img-lost', altText);
+      }
+    }));
+    return clone;
+  }
+
+  // ─── Shadow-DOM image collector ───────────────────────────────────────
+  // querySelectorAll() cannot pierce shadow roots, so images inside
+  // Gemini/Copilot Angular custom elements are invisible to the regular flow.
+  // This walks the live DOM including open shadow roots to find them.
+  function collectShadowImages(root, maxShadowDepth) {
+    if (maxShadowDepth === undefined) maxShadowDepth = 6;
+    const results = [];
+    function walk(node, depth, inShadow) {
+      if (!node) return;
+      const type = node.nodeType;
+      if (type !== 1 && type !== 11) return;
+      if (type === 1) {
+        const tag = node.tagName.toLowerCase();
+        if (inShadow && tag === 'img') {
+          // currentSrc reflects the actually-loaded URL (resolved from srcset).
+          // Fall back to src, data-src, or the first srcset entry.
+          let src = node.currentSrc || node.getAttribute('src') || node.getAttribute('data-src') || '';
+          if (!src) {
+            const srcset = node.getAttribute('srcset') || '';
+            if (srcset) src = srcset.trim().split(/[,\s]+/)[0];
+          }
+          const alt = (node.getAttribute('alt') || '').trim();
+          if (src && !src.startsWith('data:')) {
+            const rect = node.getBoundingClientRect ? node.getBoundingClientRect() : {};
+            let w = Math.round(rect.width  || 0);
+            let h = Math.round(rect.height || 0);
+            if (w === 0) {
+              const wrapper = node.closest ? node.closest('button, figure, [role="img"], a') : null;
+              if (wrapper) {
+                const wr = wrapper.getBoundingClientRect();
+                w = Math.round(wr.width  || 0);
+                h = Math.round(wr.height || 0);
+              }
+            }
+            const nw = w || node.naturalWidth  || 0;
+            const nh = h || node.naturalHeight || 0;
+            logger.info('[bAInder] shadowImg dims:', src.slice(0, 60),
+              'rect:', Math.round(rect.width||0), 'x', Math.round(rect.height||0),
+              'wrapper:', w, 'x', h,
+              'natural:', node.naturalWidth, 'x', node.naturalHeight,
+              '→ captured:', nw, 'x', nh);
+            results.push({
+              src, alt,
+              naturalWidth:  nw,
+              naturalHeight: nh,
+            });
+          }
+        }
+        if (depth > 0 && node.shadowRoot) walk(node.shadowRoot, depth - 1, true);
+      }
+      for (const child of node.childNodes) walk(child, depth, inShadow);
+    }
+    walk(root, maxShadowDepth, false);
+    return results;
+  }
+
+  async function appendShadowImages(liveEl, existingContent, fetchViaBackground = null) {
+    const shadowImgs = collectShadowImages(liveEl);
+    if (shadowImgs.length === 0) return existingContent;
+    const parts = [];
+    for (const { src, alt, naturalWidth, naturalHeight } of shadowImgs) {
+      if (existingContent.includes(src)) continue; // already captured
+      if (src.startsWith('blob:') || src.startsWith('http:') || src.startsWith('https:')) {
+        try {
+          let dataUrl;
+          if (src.startsWith('blob:')) {
+            const r = await fetch(src);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            dataUrl = await _blobToDataUrl(await r.blob());
+          } else if (fetchViaBackground) {
+            // Route https: URLs through the background service worker to bypass CORP.
+            dataUrl = await fetchViaBackground(src);
+            if (!dataUrl || !dataUrl.startsWith('data:')) throw new Error('Invalid dataUrl from background');
+          } else {
+            const r = await fetch(src, { credentials: 'include' });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            dataUrl = await _blobToDataUrl(await r.blob());
+          }
+          const suffix = (naturalWidth && naturalHeight)
+            ? `{width=${naturalWidth} height=${naturalHeight}}` : '';
+          parts.push(`\n![${alt}](${dataUrl})${suffix}\n`);
+        } catch (_) {
+          const desc = alt || 'Image';
+          parts.push(`\n[🖼️ Image not captured: ${desc}]\n`);
+        }
+      }
+    }
+    return parts.length ? existingContent + parts.join('') : existingContent;
+  }
+
   function formatMessage(role, content) {
     return { role: role || 'unknown', content: (content || '').trim() };
   }
@@ -344,31 +558,99 @@ const logger = {
     return 'Untitled Chat';
   }
 
-  function extractChatGPT(doc) {
+  async function extractChatGPT(doc) {
     const messages = [];
     const turns = doc.querySelectorAll('article[data-testid^="conversation-turn"]');
-    turns.forEach(turn => {
+
+    logger.info('[bAInder] ChatGPT extraction: turns=' + turns.length);
+
+    // Route https: image fetches through the background service worker to bypass
+    // CORP: same-site on OpenAI image CDNs (files.oaiusercontent.com, *.blob.core.windows.net).
+    const bgFetch = url => new Promise((resolve, reject) => {
+      logger.info('[bAInder] ChatGPT bgFetch → background:', url.slice(0, 80));
+      browser.runtime.sendMessage({ type: 'FETCH_IMAGE_AS_DATA_URL', url }, resp => {
+        if (browser.runtime.lastError) return reject(new Error(browser.runtime.lastError.message));
+        const du = resp?.dataUrl || '';
+        logger.info('[bAInder] ChatGPT bgFetch ← background: success=' + resp?.success +
+          ' dataUrl.length=' + du.length + ' prefix=' + du.slice(0, 30));
+        if (resp?.success && du.startsWith('data:')) resolve(du);
+        else reject(new Error(resp?.error || 'invalid dataUrl from background'));
+      });
+    });
+
+    for (const turn of turns) {
+      const testId  = turn.getAttribute('data-testid') || '?';
+
+      // Step 1: Determine role.
+      // Newer ChatGPT (2026): assistant articles no longer carry [data-message-author-role];
+      // role is signalled by a screen-reader-only h6 heading instead.
       const roleEl = turn.querySelector('[data-message-author-role]');
-      if (!roleEl) return;
-      const rawRole = roleEl.getAttribute('data-message-author-role') || '';
-      const role = rawRole === 'user' ? 'user' : 'assistant';
-      const contentEl =
-        turn.querySelector('.markdown') ||
-        turn.querySelector('[class*="prose"]') ||
-        turn.querySelector('[class*="whitespace-pre"]') ||
-        roleEl;
+      let role;
+      if (roleEl) {
+        const rawRole = roleEl.getAttribute('data-message-author-role') || '';
+        role = rawRole === 'user' ? 'user' : 'assistant';
+      } else {
+        const heading    = turn.querySelector('h6');
+        const headingTxt = (heading?.textContent || '').trim();
+        if (/chatgpt said|assistant said/i.test(headingTxt)) {
+          role = 'assistant';
+        } else if (/you said|i said|user said/i.test(headingTxt)) {
+          role = 'user';
+        } else {
+          logger.info('[bAInder] ChatGPT skip turn ' + testId +
+            ' | cannot determine role | h6: "' + headingTxt + '"');
+          continue;
+        }
+      }
+
+      // Step 2: Find content element.
+      // For assistant turns, prefer the broader text-base wrapper so that generated
+      // images (DALL-E) that are siblings of .markdown are included in the scope.
+      // For user turns keep the existing narrow chain.
+      let contentEl, contentElDesc;
+      if (role === 'assistant') {
+        const textBase = turn.querySelector('[class*="text-base"]');
+        const markdown = turn.querySelector('.markdown');
+        const prose    = turn.querySelector('[class*="prose"]');
+        contentEl     = textBase || markdown || prose || roleEl || turn;
+        contentElDesc = textBase ? '[class*=text-base]' : markdown ? '.markdown' : prose ? '[class*=prose]' : roleEl ? 'roleEl' : 'turn';
+      } else {
+        const markdown = turn.querySelector('.markdown');
+        const prose    = turn.querySelector('[class*="prose"]');
+        const whitePre = turn.querySelector('[class*="whitespace-pre"]');
+        contentEl     = markdown || prose || whitePre || roleEl || turn;
+        contentElDesc = markdown ? '.markdown' : prose ? '[class*=prose]' : whitePre ? '[class*=whitespace-pre]' : roleEl ? 'roleEl' : 'turn';
+      }
+
+      const imgsInContentEl = contentEl.querySelectorAll('img').length;
+      const imgsInTurn      = turn.querySelectorAll('img').length;
+      logger.info('[bAInder] ChatGPT turn ' + testId + ' ' + role +
+        ' | contentEl: ' + contentElDesc +
+        ' | imgs contentEl/turn: ' + imgsInContentEl + '/' + imgsInTurn);
+      // stripSourceContainers returns a detached clone; pass live contentEl as dimsEl
+      // so resolveImageBlobs can read getBoundingClientRect() for image dimensions.
       const processEl = role === 'assistant' ? stripSourceContainers(contentEl) : contentEl;
-      let content = htmlToMarkdown(processEl);
+      const dimsEl   = role === 'assistant' ? contentEl : null;
+      const resolvedEl = await resolveImageBlobs(processEl, bgFetch, dimsEl);
+      let content = htmlToMarkdown(resolvedEl);
+      logger.info('[bAInder] ChatGPT turn result ' + testId + ' ' + role +
+        ' len=' + content.length +
+        ' hasImg=' + content.includes('![') +
+        ' hasPlaceholder=' + content.includes('🖼️'));
       if (role === 'assistant') content += extractSourceLinks(turn, contentEl);
       if (content) messages.push(formatMessage(role, content));
-    });
+    }
     if (messages.length === 0) {
-      doc.querySelectorAll('[data-message-author-role]').forEach(el => {
+      logger.info('[bAInder] ChatGPT: primary selector found no turns, trying fallback');
+      for (const el of doc.querySelectorAll('[data-message-author-role]')) {
         const role = el.getAttribute('data-message-author-role') === 'user' ? 'user' : 'assistant';
         const processEl = role === 'assistant' ? stripSourceContainers(el) : el;
-        const content = htmlToMarkdown(processEl);
+        const dimsEl   = role === 'assistant' ? el : null;
+        const resolvedEl = await resolveImageBlobs(processEl, bgFetch, dimsEl);
+        const content = htmlToMarkdown(resolvedEl);
+        logger.info('[bAInder] ChatGPT fallback turn role=' + role + ' len=' + content.length);
         if (content) messages.push(formatMessage(role, content));
-      });
+      }
     }
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
   }
@@ -423,7 +705,18 @@ const logger = {
       const role = msg.sender === 'human' ? 'user' : 'assistant';
       let content = '';
       if (Array.isArray(msg.content)) {
-        content = msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n\n');
+        content = msg.content.map(b => {
+        if (b.type === 'text') return b.text;
+        if (b.type === 'image') {
+          if (b.source?.type === 'base64' && b.source.data && b.source.media_type) {
+            return `![Image](data:${b.source.media_type};base64,${b.source.data})`;
+          }
+          if (b.source?.type === 'url' && b.source.url) {
+            return `![Image](${b.source.url})`;
+          }
+        }
+        return null;
+      }).filter(Boolean).join('\n\n');
       } else if (typeof msg.text === 'string') {
         content = msg.text;
       }
@@ -434,20 +727,76 @@ const logger = {
     return { title, messages, messageCount: messages.length };
   }
 
-  function extractGemini(doc) {
+  async function extractGemini(doc) {
     const messages = [];
-    const userEls  = removeDescendants(Array.from(doc.querySelectorAll('.user-query-content, .query-text, [class*="user-query"]')));
-    const modelEls = removeDescendants(Array.from(doc.querySelectorAll('.model-response-text, .response-text, [class*="model-response"]')));
+    // Gemini uses Angular custom elements with shadow DOM; images may live
+    // inside those shadow roots and are invisible to querySelectorAll / cloneNode.
+    // Selectors cover class-based structure AND Angular custom element names
+    // (including image-generation response cards).
+    const USER_SEL = [
+      '.user-query-content', '.query-text', '[class*="user-query"]',
+      'user-query', '[data-chunk-id]',
+    ].join(', ');
+    const MODEL_SEL = [
+      '.model-response-text', '.response-text', '[class*="model-response"]',
+      'model-response', '[class*="image-gen"]', '[class*="generated-image"]',
+      '[class*="image-response"]', '[class*="ResponseBody"]',
+    ].join(', ');
+    const userEls  = removeDescendants(Array.from(doc.querySelectorAll(USER_SEL)));
+    // Filter out model-response elements that are part of a stopped/interrupted
+    // generation. Gemini renders "You stopped this response" as a sibling in the
+    // DOM right after or inside the stopped turn's container.
+    const STOPPED_RE = /you stopped this response/i;
+    const rawModelEls = Array.from(doc.querySelectorAll(MODEL_SEL));
+    const modelEls = removeDescendants(rawModelEls.filter(function(el) {
+      const next = el.nextElementSibling;
+      if (next && STOPPED_RE.test(next.textContent || '')) return false;
+      const parent = el.parentElement;
+      if (parent) {
+        const pNext = parent.nextElementSibling;
+        if (pNext && STOPPED_RE.test(pNext.textContent || '')) return false;
+        if ([...parent.children].some(function(c) {
+          return c !== el && STOPPED_RE.test(c.textContent || '') && (c.textContent || '').trim().length < 200;
+        })) return false;
+      }
+      return true;
+    }));
+    logger.debug('[bAInder] Gemini extraction: user=%d model=%d', userEls.length, modelEls.length);
     const allEls   = [
       ...userEls.map(el => ({ el, role: 'user' })),
       ...modelEls.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
-    allEls.forEach(({ el, role }) => {
+    for (const { el, role } of allEls) {
       const processEl = role === 'assistant' ? stripSourceContainers(el) : el;
-      let content = htmlToMarkdown(processEl);
+      // Route https: fetches through the background service worker to bypass CORP:
+      // same-site enforcement on lh3.google.com (extension origin is not same-site).
+      const bgFetch = url => new Promise((resolve, reject) => {
+        logger.info('[bAInder] bgFetch → background:', url.slice(0, 80));
+        browser.runtime.sendMessage({ type: 'FETCH_IMAGE_AS_DATA_URL', url }, resp => {
+          if (browser.runtime.lastError) return reject(new Error(browser.runtime.lastError.message));
+          const du = resp?.dataUrl || '';
+          logger.info('[bAInder] bgFetch ← background: success=' + resp?.success +
+            ' dataUrl.length=' + du.length + ' prefix=' + du.slice(0, 30));
+          if (resp?.success && du.startsWith('data:')) resolve(du);
+          else reject(new Error(resp?.error || 'invalid dataUrl from background'));
+        });
+      });
+      const resolvedEl = await resolveImageBlobs(processEl, bgFetch, el);
+      let content = htmlToMarkdown(resolvedEl);
+      // Supplement with images inside shadow-DOM roots (Gemini custom elements).
+      content = await appendShadowImages(el, content, bgFetch);
+      // Strip "Gemini said" role-label headings and "You stopped this response"
+      // markers that Gemini injects into the DOM as part of its response elements.
+      if (role === 'assistant') content = content.split('\n').filter(function(l) {
+        const t = l.trim();
+        return !/^#{0,6}\s*gemini said:?\s*$/i.test(t) && !/^you stopped this response\.?\s*$/i.test(t);
+      }).join('\n').replace(/^\s+/, '');
+      logger.debug('[bAInder] Gemini turn:', role, el.tagName,
+        '| light imgs:', el.querySelectorAll('img').length,
+        '| markdown len:', content.length);
       if (role === 'assistant') content += extractSourceLinks(el);
       if (content) messages.push(formatMessage(role, content));
-    });
+    }
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
   }
 
@@ -630,7 +979,7 @@ const logger = {
     return '\n\n**Sources:**\n\n' + lines.join('\n');
   }
 
-  function extractCopilot(doc) {
+  async function extractCopilot(doc) {
     const messages = [];
     const DBG = '[extractCopilot]';
 
@@ -900,25 +1249,41 @@ const logger = {
       ...copilotEls.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
 
-    allEls.forEach(({ el, role }) => {
+    for (const { el, role } of allEls) {
       const processEl = role === 'assistant' ? stripSourceContainers(el) : el;
-      let content = stripRoleLabels(htmlToMarkdown(processEl));
+      // Route https: image fetches through the background service worker to bypass
+      // CORP: same-site on Bing image CDNs (th.bing.com, www.bing.com).
+      const bgFetch = url => new Promise((resolve, reject) => {
+        logger.info('[bAInder] Copilot bgFetch → background:', url.slice(0, 80));
+        browser.runtime.sendMessage({ type: 'FETCH_IMAGE_AS_DATA_URL', url }, resp => {
+          if (browser.runtime.lastError) return reject(new Error(browser.runtime.lastError.message));
+          const du = resp?.dataUrl || '';
+          logger.info('[bAInder] Copilot bgFetch ← background: success=' + resp?.success +
+            ' dataUrl.length=' + du.length + ' prefix=' + du.slice(0, 30));
+          if (resp?.success && du.startsWith('data:')) resolve(du);
+          else reject(new Error(resp?.error || 'invalid dataUrl from background'));
+        });
+      });
+      const resolvedEl = await resolveImageBlobs(processEl, bgFetch, el);
+      let content = stripRoleLabels(htmlToMarkdown(resolvedEl));
+      logger.info('[bAInder] Copilot turn content length=' + content.length +
+        ' hasImg=' + content.includes('![') + ' hasPlaceholder=' + content.includes('🖼️'));
       if (role === 'assistant') content += extractSourceLinks(el);
       if (content) messages.push(formatMessage(role, content));
-    });
+    }
 
     return { title: generateTitle(messages, doc.location?.href || ''), messages, messageCount: messages.length };
   }
 
-  function extractChat(platform, doc) {
+  async function extractChat(platform, doc) {
     if (!platform) throw new Error('Platform is required');
     if (!doc)      throw new Error('Document is required');
     let result;
     switch (platform) {
-      case 'chatgpt': result = extractChatGPT(doc); break;
+      case 'chatgpt': result = await extractChatGPT(doc); break;
       case 'claude':  result = extractClaude(doc);  break;
-      case 'gemini':   result = extractGemini(doc);   break;
-      case 'copilot':  result = extractCopilot(doc);  break;
+      case 'gemini':   result = await extractGemini(doc);   break;
+      case 'copilot':  result = await extractCopilot(doc);  break;
       default: throw new Error(`Unsupported platform: ${platform}`);
     }
     return {
@@ -1089,7 +1454,7 @@ const logger = {
                 extractedAt: Date.now(),
               };
             } else {
-              chatData = extractChat(platform, document);
+              chatData = await extractChat(platform, document);
             }
             sendResponse({ success: true, data: prepareChatForSave(chatData) });
           } catch (err) {
