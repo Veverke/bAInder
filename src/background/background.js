@@ -142,6 +142,30 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   logger.debug('Runtime message received:', message.type);
   
   switch (message.type) {
+    case 'FETCH_IMAGE_AS_DATA_URL': {
+      // Content scripts cannot bypass CORP: same-site for cross-origin image hosts
+      // (the browser treats their isolated world as extension-origin, not page-origin).
+      // The background service worker is exempt from CORP enforcement when the URL
+      // is listed in host_permissions, so we proxy the fetch through here.
+      const { url: imgUrl } = message;
+      (async () => {
+        try {
+          const resp = await fetch(imgUrl, { credentials: 'include' });
+          logger.info('FETCH_IMAGE_AS_DATA_URL response:', resp.status, resp.url);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          const reader = new FileReader();
+          reader.onloadend = () => sendResponse({ success: true, dataUrl: reader.result });
+          reader.onerror   = () => sendResponse({ success: false, error: 'FileReader error' });
+          reader.readAsDataURL(blob);
+        } catch (err) {
+          logger.info('FETCH_IMAGE_AS_DATA_URL failed:', err.message);
+          sendResponse({ success: false, error: err.message });
+        }
+      })();
+      return true; // keep channel open for async response
+    }
+
     case 'CAPTURE_DESIGNER_IMAGE': {
       // Screenshot the visible tab, crop to the Designer iframe rect, return data URL.
       // This is the only reliable way to capture the cross-origin WebGL canvas.

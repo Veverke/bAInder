@@ -73,7 +73,18 @@ export async function extractClaude() {
     const role = msg.sender === 'human' ? 'user' : 'assistant';
     let content = '';
     if (Array.isArray(msg.content)) {
-      content = msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n\n');
+      content = msg.content.map(b => {
+        if (b.type === 'text') return b.text;
+        if (b.type === 'image') {
+          if (b.source?.type === 'base64' && b.source.data && b.source.media_type) {
+            return `![Image](data:${b.source.media_type};base64,${b.source.data})`;
+          }
+          if (b.source?.type === 'url' && b.source.url) {
+            return `![Image](${b.source.url})`;
+          }
+        }
+        return null;
+      }).filter(Boolean).join('\n\n');
     } else if (typeof msg.text === 'string') {
       content = msg.text;
     }

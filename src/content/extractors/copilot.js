@@ -11,6 +11,7 @@
  */
 
 import { htmlToMarkdown }        from './html-to-markdown.js';
+import { resolveImageBlobs }     from './image-resolver.js';
 import { extractSourceLinks, stripSourceContainers } from './source-links.js';
 import { formatMessage, generateTitle }              from './message-utils.js';
 import { removeDescendants }                         from './shared.js';
@@ -44,7 +45,7 @@ function stripRoleLabels(content) {
  * @param {Document} doc
  * @returns {{title: string, messages: Array, messageCount: number}}
  */
-export function extractCopilot(doc) {
+export async function extractCopilot(doc) {
   if (!doc) throw new Error('Document is required');
 
   const messages = [];
@@ -108,13 +109,26 @@ export function extractCopilot(doc) {
     return pos & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
   });
 
-  allEls.forEach(({ el, role }) => {
+  for (const { el, role } of allEls) {
     // Strip any Copilot UI role-label headings ("You said:", "Copilot said:").
     const processEl = role === 'assistant' ? stripSourceContainers(el) : el;
-    let content = stripRoleLabels(htmlToMarkdown(processEl));
+    // Route https: image fetches through the background service worker to bypass
+    // CORP: same-site on Bing image CDNs (th.bing.com, www.bing.com).
+    const bgFetch = (typeof chrome !== 'undefined' && chrome?.runtime?.sendMessage)
+      ? url => new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({ type: 'FETCH_IMAGE_AS_DATA_URL', url }, resp => {
+            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+            const du = resp?.dataUrl || '';
+            if (resp?.success && du.startsWith('data:')) resolve(du);
+            else reject(new Error(resp?.error || 'invalid dataUrl from background'));
+          });
+        })
+      : null;
+    const resolvedEl = await resolveImageBlobs(processEl, bgFetch, el);
+    let content = stripRoleLabels(htmlToMarkdown(resolvedEl));
     if (role === 'assistant') content += extractSourceLinks(el);
     if (content) messages.push(formatMessage(role, content));
-  });
+  }
 
   const title = generateTitle(messages, doc.location?.href || '');
   return { title, messages, messageCount: messages.length };

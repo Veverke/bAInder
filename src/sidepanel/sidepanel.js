@@ -212,9 +212,16 @@ function setupEventListeners() {
     }
   });
 
-  // Modal backdrop â€” close on click outside
+  // Modal backdrop — close on click outside.
+  // Guard with mousedown origin so that dragging text selection out of an
+  // input field (mousedown on input, mouseup on backdrop) does not dismiss
+  // the dialog unintentionally.
+  let _backdropMousedown = false;
+  elements.modalContainer.addEventListener('mousedown', (e) => {
+    _backdropMousedown = e.target === elements.modalContainer;
+  });
   elements.modalContainer.addEventListener('click', (e) => {
-    if (e.target === elements.modalContainer) state.dialog?.close();
+    if (e.target === elements.modalContainer && _backdropMousedown) state.dialog?.close();
   });
 
   // U1 â€” TOC section collapse toggle

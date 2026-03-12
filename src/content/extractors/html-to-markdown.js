@@ -62,11 +62,30 @@ export function htmlToMarkdown(el) {
     }
     if (node.nodeType !== 1 /* ELEMENT_NODE */) return '';
 
-    // Skip decorative / hidden nodes
-    if (node.getAttribute('aria-hidden') === 'true') return '';
+    // Skip decorative / hidden nodes — BUT preserve short text-only separator
+    // nodes (e.g. "•", " · ", "|") that ChatGPT marks aria-hidden for
+    // screen-readers yet which form visible punctuation between text spans.
+    if (node.getAttribute('aria-hidden') === 'true') {
+      if (node.childElementCount === 0) {
+        const txt = node.textContent || '';
+        if (/^\s*[\u2022\u00b7\u2019\u2013\u2014|\-\.]+\s*$/.test(txt)) return txt;
+      }
+      return '';
+    }
 
     const tag = node.tagName.toLowerCase();
-    if (['script', 'style', 'svg', 'noscript', 'button', 'template'].includes(tag)) return '';
+    if (['script', 'style', 'svg', 'noscript', 'template'].includes(tag)) return '';
+    // Buttons are skipped to avoid UI text (Copy, Send, Thumbs Up, etc.).
+    // Exception: buttons used as image wrappers (Copilot wraps AI-generated images
+    // in clickable <button> elements). Emit any resolved data: images inside them.
+    if (tag === 'button') {
+      const parts = [];
+      for (const img of node.querySelectorAll('img')) {
+        const r = walk(img);
+        if (r.trim()) parts.push(r);
+      }
+      return parts.join('');
+    }
 
     // ── M365 Copilot / Fluent UI code block ──────────────────────────────────
     const copilotBlock = _extractCopilotCodeBlock(node);
@@ -160,11 +179,23 @@ export function htmlToMarkdown(el) {
 
       // ── Image ─────────────────────────────────────────────────────────────
       case 'img': {
+        // Placeholder emitted when resolveImageBlobs() failed to fetch a blob: URL.
+        if (node.hasAttribute('data-binder-img-lost')) {
+          const desc = node.getAttribute('data-binder-img-lost') || 'Image';
+          return `\n[🖼️ Image not captured: ${desc}]\n`;
+        }
         const src = node.getAttribute('src') || '';
-        // Keep data: and https:// images; skip blob: (session-only) and empty.
-        if (!src || src.startsWith('blob:')) return '';
+        if (!src) return '';
+        // blob: that wasn't pre-processed (synchronous call path) → placeholder.
+        if (src.startsWith('blob:')) {
+          const alt = (node.getAttribute('alt') || '').trim().replace(/\n/g, ' ');
+          return alt ? `\n[🖼️ Image: ${alt}]\n` : '\n[🖼️ Image]\n';
+        }
         const alt = (node.getAttribute('alt') || '').trim().replace(/\n/g, ' ');
-        return `\n![${alt}](${src})\n`;
+        const w = node.getAttribute('data-natural-width');
+        const h = node.getAttribute('data-natural-height');
+        const suffix = (w && h) ? `{width=${w} height=${h}}` : w ? `{width=${w}}` : '';
+        return `\n![${alt}](${src})${suffix}\n`;
       }
 
       // ── Microsoft Designer iframe (M365 Copilot generated images) ─────────

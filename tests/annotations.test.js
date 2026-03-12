@@ -351,6 +351,44 @@ describe('highlightRange', () => {
     }).not.toThrow();
     container.remove();
   });
+
+  it('highlights a selection that spans across different element boundaries', () => {
+    // Simulates markdown with a <p> followed by a nested <ul><li>
+    // textContent concatenation: "Hello world"(0–10) + "Item one"(11–18) + "Item two"(19–26)
+    const container = document.createElement('div');
+    container.innerHTML = '<p>Hello world</p><ul><li>Item one</li><li>Item two</li></ul>';
+    document.body.appendChild(container);
+
+    // Highlight "world" (chars 6–11, exclusive) through all of "Item one" (chars 11–19, exclusive)
+    highlightRange(container, { id: 'ann-cross', start: 6, end: 19, color: '#fef08a', note: '' });
+
+    const marks = container.querySelectorAll('mark.annotation-highlight');
+    // Should produce two <mark> elements: one in <p>, one in <li>
+    expect(marks.length).toBe(2);
+    expect(marks[0].textContent).toBe('world');
+    expect(marks[1].textContent).toBe('Item one');
+    marks.forEach(m => expect(m.dataset.annotationId).toBe('ann-cross'));
+    container.remove();
+  });
+
+  it('highlights across deeply nested markdown elements', () => {
+    // Simulates a heading followed by a paragraph with bold text
+    const container = document.createElement('div');
+    container.innerHTML = '<h2>Title here</h2><p>Some <strong>bold</strong> text</p>';
+    document.body.appendChild(container);
+
+    // Text nodes: "Title here"(0–9), "Some "(10–14), "bold"(15–18), " text"(19–23)
+    // Highlight "here" (chars 6–10) through all of "bold" (chars 15–19)
+    highlightRange(container, { id: 'ann-deep', start: 6, end: 19, color: '#bbf7d0', note: 'test' });
+
+    const marks = container.querySelectorAll('mark.annotation-highlight');
+    // Should mark: "here" in h2, "Some " in p, "bold" in strong
+    expect(marks.length).toBe(3);
+    expect(marks[0].textContent).toBe('here');
+    expect(marks[1].textContent).toBe('Some ');
+    expect(marks[2].textContent).toBe('bold');
+    container.remove();
+  });
 });
 
 // ─── applyAnnotations ─────────────────────────────────────────────────────────

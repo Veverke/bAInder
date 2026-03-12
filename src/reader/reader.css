@@ -661,6 +661,8 @@ body {
 /* Images */
 .chat-image {
   display: block;
+  /* Render at the width captured from the source chat (HTML width= attribute).
+     Shrink if the reader column is narrower; never upscale beyond that width. */
   max-width: 100%;
   height: auto;
   border-radius: var(--radius-md);
