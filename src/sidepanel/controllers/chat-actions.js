@@ -103,6 +103,7 @@ export function setupChatContextMenuActions() {
     rename:            handleRenameChatAction,
     'edit-tags':       handleEditTagsAction,
     move:              handleMoveChatAction,
+    export:            handleExportChatAction,
     delete:            handleDeleteChatAction,
     'set-review-date': handleSetReviewDateAction,
   };
@@ -296,4 +297,14 @@ async function handleSetReviewDateAction() {
   );
   _state.renderer.setChatData(_state.chats);
   renderTreeView();
+}
+
+async function handleExportChatAction() {
+  if (!_state.contextMenuChat) return;
+  try {
+    await _state.exportDialog.showExportChat(_state.contextMenuChat, _state.tree);
+  } catch (err) {
+    logger.error('Export chat failed:', err);
+    await _state.dialog.alert(err.message || 'Export failed', 'Export Error');
+  }
 }
