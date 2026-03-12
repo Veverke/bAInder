@@ -91,6 +91,16 @@ export function htmlToMarkdown(el) {
     const copilotBlock = _extractCopilotCodeBlock(node);
     if (copilotBlock !== null) return copilotBlock;
 
+    // ── Shadow DOM (e.g. Gemini Angular custom elements) ─────────────────────
+    // Custom elements (tag names containing a hyphen) may render their content
+    // inside an open shadow root (ViewEncapsulation.ShadowDom).  The light DOM
+    // in that case is either empty or a flat accessibility text node, so we
+    // must walk the shadow root to obtain structured HTML (headings, lists, etc.).
+    if (tag.includes('-') && node.shadowRoot) {
+      const shadowContent = Array.from(node.shadowRoot.childNodes).map(walk).join('');
+      if (shadowContent.trim()) return shadowContent;
+    }
+
     // Build inner content first (needed by most cases)
     const inner = Array.from(node.childNodes).map(walk).join('');
 
@@ -220,7 +230,37 @@ export function htmlToMarkdown(el) {
         return inner;
       }
 
-      // ── Everything else (div, span, section, article, …) ─────────────────
+      // ── Table ─────────────────────────────────────────────────────────────
+      case 'table': {
+        const trList = node.querySelectorAll('tr');
+        console.debug('[bAInder] htmlToMarkdown: <table> hit, tr count:', trList.length);
+        const mdRows = [];
+        let separatorInserted = false;
+        for (const tr of node.querySelectorAll('tr')) {
+          const cells = Array.from(tr.querySelectorAll('th, td'));
+          if (!cells.length) continue;
+          const isHeaderRow = cells.some(c => c.tagName.toLowerCase() === 'th');
+          const cellTexts = cells.map(c =>
+            walk(c).replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim()
+          );
+          mdRows.push(`| ${cellTexts.join(' | ')} |`);
+          if (!separatorInserted && isHeaderRow) {
+            mdRows.push(`| ${cells.map(() => '---').join(' | ')} |`);
+            separatorInserted = true;
+          }
+        }
+        // If no <th> row, insert separator after the first row so it is valid GFM
+        if (mdRows.length > 0 && !separatorInserted) {
+          const colCount = (mdRows[0].match(/\|/g) || []).length - 1;
+          mdRows.splice(1, 0, `| ${Array(colCount).fill('---').join(' | ')} |`);
+        }
+        return mdRows.length ? `\n${mdRows.join('\n')}\n` : '';
+      }
+      case 'thead': case 'tbody': case 'tfoot': case 'tr': case 'th': case 'td':
+        // Handled by ancestor <table> case; if reached directly, fall through to inner.
+        return inner;
+
+      // ── Structurals ────────────────────────────────────────────────────────
       case 'div': case 'section': case 'article': case 'aside': case 'main': case 'header': case 'footer': {
         // If this div's only meaningful child is a <pre>, pass straight through
         // so the code block isn't lost inside a wrapper div.

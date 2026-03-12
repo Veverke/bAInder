@@ -1,4 +1,4 @@
-﻿/**
+/**
  * bAInder Reader \u2014 reader.js
  *
  * Loads a saved chat from browser.storage.local and renders it in the reader page.
@@ -22,7 +22,7 @@ import {
 } from '../lib/export/clipboard-serialiser.js';
 export { escapeHtml };  // re-export: callers that import escapeHtml from reader.js continue to work
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
  * Count words in raw markdown text (strips frontmatter and code blocks).
@@ -100,7 +100,7 @@ export function badgeClass(source, isExcerpt) {
   return known.includes(source) ? `badge badge--${source}` : 'badge badge--unknown';
 }
 
-// â”€â”€â”€ Markdown Renderer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Markdown Renderer ────────────────────────────────────────────────────────
 
 /**
  * Apply inline markdown formatting to a text segment.
@@ -111,7 +111,7 @@ export function badgeClass(source, isExcerpt) {
  * @returns {string}  HTML with inline elements applied
  */
 export function applyInline(escaped) {
-  // â”€â”€ Pass 1: protect inline code spans (\x00 placeholders) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Pass 1: protect inline code spans (\x00 placeholders) ──────────────
   // These must be shielded earliest so nothing inside backticks gets parsed.
   const codeMap = [];
   let s = escaped.replace(/`([^`]+)`/g, (_, code) => {
@@ -119,7 +119,7 @@ export function applyInline(escaped) {
     return `\x00${codeMap.length - 1}\x00`;
   });
 
-  // â”€â”€ Pass 2: protect images + explicit markdown links (\x01 placeholders) â”€
+  // ── Pass 2: protect images + explicit markdown links (\x01 placeholders) ─
   // Shielding them prevents the bare-URL pass from double-linking the href.
   const linkMap = [];
   const protect = html => { linkMap.push(html); return `\x01${linkMap.length - 1}\x01`; };
@@ -144,7 +144,7 @@ export function applyInline(escaped) {
     return protect(`<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`);
   });
 
-  // â”€â”€ Pass 3: auto-link bare https?:// URLs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Pass 3: auto-link bare https?:// URLs ──────────────────────────────
   // All explicit links/images are placeholders here, so we can't accidentally
   // double-match inside an href="\u2026" attribute.
   s = s.replace(/https?:\/\/[^\s<>"\x01]+/g, (url) => {
@@ -156,13 +156,13 @@ export function applyInline(escaped) {
     return protect(`<a href="${trimmed}" target="_blank" rel="noopener noreferrer">${display}</a>`) + trailing;
   });
 
-  // â”€â”€ Pass 4: bold / italic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Pass 4: bold / italic ─────────────────────────────────────────────
   s = s
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(/(?<!\w)_([^_]+)_(?!\w)/g, '<em>$1</em>');
 
-  // â”€â”€ Restore placeholders (links first, then code) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Restore placeholders (links first, then code) ─────────────────────
   s = s.replace(/\x01(\d+)\x01/g, (_, i) => linkMap[parseInt(i, 10)]);
   return s.replace(/\x00(\d+)\x00/g, (_, i) => codeMap[parseInt(i, 10)]);
 }
@@ -206,7 +206,7 @@ export function renderMarkdown(markdown) {
   function flushPara(buf) {
     const trimmed = buf.trim();
     if (!trimmed) return;
-    // Soft-break segments (each was a line ending with '  ') â†’ <br>
+    // Soft-break segments (each was a line ending with '  ') → <br>
     const segments = trimmed.split('\n');
     const html = segments.map(seg => applyInline(escapeHtml(seg))).join('<br>');
     htmlParts.push(`<p>${html}</p>`);
@@ -227,7 +227,7 @@ export function renderMarkdown(markdown) {
   while (i < lines.length) {
     const raw  = lines[i];
     const line = raw; // keep original for whitespace checks
-    // â”€â”€ Microsoft Designer generated-image card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Microsoft Designer generated-image card ──────────────────────────
     {
       const designerMatch = line.match(/^\[Microsoft Designer generated image\]\(([^)]+)\)$/);
       if (designerMatch) {
@@ -251,16 +251,16 @@ export function renderMarkdown(markdown) {
         continue;
       }
     }
-    // â”€â”€ Standalone image line  ![alt](src) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Standalone image line  ![alt](src) ─────────────────────────────
     if (/^!\[/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
-      // applyInline handles the ![alt](src) â†’ <img> conversion
+      // applyInline handles the ![alt](src) → <img> conversion
       htmlParts.push(`<p>${applyInline(escapeHtml(line))}</p>`);
       i++;
       continue;
     }
-    // â”€â”€ Fenced code block â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Fenced code block ──────────────────────────────────────────
     if (/^```/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
@@ -294,7 +294,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // â”€â”€ Heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Heading ────────────────────────────────────────────────────────────
     const headingMatch = line.match(/^(#{1,3})\s+(.*)/);
     if (headingMatch) {
       flushPara(paraBuf); paraBuf = '';
@@ -306,7 +306,58 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // â”€â”€ Horizontal rule â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- GFM pipe table --------------------------------------------------------
+    // Detect: current line starts+ends with | and next line is a separator row
+    if (/^\|.+\|/.test(line) && i + 1 < lines.length && /^\|[-:| ]+\|\s*$/.test(lines[i + 1])) {
+      flushPara(paraBuf); paraBuf = '';
+      flushList();
+
+      const parseRow = raw => raw
+        .replace(/^\|/, '').replace(/\|$/, '')
+        .split('|')
+        .map(cell => applyInline(escapeHtml(cell.trim())));
+
+      const headers = parseRow(line);
+      i++; // move to separator row
+      const aligns = lines[i]
+        .replace(/^\|/, '').replace(/\|$/, '')
+        .split('|')
+        .map(c => {
+          const t = c.trim();
+          if (t.startsWith(':') && t.endsWith(':')) return 'center';
+          if (t.endsWith(':'))   return 'right';
+          if (t.startsWith(':')) return 'left';
+          return '';
+        });
+      i++; // first data row
+
+      const dataRows = [];
+      while (i < lines.length && /^\|/.test(lines[i])) {
+        dataRows.push(parseRow(lines[i]));
+        i++;
+      }
+
+      const thCells = headers.map((h, j) => {
+        const align = aligns[j] ? ` style="text-align:${aligns[j]}"` : '';
+        return `<th${align}>${h}</th>`;
+      }).join('');
+      const tbRows = dataRows.map(row =>
+        `<tr>${row.map((cell, j) => {
+          const align = aligns[j] ? ` style="text-align:${aligns[j]}"` : '';
+          return `<td${align}>${cell}</td>`;
+        }).join('')}</tr>`
+      ).join('');
+
+      htmlParts.push(
+        `<div class="table-wrapper">` +
+        `<table><thead><tr>${thCells}</tr></thead>` +
+        (tbRows ? `<tbody>${tbRows}</tbody>` : '') +
+        `</table></div>`
+      );
+      continue; // i already advanced past all table rows
+    }
+
+    // ── Horizontal rule ────────────────────────────────────────────────────
     if (/^-{3,}\s*$/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
@@ -315,14 +366,14 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // â”€â”€ Blockquote â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Blockquote ─────────────────────────────────────────────────────────
 
 
 
 
 
 
-    // Assembled-chat section divider (===) — marks where one chat ends, the next begins
+    // Assembled-chat section divider (===) � marks where one chat ends, the next begins
     if (/^={3,}\s*$/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
@@ -344,7 +395,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // â”€â”€ Unordered list item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Unordered list item ────────────────────────────────────────────────
     const ulMatch = line.match(/^[-*]\s+(.*)/);
     if (ulMatch) {
       flushPara(paraBuf); paraBuf = '';
@@ -354,7 +405,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // â”€â”€ Ordered list item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Ordered list item ──────────────────────────────────────────────────
     const olMatch = line.match(/^\d+\.\s+(.*)/);
     if (olMatch) {
       flushPara(paraBuf); paraBuf = '';
@@ -364,7 +415,7 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // â”€â”€ Blank line \u2014 paragraph break â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Blank line \u2014 paragraph break ───────────────────────────────────────
     if (line.trim() === '') {
       flushList();
       if (paraBuf.trim()) {
@@ -375,15 +426,15 @@ export function renderMarkdown(markdown) {
       continue;
     }
 
-    // â”€â”€ HTML comment \u2014 skip silently (e.g. TOC anchor comments in digests) â”€â”€
+    // ── HTML comment \u2014 skip silently (e.g. TOC anchor comments in digests) ──
     if (/^\s*<!--.*-->\s*$/.test(line)) {
       i++;
       continue;
     }
 
-    // â”€â”€ Regular text \u2014 accumulate into paragraph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Regular text \u2014 accumulate into paragraph ───────────────────────────
     flushList();
-    // Markdown soft break: line ending with two spaces â†’ insert \n as <br> marker
+    // Markdown soft break: line ending with two spaces → insert \n as <br> marker
     const softBreak = line.endsWith('  ');
     const cleanLine = softBreak ? line.slice(0, -2) : line;
     paraBuf += (paraBuf ? (softBreak ? '\n' : ' ') : '') + cleanLine;
@@ -396,32 +447,40 @@ export function renderMarkdown(markdown) {
   return htmlParts.join('\n');
 }
 
-// â”€â”€â”€ Post-render DOM processing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Post-render DOM processing ───────────────────────────────────────────────
 
 /**
  * Walk the flat rendered-markdown children of `contentEl` and group them into
  * role-aware `.chat-turn--user` / `.chat-turn--assistant` wrapper divs.
  *
- * The reader's markdown format produces a flat sequence of:
- *   <h3>User</h3>, <p>\u2026</p>, <hr>, <h3>Assistant</h3>, <p>\u2026</p>, <hr>, \u2026
+ * Supports two serialiser formats:
  *
- * This function turns that into:
- *   <div class="chat-turn chat-turn--user">\u2026</div>
- *   <div class="chat-turn chat-turn--assistant">\u2026</div>
+ *  Legacy (h3 headings):
+ *   <h3>User</h3>, <p>�</p>, <hr>, <h3>Assistant</h3>, <p>�</p>, <hr>, �
  *
- * If no recognised role headings are found the DOM is left unchanged.
+ *  Current (emoji prefix � produced by markdown-serialiser.js messagesToMarkdown):
+ *   <p>?? prompt text</p>, <hr>, <p>?? response text</p>, <hr>, �
+ *
+ * If neither format is detected the DOM is left unchanged (e.g. plain excerpts).
  * @param {Element} contentEl
  */
 export function wrapChatTurns(contentEl) {
+  const USER_EMOJI = '\u{1F64B}'; // ??
+  const ASST_EMOJI = '\u{1F916}'; // ??
   const USER_ROLES      = new Set(['user', 'you', 'human']);
   const ASSISTANT_ROLES = new Set(['assistant', 'chatgpt', 'claude', 'gemini', 'copilot']);
 
-  // Quick guard: skip if no role h3s present (e.g. plain excerpts)
-  const hasRoles = Array.from(contentEl.querySelectorAll('h3')).some(h => {
+  // Detect which format is in use
+  const hasLegacyRoles = Array.from(contentEl.querySelectorAll('h3')).some(h => {
     const t = h.textContent.trim().toLowerCase();
     return USER_ROLES.has(t) || ASSISTANT_ROLES.has(t);
   });
-  if (!hasRoles) return;
+  const hasEmojiRoles = !hasLegacyRoles && Array.from(contentEl.querySelectorAll('p')).some(p => {
+    const t = p.textContent.trimStart();
+    return t.startsWith(USER_EMOJI) || t.startsWith(ASST_EMOJI);
+  });
+
+  if (!hasLegacyRoles && !hasEmojiRoles) return;
 
   // Collect top-level child nodes, splitting at <hr> boundaries
   const groups = [];
@@ -446,7 +505,9 @@ export function wrapChatTurns(contentEl) {
     if (!nodes.length) continue;
 
     const first = nodes[0];
-    if (first.nodeType === 1 /* ELEMENT_NODE */ && first.tagName === 'H3') {
+
+    // -- Legacy format: <h3>User</h3> heading ---------------------------------
+    if (hasLegacyRoles && first.nodeType === 1 && first.tagName === 'H3') {
       const roleKey = first.textContent.trim().toLowerCase();
       const isUser      = USER_ROLES.has(roleKey);
       const isAssistant = ASSISTANT_ROLES.has(roleKey);
@@ -457,7 +518,14 @@ export function wrapChatTurns(contentEl) {
 
         const roleDiv = document.createElement('div');
         roleDiv.className = 'chat-turn__role';
-        roleDiv.textContent = first.textContent.trim();
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'turn-role-icon';
+        iconSpan.setAttribute('aria-hidden', 'true');
+        iconSpan.textContent = isUser ? '\u{1F64B}' : '\u{1F916}';
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'turn-role-label';
+        labelSpan.textContent = first.textContent.trim();
+        roleDiv.append(iconSpan, labelSpan);
 
         const bodyDiv = document.createElement('div');
         bodyDiv.className = 'chat-turn__body';
@@ -470,10 +538,159 @@ export function wrapChatTurns(contentEl) {
       }
     }
 
-    // Non-role group \u2014 append nodes directly (preserves leading meta content)
+    // -- Current emoji format: ?? / ?? prefixed paragraph ---------------------
+    // Scan the whole group � the emoji-P may not be the first node (e.g. when
+    // the group starts with a <h1> title followed by the first user message).
+    if (hasEmojiRoles) {
+      const emojiIdx = nodes.findIndex(n =>
+        n.nodeType === 1 && n.tagName === 'P' &&
+        (n.textContent.trimStart().startsWith(USER_EMOJI) ||
+         n.textContent.trimStart().startsWith(ASST_EMOJI))
+      );
+
+      if (emojiIdx >= 0) {
+        // Flush any prefix nodes (e.g. <h1> title before first message) directly
+        for (const n of nodes.slice(0, emojiIdx)) contentEl.appendChild(n);
+
+        const emojiP  = nodes[emojiIdx];
+        const txt     = emojiP.textContent.trimStart();
+        const isUser  = txt.startsWith(USER_EMOJI);
+
+        const turn = document.createElement('div');
+        turn.className = `chat-turn ${isUser ? 'chat-turn--user' : 'chat-turn--assistant'}`;
+
+        const roleDiv = document.createElement('div');
+        roleDiv.className = 'chat-turn__role';
+        const iconSpan2 = document.createElement('span');
+        iconSpan2.className = 'turn-role-icon';
+        iconSpan2.setAttribute('aria-hidden', 'true');
+        iconSpan2.textContent = isUser ? USER_EMOJI : ASST_EMOJI;
+        const labelSpan2 = document.createElement('span');
+        labelSpan2.className = 'turn-role-label';
+        labelSpan2.textContent = isUser ? 'You' : 'Assistant';
+        roleDiv.append(iconSpan2, labelSpan2);
+
+        // Strip the leading emoji (and any trailing space) from the first text node
+        const emoji = isUser ? USER_EMOJI : ASST_EMOJI;
+        for (const child of emojiP.childNodes) {
+          if (child.nodeType === 3 /* TEXT_NODE */) {
+            if (child.textContent.startsWith(emoji)) {
+              child.textContent = child.textContent.slice(emoji.length).trimStart();
+            }
+            break;
+          }
+        }
+
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'chat-turn__body';
+        for (const n of nodes.slice(emojiIdx)) bodyDiv.appendChild(n);
+
+        turn.appendChild(roleDiv);
+        turn.appendChild(bodyDiv);
+        contentEl.appendChild(turn);
+        continue;
+      }
+    }
+
+    // Non-role group � append nodes directly (preserves leading meta content)
     for (const n of nodes) contentEl.appendChild(n);
   }
 }
+
+/**
+ * Count user-prompt and assistant-response turns in the rendered content element.
+ * @param {Element} contentEl
+ * @returns {{ prompts: number, responses: number }}
+ */
+export function countTurns(contentEl) {
+  if (!contentEl) return { prompts: 0, responses: 0 };
+  // Wrapped format (legacy serialiser)
+  const prompts   = contentEl.querySelectorAll('.chat-turn--user').length;
+  const responses = contentEl.querySelectorAll('.chat-turn--assistant').length;
+  if (prompts > 0 || responses > 0) return { prompts, responses };
+  // Emoji format (current serialiser: ?? / ?? paragraphs)
+  const USER_EMOJI = '\uD83D\uDE4B'; // ??
+  const ASST_EMOJI = '\uD83E\uDD16'; // ??
+  let p = 0, r = 0;
+  for (const para of contentEl.querySelectorAll('p')) {
+    const t = para.textContent.trimStart();
+    if (t.startsWith(USER_EMOJI))      p++;
+    else if (t.startsWith(ASST_EMOJI)) r++;
+  }
+  return { prompts: p, responses: r };
+}
+
+/**
+ * Add ordinal labels (P1, P2�/R1, R2�) to each chat turn and assign deep-link
+ * anchor ids (p1, p2�/r1, r2�) for URL-fragment navigation.
+ *
+ * Labels are injected as <span class="msg-ordinal" aria-hidden="true"> prepended
+ * inside '.chat-turn__role'. Any existing labels are removed first (idempotent).
+ *
+ * @param {Element} contentEl
+ */
+export function addOrdinalLabels(contentEl) {
+  if (!contentEl) return;
+  // Remove all existing ordinal labels first (idempotent)
+  contentEl.querySelectorAll('.msg-ordinal').forEach(el => el.remove());
+  let promptIdx = 0;
+  let responseIdx = 0;
+
+  const wrappedTurns = contentEl.querySelectorAll('.chat-turn--user, .chat-turn--assistant');
+  if (wrappedTurns.length > 0) {
+    // Wrapped format (legacy serialiser: ### User / ### Assistant headings)
+    for (const turn of wrappedTurns) {
+      const isUser  = turn.classList.contains('chat-turn--user');
+      const roleDiv = turn.querySelector('.chat-turn__role');
+      if (!roleDiv) continue;
+
+      const label = document.createElement('span');
+      label.className = 'msg-ordinal';
+      label.setAttribute('aria-hidden', 'true');
+
+      if (isUser) {
+        promptIdx++;
+        turn.id = `p${promptIdx}`;
+        label.textContent = `P${promptIdx}`;
+      } else {
+        responseIdx++;
+        turn.id = `r${responseIdx}`;
+        label.textContent = `R${responseIdx}`;
+      }
+      roleDiv.prepend(label);
+    }
+  } else {
+    // Emoji format (current serialiser): ?? = user, ?? = assistant
+    // Labels are injected as the first child of the paragraph, preceding the emoji.
+    const USER_EMOJI = '\uD83D\uDE4B'; // ??
+    const ASST_EMOJI = '\uD83E\uDD16'; // ??
+    for (const p of contentEl.querySelectorAll('p')) {
+      const text   = p.textContent.trimStart();
+      const isUser = text.startsWith(USER_EMOJI);
+      const isAsst = text.startsWith(ASST_EMOJI);
+      if (!isUser && !isAsst) continue;
+
+      const label = document.createElement('span');
+      label.className = 'msg-ordinal';
+      label.setAttribute('aria-hidden', 'true');
+
+      if (isUser) {
+        promptIdx++;
+        p.id = `p${promptIdx}`;
+        label.textContent = `P${promptIdx}`;
+      } else {
+        responseIdx++;
+        p.id = `r${responseIdx}`;
+        label.textContent = `R${responseIdx}`;
+      }
+      p.prepend(label);
+    }
+  }
+}
+
+// Module-level reference set by setupSourcesPanel so processSources can wire
+// direct listeners on each chip (more reliable than document-level delegation).
+let _openPanel = null;
 
 /**
  * Post-process rendered markdown to replace each **Sources:** + list block
@@ -495,13 +712,17 @@ export function processSources(contentEl) {
     if (!/^sources:?$/i.test((p.textContent || '').trim())) return;
 
     const ul = p.nextElementSibling;
-    if (!ul || ul.tagName !== 'UL') return;
+    if (!ul || ul.tagName !== 'UL') {
+      console.debug('[bAInder] processSources: found Sources p but nextElementSibling is', ul?.tagName ?? 'null', '� skipping');
+      return;
+    }
 
     const links = Array.from(ul.querySelectorAll('a[href]'))
       .map(a => ({ href: a.getAttribute('href'), text: (a.textContent || '').trim() || a.getAttribute('href') }))
       .filter(l => l.href);
 
-    if (links.length === 0) return;
+    if (links.length === 0) { console.debug('[bAInder] processSources: Sources ul has no valid links'); return; }
+    console.debug('[bAInder] processSources: creating chip with', links.length, 'link(s)');
 
     const n     = links.length;
     const label = `${n} source${n !== 1 ? 's' : ''}`;
@@ -517,6 +738,12 @@ export function processSources(contentEl) {
       `<path d="M3 4h10v1.5H3V4Zm0 3.25h10v1.5H3V7.25ZM3 10.5h7v1.5H3v-1.5Z"/></svg>` +
       `<span>${label}</span>`;
 
+    // Wire click directly so it works regardless of event-delegation conditions.
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation(); // prevent document-level delegation from also firing
+      if (_openPanel) _openPanel(links);
+    });
+
     p.replaceWith(chip);
     ul.remove();
   });
@@ -524,15 +751,15 @@ export function processSources(contentEl) {
 
 /**
  * Create the sources side-panel singleton and wire all interactions:
- *   â€“ clicking any `.sources-trigger` button populates and opens the panel
- *   â€“ the close button, overlay click, and Escape key all close it
+ *   – clicking any `.sources-trigger` button populates and opens the panel
+ *   – the close button, overlay click, and Escape key all close it
  *
  * Idempotent: safe to call multiple times (returns early after first call).
  */
 export function setupSourcesPanel() {
   if (document.getElementById('sources-panel')) return;
 
-  // â”€â”€ Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Panel ──────────────────────────────────────────────────────────────────
   const panel = document.createElement('aside');
   panel.id        = 'sources-panel';
   panel.className = 'sources-panel';
@@ -562,7 +789,7 @@ export function setupSourcesPanel() {
     `<ul class="sources-panel__list" id="sources-panel-list" role="list"></ul>`;
   document.body.appendChild(panel);
 
-  // â”€â”€ Dim overlay \u2014 clicking outside closes the panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Dim overlay \u2014 clicking outside closes the panel ────────────────────────
   const overlay   = document.createElement('div');
   overlay.id        = 'sources-overlay';
   overlay.className = 'sources-overlay';
@@ -645,11 +872,18 @@ export function setupSourcesPanel() {
     overlay.classList.remove('sources-overlay--visible');
   }
 
-  // Trigger clicks \u2014 event delegation so dynamically added chips work too
+  // Expose openPanel so processSources can wire chips directly.
+  _openPanel = openPanel;
+
+  // Delegation fallback — catches chips created outside processSources (e.g. tests).
   document.addEventListener('click', (e) => {
     const trigger = e.target.closest('.sources-trigger');
     if (!trigger) return;
-    try { openPanel(JSON.parse(trigger.dataset.sources || '[]')); } catch (_) {}
+    try {
+      openPanel(JSON.parse(trigger.dataset.sources || '[]'));
+    } catch (err) {
+      console.error('[bAInder] openPanel error:', err);
+    }
   });
 
   document.getElementById('sources-panel-close')?.addEventListener('click', closePanel);
@@ -673,8 +907,8 @@ export async function setupAnnotations(chatId, storage) {
   let pendingRange   = null;
   let allAnnotations = [];
 
-  // â”€â”€ Annotation count summary in header \u2014 built synchronously, before any
-  //    await, so it lands in the DOM on every load regardless of timing. â”€â”€â”€â”€
+  // ── Annotation count summary in header \u2014 built synchronously, before any
+  //    await, so it lands in the DOM on every load regardless of timing. ────
   const readerHeader = document.getElementById('reader-header');
   let annWrapper     = document.getElementById('ann-summary-wrapper');
   let annBtn         = document.getElementById('ann-summary-btn');
@@ -706,14 +940,14 @@ export async function setupAnnotations(chatId, storage) {
     else readerHeader.querySelector('.reader-header__inner')?.appendChild(annWrapper);
   }
 
-  // â”€â”€ Re-apply stored annotations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Re-apply stored annotations ──────────────────────────────────────────
   try {
     const existing = await loadAnnotations(chatId, storage);
     allAnnotations = existing;
     applyAnnotations(contentEl, existing);
   } catch (_) {}
 
-  // â”€â”€ Colour swatch selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Colour swatch selection ───────────────────────────────────────────────
   toolbar.querySelectorAll('.ann-color-btn').forEach(btn => {
     if (btn.dataset.color === selectedColor) btn.classList.add('selected');
     btn.addEventListener('click', () => {
@@ -723,7 +957,7 @@ export async function setupAnnotations(chatId, storage) {
     });
   });
 
-  // â”€â”€ Render / update the header summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Render / update the header summary ───────────────────────────────────
   function renderAnnSummary() {
     if (!annBtn || !annDropdown) return;
     const count = allAnnotations.length;
@@ -770,7 +1004,7 @@ export async function setupAnnotations(chatId, storage) {
 
   renderAnnSummary();
 
-  // â”€â”€ Summary dropdown hover wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Summary dropdown hover wiring ─────────────────────────────────────────
   let _annHideTimer = null;
   function _showAnnDropdown() {
     if (!allAnnotations.length) return;
@@ -789,7 +1023,7 @@ export async function setupAnnotations(chatId, storage) {
     annDropdown.addEventListener('mouseleave', _scheduleAnnHide);
   }
 
-  // â”€â”€ Prevent toolbar interactions from clearing the text selection â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Prevent toolbar interactions from clearing the text selection ────────
   // preventDefault on ALL toolbar mousedowns stops the browser from clearing
   // the document text selection (which it does as part of the default focus
   // handling on mousedown).  For the note <input> we then call .focus()
@@ -801,7 +1035,7 @@ export async function setupAnnotations(chatId, storage) {
     }
   });
 
-  // â”€â”€ Show toolbar on text selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Show toolbar on text selection ───────────────────────────────────────
   document.addEventListener('mouseup', (e) => {
     // Clicks inside the toolbar should not dismiss it
     if (toolbar.contains(e.target)) return;
@@ -831,16 +1065,27 @@ export async function setupAnnotations(chatId, storage) {
     pendingRange = serialized;
 
     // Position toolbar ABOVE the selection (toolbar is position:fixed \u2014 no scrollY needed)
-    const rect = range.getBoundingClientRect();
-    // Use translateY(-100%) so the toolbar bottom sits 8 px above the selection top.
-    // This avoids needing to measure offsetHeight before the element is visible.
-    toolbar.style.top       = `${Math.max(8, rect.top - 8)}px`;
-    toolbar.style.left      = `${Math.max(8, Math.min(rect.left, window.innerWidth - 240))}px`;
-    toolbar.style.transform = 'translateY(-100%)';
-    toolbar.hidden          = false;
+    // Position toolbar relative to the selection.
+    // Prefer above; fall back to below when the sticky header would obscure it.
+    const rect         = range.getBoundingClientRect();
+    const headerEl     = document.getElementById('reader-header');
+    const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 0;
+    // 168px is a safe upper-bound for the toolbar height (colours + note input + actions).
+    // If there isn't that much clearance between header and selection, show below instead.
+    const showBelow    = rect.top - headerBottom < 168;
+
+    toolbar.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 240))}px`;
+    if (showBelow) {
+      toolbar.style.top       = `${rect.bottom + 8}px`;
+      toolbar.style.transform = 'none';
+    } else {
+      toolbar.style.top       = `${rect.top - 8}px`;
+      toolbar.style.transform = 'translateY(-100%)';
+    }
+    toolbar.hidden = false;
   });
 
-  // â”€â”€ Cancel button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Cancel button ─────────────────────────────────────────────────────────
   const cancelBtn = document.getElementById('annotation-cancel');
   if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
@@ -850,7 +1095,7 @@ export async function setupAnnotations(chatId, storage) {
     });
   }
 
-  // â”€â”€ Save / highlight button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Save / highlight button ───────────────────────────────────────────────
   const saveBtn   = document.getElementById('annotation-save');
   const noteInput = document.getElementById('annotation-note');
   if (saveBtn) {
@@ -875,7 +1120,7 @@ export async function setupAnnotations(chatId, storage) {
     });
   }
 
-  // â”€â”€ Click existing annotation to delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Click existing annotation to delete ──────────────────────────────────
   contentEl.addEventListener('click', async (e) => {
     const mark  = e.target.closest('.annotation-highlight');
     if (!mark) return;
@@ -897,7 +1142,7 @@ export async function setupAnnotations(chatId, storage) {
   });
 }
 
-// â”€â”€â”€ C.22 \u2014 Reading Progress Persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── C.22 \u2014 Reading Progress Persistence ─────────────────────────────────────
 
 const SCROLL_STORAGE_KEY   = 'bAInder_scrollPositions';
 const SCROLL_MAX_ENTRIES   = 100;
@@ -988,9 +1233,9 @@ export function setupScrollFeatures(chatId) {
   }
 }
 
-// â”€â”€â”€ Page initialisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Page initialisation ──────────────────────────────────────────────────────
 
-// â”€â”€â”€ C.8 Backlinks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── C.8 Backlinks ──────────────────────────────────────────────────────────
 
 /**
  * Scan all other chats' annotations for `[[current chat title]]` references
@@ -1015,7 +1260,7 @@ export async function renderBacklinksSection(chatId, chatTitle, chats, storage) 
   } catch (_) { return; }
 
   const titleLower = chatTitle.toLowerCase();
-  const referrers = new Map(); // chatId â†’ chat metadata
+  const referrers = new Map(); // chatId → chat metadata
 
   for (const chat of otherChats) {
     const key = `annotations:${chat.id}`;
@@ -1079,7 +1324,7 @@ export function renderChat(chat) {
   const meta    = chat.metadata || {};
   const fm      = parseFrontmatter(content);
 
-  // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Header ────────────────────────────────────────────────────────────────
   const isExcerpt = Boolean(meta.isExcerpt || fm.excerpt);
   const source    = fm.source || chat.source || 'unknown';
   const title     = chat.title || fm.title  || 'Untitled Chat';
@@ -1096,20 +1341,20 @@ export function renderChat(chat) {
 
   srcEl.className   = badgeClass(source, isExcerpt);
   srcEl.textContent = sourceLabel(source, isExcerpt);
-  dateEl.textContent  = date ? formatDate(date) : '';
-  countEl.textContent = count > 0 ? `${count} messages` : '';
+  dateEl.innerHTML  = date ? `<span class="meta-chip__icon" aria-hidden="true">\u{1F4C5}</span> ${formatDate(date)}` : '';
+  countEl.innerHTML = count > 0 ? `<span class="meta-chip__icon" aria-hidden="true">\u{1F4AC}</span> ${count} messages` : '';
   titleEl.textContent = title;
 
-  // â”€â”€ Reading time (R3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Reading time (R3) ──────────────────────────────────────────────────────
   const readTimeEl = document.getElementById('meta-reading-time');
   if (readTimeEl) {
     const words = countWords(content);
     const mins  = estimateReadTime(words);
-    readTimeEl.textContent = `${mins} min read`;
+    readTimeEl.innerHTML = `<span class="meta-chip__icon" aria-hidden="true">\u23F1</span> ${mins} min read`;
     readTimeEl.hidden = false;
   }
 
-  // â”€â”€ Per-source body tint (T3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Per-source body tint (T3) ──────────────────────────────────────────────
   const knownSources = ['chatgpt', 'claude', 'gemini', 'copilot'];
   if (knownSources.includes(source)) {
     document.body.setAttribute('data-source', source);
@@ -1117,7 +1362,7 @@ export function renderChat(chat) {
 
   header.hidden = false;
 
-  // â”€â”€ Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Content ──────────────────────────────────────────────────────────────
   const contentEl = document.getElementById('reader-content');
 
   contentEl.innerHTML = renderMarkdown(content);
@@ -1125,7 +1370,7 @@ export function renderChat(chat) {
   processSources(contentEl);
   setupSourcesPanel();
 
-  // â”€â”€ C.7 \u2014 Per-message copy button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── C.7 \u2014 Per-message copy button ────────────────────────────────────────
   contentEl.querySelectorAll('.chat-turn').forEach(turn => {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'turn-copy-btn';
@@ -1153,9 +1398,9 @@ export function renderChat(chat) {
 
   contentEl.hidden = false;
 
-  // â”€â”€ Prompts count + hover overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Prompts count + hover overlay ─────────────────────────────────────────
   // Supports two markdown formats produced by the serializer:
-  //   1. Emoji format (current): <p> elements whose text starts with ðŸ™‹
+  //   1. Emoji format (current): <p> elements whose text starts with 🙋
   //   2. Heading format (legacy): .chat-turn--user divs from wrapChatTurns
   const promptsEl = document.getElementById('meta-prompts');
   if (promptsEl) {
@@ -1168,18 +1413,18 @@ export function renderChat(chat) {
     if (wrappedEls.length > 0) {
       // Legacy heading format
       userTurns = wrappedEls.map((el, i) => {
-        el.id = `prompt-${i + 1}`;
+        el.id = `p${i + 1}`;
         return { el, text: el.querySelector('.chat-turn__body')?.textContent?.trim() || '' };
       });
     } else {
-      // Current emoji format: paragraphs that begin with the ðŸ™‹ emoji
-      const USER_EMOJI = '\uD83D\uDE4B'; // ðŸ™‹
+      // Current emoji format: paragraphs that begin with the 🙋 emoji
+      const USER_EMOJI = '\uD83D\uDE4B'; // 🙋
       const emojiEls = Array.from(contentEl.querySelectorAll('p')).filter(
         p => p.textContent.trimStart().startsWith(USER_EMOJI)
       );
       userTurns = emojiEls.map((el, i) => {
-        el.id = `prompt-${i + 1}`;
-        // Strip the leading ðŸ™‹ glyph (may be followed by gender/skin modifiers)
+        el.id = `p${i + 1}`;
+        // Strip the leading 🙋 glyph (may be followed by gender/skin modifiers)
         // and any surrounding whitespace to obtain a clean snippet.
         const raw = el.textContent.replace(/^\s*\uD83D\uDE4B[\uD83C\uDFFB-\uD83C\uDFFF\u200D\u2640\u2642\uFE0F]*/u, '').trim();
         return { el, text: raw };
@@ -1189,7 +1434,7 @@ export function renderChat(chat) {
     if (userTurns.length > 0) {
       const trigger = document.createElement('span');
       trigger.className = 'meta-prompts__trigger';
-      trigger.textContent = `${userTurns.length} prompt${userTurns.length !== 1 ? 's' : ''}`;
+      trigger.innerHTML = `<span class="meta-chip__icon" aria-hidden="true">\u2753</span> ${userTurns.length} prompt${userTurns.length !== 1 ? 's' : ''}`;
 
       const overlay = document.createElement('div');
       overlay.className = 'prompts-overlay';
@@ -1198,7 +1443,7 @@ export function renderChat(chat) {
       userTurns.forEach(({ text }, i) => {
         const snippet = text.length > 72 ? text.slice(0, 69) + '\u2026' : text;
         const a = document.createElement('a');
-        a.href      = `#prompt-${i + 1}`;
+        a.href      = `#p${i + 1}`;
         a.className = 'prompts-overlay__item';
         a.setAttribute('role', 'listitem');
         a.title     = text.slice(0, 300);
@@ -1214,7 +1459,70 @@ export function renderChat(chat) {
     }
   }
 
-  // â”€â”€ Assembled-chats header consolidation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Assembled-chats header consolidation ──────────────────────────────
+  // -- C.28 � Responses count + hover overlay -------------------------------
+  // Mirrors the prompts overlay above: gather assistant-turn elements,
+  // build a trigger badge and a dropdown list of clickable anchors.
+  const responsesEl = document.getElementById('meta-responses');
+  if (responsesEl) {
+    responsesEl.innerHTML = '';
+
+    let asstTurns; // Array<{ el: Element, text: string }>
+
+    const wrappedAsstEls = Array.from(contentEl.querySelectorAll('.chat-turn--assistant'));
+    if (wrappedAsstEls.length > 0) {
+      // Legacy heading format
+      asstTurns = wrappedAsstEls.map((el, i) => {
+        el.id = `r${i + 1}`;
+        return { el, text: el.querySelector('.chat-turn__body')?.textContent?.trim() || '' };
+      });
+    } else {
+      // Current emoji format: paragraphs that begin with the ?? emoji
+      const ASST_EMOJI = '\uD83E\uDD16'; // ??
+      const emojiEls = Array.from(contentEl.querySelectorAll('p')).filter(
+        p => p.textContent.trimStart().startsWith(ASST_EMOJI)
+      );
+      asstTurns = emojiEls.map((el, i) => {
+        el.id = `r${i + 1}`;
+        // Strip the leading ?? glyph (may be followed by gender/skin modifiers)
+        const raw = el.textContent.replace(/^\s*\uD83E\uDD16[\uD83C\uDFFB-\uD83C\uDFFF\u200D\u2640\u2642\uFE0F]*/u, '').trim();
+        return { el, text: raw };
+      });
+    }
+
+    if (asstTurns.length > 0) {
+      const trigger = document.createElement('span');
+      trigger.className = 'meta-responses__trigger';
+      trigger.innerHTML = `<span class="meta-chip__icon" aria-hidden="true">\u{1F4A1}</span> ${asstTurns.length} response${asstTurns.length !== 1 ? 's' : ''}`;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'responses-overlay';
+      overlay.setAttribute('role', 'list');
+
+      asstTurns.forEach(({ text }, i) => {
+        const snippet = text.length > 72 ? text.slice(0, 69) + '\u2026' : text;
+        const a = document.createElement('a');
+        a.href      = `#r${i + 1}`;
+        a.className = 'responses-overlay__item';
+        a.setAttribute('role', 'listitem');
+        a.title     = text.slice(0, 300);
+        a.innerHTML = `<span class="responses-overlay__num">${i + 1}.</span> ${escapeHtml(snippet)}`;
+        overlay.appendChild(a);
+      });
+
+      responsesEl.appendChild(trigger);
+      responsesEl.appendChild(overlay);
+      responsesEl.hidden = false;
+    } else {
+      responsesEl.hidden = true;
+    }
+  }
+
+  // -- C.28 � Per-message ordinal labels ----------------------------------
+  // Always inject; visibility is controlled by body.ordinals-hidden CSS class
+  // applied by init() based on the readerSettings.showOrdinals setting.
+  addOrdinalLabels(contentEl);
+
   // When the chat was created by assembling multiple source chats, show a
   // header badge listing each source section with a click-to-scroll link.
   const assembledEl = document.getElementById('meta-assembled');
@@ -1263,7 +1571,7 @@ export function renderChat(chat) {
     }
   }
 
-  // â”€â”€ Copy-code button wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Copy-code button wiring ─────────────────────────────────────────
   // Use event delegation on the content container so no per-button listeners.
   contentEl.addEventListener('click', (e) => {
     const btn = e.target.closest('.code-block__copy');
@@ -1281,7 +1589,7 @@ export function renderChat(chat) {
     }).catch(() => {});
   });
 
-  // â”€â”€ Source-chat link wiring \u2014 select originating chat in sidepanel tree â”€â”€
+  // ── Source-chat link wiring \u2014 select originating chat in sidepanel tree ──
   contentEl.addEventListener('click', (e) => {
     const link = e.target.closest('.source-chat-link');
     if (!link) return;
@@ -1297,7 +1605,7 @@ export function renderChat(chat) {
  * Renders 5 clickable stars into #reader-rating and persists changes to storage.
  *
  * @param {string} chatId         ID of the currently displayed chat
- * @param {number|null} initRating Current rating (1â€“5) or null/0
+ * @param {number|null} initRating Current rating (1–5) or null/0
  * @param {Object} storage        browser.storage.local-like object
  */
 /**
@@ -1455,8 +1763,19 @@ export async function init(storage) {
       return;
     }
 
+    // C.28 � Apply show-ordinals setting before rendering
+    try {
+      const rs = await storage.get(['readerSettings']);
+      const showOrdinals = rs.readerSettings?.showOrdinals ?? true;
+      if (!showOrdinals) {
+        document.body.classList.add('ordinals-hidden');
+      } else {
+        document.body.classList.remove('ordinals-hidden');
+      }
+    } catch (_) {}
+
     renderChat(chat);
-    setupReaderCopyButton(chat, storage);  // C.26 — copy button
+    setupReaderCopyButton(chat, storage);  // C.26 � copy button
     restoreScrollPosition(chatId);        // C.22
     setupRating(chatId, chat.rating, storage);
     setupStaleBanner(chatId, chat, storage);
@@ -1470,7 +1789,7 @@ export async function init(storage) {
   }
 }
 
-// â”€â”€ Auto-run when loaded as a browser extension page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Auto-run when loaded as a browser extension page ──────────────────────────
 // Only run when the actual reader DOM (reader-content element) is present.
 // This guard prevents accidental execution when reader.js is imported in tests.
 /* c8 ignore next 4 */

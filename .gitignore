@@ -28,6 +28,9 @@ coverage/
 logs/
 *.log
 npm-debug.log*
+
+# GloVe binary — intentionally committed (~370 KB).
+# To regenerate: node scripts/prepare-glove.js path/to/glove.6B.25d.txt 10000
 yarn-debug.log*
 yarn-error.log*
 
