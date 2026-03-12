@@ -66,6 +66,8 @@ export const elements = {
   copyAllBtn:           document.getElementById('copyAllBtn'),
   selectionClearBtn:    document.getElementById('selectionClearBtn'),
   multiSelectCancelBtn: document.getElementById('multiSelectCancelBtn'),
+  // C.18 — compare selected chats
+  compareBtn:           document.getElementById('compareBtn'),
 };
 
 // ---------------------------------------------------------------------------

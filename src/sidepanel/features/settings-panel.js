@@ -127,6 +127,23 @@ export function openSettingsPanel() {
     separatorInp?.addEventListener('input', () => { syncPreview(); persist(); });
     turnSepInp?.addEventListener('input',   () => { syncTurnPreview(); persist(); });
   }
+
+  // Wire show-ordinals toggle (idempotent) — C.28
+  const showOrdinalsToggle = document.getElementById('showOrdinalsToggle');
+  if (showOrdinalsToggle && !showOrdinalsToggle.dataset.wired) {
+    showOrdinalsToggle.dataset.wired = '1';
+    browser.storage.local.get(['readerSettings']).then(data => {
+      showOrdinalsToggle.checked = data.readerSettings?.showOrdinals ?? true;
+    }).catch(() => {});
+    showOrdinalsToggle.addEventListener('change', () => {
+      browser.storage.local.get(['readerSettings']).then(data => {
+        const current = data.readerSettings ?? {};
+        return browser.storage.local.set({
+          readerSettings: { ...current, showOrdinals: showOrdinalsToggle.checked },
+        });
+      }).catch(() => {});
+    });
+  }
 }
 
 export function closeSettingsPanel() {

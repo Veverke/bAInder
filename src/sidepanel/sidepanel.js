@@ -70,6 +70,7 @@ import {
   exitMultiSelectMode,
   handleSelectionChange,
 } from './features/multi-select.js';
+import { handleCompare } from './features/compare.js';
 import { openSettingsPanel }   from './features/settings-panel.js';
 import { updateRecentRail }    from './features/recent-rail.js';
 import { updateStorageUsage }  from './features/storage-usage.js';
@@ -165,6 +166,7 @@ function setupEventListeners() {
   elements.assembleBtn?.addEventListener('click', handleAssemble);
   elements.exportDigestBtn?.addEventListener('click', handleExportDigest);
   elements.copyAllBtn?.addEventListener('click', handleCopyAll);  // C.26
+  elements.compareBtn?.addEventListener('click', handleCompare);  // C.18
   elements.selectionClearBtn?.addEventListener('click', () => state.renderer?.clearSelection());
   elements.multiSelectCancelBtn?.addEventListener('click', exitMultiSelectMode);
 

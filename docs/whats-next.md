@@ -378,6 +378,38 @@ Streamlines navigation and retrieval of prompts and code, supporting power-user 
 
 ---
 
+## Maintenance
+
+> Internal quality and maintainability tasks — not user-facing features, but essential for long-term health of the codebase.
+
+---
+
+### Centralize Selectors Logic
+
+**Goal:** Create a single, canonical source of DOM selectors for each supported AI chat site (ChatGPT, Claude, Gemini, Copilot, DeepSeek, Grok, Perplexity). Currently, selectors are scattered across multiple files (content scripts, extractors, background handlers), meaning a DOM change on any platform requires hunting down and updating multiple locations.
+
+**Value:** AI chat platforms update their DOM frequently. Centralising selectors into one module per platform means a DOM change requires a single-line fix rather than a multi-file audit. It also makes it trivial to spot when selectors are stale and to test selector validity in isolation.
+
+**Implementation sketch:**
+- Create `src/content/selectors/` directory with one file per platform: `chatgpt.js`, `claude.js`, `gemini.js`, `copilot.js`, `deepseek.js`, `grok.js`, `perplexity.js`.
+- Each file exports a frozen `SELECTORS` object, e.g.:
+  ```js
+  // chatgpt.js
+  export const SELECTORS = Object.freeze({
+    userTurn:      '[data-message-author-role="user"]',
+    assistantTurn: '[data-message-author-role="assistant"]',
+    messageContent: '.markdown',
+    conversationId: /* parsed from pathname */,
+  });
+  ```
+- All content scripts, extractors, and any background-script logic that references platform-specific DOM selectors import from this central module instead of inlining strings.
+- Add a barrel export `src/content/selectors/index.js` keyed by platform name for dynamic lookup.
+- Document the "last verified" date in each selector file as a comment — makes staleness immediately visible during maintenance.
+
+**Effort:** Low–Medium (mechanical refactor; no behaviour change). **Differentiator:** Internal — significantly reduces future maintenance cost for all platform-related work, particularly C.23 and C.24.
+
+---
+
 ## Completed
 
 | Ref | Feature | Effort | Differentiator | Status |

@@ -10,7 +10,8 @@
     "activeTab",
     "sidePanel",
     "contextMenus",
-    "alarms"
+    "alarms",
+    "scripting"
   ],
   "host_permissions": [
     "https://chat.openai.com/*",
@@ -25,7 +26,9 @@
     "https://copilot.microsoft.com/*",
     "https://m365.cloud.microsoft/*",
     "https://th.bing.com/*",
-    "https://www.bing.com/*"
+    "https://www.bing.com/*",
+    "https://www.perplexity.ai/*",
+    "https://perplexity.ai/*"
   ],
   "action": {
     "default_title": "bAInder - Organize AI Chats",

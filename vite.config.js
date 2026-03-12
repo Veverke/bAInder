@@ -98,10 +98,12 @@ export default defineConfig(({ mode }) => {
           content:    resolve(__dirname, 'src/content/content.js'),
           sidepanel:  resolve(__dirname, 'src/sidepanel/sidepanel.html'),
           reader:     resolve(__dirname, 'src/reader/reader.html'),
+          compare:    resolve(__dirname, 'src/compare/compare.html'),
         },
         output: {
           entryFileNames: '[name].js',
-          chunkFileNames: '[name].js',
+          // Chrome rejects filenames starting with "_" — strip any leading underscores.
+          chunkFileNames: (chunkInfo) => `${chunkInfo.name.replace(/^_+/, '')}.js`,
           assetFileNames: '[name].[ext]',
         },
       },

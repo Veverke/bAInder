@@ -75,6 +75,12 @@ export function updateSelectionBar(count) {
       ? 'Select at least 2 chats to copy'
       : `Copy ${count} chats to clipboard`;
   }
+  if (elements.compareBtn) {
+    elements.compareBtn.disabled = count < 2;
+    elements.compareBtn.title = count < 2
+      ? 'Select at least 2 chats to compare'
+      : `Compare ${count} chats`;
+  }
 }
 
 // ---------------------------------------------------------------------------

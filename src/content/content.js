@@ -303,6 +303,22 @@ const logger = {
           }
           return inner;
         }
+        case 'table': {
+          const rows = Array.from(node.querySelectorAll('tr'));
+          if (!rows.length) return inner;
+          const tableData = rows.map(tr => {
+            const cells = Array.from(tr.querySelectorAll('th, td'));
+            return cells.map(c => walk(c).replace(/\n+/g, ' ').trim().replace(/\|/g, '\\|'));
+          }).filter(r => r.length);
+          if (!tableData.length) return inner;
+          const colCount = tableData[0].length;
+          const mdRows = tableData.map(cells => '| ' + cells.join(' | ') + ' |');
+          const sep = '| ' + Array(colCount).fill('---').join(' | ') + ' |';
+          mdRows.splice(1, 0, sep);
+          return '\n' + mdRows.join('\n') + '\n';
+        }
+        case 'thead': case 'tbody': case 'tfoot': case 'tr': case 'th': case 'td':
+          return inner;
         case 'div': case 'section': case 'article': case 'aside': case 'main': case 'header': case 'footer': {
           // If this div's only meaningful child is a <pre>, pass straight through
           // so we don't double-wrap or lose the code block.

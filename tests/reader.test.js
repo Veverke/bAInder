@@ -40,9 +40,11 @@ function setupDom() {
     <header id="reader-header" hidden>
       <div class="reader-header__inner">
         <div class="reader-header__meta">
-          <span id="meta-source"  class="badge"></span>
-          <span id="meta-date"    class="meta-date"></span>
-          <span id="meta-count"   class="meta-count"></span>
+          <span id="meta-source"    class="badge"></span>
+          <span id="meta-date"      class="meta-date"></span>
+          <span id="meta-count"     class="meta-count"></span>
+          <span id="meta-prompts"   class="meta-prompts" hidden></span>
+          <span id="meta-responses" class="meta-responses" hidden></span>
         </div>
         <h1 id="reader-title" class="reader-title"></h1>
       </div>
@@ -624,9 +626,9 @@ describe('renderChat', () => {
   it('renders markdown content as HTML for markdown-v1 format', () => {
     renderChat(makeChat());
     const inner = document.getElementById('reader-content').innerHTML;
-    // Emoji prefixes are used instead of **User** / **Assistant** bold headers
-    expect(inner).toContain('🙋');
-    expect(inner).toContain('🤖');
+    // wrapChatTurns wraps emoji-prefixed turns into role divs and strips the emoji
+    expect(document.querySelector('.chat-turn--user')).not.toBeNull();
+    expect(document.querySelector('.chat-turn--assistant')).not.toBeNull();
     expect(inner).toContain('Hello');
     expect(inner).not.toContain('<strong>User</strong>');
   });
@@ -638,6 +640,59 @@ describe('renderChat', () => {
     });
     renderChat(excerpt);
     expect(document.getElementById('meta-source').className).toContain('badge--excerpt');
+  });
+
+  // ── Responses overlay (mirrors prompts overlay) ───────────────────────────
+
+  it('shows meta-responses when there are assistant turns', () => {
+    renderChat(makeChat());
+    expect(document.getElementById('meta-responses').hidden).toBe(false);
+  });
+
+  it('renders responses trigger with correct count text', () => {
+    renderChat(makeChat());
+    const trigger = document.querySelector('.meta-responses__trigger');
+    expect(trigger).not.toBeNull();
+    expect(trigger.textContent).toContain('1 response');
+  });
+
+  it('renders responses trigger as plural for multiple responses', () => {
+    const chat = makeChat({
+      content: '---\ntitle: "T"\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n',
+    });
+    renderChat(chat);
+    const trigger = document.querySelector('.meta-responses__trigger');
+    expect(trigger.textContent).toContain('2 responses');
+  });
+
+  it('renders a responses-overlay with one item per assistant turn', () => {
+    renderChat(makeChat());
+    const items = document.querySelectorAll('.responses-overlay__item');
+    expect(items.length).toBe(1);
+  });
+
+  it('responses overlay items link to #rN anchors', () => {
+    const chat = makeChat({
+      content: '---\ntitle: "T"\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n',
+    });
+    renderChat(chat);
+    const items = document.querySelectorAll('.responses-overlay__item');
+    expect(items[0].getAttribute('href')).toBe('#r1');
+    expect(items[1].getAttribute('href')).toBe('#r2');
+  });
+
+  it('responses overlay items contain the assistant text snippet', () => {
+    renderChat(makeChat());
+    const item = document.querySelector('.responses-overlay__item');
+    expect(item.textContent).toContain('Hi there!');
+  });
+
+  it('hides meta-responses when there are no assistant turns', () => {
+    const chat = makeChat({
+      content: '---\ntitle: "T"\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\nSome plain text with no role emoji\n',
+    });
+    renderChat(chat);
+    expect(document.getElementById('meta-responses').hidden).toBe(true);
   });
 });
 

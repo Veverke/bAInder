@@ -285,6 +285,15 @@
           </svg>
           Copy all
         </button>
+        <!-- C.18 — Compare selected chats -->
+        <button id="compareBtn" class="selection-bar__btn selection-bar__btn--primary"
+                disabled title="Select at least 2 chats to compare">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+            <path d="M3 2v12M13 2v12M7 2v12M3 2h4M3 14h4M9 2h4M9 14h4"
+                  stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          Compare
+        </button>
         <button id="selectionClearBtn" class="selection-bar__btn" title="Clear selection">Clear</button>
         <button id="multiSelectCancelBtn" class="selection-bar__btn selection-bar__btn--cancel" aria-label="Exit multi-select mode">✕</button>
       </div>
@@ -585,6 +594,21 @@
             <span class="settings-separator-preview__label">Preview</span>
             <span class="settings-separator-preview__content">---</span>
           </p>
+        </section>
+
+        <!-- C.28 — Reader display settings -->
+        <section class="settings-section">
+          <h3 class="settings-section__title">Reader</h3>
+          <div class="settings-row">
+            <label class="settings-row__label" for="showOrdinalsToggle">
+              Show message ordinals
+              <span class="settings-row__hint">Label each prompt P1, P2 … and response R1, R2 …</span>
+            </label>
+            <label class="settings-toggle" aria-label="Show message ordinals in reader">
+              <input type="checkbox" class="settings-toggle__input" id="showOrdinalsToggle" checked>
+              <span class="settings-toggle__track"></span>
+            </label>
+          </div>
         </section>
 
         <!-- Advanced / Logging settings -->
