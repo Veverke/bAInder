@@ -14,6 +14,7 @@ import { showNotification } from '../notification.js';
 import { buildDigestMarkdown } from '../../lib/export/markdown-builder.js';
 import { saveTree, renderTreeView } from '../controllers/tree-controller.js';
 import { assignChatToTopic } from '../../lib/chat/chat-manager.js';
+import { copyChatsToClipboard } from '../../lib/export/clipboard-serialiser.js';
 
 // ---------------------------------------------------------------------------
 // Mode management
@@ -67,6 +68,12 @@ export function updateSelectionBar(count) {
     elements.exportDigestBtn.title = count < 2
       ? 'Select at least 2 chats to export a digest'
       : `Export digest of ${count} chats`;
+  }
+  if (elements.copyAllBtn) {
+    elements.copyAllBtn.disabled = count < 2;
+    elements.copyAllBtn.title = count < 2
+      ? 'Select at least 2 chats to copy'
+      : `Copy ${count} chats to clipboard`;
   }
 }
 
@@ -212,4 +219,43 @@ export async function handleExportDigest() {
     console.error('Digest export failed:', err);
     await state.dialog.alert(err.message || 'Digest export failed', 'Export Error');
   }
+}
+
+// ---------------------------------------------------------------------------
+// Copy all — copy selected chats to clipboard (C.26)
+// ---------------------------------------------------------------------------
+
+export async function handleCopyAll() {
+  if (!state.renderer) return;
+  const metaChats = state.renderer.getSelectedChats();
+  if (metaChats.length < 2) {
+    showNotification('Select at least 2 chats to copy', 'error');
+    return;
+  }
+
+  let fullChats;
+  try {
+    const selectedIds = new Set(metaChats.map(c => c.id));
+    fullChats = await state.chatRepo.loadFullByIds(selectedIds);
+  } catch (err) {
+    console.error('Copy all: failed to load chat content:', err);
+    showNotification('Failed to load chats for copying', 'error');
+    return;
+  }
+
+  if (fullChats.length >= 20) {
+    showNotification(`Copying ${fullChats.length} chats — this may be slow`, 'info');
+  }
+
+  const result = await copyChatsToClipboard(fullChats);
+
+  if (result.tooLarge) {
+    showNotification('Content too large to copy — use Export Digest instead', 'error');
+    return;
+  }
+  if (!result.ok) {
+    showNotification('Failed to copy to clipboard', 'error');
+    return;
+  }
+  showNotification(`Copied ${fullChats.length} chat${fullChats.length !== 1 ? 's' : ''} to clipboard`, 'success');
 }
