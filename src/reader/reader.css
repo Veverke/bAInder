@@ -138,6 +138,52 @@ body {
   margin: 8px auto 0;
 }
 
+/* ── C.26 — Copy to clipboard button (reader header) ──────────────────────── */
+.reader-actions {
+  margin-top: 10px;
+}
+
+.btn-reader-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border-primary, #e5e7eb);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.btn-reader-action:hover {
+  background: var(--bg-hover, #f1f5f9);
+  color: var(--text-primary, #1a1a1a);
+  border-color: var(--primary, #2563eb);
+}
+
+.btn-reader-action:focus-visible {
+  outline: 2px solid var(--primary, #2563eb);
+  outline-offset: 2px;
+}
+
+.btn-reader-action--success {
+  color: #16a34a;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.btn-reader-action--error {
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
 .reader-title {
   margin: 0;
   font-size: 1.2rem;

@@ -5,7 +5,7 @@
 > Generated: March 3, 2026  
 > Source: AI-assisted brainstorming session — features not already covered by the roadmap or design specs.  
 > These are catalogued as **C.13 – C.32** in Appendix C of `DESIGN_SPECS.md` and `roadmap.html`.  
-> Last updated: March 12, 2026 — sorted by impact/complexity ROI; completed features moved to end. C.20 completed March 12, 2026.
+> Last updated: March 12, 2026 — sorted by impact/complexity ROI; completed features moved to end. C.20 completed March 12, 2026. C.26 completed March 12, 2026.
 
 ---
 
@@ -15,7 +15,6 @@ Items are ordered by return on investment: highest differentiator with lowest ef
 
 | Ref | Feature | Effort | Differentiator |
 |-----|---------|--------|----------------|
-| C.26 | Copy chat content(s) to clipboard | Low–Medium | High |
 | C.28 | Enumerate prompts & responses in chat header | Low | Moderate |
 | C.24 | Internal API-based extraction — platform-wide strategy | Low/platform | Moderate |
 | C.18 | Model comparison (side-by-side diff view) | Medium | Very High |
@@ -478,6 +477,25 @@ Streamlines navigation and retrieval of prompts and code, supporting power-user 
 - `tests/export-dialog-jsonl.test.js` — 17 unit tests covering all JSONL dialog paths (chat, digest, topic export) and section visibility toggling.
 
 **Effort:** Low–Medium. **Differentiator:** Very High — unique in the market for a consumer extension.
+
+---
+
+## C.26 — Copy Chat Content(s) to Clipboard ✅ Completed
+
+**Idea:** Allow users to copy the full conversation text of one or more saved chats directly to the clipboard — from the side panel tree, from the reader view, or via the multi-select action bar.
+
+**Status:** Completed March 12, 2026. Implemented:
+
+- **`src/lib/export/clipboard-serialiser.js`** — New module. Exports `chatToPlainText(chat)`, `chatToMarkdown(chat)`, `serialiseChats(chats, format)`, `getClipboardFormat()`, `writeToClipboard(text)`, and `copyChatsToClipboard(chats, options)`. Guards: rejects payloads > 1 MB (`MAX_CLIPBOARD_CHARS`); bulk warning threshold at ≥ 20 chats (`BULK_WARN_THRESHOLD`). Falls back to hidden-textarea + `execCommand('copy')` when the Clipboard API is unavailable. Returns a result object so callers surface notifications without coupling to the notification system.
+- **Chat context menu** (`sidepanel.html` + `chat-actions.js`) — "Copy to Clipboard" item added to `#chatContextMenu`. `handleCopyChatAction()` loads the full chat via `chatRepo.loadFullByIds`, delegates to `copyChatsToClipboard`, and shows toast feedback.
+- **Topic context menu** (`sidepanel.html` + `topic-actions.js`) — "Copy all chats" item added to `#contextMenu`. `handleCopyAllTopicChats()` collects all descendant chat IDs via `collectDescendantChatIds`, loads full content, and copies with appropriate error/success toasts.
+- **Multi-select bar** (`sidepanel.html` + `multi-select.js` + `sidepanel.js`) — "Copy all" button (`#copyAllBtn`) added to `#selectionBar`. `handleCopyAll()` follows the same pattern as `handleExportDigest`; button is enabled/disabled in `updateSelectionBar` when ≥ 2 chats are selected. Wired in `sidepanel.js`.
+- **Reader view** (`reader.html` + `reader.js`) — "Copy" button (`#reader-copy-btn`) added to the reader header. `setupReaderCopyButton(chat, storage)` is called from `init()`, reads the format preference, serialises the open chat, and shows button-level feedback (✓ / fallback prompt / error).
+- **Settings panel** (`sidepanel.html` + `settings-panel.js`) — New "Clipboard" settings section with `#clipboardFormatSelect` (Plain text / Markdown). Persists to `browser.storage.local` key `'clipboardFormat'`.
+- **`app-context.js`** — Added `copyAllBtn` to the `elements` registry.
+- **Tests** — 6 new test files covering all new code: `tests/clipboard-serialiser.test.js` (41 tests), `tests/clipboard-copy-actions.test.js` (7), `tests/clipboard-topic-copy.test.js` (9), `tests/clipboard-multiselect.test.js` (12), `tests/clipboard-settings.test.js` (4), plus additions to `tests/reader.test.js` (4 new tests for `setupReaderCopyButton`). Total: 77 new tests; full suite 2280 tests, all passing.
+
+**Effort:** Low–Medium. **Differentiator:** High — eliminates the most common manual step after archiving.
 
 ---
 

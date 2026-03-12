@@ -13,6 +13,13 @@ import {
 import { setupStickyNotes } from '../lib/sticky-notes/sticky-notes-ui.js';
 import browser from '../lib/vendor/browser.js';
 import { escapeHtml, generateId } from '../lib/utils/search-utils.js';
+import {
+  getClipboardSettings,
+  serialiseChats,
+  writeToClipboard,
+  writeToClipboardHtml,
+  MAX_CLIPBOARD_CHARS,
+} from '../lib/export/clipboard-serialiser.js';
 export { escapeHtml };  // re-export: callers that import escapeHtml from reader.js continue to work
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1366,6 +1373,66 @@ export function setupRating(chatId, initRating, storage) {
 }
 
 /**
+ * C.26 \u2014 Wire the "Copy" button in the reader header for the currently displayed chat.
+ * Reads the clipboard format from storage, serialises the chat, writes to clipboard.
+ * Shows visual feedback on the button (\u2713 Copied / fallback textarea prompt).
+ * @param {Object} chat       \u2014 full chat object (with content and messages)
+ * @param {Object} storage    \u2014 browser.storage.local-like object
+ */
+export async function setupReaderCopyButton(chat, storage) {
+  const btn = document.getElementById('reader-copy-btn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const label = btn.querySelector('.btn-reader-action__label');
+    try {
+      const settings = await getClipboardSettings(storage);
+      const text     = serialiseChats([chat], settings);
+
+      if (text.length > MAX_CLIPBOARD_CHARS) {
+        if (label) label.textContent = 'Too large';
+        btn.classList.add('btn-reader-action--error');
+        setTimeout(() => {
+          if (label) label.textContent = 'Copy';
+          btn.classList.remove('btn-reader-action--error');
+        }, 2000);
+        return;
+      }
+
+      let result;
+      if (settings.format === 'html') {
+        const plain = serialiseChats([chat], { ...settings, format: 'plain' });
+        result = await writeToClipboardHtml(text, plain);
+      } else {
+        result = await writeToClipboard(text);
+      }
+      const { success, usedFallback } = result;
+
+      if (success) {
+        if (label) label.textContent = '\u2713 Copied';
+        btn.classList.add('btn-reader-action--success');
+        setTimeout(() => {
+          if (label) label.textContent = 'Copy';
+          btn.classList.remove('btn-reader-action--success');
+        }, 2000);
+      } else if (usedFallback) {
+        if (label) label.textContent = 'Select all + paste';
+        setTimeout(() => {
+          if (label) label.textContent = 'Copy';
+        }, 3000);
+      }
+    } catch (_err) {
+      if (label) label.textContent = 'Failed';
+      btn.classList.add('btn-reader-action--error');
+      setTimeout(() => {
+        if (label) label.textContent = 'Copy';
+        btn.classList.remove('btn-reader-action--error');
+      }, 2000);
+    }
+  });
+}
+
+/**
  * Main entry point \u2014 reads chatId from URL, loads from storage, renders.
  * @param {Object} storage  Object with a `.get(keys)` method \u2014 injectable for testing
  */
@@ -1389,6 +1456,7 @@ export async function init(storage) {
     }
 
     renderChat(chat);
+    setupReaderCopyButton(chat, storage);  // C.26 — copy button
     restoreScrollPosition(chatId);        // C.22
     setupRating(chatId, chat.rating, storage);
     setupStaleBanner(chatId, chat, storage);

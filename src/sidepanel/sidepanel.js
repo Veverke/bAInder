@@ -66,6 +66,7 @@ import {
   handleMultiSelectToggle,
   handleAssemble,
   handleExportDigest,
+  handleCopyAll,
   exitMultiSelectMode,
   handleSelectionChange,
 } from './features/multi-select.js';
@@ -163,6 +164,7 @@ function setupEventListeners() {
   elements.multiSelectToggleBtn?.addEventListener('click', handleMultiSelectToggle);
   elements.assembleBtn?.addEventListener('click', handleAssemble);
   elements.exportDigestBtn?.addEventListener('click', handleExportDigest);
+  elements.copyAllBtn?.addEventListener('click', handleCopyAll);  // C.26
   elements.selectionClearBtn?.addEventListener('click', () => state.renderer?.clearSelection());
   elements.multiSelectCancelBtn?.addEventListener('click', exitMultiSelectMode);
 

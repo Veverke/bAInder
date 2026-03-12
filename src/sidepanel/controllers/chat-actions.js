@@ -27,6 +27,7 @@ import {
 } from './tree-controller.js';
 import { setSaveBtnState } from '../features/save-banner.js';
 import { updateRecentRail } from '../features/recent-rail.js';
+import { copyChatsToClipboard } from '../../lib/export/clipboard-serialiser.js';
 let _state = state;
 // ---------------------------------------------------------------------------
 // Test injection hook - lets unit tests provide a mock app context instead of
@@ -104,6 +105,7 @@ export function setupChatContextMenuActions() {
     'edit-tags':       handleEditTagsAction,
     move:              handleMoveChatAction,
     export:            handleExportChatAction,
+    copy:              handleCopyChatAction,
     delete:            handleDeleteChatAction,
     'set-review-date': handleSetReviewDateAction,
   };
@@ -307,4 +309,35 @@ async function handleExportChatAction() {
     logger.error('Export chat failed:', err);
     await _state.dialog.alert(err.message || 'Export failed', 'Export Error');
   }
+}
+
+export async function handleCopyChatAction() {
+  const chat = _state.contextMenuChat;
+  if (!chat) return;
+
+  let fullChats;
+  try {
+    fullChats = await _state.chatRepo.loadFullByIds(new Set([chat.id]));
+  } catch (err) {
+    logger.warn('Copy: failed to load chat content', err);
+    showNotification('Failed to load chat content', 'error');
+    return;
+  }
+
+  if (!fullChats || fullChats.length === 0) {
+    showNotification('Chat content not found', 'error');
+    return;
+  }
+
+  const result = await copyChatsToClipboard(fullChats);
+
+  if (result.tooLarge) {
+    showNotification('Content too large to copy — use Export instead', 'error');
+    return;
+  }
+  if (!result.ok) {
+    showNotification('Failed to copy to clipboard', 'error');
+    return;
+  }
+  showNotification('Copied to clipboard', 'success');
 }
