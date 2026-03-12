@@ -15,10 +15,17 @@
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://chatgpt.com/*",
+    "https://files.oaiusercontent.com/*",
+    "https://oaidalleapiprodscus.blob.core.windows.net/*",
+    "https://oaidalleaeuropeprodscus.blob.core.windows.net/*",
     "https://claude.ai/*",
     "https://gemini.google.com/*",
+    "https://lh3.google.com/*",
+    "https://lh3.googleusercontent.com/*",
     "https://copilot.microsoft.com/*",
-    "https://m365.cloud.microsoft/*"
+    "https://m365.cloud.microsoft/*",
+    "https://th.bing.com/*",
+    "https://www.bing.com/*"
   ],
   "action": {
     "default_title": "bAInder - Organize AI Chats",

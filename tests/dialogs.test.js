@@ -206,9 +206,11 @@ describe('DialogManager', () => {
 
     it('should close on backdrop click', async () => {
       dialog.show('<div>Test</div>');
-      
+
+      // mousedown must precede click so the mousedownOnBackdrop guard is satisfied
+      container.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
       container.click();
-      
+
       expect(dialog.isOpen()).toBe(false);
     });
   });

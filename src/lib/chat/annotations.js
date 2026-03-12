@@ -121,9 +121,46 @@ export function serializeRange(range, container) {
 // ─── DOM highlight application ────────────────────────────────────────────────
 
 /**
- * Wrap a serialised annotation in a `<mark class="annotation-highlight">`.
- * Silently skips ranges that cross element boundaries (surroundContents
- * limitation) or cannot be resolved.
+ * Collect all Text nodes (with per-node slice bounds) that fall within `range`.
+ * Returns an array of { node, from, to } objects suitable for individual wrapping.
+ * @param {Range} range
+ * @returns {Array<{node: Text, from: number, to: number}>}
+ */
+function getTextNodesInRange(range) {
+  const { startContainer, startOffset, endContainer, endOffset } = range;
+
+  // Fast path: entire range sits inside a single Text node
+  if (startContainer === endContainer && startContainer.nodeType === Node.TEXT_NODE) {
+    return [{ node: startContainer, from: startOffset, to: endOffset }];
+  }
+
+  const result = [];
+  const walker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT);
+  let started = false;
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (!started) {
+      if (node === startContainer) {
+        started = true;
+        const to = node === endContainer ? endOffset : node.textContent.length;
+        if (startOffset < to) result.push({ node, from: startOffset, to });
+        if (node === endContainer) break;
+      }
+    } else {
+      if (node === endContainer) {
+        if (endOffset > 0) result.push({ node, from: 0, to: endOffset });
+        break;
+      }
+      result.push({ node, from: 0, to: node.textContent.length });
+    }
+  }
+  return result;
+}
+
+/**
+ * Wrap a serialised annotation in `<mark class="annotation-highlight">` elements.
+ * Handles selections that span across element boundaries (e.g. different markdown
+ * nesting levels) by wrapping each covered Text node individually.
  * @param {Element} container
  * @param {{ id, start, end, color, note }} ann
  */
@@ -132,20 +169,22 @@ export function highlightRange(container, ann) {
   const endPos   = resolveCharOffset(container, ann.end);
   if (!startPos || !endPos) return;
 
-  try {
-    const range = document.createRange();
-    range.setStart(startPos.node, startPos.offset);
-    range.setEnd(endPos.node,     endPos.offset);
+  const range = document.createRange();
+  range.setStart(startPos.node, startPos.offset);
+  range.setEnd(endPos.node,     endPos.offset);
 
-    const mark                   = document.createElement('mark');
-    mark.className               = 'annotation-highlight';
-    mark.dataset.annotationId    = ann.id;
+  for (const { node, from, to } of getTextNodesInRange(range)) {
+    const nodeRange = document.createRange();
+    nodeRange.setStart(node, from);
+    nodeRange.setEnd(node,   to);
+
+    const mark                = document.createElement('mark');
+    mark.className            = 'annotation-highlight';
+    mark.dataset.annotationId = ann.id;
     mark.style.setProperty('--ann-color', ann.color || '#fef08a');
-    if (ann.note) mark.title     = ann.note;
+    if (ann.note) mark.title  = ann.note;
 
-    range.surroundContents(mark);
-  } catch (_) {
-    // Cross-element range — skip gracefully
+    nodeRange.surroundContents(mark); // always safe: operates on a single Text node
   }
 }
 

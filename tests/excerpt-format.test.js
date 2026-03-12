@@ -335,9 +335,10 @@ describe('htmlToMarkdown() — image extraction', () => {
     expect(md).toContain('![](data:image/png;base64,abc123)');
   });
 
-  it('skips blob: src images', () => {
+  it('emits placeholder for blob: src images (Option E fallback)', () => {
     const el = wrap('<img src="blob:https://chatgpt.com/abc-123" alt="upload">');
-    expect(htmlToMarkdown(el)).toBe('');
+    const result = htmlToMarkdown(el);
+    expect(result).toContain('[\u{1F5BC}\uFE0F Image: upload]');
   });
 
   it('skips images with empty src', () => {

@@ -658,7 +658,7 @@ export class ExportDialog {
    * @param {string} htmlContent
    */
   _openPrintWindow(htmlContent) {
-    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const blob = new Blob([new TextEncoder().encode(htmlContent)], { type: 'text/html;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
     const win  = window.open(url, '_blank');
 

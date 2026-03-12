@@ -52,9 +52,15 @@ export function setDownloadDriver(fn) {
  */
 export function triggerDownload(filename, content, mimeType) {
   const mime = mimeType || guessMime(filename);
-  const blob = content instanceof Blob
-    ? content
-    : new Blob([content], { type: mime });
+  let blob;
+  if (content instanceof Blob) {
+    blob = content;
+  } else if (typeof content === 'string') {
+    // Explicitly encode as UTF-8 to avoid system codepage (e.g. Windows-1255)
+    blob = new Blob([new TextEncoder().encode(content)], { type: mime });
+  } else {
+    blob = new Blob([content], { type: mime });
+  }
 
   const url = URL.createObjectURL(blob);
   _driver(url, filename);
