@@ -1318,6 +1318,15 @@ mark.search-highlight {
   color: var(--text-inverse); font-weight: 600;
 }
 
+/* Labeled field inside export dialog (system-message input, etc.) */
+.dex-field { display: flex; flex-direction: column; gap: var(--space-xs); }
+.dex-field-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.dex-field-input { width: 100%; box-sizing: border-box; }
+
 /* ── Import dialog (dim-*) ──────────────────────────────────────────────────── */
 
 /* Phase switching */
