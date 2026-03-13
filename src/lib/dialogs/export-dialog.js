@@ -18,6 +18,8 @@ import {
   sanitizeFilename,
   buildDigestMarkdown,
   buildDigestHtml,
+  buildFineTuningJsonl,
+  buildFineTuningJsonlMulti,
 } from '../export/export-engine.js';
 import { STYLES, STYLE_LABELS } from '../theme/style-transformer.js';
 
@@ -25,17 +27,19 @@ import { STYLES, STYLE_LABELS } from '../theme/style-transformer.js';
 
 /** Formats available in topic (bulk) mode. */
 const TOPIC_FORMATS = [
-  { value: 'markdown', label: 'Markdown' },
-  { value: 'html',     label: 'HTML'     },
-  { value: 'pdf',      label: 'PDF'      },
-  { value: 'zip',      label: 'ZIP'      },
+  { value: 'markdown', label: 'Markdown'            },
+  { value: 'html',     label: 'HTML'                },
+  { value: 'jsonl',    label: 'JSONL (Fine-tuning)' },
+  { value: 'pdf',      label: 'PDF'                 },
+  { value: 'zip',      label: 'ZIP'                 },
 ];
 
 /** Formats available in single-chat mode (no ZIP). */
 const CHAT_FORMATS = [
-  { value: 'markdown', label: 'Markdown' },
-  { value: 'html',     label: 'HTML'     },
-  { value: 'pdf',      label: 'PDF'      },
+  { value: 'markdown', label: 'Markdown'            },
+  { value: 'html',     label: 'HTML'                },
+  { value: 'jsonl',    label: 'JSONL (Fine-tuning)' },
+  { value: 'pdf',      label: 'PDF'                 },
 ];
 
 /** Scope options shown only in topic mode. */
@@ -183,10 +187,11 @@ export class ExportDialog {
   _buildDialogHtml({ title, formats, scopes, showScope, defaultFormat = null, defaultScope = null }) {
     // ── Format card metadata ───────────────────────────────────────────────
     const FMT_META = {
-      markdown: { icon: '📝', ext: '.md'   },
-      html:     { icon: '🌐', ext: '.html' },
-      pdf:      { icon: '📄', ext: 'print' },
-      zip:      { icon: '📦', ext: '.zip'  },
+      markdown: { icon: '📝', ext: '.md'    },
+      html:     { icon: '🌐', ext: '.html'  },
+      jsonl:    { icon: '🤖', ext: '.jsonl' },
+      pdf:      { icon: '📄', ext: 'print'  },
+      zip:      { icon: '📦', ext: '.zip'   },
     };
 
     const formatCards = formats.map(({ value, label }, i) => {
@@ -261,6 +266,29 @@ export class ExportDialog {
 
         ${scopeSection}
 
+        <div class="dex-section" id="export-jsonl-section" style="display:none">
+          <p class="dex-section-label">Fine-Tuning Options</p>
+          <div class="dex-field">
+            <label class="dex-field-label" for="export-jsonl-sysmsg">System message</label>
+            <input
+              type="text"
+              id="export-jsonl-sysmsg"
+              class="form-input dex-field-input"
+              placeholder="You are a helpful assistant."
+              maxlength="500"
+            >
+            <p class="form-hint">Optional — prepended to every conversation. Leave blank to omit.</p>
+          </div>
+          <label class="dex-toggle-chip" style="margin-top:var(--space-md)">
+            <input type="checkbox" id="export-jsonl-pretty" checked>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink:0">
+              <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Pretty-print JSON
+          </label>
+          <p class="form-hint" style="margin-top:var(--space-xs)">Uncheck for strict one-line-per-record JSONL required by fine-tuning pipelines.</p>
+        </div>
+
         <div class="dex-section" id="export-style-section">
           <p class="dex-section-label">Output Style</p>
           <div class="dex-style-chips">
@@ -285,9 +313,10 @@ export class ExportDialog {
    */
   _buildDigestDialogHtml(count) {
     const FMT_META = {
-      markdown: { icon: '📝', ext: '.md'   },
-      html:     { icon: '🌐', ext: '.html' },
-      pdf:      { icon: '📄', ext: 'print' },
+      markdown: { icon: '📝', ext: '.md'    },
+      html:     { icon: '🌐', ext: '.html'  },
+      jsonl:    { icon: '🤖', ext: '.jsonl' },
+      pdf:      { icon: '📄', ext: 'print'  },
     };
 
     const formatCards = CHAT_FORMATS.map(({ value, label }, i) => {
@@ -340,6 +369,13 @@ export class ExportDialog {
             </svg>
             Include table of contents
           </label>
+          <label class="dex-toggle-chip" id="digest-jsonl-pretty-wrap" style="display:none;margin-top:6px">
+            <input type="checkbox" id="export-jsonl-pretty" checked>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink:0">
+              <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Pretty-print JSON <span class="dex-note">(uncheck for strict one-line-per-record JSONL)</span>
+          </label>
         </div>
 
       </div>
@@ -370,11 +406,20 @@ export class ExportDialog {
 
     const updateVisibility = () => {
       const fmt = container.querySelector('input[name="export-format"]:checked')?.value;
-      const hideStyle = fmt === 'pdf' || fmt === 'zip';
+      const hideStyle = fmt === 'pdf' || fmt === 'zip' || fmt === 'jsonl';
 
       if (styleSection) {
         styleSection.style.display = hideStyle ? 'none' : '';
       }
+
+      const jsonlSection = container.querySelector('#export-jsonl-section');
+      if (jsonlSection) jsonlSection.style.display = fmt === 'jsonl' ? '' : 'none';
+
+      // Digest dialog: show pretty-print toggle and hide TOC when JSONL is selected
+      const digestPrettyWrap = container.querySelector('#digest-jsonl-pretty-wrap');
+      const digestTocLabel   = container.querySelector('#digest-include-toc')?.closest('label');
+      if (digestPrettyWrap) digestPrettyWrap.style.display = fmt === 'jsonl' ? '' : 'none';
+      if (digestTocLabel)   digestTocLabel.style.display   = fmt === 'jsonl' ? 'none' : '';
 
       if (zipNote) {
         zipNote.classList.toggle('visible', fmt === 'zip');
@@ -424,9 +469,23 @@ export class ExportDialog {
    */
   async _doExportChat(chat, tree, format, style) {
     try {
+      const container = this.dialog.container;
       const topicsMap = tree?.topics || {};
       const topicPath = buildTopicPath(chat.topicId, topicsMap);
       const safeName  = sanitizeFilename(chat.title || 'chat');
+
+      if (format === 'jsonl') {
+        const systemMessage = container.querySelector('#export-jsonl-sysmsg')?.value?.trim() || '';
+        const prettyPrint   = container.querySelector('#export-jsonl-pretty')?.checked === true;
+        const line = buildFineTuningJsonl(chat, { systemMessage, prettyPrint });
+        if (!line) {
+          await this.dialog.alert('No user/assistant messages found to export.', 'Export');
+          return;
+        }
+        triggerDownload(`${safeName}.jsonl`, line, 'application/jsonlines');
+        this.dialog.close(null);
+        return;
+      }
 
       if (format === 'pdf') {
         this._openPrintWindow(buildExportHtml(chat, topicPath, { style }));
@@ -467,6 +526,19 @@ export class ExportDialog {
       const topicsMap = tree?.topics || {};
       const date      = new Date().toISOString().slice(0, 10);
       const filename  = `bAInder-digest-${date}`;
+
+      if (format === 'jsonl') {
+        const container   = this.dialog.container;
+        const prettyPrint = container.querySelector('#export-jsonl-pretty')?.checked === true;
+        const jsonl = buildFineTuningJsonlMulti(chats, { prettyPrint });
+        if (!jsonl) {
+          await this.dialog.alert('No user/assistant messages found in selected chats.', 'Export');
+          return;
+        }
+        triggerDownload(`${filename}.jsonl`, jsonl, 'application/jsonlines');
+        this.dialog.close(null);
+        return;
+      }
 
       if (format === 'pdf') {
         this._openPrintWindow(buildDigestHtml(chats, topicsMap, { style, includeToc }));
@@ -530,6 +602,24 @@ export class ExportDialog {
 
       if (targetChats.length === 0) {
         await this.dialog.alert('No chats found for the selected scope.', 'Export');
+        return;
+      }
+
+      // ── JSONL format ──────────────────────────────────────────────────────
+      if (format === 'jsonl') {
+        const container     = this.dialog.container;
+        const systemMessage = container.querySelector('#export-jsonl-sysmsg')?.value?.trim() || '';
+        const prettyPrint   = container.querySelector('#export-jsonl-pretty')?.checked === true;
+        const jsonl = buildFineTuningJsonlMulti(targetChats, { systemMessage, prettyPrint });
+        if (!jsonl) {
+          await this.dialog.alert('No user/assistant messages found for the selected scope.', 'Export');
+          return;
+        }
+        const fname = targetChats.length === 1
+          ? `${sanitizeFilename(targetChats[0].title || 'chat')}.jsonl`
+          : `bAInder-finetune-${date}.jsonl`;
+        triggerDownload(fname, jsonl, 'application/jsonlines');
+        this.dialog.close(null);
         return;
       }
 

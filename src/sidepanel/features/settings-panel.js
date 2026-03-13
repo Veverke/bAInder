@@ -9,6 +9,7 @@
 
 import { logger } from '../../lib/utils/logger.js';
 import browser from '../../lib/vendor/browser.js';
+import { sanitiseSeparator, DEFAULT_CLIPBOARD_SETTINGS } from '../../lib/export/clipboard-serialiser.js';
 
 export function openSettingsPanel() {
   const panel = document.getElementById('settingsPanel');
@@ -56,6 +57,91 @@ export function openSettingsPanel() {
     intervalSelect.addEventListener('change', () => {
       const days = parseInt(intervalSelect.value, 10);
       browser.storage.local.set({ backupReminderIntervalDays: days }).catch(() => {});
+    });
+  }
+
+  // Wire clipboard settings (idempotent) — C.26
+  const clipboardFormatSel = document.getElementById('clipboardFormatSelect');
+  if (clipboardFormatSel && !clipboardFormatSel.dataset.wired) {
+    clipboardFormatSel.dataset.wired = '1';
+    const emojisChk     = document.getElementById('clipboardIncludeEmojis');
+    const imagesChk     = document.getElementById('clipboardIncludeImages');
+    const imagesRow     = document.getElementById('clipboardImagesRow');
+    const attachChk     = document.getElementById('clipboardIncludeAttachments');
+    const separatorInp  = document.getElementById('clipboardSeparatorInput');
+    const sepPreview    = document.getElementById('clipboardSeparatorPreview');
+    const turnSepInp    = document.getElementById('clipboardTurnSeparatorInput');
+    const turnSepPreview = document.getElementById('clipboardTurnSeparatorPreview');
+
+    function syncImagesRow() {
+      if (imagesRow) imagesRow.hidden = clipboardFormatSel.value !== 'html';
+    }
+
+    function syncPreview() {
+      const slot = sepPreview?.querySelector('.settings-separator-preview__content');
+      if (!slot) return;
+      const raw = (separatorInp?.value || DEFAULT_CLIPBOARD_SETTINGS.separator).trim();
+      slot.innerHTML = sanitiseSeparator(raw) || DEFAULT_CLIPBOARD_SETTINGS.separator;
+      if (sepPreview) sepPreview.hidden = false;
+    }
+
+    function syncTurnPreview() {
+      const slot = turnSepPreview?.querySelector('.settings-separator-preview__content');
+      if (!slot) return;
+      const raw = (turnSepInp?.value || DEFAULT_CLIPBOARD_SETTINGS.turnSeparator).trim();
+      slot.innerHTML = sanitiseSeparator(raw) || DEFAULT_CLIPBOARD_SETTINGS.turnSeparator;
+      if (turnSepPreview) turnSepPreview.hidden = false;
+    }
+
+    function persist() {
+      const settings = {
+        format:             clipboardFormatSel.value,
+        includeEmojis:      emojisChk?.checked     ?? true,
+        includeImages:      imagesChk?.checked     ?? false,
+        includeAttachments: attachChk?.checked     ?? false,
+        separator:          separatorInp?.value    ?? DEFAULT_CLIPBOARD_SETTINGS.separator,
+        turnSeparator:      turnSepInp?.value      ?? DEFAULT_CLIPBOARD_SETTINGS.turnSeparator,
+      };
+      browser.storage.local.set({ clipboardSettings: settings }).catch(() => {});
+    }
+
+    // Load saved settings and apply to controls
+    browser.storage.local.get(['clipboardSettings', 'clipboardFormat']).then(data => {
+      const legacy = data.clipboardFormat;
+      const stored = data.clipboardSettings ?? (legacy ? { format: legacy } : {});
+      clipboardFormatSel.value              = stored.format             ?? 'plain';
+      if (emojisChk)    emojisChk.checked   = stored.includeEmojis      ?? true;
+      if (imagesChk)    imagesChk.checked   = stored.includeImages       ?? false;
+      if (attachChk)    attachChk.checked   = stored.includeAttachments  ?? false;
+      if (separatorInp) separatorInp.value  = stored.separator      ?? DEFAULT_CLIPBOARD_SETTINGS.separator;
+      if (turnSepInp)   turnSepInp.value    = stored.turnSeparator   ?? DEFAULT_CLIPBOARD_SETTINGS.turnSeparator;
+      syncImagesRow();
+      syncPreview();
+      syncTurnPreview();
+    }).catch(() => {});
+
+    clipboardFormatSel.addEventListener('change', () => { syncImagesRow(); persist(); });
+    emojisChk?.addEventListener('change',   persist);
+    imagesChk?.addEventListener('change',   persist);
+    attachChk?.addEventListener('change',   persist);
+    separatorInp?.addEventListener('input', () => { syncPreview(); persist(); });
+    turnSepInp?.addEventListener('input',   () => { syncTurnPreview(); persist(); });
+  }
+
+  // Wire show-ordinals toggle (idempotent) — C.28
+  const showOrdinalsToggle = document.getElementById('showOrdinalsToggle');
+  if (showOrdinalsToggle && !showOrdinalsToggle.dataset.wired) {
+    showOrdinalsToggle.dataset.wired = '1';
+    browser.storage.local.get(['readerSettings']).then(data => {
+      showOrdinalsToggle.checked = data.readerSettings?.showOrdinals ?? true;
+    }).catch(() => {});
+    showOrdinalsToggle.addEventListener('change', () => {
+      browser.storage.local.get(['readerSettings']).then(data => {
+        const current = data.readerSettings ?? {};
+        return browser.storage.local.set({
+          readerSettings: { ...current, showOrdinals: showOrdinalsToggle.checked },
+        });
+      }).catch(() => {});
     });
   }
 }

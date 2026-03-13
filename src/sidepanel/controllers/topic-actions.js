@@ -14,6 +14,7 @@
 import { state, elements } from '../app-context.js';
 import { logger } from '../../lib/utils/logger.js';
 import { showNotification } from '../notification.js';
+import { copyChatsToClipboard } from '../../lib/export/clipboard-serialiser.js';
 import {
   saveTree,
   renderTreeView,
@@ -72,11 +73,12 @@ export async function handleTopicContextMenu(topic, event) {
 
 export function setupContextMenuActions() {
   const actions = {
-    rename: handleRenameTopic,
-    move:   handleMoveTopic,
-    merge:  handleMergeTopic,
-    export: handleExportTopic,
-    delete: handleDeleteTopic,
+    rename:     handleRenameTopic,
+    move:       handleMoveTopic,
+    merge:      handleMergeTopic,
+    export:     handleExportTopic,
+    delete:     handleDeleteTopic,
+    'copy-all': handleCopyAllTopicChats,
   };
 
   elements.contextMenu.querySelectorAll('[data-action]').forEach(item => {
@@ -181,4 +183,45 @@ export async function handleExportTopic() {
     logger.error('Export failed:', err);
     await _state.dialog.alert(err.message || 'Export failed', 'Export Error');
   }
+}
+
+export async function handleCopyAllTopicChats() {
+  const topic = _state.contextMenuTopic;
+  if (!topic) return;
+
+  const chatIds = collectDescendantChatIds(topic.id);
+  if (chatIds.length === 0) {
+    showNotification('No chats to copy in this topic', 'info');
+    return;
+  }
+
+  let fullChats;
+  try {
+    fullChats = await _state.chatRepo.loadFullByIds(new Set(chatIds));
+  } catch (err) {
+    logger.warn('Copy all: failed to load chat content', err);
+    showNotification('Failed to load chat content', 'error');
+    return;
+  }
+
+  if (fullChats.length === 0) {
+    showNotification('No chats found to copy', 'info');
+    return;
+  }
+
+  if (fullChats.length >= 20) {
+    showNotification(`Copying ${fullChats.length} chats — this may be slow`, 'info');
+  }
+
+  const result = await copyChatsToClipboard(fullChats);
+
+  if (result.tooLarge) {
+    showNotification('Content too large to copy — use Export instead', 'error');
+    return;
+  }
+  if (!result.ok) {
+    showNotification('Failed to copy to clipboard', 'error');
+    return;
+  }
+  showNotification(`Copied ${fullChats.length} chat${fullChats.length !== 1 ? 's' : ''} to clipboard`, 'success');
 }

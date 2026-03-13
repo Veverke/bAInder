@@ -22,6 +22,7 @@ export { buildExportHtml, buildDigestHtml }             from './html-builder.js'
 export { buildZipPayload }                              from './zip-builder.js';
 export { buildMetadataJson, buildReadme }               from './metadata-builder.js';
 export { triggerDownload, setDownloadDriver }           from './download.js';
+export { buildFineTuningJsonl, buildFineTuningJsonlMulti } from './jsonl-builder.js';
 
 // _mdToHtml is exported for tests (previously a "private" export from the monolith)
 export { mdToHtml as _mdToHtml }                        from './md-to-html.js';

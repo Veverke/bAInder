@@ -106,6 +106,19 @@ export async function extractGemini(doc) {
     });
     const resolvedEl = await resolveImageBlobs(processEl, bgFetch, el);
     let content = htmlToMarkdown(resolvedEl);
+    // ── Debug: confirm whether tables are being found ──────────────────────
+    const tableCount = resolvedEl.querySelectorAll('table').length;
+    if (tableCount > 0) {
+      console.debug('[bAInder] Gemini', role, ': found', tableCount, '<table> element(s); markdown pipes:', (content.match(/\|/g) || []).length);
+    } else {
+      // Log the unique tags present so we can see what structure the content uses
+      const tags = [...resolvedEl.querySelectorAll('*')]
+        .map(e => e.tagName.toLowerCase())
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .sort()
+        .join(',');
+      console.debug('[bAInder] Gemini', role, ': NO <table> elements. Tags in response el:', tags);
+    }
     // Supplement with images inside shadow-DOM roots (Gemini custom elements).
     content = await appendShadowImages(el, content, bgFetch);
     // Strip "Gemini said" role-label headings and "You stopped this response"
