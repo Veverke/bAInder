@@ -587,7 +587,7 @@ async function renderSendToAiCard(chats, chatLabels) {
   const warn = warnMsg ? `<p class="send-ai-warn">${escapeHtml(warnMsg)}</p>` : '';
 
   const buttons = AI_TARGETS.map(ai => {
-    const title = `Open ${ai.label} in a new tab and send compare prompt`;
+    const title = `Click to select ${ai.label} for comparison`;
     return (
       `<button class="send-ai-btn"` +
       ` data-ai="${escapeHtml(ai.id)}" data-url="${escapeHtml(ai.url)}"` +
@@ -595,64 +595,131 @@ async function renderSendToAiCard(chats, chatLabels) {
     );
   }).join('');
 
-  body.innerHTML = warn + `<div class="send-ai-targets">${buttons}</div>`;
+  body.innerHTML =
+    warn +
+    `<div class="send-ai-targets">${buttons}</div>` +
+    `<div class="send-ai-launch-row">` +
+    `<button class="send-ai-compare-btn" disabled>Compare ↗</button>` +
+    `</div>`;
 
-  // Each button: inject prompt → submit → hide user bubble → scroll to spinner
+  const compareBtn = body.querySelector('.send-ai-compare-btn');
+
+  function updateCompareBtn() {
+    // --done and --fail count as active so Compare stays clickable after a run
+    compareBtn.disabled = body.querySelectorAll(
+      '.send-ai-btn--selected, .send-ai-btn--done, .send-ai-btn--fail'
+    ).length === 0;
+  }
+
+  // Each button toggles selection; done/fail buttons reset on click so they can be re-run
   body.querySelectorAll('.send-ai-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       if (btn.disabled) return;
-      btn.disabled = true;
+      if (btn.classList.contains('send-ai-btn--done') || btn.classList.contains('send-ai-btn--fail')) {
+        const aiCfg = AI_TARGETS.find(a => a.id === btn.dataset.ai);
+        btn.classList.remove('send-ai-btn--done', 'send-ai-btn--fail', 'send-ai-btn--selected');
+        btn.textContent = aiCfg?.label ?? btn.dataset.ai;
+        updateCompareBtn();
+        return;
+      }
+      btn.classList.toggle('send-ai-btn--selected');
+      updateCompareBtn();
+    });
+  });
 
+  // Compare button: two-phase — load all tabs in parallel, then inject
+  // sequentially with each tab focused so focus()/isTrusted events work.
+  compareBtn.addEventListener('click', async () => {
+    const selectedBtns = [...body.querySelectorAll(
+      '.send-ai-btn--selected, .send-ai-btn--done, .send-ai-btn--fail'
+    )];
+    if (!selectedBtns.length) return;
+
+    compareBtn.disabled = true;
+    compareBtn.classList.add('send-ai-compare-btn--loading');
+    compareBtn.textContent = 'Opening tabs… ⏳';
+
+    // Write prompt to clipboard once as silent fallback for all tabs
+    try { await navigator.clipboard.writeText(prompt); } catch { /* ignore */ }
+
+    // ── Phase 1: create and load all tabs in parallel ──────────────────────
+    const tasks = await Promise.all(selectedBtns.map(async btn => {
       const aiId  = btn.dataset.ai;
       const aiCfg = AI_TARGETS.find(a => a.id === aiId);
 
-      // Always write to clipboard first as silent fallback
-      try { await navigator.clipboard.writeText(prompt); } catch { /* ignore */ }
-
-      // Show loading state
+      btn.classList.remove('send-ai-btn--selected', 'send-ai-btn--done', 'send-ai-btn--fail');
       btn.classList.add('send-ai-btn--loading');
+      btn.disabled = true;
       btn.textContent = `${aiCfg?.label ?? aiId} ⏳`;
 
-      const tabTitle = `${aiCfg?.label ?? aiId} bAInder Compare`;
+      try {
+        const tab = await chrome.tabs.create({ url: btn.dataset.url });
+        await waitForTabLoad(tab.id, 15000);
+        await new Promise(r => setTimeout(r, 800));
+        return { tab, btn, aiCfg };
+      } catch (err) {
+        console.log(`[bAInder] ${aiCfg?.label ?? aiId} tab open failed:`, err);
+        btn.classList.remove('send-ai-btn--loading');
+        btn.classList.add('send-ai-btn--fail');
+        btn.disabled = false;
+        btn.title = `Tab failed to open — prompt copied to clipboard, paste manually`;
+        btn.textContent = `⬇ ${aiCfg?.label ?? aiId} — paste manually`;
+        return null;
+      }
+    }));
+
+    // ── Phase 2: inject sequentially, focusing each tab first ─────────────
+    // Focusing the tab before executeScript ensures document.hasFocus()=true
+    // inside the injected function, which is required for focus(), execCommand,
+    // and isTrusted event handling to work correctly.
+    compareBtn.textContent = 'Injecting… ⏳';
+
+    for (const task of tasks.filter(Boolean)) {
+      const { tab, btn, aiCfg } = task;
+      const tabTitle = `${aiCfg.label} bAInder Compare`;
 
       try {
-        // Always open a fresh tab — no conversation history, no stale DOM
-        const targetTab = await chrome.tabs.create({ url: btn.dataset.url });
-        await waitForTabLoad(targetTab.id, 15000);
-        // Extra delay for React / Vue hydration after DOMContentLoaded
-        await new Promise(r => setTimeout(r, 800));
+        // Bring this tab to front — the only reliable way to get hasFocus=true
+        await chrome.tabs.update(tab.id, { active: true });
+        if (tab.windowId != null) {
+          await chrome.windows.update(tab.windowId, { focused: true });
+        }
+        // Short settle delay so the focus event propagates before we inject
+        await new Promise(r => setTimeout(r, 300));
 
-        // Execute injection in the target tab's page context
         const [result] = await chrome.scripting.executeScript({
-          target: { tabId: targetTab.id },
+          target: { tabId: tab.id },
           func:   injectPrompt,
           args:   [prompt, tabTitle],
         });
 
         const outcome = result?.result ?? { success: false, reason: 'no result' };
+        console.log(`[bAInder] ${aiCfg.label} inject outcome:`, outcome);
 
         btn.classList.remove('send-ai-btn--loading');
+        btn.disabled = false;
         if (outcome.success) {
           btn.classList.add('send-ai-btn--done');
-          btn.disabled = false;
-          btn.textContent = `✓ ${aiCfg?.label ?? aiId}`;
-          // Switch to the AI tab so the user sees the response arriving
-          chrome.tabs.update(targetTab.id, { active: true });
-          if (targetTab.windowId != null) {
-            chrome.windows.update(targetTab.windowId, { focused: true });
-          }
+          btn.textContent = `✓ ${aiCfg.label}`;
         } else {
           btn.classList.add('send-ai-btn--fail');
-          btn.textContent = `⬇ ${aiCfg?.label ?? aiId} — paste manually`;
-          btn.disabled = false;
+          const reason = outcome.reason ? ` (${outcome.reason})` : '';
+          btn.title = `Injection failed${reason} — prompt copied to clipboard, paste manually`;
+          btn.textContent = `⬇ ${aiCfg.label} — paste manually`;
         }
-      } catch {
+      } catch (err) {
+        console.log(`[bAInder] ${aiCfg.label} executeScript threw:`, err);
         btn.classList.remove('send-ai-btn--loading');
         btn.classList.add('send-ai-btn--fail');
-        btn.textContent = `⬇ ${aiCfg?.label ?? aiId} — paste manually`;
         btn.disabled = false;
+        btn.title = `Error: ${err?.message ?? err} — prompt copied to clipboard, paste manually`;
+        btn.textContent = `⬇ ${aiCfg.label} — paste manually`;
       }
-    });
+    }
+
+    compareBtn.classList.remove('send-ai-compare-btn--loading');
+    compareBtn.textContent = 'Compare ↗';
+    updateCompareBtn();
   });
 
   return card;

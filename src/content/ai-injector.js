@@ -26,6 +26,10 @@ export async function injectPrompt(promptText, tabTitle) {
 
   // ── Internal helpers (all defined locally — survive serialisation) ────────
 
+  // Global start time for throttle-detection logging.
+  const __t0 = performance.now();
+  const elapsed = () => `+${(performance.now() - __t0).toFixed(0)}ms`;
+
   // 0a. Persist the tab title every 500 ms for 10 s — SPA routers reset it.
   if (tabTitle) {
     document.title = tabTitle;
@@ -64,8 +68,14 @@ export async function injectPrompt(promptText, tabTitle) {
   const delay = ms => new Promise(r => setTimeout(r, ms));
 
   /** Styled console logger — visible in the target tab's DevTools. */
-  const log = (...a) => console.log('%c[bAInder]', 'color:#818cf8;font-weight:bold', ...a);
-  const warn = (...a) => console.warn('%c[bAInder]', 'color:#f59e0b;font-weight:bold', ...a);
+  const log  = (...a) => console.log('%c[bAInder]',  'color:#818cf8;font-weight:bold', elapsed(), ...a);
+  const warn = (...a) => console.warn('%c[bAInder]', 'color:#f59e0b;font-weight:bold', elapsed(), ...a);
+
+  // Log tab focus/visibility state immediately — key for background-tab diagnosis.
+  log('injectPrompt start — focus:', document.hasFocus(),
+    '| visibility:', document.visibilityState,
+    '| readyState:', document.readyState,
+    '| site:', window.location.hostname);
 
   /**
    * Try each CSS selector in `selectors` against `root`; return the first
@@ -163,6 +173,10 @@ export async function injectPrompt(promptText, tabTitle) {
    */
   function insertIntoContentEditable(el, text) {
     el.focus();
+    const focusedAfter = document.hasFocus();
+    console.log('%c[bAInder]', 'color:#818cf8;font-weight:bold', elapsed(),
+      'insertIntoContentEditable — hasFocus after focus():', focusedAfter,
+      '| activeElement:', document.activeElement?.tagName);
 
     const html = textToHtml(text);
 
@@ -173,17 +187,21 @@ export async function injectPrompt(promptText, tabTitle) {
       }
     } catch { /* ignore */ }
 
-    // Layer 1: insertHTML — preserves \n as <br> in all contenteditable implementations
+    // Layer 1: insertHTML — preserves \n as <br>; requires document focus
     try {
       const ok = document.execCommand('insertHTML', false, html);
-      if (ok && el.textContent.trim().length > 0) return true;
-    } catch { /* fall through */ }
+      const filled = el.textContent.trim().length > 0;
+      console.log('%c[bAInder]', 'color:#818cf8;font-weight:bold', elapsed(), 'L1 insertHTML ok:', ok, 'filled:', filled);
+      if (ok && filled) return true;
+    } catch (e) { console.log('%c[bAInder]', 'color:#818cf8;font-weight:bold', elapsed(), 'L1 threw:', e.message); }
 
     // Layer 2: insertText (plain, no HTML)
     try {
       const ok = document.execCommand('insertText', false, text);
-      if (ok && el.textContent.trim().length > 0) return true;
-    } catch { /* fall through */ }
+      const filled = el.textContent.trim().length > 0;
+      console.log('%c[bAInder]', 'color:#818cf8;font-weight:bold', elapsed(), 'L2 insertText ok:', ok, 'filled:', filled);
+      if (ok && filled) return true;
+    } catch (e) { console.log('%c[bAInder]', 'color:#818cf8;font-weight:bold', elapsed(), 'L2 threw:', e.message); }
 
     // Layer 3: DataTransfer paste — include text/html so rich-text editors
     // use <br> line breaks rather than stripping raw \n characters
@@ -192,16 +210,20 @@ export async function injectPrompt(promptText, tabTitle) {
       dt.setData('text/plain', text);
       dt.setData('text/html', `<div>${html}</div>`);
       el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
-      if (el.textContent.trim().length > 0) return true;
-    } catch { /* fall through */ }
+      const filled = el.textContent.trim().length > 0;
+      console.log('%c[bAInder]', 'color:#818cf8;font-weight:bold', elapsed(), 'L3 ClipboardEvent paste filled:', filled);
+      if (filled) return true;
+    } catch (e) { console.log('%c[bAInder]', 'color:#818cf8;font-weight:bold', elapsed(), 'L3 threw:', e.message); }
 
     // Layer 4: direct innerHTML mutation — always preserves line breaks
     try {
       el.innerHTML = html;
       el.dispatchEvent(new Event('input',  { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
-      return el.textContent.trim().length > 0;
-    } catch { return false; }
+      const filled = el.textContent.trim().length > 0;
+      console.log('%c[bAInder]', 'color:#818cf8;font-weight:bold', elapsed(), 'L4 innerHTML filled:', filled);
+      return filled;
+    } catch (e) { console.log('%c[bAInder]', 'color:#818cf8;font-weight:bold', elapsed(), 'L4 threw:', e.message); return false; }
   }
 
   /**
@@ -251,7 +273,21 @@ export async function injectPrompt(promptText, tabTitle) {
     } catch {
       el.value = text;
     }
-    el.dispatchEvent(new Event('input',  { bubbles: true }));
+    // React stores the last-seen value in el._valueTracker.  If we bypass
+    // React's own setter the tracker still holds the old value, so React's
+    // comparison returns "unchanged" and suppresses onChange → button stays
+    // disabled.  Resetting the tracker to '' forces React to see our text as
+    // a new change regardless of tab focus.
+    try {
+      const tracker = el._valueTracker;
+      if (tracker) tracker.setValue('');
+    } catch { /* ignore — non-React page */ }
+    // InputEvent (not plain Event) so React 17+ synthetic delegation picks it up.
+    try {
+      el.dispatchEvent(new InputEvent('input',  { bubbles: true, cancelable: true, inputType: 'insertText', data: text.slice(-1) }));
+    } catch {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }
     el.dispatchEvent(new Event('change', { bubbles: true }));
     return true;
   }
@@ -309,64 +345,88 @@ export async function injectPrompt(promptText, tabTitle) {
   }
 
   /**
-   * Poll every 200 ms for up to `maxMs` ms to find and permanently remove the
-   * user-message bubble.  Once found, a MutationObserver re-removes it if the
-   * page framework (Angular, React, Lit) re-inserts the node.  Fire-and-forget
-   * — do NOT await this.
+   * Watch for and permanently remove the user-message bubble.
+   *
+   * Uses a MutationObserver (not setInterval) so it fires on actual DOM changes
+   * and is NOT subject to Chrome's background-tab timer throttling — critical
+   * when multiple tabs are opened simultaneously and all run in the background.
+   *
+   * Fire-and-forget — do NOT await this.
    */
-  function persistentlyHideBubble(selectors, useShadow, removeMode, stopOnNavigation, maxMs = 5000) {
-    let observer = null;
-    const start = Date.now();
+  function persistentlyHideBubble(selectors, useShadow, removeMode, stopOnNavigation, maxMs = 10000) {
     const initialUrl = location.href;
     log('persistentlyHideBubble started, mode:', removeMode, 'stopOnNavigation:', stopOnNavigation, 'selectors:', selectors);
 
-    function hide(el) {
-      removeBubble(el, removeMode);
-      // Observe the closest available root for re-insertion
-      if (observer) observer.disconnect();
-      const root = (el.getRootNode && el.getRootNode() instanceof ShadowRoot)
-        ? el.getRootNode()
-        : document;
-      observer = new MutationObserver(() => {
-        const fresh = useShadow
-          ? shadowQueryLast(selectors)
-          : trySelectorsLast(selectors);
-        if (fresh) { log('bubble re-appeared, re-hiding'); removeBubble(fresh, removeMode); }
-      });
-      try { observer.observe(root, { childList: true, subtree: true }); } catch { /* ignore */ }
+    function getEl() {
+      return useShadow ? shadowQueryLast(selectors) : trySelectorsLast(selectors);
     }
 
-    const pollId = setInterval(() => {
-      if (Date.now() - start >= maxMs) {
-        warn('persistentlyHideBubble timed out without finding bubble');
-        clearInterval(pollId);
-        observer?.disconnect();
+    // Track the last element we acted on so CSS-hidden nodes (still in DOM)
+    // don't get re-processed on every subsequent mutation.
+    let lastHidden = null;
+    let stopped = false;
+
+    function tryHide() {
+      const el = getEl();
+      if (el && el !== lastHidden) {
+        log('bubble found:', el);
+        lastHidden = el;
+        removeBubble(el, removeMode);
+      }
+    }
+
+    // Check immediately — bubble may already be present before any mutation
+    tryHide();
+
+    const obs = new MutationObserver(() => {
+      if (stopped) return;
+      if (stopOnNavigation && location.href !== initialUrl) {
+        log('URL changed — stopping (stopOnNavigation=true)');
+        stopped = true;
+        obs.disconnect();
         return;
       }
-      if (location.href !== initialUrl) {
-        if (stopOnNavigation) {
-          log('URL changed to', location.href, '— stopping bubble removal (stopOnNavigation=true)');
-          clearInterval(pollId);
-          observer?.disconnect();
-          return;
-        }
-        log('URL changed to', location.href, '— continuing (stopOnNavigation=false)');
-      }
-      const el = useShadow
-        ? shadowQueryLast(selectors)
-        : trySelectorsLast(selectors);
-      if (el) {
-        log('bubble found by poll:', el);
-        clearInterval(pollId);
-        hide(el);
-      }
-    }, 200);
+      tryHide();
+    });
 
-    // Hard stop — disconnect observer after maxMs regardless
-    setTimeout(() => { clearInterval(pollId); observer?.disconnect(); log('persistentlyHideBubble hard-stopped'); }, maxMs);
+    try {
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+    } catch { /* ignore — page may not have documentElement yet */ }
+
+    // Hard stop after maxMs so the observer doesn't live forever.
+    // setTimeout is still throttled in background tabs but at 10 s the ~1 s
+    // minimum overhead is negligible — the tab will almost certainly be
+    // visible to the user long before this fires.
+    setTimeout(() => {
+      stopped = true;
+      obs.disconnect();
+      log('persistentlyHideBubble hard-stopped');
+    }, maxMs);
   }
 
   // ── Site configuration ────────────────────────────────────────────────────
+
+  /**
+   * Wait for an element matching any of `selectors` to appear in the DOM.
+   * Uses a MutationObserver so it fires on actual DOM changes and is NOT
+   * subject to Chrome's background-tab timer throttling (unlike setInterval).
+   * Resolves with the element, or null if `timeoutMs` elapses first.
+   */
+  function waitForElement(selectors, useShadow, timeoutMs = 15000) {
+    return new Promise(resolve => {
+      const get = () => useShadow ? shadowQuery(selectors) : trySelectors(selectors);
+      const immediate = get();
+      if (immediate) { resolve(immediate); return; }
+      let done = false;
+      const obs = new MutationObserver(() => {
+        if (done) return;
+        const el = get();
+        if (el) { done = true; obs.disconnect(); resolve(el); }
+      });
+      try { obs.observe(document.documentElement, { childList: true, subtree: true }); } catch { /* ignore */ }
+      setTimeout(() => { if (!done) { done = true; obs.disconnect(); resolve(null); } }, timeoutMs);
+    });
+  }
 
   /**
    * Each entry:
@@ -418,7 +478,8 @@ export async function injectPrompt(promptText, tabTitle) {
     {
       name: 'gemini',
       match: h => /gemini\.google\.com/.test(h),
-      removeMode: 'remove',  // Angular/Lit — safe to hard-remove
+      removeMode: 'css',          // CSS-hide avoids Angular re-render cascade
+      stopOnNavigation: false,    // Gemini SPA-navigates to new URL on submit; keep watching
       // Shadow DOM — handled by shadowQuery
       inputSelectors: [
         '[contenteditable="true"][aria-label]',
@@ -561,13 +622,13 @@ export async function injectPrompt(promptText, tabTitle) {
   }
   log('matched site:', site.name, '| hostname:', hostname);
 
-  // 1. Find input element
-  const input = site.useShadow
-    ? shadowQuery(site.inputSelectors)
-    : trySelectors(site.inputSelectors);
+  // 1. Wait for input element — uses MutationObserver so background-tab timer
+  //    throttling cannot prevent us from finding a late-hydrating React/Angular UI.
+  log('waiting for input element (up to 15 s) …');
+  const input = await waitForElement(site.inputSelectors, site.useShadow, 15000);
   log('input element:', input ?? 'NOT FOUND', input ? `tag=${input.tagName} contentEditable=${input.isContentEditable}` : '');
   if (!input) {
-    return { success: false, reason: 'input not found' };
+    return { success: false, reason: 'input not found after 15 s' };
   }
 
   // 2. Inject text — detect Lexical editors (Perplexity etc.) which reject
@@ -593,7 +654,9 @@ export async function injectPrompt(promptText, tabTitle) {
     log('InputEvent dispatched');
   } catch { /* ignore */ }
 
+  const preDelay = performance.now();
   await delay(300);
+  log('delay(300) actual wall-time:', `${(performance.now() - preDelay).toFixed(0)}ms`, '— throttled if >> 300');
 
   // 3. Submit: sites with preferEnter go straight to keyboard Enter (search-box
   //    UIs like Perplexity); otherwise click the send button and wait for it to
@@ -606,10 +669,19 @@ export async function injectPrompt(promptText, tabTitle) {
     // Some sites (e.g. ChatGPT) enable the send button asynchronously after
     // the input event is processed — wait up to 2 s for it to become active.
     for (let i = 0; i < 20 && (sendBtn.disabled || sendBtn.getAttribute('aria-disabled') === 'true'); i++) {
+      const loopStart = performance.now();
       await delay(100);
+      if (i === 0) log('delay(100) loop iteration wall-time:', `${(performance.now() - loopStart).toFixed(0)}ms`, '— throttled if >> 100');
     }
-    log('clicking sendBtn, disabled now:', sendBtn.disabled);
-    clickElement(sendBtn);
+    log('clicking sendBtn, disabled:', sendBtn.disabled, 'aria-disabled:', sendBtn.getAttribute('aria-disabled'));
+    if (sendBtn.disabled || sendBtn.getAttribute('aria-disabled') === 'true') {
+      // Button is still disabled (React state never updated — common in background
+      // tabs where focus() is a no-op). Fall back to Enter key on the input.
+      log('sendBtn still disabled — falling back to Enter on input');
+      pressEnter(input);
+    } else {
+      clickElement(sendBtn);
+    }
   } else {
     // Enter key — primary for search-box UIs, fallback when button not found.
     log('pressing Enter on input');

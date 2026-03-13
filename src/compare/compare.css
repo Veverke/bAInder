@@ -608,12 +608,53 @@ body {
 
 .send-ai-btn--fail:hover { background: #fef3c7; }
 
+.send-ai-btn--selected {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.send-ai-btn--selected:hover { background: #dcfce7; }
+
+.send-ai-launch-row { margin-top: 0.625rem; }
+
+.send-ai-compare-btn {
+  padding: 0.35rem 1.125rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background var(--transition-fast), opacity var(--transition-fast), border-color var(--transition-fast);
+}
+
+.send-ai-compare-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.send-ai-compare-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.send-ai-compare-btn--loading {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 /* ── Dark-mode exceptions (not expressible as CSS variable overrides) ── */
 @media (prefers-color-scheme: dark) {
   .compare-panel--error        { background: #2a1515; border-color: #7f1d1d; }
   .compare-panel__error        { color: #f87171; }
   .send-ai-btn--open           { background: #0a1f10; border-color: #166534; color: #4ade80; }
   .send-ai-btn--open:hover     { background: #0f2617; }
+  .send-ai-btn--selected       { background: #0a1f10; border-color: #166534; color: #4ade80; }
+  .send-ai-btn--selected:hover { background: #0f2617; }
   .send-ai-btn--done           { background: #0a1f10; border-color: #166534; color: #4ade80; }
   .send-ai-btn--done:hover     { background: #0f2617; }
   .send-ai-btn--fail           { background: #1c1008; border-color: #92400e; color: #fbbf24; }
