@@ -948,6 +948,118 @@ mark.search-highlight {
   line-height: 1.4;
 }
 
+/* Settings row that stacks label above control vertically */
+.settings-row--stack {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+/* Checkbox group container */
+.settings-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 2px;
+}
+
+/* Individual checkbox row */
+.settings-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-checkbox-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent, #58a6ff);
+}
+
+/* Locked row (Text — always on) */
+.settings-checkbox-row--locked {
+  color: var(--text-tertiary);
+  cursor: default;
+}
+
+.settings-checkbox-row--locked input[type="checkbox"] {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Generic single-line text input for settings */
+.settings-input {
+  width: 100%;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  font-family: var(--font-mono, monospace);
+  transition: border-color 0.15s;
+}
+
+.settings-input:hover,
+.settings-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* Separator live preview */
+.settings-separator-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  background: var(--bg-code, #f1f3f4);
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin: 0 0 var(--space-sm);
+  min-height: 28px;
+  overflow: hidden;
+}
+
+.settings-separator-preview__label {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  border-right: 1px solid var(--border-primary);
+  padding-right: 6px;
+}
+
+.settings-separator-preview__content {
+  flex: 1;
+  font-family: var(--font-mono, monospace);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Allow block-level HTML separators like <hr> to break the single-line rule */
+.settings-separator-preview__content:has(hr),
+.settings-separator-preview__content:has(p),
+.settings-separator-preview__content:has(div),
+.settings-separator-preview__content:has(blockquote) {
+  white-space: normal;
+}
+
+.settings-separator-preview__content hr {
+  margin: 2px 0;
+  border: none;
+  border-top: 1px solid currentColor;
+}
+
 /* Log-level (and other) select controls inside settings */
 .settings-select {
   appearance: none;
@@ -1317,6 +1429,15 @@ mark.search-highlight {
   background: var(--primary); border-color: var(--primary);
   color: var(--text-inverse); font-weight: 600;
 }
+
+/* Labeled field inside export dialog (system-message input, etc.) */
+.dex-field { display: flex; flex-direction: column; gap: var(--space-xs); }
+.dex-field-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.dex-field-input { width: 100%; box-sizing: border-box; }
 
 /* ── Import dialog (dim-*) ──────────────────────────────────────────────────── */
 

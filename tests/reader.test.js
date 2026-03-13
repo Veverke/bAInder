@@ -19,8 +19,18 @@ import {
   getScrollPositions,
   saveScrollPosition,
   restoreScrollPosition,
+  setupReaderCopyButton,
 } from '../src/reader/reader.js';
 import { messagesToMarkdown } from '../src/lib/io/markdown-serialiser.js';
+
+// ─── Mock clipboard-serialiser so reader.test.js has no real module dependency ─
+vi.mock('../src/lib/export/clipboard-serialiser.js', () => ({
+  getClipboardSettings: vi.fn(async () => ({ format: 'plain', includeEmojis: true, includeImages: false, includeAttachments: false, separator: '---' })),
+  serialiseChats: vi.fn((chats) => chats.map(c => c.title || '').join('\n')),
+  writeToClipboard: vi.fn(async () => ({ success: true, usedFallback: false })),
+  writeToClipboardHtml: vi.fn(async () => ({ success: true, usedFallback: false })),
+  MAX_CLIPBOARD_CHARS: 1_000_000,
+}));
 
 // ─── DOM fixture ─────────────────────────────────────────────────────────────
 // Mirrors the essential elements from reader.html
@@ -30,9 +40,11 @@ function setupDom() {
     <header id="reader-header" hidden>
       <div class="reader-header__inner">
         <div class="reader-header__meta">
-          <span id="meta-source"  class="badge"></span>
-          <span id="meta-date"    class="meta-date"></span>
-          <span id="meta-count"   class="meta-count"></span>
+          <span id="meta-source"    class="badge"></span>
+          <span id="meta-date"      class="meta-date"></span>
+          <span id="meta-count"     class="meta-count"></span>
+          <span id="meta-prompts"   class="meta-prompts" hidden></span>
+          <span id="meta-responses" class="meta-responses" hidden></span>
         </div>
         <h1 id="reader-title" class="reader-title"></h1>
       </div>
@@ -614,9 +626,9 @@ describe('renderChat', () => {
   it('renders markdown content as HTML for markdown-v1 format', () => {
     renderChat(makeChat());
     const inner = document.getElementById('reader-content').innerHTML;
-    // Emoji prefixes are used instead of **User** / **Assistant** bold headers
-    expect(inner).toContain('🙋');
-    expect(inner).toContain('🤖');
+    // wrapChatTurns wraps emoji-prefixed turns into role divs and strips the emoji
+    expect(document.querySelector('.chat-turn--user')).not.toBeNull();
+    expect(document.querySelector('.chat-turn--assistant')).not.toBeNull();
     expect(inner).toContain('Hello');
     expect(inner).not.toContain('<strong>User</strong>');
   });
@@ -628,6 +640,59 @@ describe('renderChat', () => {
     });
     renderChat(excerpt);
     expect(document.getElementById('meta-source').className).toContain('badge--excerpt');
+  });
+
+  // ── Responses overlay (mirrors prompts overlay) ───────────────────────────
+
+  it('shows meta-responses when there are assistant turns', () => {
+    renderChat(makeChat());
+    expect(document.getElementById('meta-responses').hidden).toBe(false);
+  });
+
+  it('renders responses trigger with correct count text', () => {
+    renderChat(makeChat());
+    const trigger = document.querySelector('.meta-responses__trigger');
+    expect(trigger).not.toBeNull();
+    expect(trigger.textContent).toContain('1 response');
+  });
+
+  it('renders responses trigger as plural for multiple responses', () => {
+    const chat = makeChat({
+      content: '---\ntitle: "T"\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n',
+    });
+    renderChat(chat);
+    const trigger = document.querySelector('.meta-responses__trigger');
+    expect(trigger.textContent).toContain('2 responses');
+  });
+
+  it('renders a responses-overlay with one item per assistant turn', () => {
+    renderChat(makeChat());
+    const items = document.querySelectorAll('.responses-overlay__item');
+    expect(items.length).toBe(1);
+  });
+
+  it('responses overlay items link to #rN anchors', () => {
+    const chat = makeChat({
+      content: '---\ntitle: "T"\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n',
+    });
+    renderChat(chat);
+    const items = document.querySelectorAll('.responses-overlay__item');
+    expect(items[0].getAttribute('href')).toBe('#r1');
+    expect(items[1].getAttribute('href')).toBe('#r2');
+  });
+
+  it('responses overlay items contain the assistant text snippet', () => {
+    renderChat(makeChat());
+    const item = document.querySelector('.responses-overlay__item');
+    expect(item.textContent).toContain('Hi there!');
+  });
+
+  it('hides meta-responses when there are no assistant turns', () => {
+    const chat = makeChat({
+      content: '---\ntitle: "T"\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\nSome plain text with no role emoji\n',
+    });
+    renderChat(chat);
+    expect(document.getElementById('meta-responses').hidden).toBe(true);
   });
 });
 
@@ -872,5 +937,66 @@ describe('restoreScrollPosition', () => {
     restoreScrollPosition('');
     restoreScrollPosition(null);
     expect(scrollTo).not.toHaveBeenCalled();
+  });
+});
+
+// ─── C.26 — setupReaderCopyButton ────────────────────────────────────────────
+
+describe('setupReaderCopyButton', () => {
+  const sampleChat = { id: 'c1', title: 'Hello', content: '# Hello' };
+
+  function makeDom(withBtn = true) {
+    document.body.innerHTML = withBtn
+      ? `<button id="reader-copy-btn" type="button"><span class="btn-reader-action__label">Copy</span></button>`
+      : `<div></div>`;
+  }
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    // Re-apply defaults after clearAllMocks
+    const mod = await import('../src/lib/export/clipboard-serialiser.js');
+    mod.getClipboardSettings.mockResolvedValue({ format: 'plain', includeEmojis: true, includeImages: false, includeAttachments: false, separator: '---' });
+    mod.serialiseChats.mockImplementation((chats) => chats.map(c => c.title || '').join('\n'));
+    mod.writeToClipboard.mockResolvedValue({ success: true, usedFallback: false });
+    mod.writeToClipboardHtml.mockResolvedValue({ success: true, usedFallback: false });
+  });
+
+  it('returns gracefully when button is absent', async () => {
+    makeDom(false);
+    const storage = { get: vi.fn() };
+    await expect(setupReaderCopyButton(sampleChat, storage)).resolves.toBeUndefined();
+    expect(storage.get).not.toHaveBeenCalled();
+  });
+
+  it('success path: shows \u2713 Copied feedback after click', async () => {
+    makeDom();
+    await setupReaderCopyButton(sampleChat, { get: vi.fn() });
+    document.getElementById('reader-copy-btn').click();
+    await new Promise(r => setTimeout(r, 0));
+    const label = document.querySelector('.btn-reader-action__label');
+    expect(label.textContent).toBe('\u2713 Copied');
+  });
+
+  it('tooLarge path: skips clipboard write and shows error feedback', async () => {
+    makeDom();
+    const mod = await import('../src/lib/export/clipboard-serialiser.js');
+    mod.serialiseChats.mockReturnValueOnce('x'.repeat(1_000_001));
+    await setupReaderCopyButton(sampleChat, { get: vi.fn() });
+    document.getElementById('reader-copy-btn').click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(mod.writeToClipboard).not.toHaveBeenCalled();
+    const label = document.querySelector('.btn-reader-action__label');
+    expect(label.textContent).toBe('Too large');
+  });
+
+  it('fallback path: shows "Select all + paste" feedback', async () => {
+    makeDom();
+    const mod = await import('../src/lib/export/clipboard-serialiser.js');
+    mod.writeToClipboard.mockResolvedValueOnce({ success: false, usedFallback: true });
+    await setupReaderCopyButton(sampleChat, { get: vi.fn() });
+    document.getElementById('reader-copy-btn').click();
+    await new Promise(r => setTimeout(r, 0));
+    const label = document.querySelector('.btn-reader-action__label');
+    expect(label.textContent).toBe('Select all + paste');
   });
 });

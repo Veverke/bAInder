@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bAInder — Chat Comparison</title>
+  <link rel="stylesheet" href="compare.css" />
+</head>
+<body>
+  <header class="compare-header">
+    <h1 class="compare-title">Chat Comparison</h1>
+  </header>
+
+  <div id="compareError" class="compare-error" hidden>
+    <p class="compare-error__icon">⚠️</p>
+    <p id="compareErrorMsg" class="compare-error__msg">Could not load chats for comparison.</p>
+  </div>
+
+  <main>
+    <!-- Unique Terms Analysis — collapsed by default; JS removes [hidden] after analysis -->
+    <section class="unique-section" id="uniqueSection" hidden>
+      <button class="unique-section__toggle" id="uniqueToggle" aria-expanded="false">
+        <svg class="unique-section__chevron" width="14" height="14" viewBox="0 0 14 14"
+             fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="3,5 7,9 11,5"/>
+        </svg>
+        <span class="unique-section__label">Unique Terms Analysis</span>
+        <span class="unique-count" id="uniqueCount" hidden>
+          <span class="unique-count__label" id="uniqueCountLabel"></span>
+          <div class="unique-overlay" id="uniqueOverlay" hidden></div>
+        </span>
+      </button>
+      <div class="unique-section__body" id="uniqueBody" hidden>
+        <p class="compare-legend" id="compareLegend">
+          <span class="compare-legend__swatch"></span>
+          Amber-highlighted blocks appear only in this chat — not closely covered by any other
+        </p>
+        <div id="comparePanels" class="compare-panels"></div>
+      </div>
+    </section>
+
+    <section id="analysisSummary" class="analysis-summary" hidden></section>
+  </main>
+
+  <script src="compare.js" type="module"></script>
+</body>
+</html>

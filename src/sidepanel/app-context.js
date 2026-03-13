@@ -62,8 +62,12 @@ export const elements = {
   selectionCount:       document.getElementById('selectionCount'),
   assembleBtn:          document.getElementById('assembleBtn'),
   exportDigestBtn:      document.getElementById('exportDigestBtn'),
+  // C.26 — copy all selected chats
+  copyAllBtn:           document.getElementById('copyAllBtn'),
   selectionClearBtn:    document.getElementById('selectionClearBtn'),
   multiSelectCancelBtn: document.getElementById('multiSelectCancelBtn'),
+  // C.18 — compare selected chats
+  compareBtn:           document.getElementById('compareBtn'),
 };
 
 // ---------------------------------------------------------------------------

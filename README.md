@@ -66,6 +66,112 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 
 ---
 
+## 🆚 How bAInder Compares
+
+Every AI chat platform saves your conversations — but discovery, organisation, and recall are where they all fall short. Here's how each platform's native features stack up against bAInder.
+
+**Legend:** ✅ Full · ⚠️ Partial / limited · ❌ None · 🔒 Paid plan required
+
+> **Accuracy note:** Native platform features change frequently. This table reflects capabilities verified against official documentation as of March 2026.
+
+### 🌐 Platform Coverage
+
+| Feature | ChatGPT | Gemini | Copilot | Claude | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Native ChatGPT support | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Native Gemini support | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Native Copilot support | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Native Claude support | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **Single tool covers all 4** | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+### 💾 Saving & Capturing
+
+| Feature | ChatGPT | Gemini | Copilot | Claude | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| One-click save to local storage | ❌¹ | ❌¹ | ❌¹ | ❌¹ | ✅ |
+| Clip a highlighted text selection | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Works without a cloud account | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Data stays entirely on your device | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+¹ Chats auto-sync to vendor servers. There is no one-click "save a snapshot locally" action.
+
+### 🗂️ Organisation
+
+| Feature | ChatGPT | Gemini | Copilot | Claude | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Folder / project grouping | ⚠️² | ❌ | ❌ | ⚠️³ | ✅ |
+| Unlimited nested hierarchy | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Drag-and-drop reordering / moving | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Merge topics | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Tags (coloured chips, searchable) | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Star ratings (1–5) | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Review-by date & overdue alerts | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Pin favourite chats / topics | ❌ | ⚠️⁴ | ❌ | ❌ | ✅ |
+
+² ChatGPT Projects are flat (no sub-projects), cloud-only, require a ChatGPT account.  
+³ Claude Projects are flat, cloud-only, max 5 on the free tier.  
+⁴ Gemini lets you pin individual chats, but there is no folder structure.
+
+### 🔍 Finding
+
+| Feature | ChatGPT | Gemini | Copilot | Claude | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Full-text search | ⚠️⁵ | ⚠️⁵ | ⚠️⁶ | ⚠️⁵ | ✅ |
+| Search across all platforms at once | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Search within tags | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Filter results by star rating | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Snippet preview in results | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Recently saved strip | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+⁵ Search covers only that platform's own history.  
+⁶ Copilot history search is minimal with no content preview.
+
+### 📖 Reading & Annotating
+
+| Feature | ChatGPT | Gemini | Copilot | Claude | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Distraction-free clean reader | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Persistent scroll position | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Sticky notes (Markdown, draggable) | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Colour-highlight passages | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+### 📤 Export & Portability
+
+| Feature | ChatGPT | Gemini | Copilot | Claude | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Export to Markdown | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Export to HTML | ⚠️⁷ | ❌ | ❌ | ❌ | ✅ |
+| Export to PDF | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Multi-chat digest with table of contents | ❌ | ❌ | ❌ | ❌ | ✅ |
+| ZIP archive export per topic | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Import / restore from ZIP | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Share conversation via public link | ✅ | ✅ | ❌ | ✅ | ❌⁸ |
+
+⁷ ChatGPT's "Export data" (in Settings) produces a raw JSON/HTML archive of your entire account — not a per-chat usable export.  
+⁸ By design: bAInder is local-first. Share via ZIP export instead.
+
+### 🎛️ Customisation & Insights
+
+| Feature | ChatGPT | Gemini | Copilot | Claude | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Community theme packs | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Per-topic activity sparklines | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Local storage usage meter | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+### 🤝 What the platforms have that bAInder doesn't
+
+| Feature | ChatGPT | Gemini | Copilot | Claude | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|
+| AI cross-chat memory / context | ✅ | ⚠️ | ❌ | ✅ | ❌⁹ |
+| Team collaboration on shared projects | 🔒 | ❌ | 🔒 | 🔒 | ❌ |
+| Integration with external services | ✅¹⁰ | ❌ | ✅¹¹ | ❌ | ❌ |
+
+⁹ bAInder organises conversations — it does not add new AI capabilities.  
+¹⁰ ChatGPT Projects connect to Google Drive and Slack.  
+¹¹ Copilot integrates deeply with Microsoft 365 (Outlook, Teams, SharePoint).
+
+---
+
 ## 📸 Screenshots
 
 ### 🧩 Extension Side Panel
@@ -79,7 +185,6 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 ### 🎨 Themes You Can Install
 
 ![bAInder themed screenshot 1](assets/screenshots/bAInder%20themed%20screenshot%201.png)
-![bAInder themed screenshot 2](assets/screenshots/bAInder%20themed%20screenshot%202.png)
 ![bAInder themed screenshot 4](assets/screenshots/bAInder%20themed%20screenshot%204.png)
 
 ---

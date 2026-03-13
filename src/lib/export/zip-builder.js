@@ -8,6 +8,7 @@ import { sanitizeFilename, buildTopicPath, collectDescendants, buildTopicFolderP
 import { buildExportMarkdown, buildDigestMarkdown }                                    from './markdown-builder.js';
 import { buildExportHtml }                                                             from './html-builder.js';
 import { buildMetadataJson, buildReadme }                                              from './metadata-builder.js';
+import { buildFineTuningJsonlMulti }                                                   from './jsonl-builder.js';
 
 /**
  * Build the complete set of files for a ZIP export.
@@ -103,6 +104,20 @@ export function buildZipPayload(tree, chats, options = {}) {
       : buildExportMarkdown(chat, topicPath);
 
     files.push({ path: `${rootDir}/${folderRel}/${fileName}`, content });
+  }
+
+  // ── JSONL format: one file per topic containing all chats for that topic ──
+  if (fmt === 'jsonl') {
+    for (const topicId of includedTopicIds) {
+      const topic = topicsMap[topicId];
+      if (!topic) continue;
+      const topicChats = includedChats.filter(c => c.topicId === topicId);
+      if (topicChats.length === 0) continue;
+      const folder  = topicFolderPath.get(topicId) || sanitizeFilename(topic.name);
+      const jsonl   = buildFineTuningJsonlMulti(topicChats, {});
+      if (!jsonl) continue;
+      files.push({ path: `${rootDir}/${folder}/_finetune.jsonl`, content: jsonl });
+    }
   }
 
   // Metadata

@@ -32,22 +32,30 @@
 
 :root {
   --bg-primary:      #ffffff;
-  --bg-secondary:    #f8f9fa;
-  --bg-code:         #f1f3f4;
-  --text-primary:    #1a1a1a;
-  --text-secondary:  #6b7280;
+  --bg-secondary:    #f8fafc;      /* matches sidepanel */
+  --bg-code:         #f1f5f9;      /* matches sidepanel */
+  --text-primary:    #0f172a;      /* slate-900 — matches sidepanel */
+  --text-secondary:  #475569;      /* slate-600 — matches sidepanel */
   --text-inverse:    #ffffff;
-  --border-primary:  #e5e7eb;
-  --primary:         #2563eb;
-  --primary-hover:   #1d4ed8;
-  --primary-light:   #dbeafe;
-  --hr-color:        #d1d5db;
+  --border-primary:  #e2e8f0;      /* matches sidepanel */
+  --primary:         #6366f1;      /* indigo — correct brand colour */
+  --primary-hover:   #4f46e5;
+  --primary-light:   #e0e7ff;      /* indigo-light — matches sidepanel */
+  --primary-dark:    #3730a3;
+  --hr-color:        #e2e8f0;
 
-  --radius-sm:   4px;
-  --radius-md:   8px;
+  --radius-sm:   6px;    /* matches sidepanel (was 4px) */
+  --radius-md:   10px;   /* matches sidepanel (was 8px) */
   --radius-full: 9999px;
 
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Transition tokens — matches sidepanel easing */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Header tokens — matches sidepanel */
+  --header-bg:     linear-gradient(135deg, #eef0ff 0%, #ffffff 55%);
+  --header-accent: #6366f1;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace;
 
   --content-max-width: 720px;
@@ -57,7 +65,7 @@
      themes.css when a data-theme attribute is applied at runtime).          */
   --bg-elevated:    #ffffff;
   --bg-hover:       #f1f5f9;
-  --border-focus:   #2563eb;
+  --border-focus:   #6366f1;       /* indigo — matches sidepanel */
   --text-tertiary:  #94a3b8;
   --shadow-sm:      0 1px 2px rgba(0, 0, 0, .05);
   --shadow-md:      0 4px 6px -1px rgba(0, 0, 0, .10), 0 2px 4px -1px rgba(0, 0, 0, .06);
@@ -81,8 +89,8 @@
     --text-secondary: #9ca3af;
     --text-tertiary:  #6b7280;
     --border-primary: #374151;
-    --border-focus:   #60a5fa;
-    --primary-light:  #1e3a5f;
+    --border-focus:   #818cf8;      /* indigo-400 for dark mode */
+    --primary-light:  #1e1b4b;      /* dark indigo for dark mode */
     --hr-color:       #374151;
     --shadow-sm:      0 1px 2px rgba(0, 0, 0, .30);
     --shadow-md:      0 4px 6px -1px rgba(0, 0, 0, .40), 0 2px 4px -1px rgba(0, 0, 0, .30);
@@ -98,6 +106,12 @@
 /* Ensure [hidden] always wins over component display rules (e.g. .state-card uses flex) */
 [hidden] { display: none !important; }
 
+/* Font smoothing — matches sidepanel ──────────────────────────────────────── */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
@@ -109,15 +123,28 @@ body {
   background: var(--bg-primary);
 }
 
+/* ── Custom scrollbar — matches sidepanel ────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
 /* ── Header ──────────────────────────────────────────────────────────────── */
 
 .reader-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--bg-secondary);
+  background: var(--header-bg);
+  border-top: 3px solid var(--header-accent);
   border-bottom: 1px solid var(--border-primary);
-  padding: 14px 24px 12px;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
+  padding: 11px 24px 12px; /* 14px − 3px to compensate for top border */
 }
 
 .reader-header__inner {
@@ -138,17 +165,88 @@ body {
   margin: 8px auto 0;
 }
 
+/* ── Header footer row: star rating + copy button ───────────────────────── */
+.reader-header__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+/* ── C.26 — Copy to clipboard button (reader header) ──────────────────────── */
+.reader-actions {
+  /* margin removed — spacing now handled by .reader-header__footer */
+}
+
+.btn-reader-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border-primary, #e5e7eb);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.btn-reader-action:hover {
+  background: var(--bg-hover, #f1f5f9);
+  color: var(--text-primary, #1a1a1a);
+  border-color: var(--primary, #6366f1);
+}
+
+.btn-reader-action:focus-visible {
+  outline: 2px solid var(--primary, #6366f1);
+  outline-offset: 2px;
+}
+
+.btn-reader-action--success {
+  color: #16a34a;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.btn-reader-action--error {
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
 .reader-title {
   margin: 0;
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: 700;           /* matches sidepanel h1 (was 600) */
   line-height: 1.4;
+  letter-spacing: -0.02em;    /* tight, polished — matches sidepanel */
   color: var(--text-primary);
 }
 
 .meta-date, .meta-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
   font-size: 12px;
+  font-weight: 500;
   color: var(--text-secondary);
+  background: rgba(255, 255, 255, .75);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+/* Icon glyphs inside header meta chips */
+.meta-chip__icon {
+  font-size: 11px;
+  opacity: 0.6;
+  flex-shrink: 0;
 }
 
 /* ── Assembled-chats count badge + overlay ───────────────────────────────── */
@@ -160,11 +258,23 @@ body {
 }
 
 .meta-assembled__trigger {
-  border-bottom: 1px dashed var(--primary, #6366f1);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  background: rgba(99, 102, 241, .07);
+  border: 1px solid rgba(99, 102, 241, .30);
+  border-radius: var(--radius-full);
   color: var(--primary, #6366f1);
+  font-weight: 500;
   cursor: pointer;
   user-select: none;
-  font-weight: 500;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.meta-assembled__trigger:hover {
+  background: rgba(99, 102, 241, .13);
+  border-color: rgba(99, 102, 241, .50);
 }
 
 .assembled-overlay {
@@ -234,9 +344,23 @@ body {
 }
 
 .meta-prompts__trigger {
-  border-bottom: 1px dashed var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  background: rgba(99, 102, 241, .07);
+  border: 1px solid rgba(99, 102, 241, .30);
+  border-radius: var(--radius-full);
+  color: var(--primary, #6366f1);
+  font-weight: 500;
   cursor: pointer;
   user-select: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.meta-prompts__trigger:hover {
+  background: rgba(99, 102, 241, .13);
+  border-color: rgba(99, 102, 241, .50);
 }
 
 .prompts-overlay {
@@ -298,6 +422,144 @@ body {
   color: var(--text-secondary);
   margin-right: 3px;
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Responses count badge + overlay ────────────────────────────────────── */
+.meta-responses {
+  display: inline-block;
+  position: relative;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.meta-responses__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  background: rgba(99, 102, 241, .07);
+  border: 1px solid rgba(99, 102, 241, .30);
+  border-radius: var(--radius-full);
+  color: var(--primary, #6366f1);
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.meta-responses__trigger:hover {
+  background: rgba(99, 102, 241, .13);
+  border-color: rgba(99, 102, 241, .50);
+}
+
+.responses-overlay {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  background: var(--bg-elevated, var(--bg-primary));
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .14);
+  padding: 12px 5px 5px;
+  min-width: 220px;
+  max-width: 380px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: -4px;
+}
+
+/* Transparent bridge so the mouse can travel from trigger → overlay */
+.meta-responses__trigger::after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 100%;
+  left: -8px;
+  right: -8px;
+  height: 16px;
+}
+
+.meta-responses:hover .responses-overlay,
+.meta-responses:focus-within .responses-overlay {
+  display: block;
+}
+
+.responses-overlay__item {
+  display: block;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.12s;
+}
+
+.responses-overlay__item:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.responses-overlay__num {
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── C.28 — Message ordinal labels ──────────────────────────────────────── */
+.msg-ordinal {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary, #6366f1);
+  background: var(--primary-light, rgba(99, 102, 241, 0.12));
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-right: 7px;
+  vertical-align: middle;
+  font-family: var(--font-mono, monospace);
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* When the user disables ordinals in settings, hide all labels */
+body.ordinals-hidden .msg-ordinal {
+  display: none;
+}
+
+/* Dot-separator shown after the ordinal badge (P1 · 🙋 You) */
+.chat-turn__role .msg-ordinal::after {
+  content: '\B7'; /* middle dot */
+  display: inline-block;
+  margin-left: 6px;
+  opacity: .45;
+  font-weight: 400;
+  font-family: var(--font-sans);
+}
+
+/* Icon glyph (emoji) sitting between the dot-separator and the role label */
+.turn-role-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Role label text */
+.turn-role-label {
+  /* inherits colour from parent .chat-turn__role */
+}
+
+/* meta-responses — same baseline style as meta-date / meta-count */
+.meta-responses {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 /* Source badge */
@@ -375,6 +637,9 @@ body {
 }
 
 .chat-turn__role {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -383,13 +648,18 @@ body {
   color: var(--text-secondary);
 }
 
+/* Cancel the global margin-right on .msg-ordinal when inside a flex role row */
+.chat-turn__role .msg-ordinal {
+  margin-right: 0;
+}
+
 .chat-turn__body {
   color: var(--text-primary);
 }
 
-/* ── User bubble (right-aligned) ──────────────────────────────────────────── */
+/* ── User turn — question card (full-width, Option A) ─────────────────────── */
 .chat-turn--user {
-  align-items: flex-end;
+  align-items: stretch; /* full-width — no longer a right-floating bubble */
 }
 
 .chat-turn--user .chat-turn__role {
@@ -397,10 +667,18 @@ body {
 }
 
 .chat-turn--user .chat-turn__body {
-  background: var(--primary-light);
-  border-radius: 18px 18px 4px 18px;
-  padding: 12px 16px;
-  max-width: 88%;
+  background: linear-gradient(
+    to right,
+    var(--primary-light) 0%,
+    rgba(224, 231, 255, 0.18) 60%,
+    transparent 100%
+  );
+  border-left: 4px solid var(--primary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 14px 18px;
+  font-style: italic;
+  font-size: 1.02rem;
+  max-width: none;
 }
 
 /* ── Assistant card (left-aligned with accent border) ─────────────────────── */
@@ -419,6 +697,51 @@ body {
   border: none;
   border-top: 1px solid var(--hr-color);
   margin: 20px 0;
+}
+
+/* ── GFM Tables ──────────────────────────────────────────────────────────── */
+.table-wrapper {
+  overflow-x: auto;
+  margin: 16px 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
+}
+
+.table-wrapper table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.table-wrapper thead {
+  background: var(--bg-secondary);
+}
+
+.table-wrapper th {
+  padding: 9px 14px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  text-align: left;
+  border-bottom: 2px solid var(--border-primary);
+  white-space: nowrap;
+}
+
+.table-wrapper td {
+  padding: 8px 14px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-primary);
+  vertical-align: top;
+}
+
+.table-wrapper tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-wrapper tbody tr:hover {
+  background: var(--bg-hover, #f1f5f9);
 }
 
 /* ── C.7 Per-message copy button ──────────────────────────────────────────── */
@@ -485,7 +808,7 @@ body {
   align-items: center;
   gap: 6px;
   font-size: 0.875rem;
-  color: var(--primary, #2563eb);
+  color: var(--primary, #6366f1);
   text-decoration: none;
   transition: color 0.15s;
 }
@@ -498,7 +821,7 @@ body {
 
 .backlinks-list__link:hover {
   text-decoration: underline;
-  color: var(--primary-hover, #1d4ed8);
+  color: var(--primary-hover, #4f46e5);
 }
 
 /* ── Scroll progress bar ──────────────────────────────────────────────────── */
@@ -530,10 +853,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.30); /* indigo-tinted */
   opacity: 0;
   transform: translateY(10px);
-  transition: opacity 200ms ease, transform 200ms ease, background 150ms ease;
+  transition: opacity 200ms ease, transform 200ms ease, background var(--transition-fast);
   pointer-events: none;
   z-index: 100;
 }
@@ -623,7 +946,7 @@ body {
   font-family: var(--font-sans);
   font-size: 0.75rem;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 .code-block__copy:hover {
   background: var(--bg-primary);
@@ -784,13 +1107,22 @@ body {
 /* ── Reading-time badge (R3) ─────────────────────────────────────────────── */
 
 .meta-reading-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
   font-size: 12px;
-  color: var(--text-secondary);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  margin-left: auto; /* push to the right edge of the meta flex row */
 }
 
 .meta-reading-time::before {
-  content: '·';
-  margin-right: 6px;
+  display: none; /* bullet separator not needed — chips are already spaced */
 }
 
 
@@ -1017,7 +1349,8 @@ body[data-source="copilot"] { background-color: color-mix(in srgb, #7c3aed 4%, v
 
   /* Typography */
   .reader-title { font-size: 16pt; margin-bottom: 4pt; }
-  .meta-date, .meta-count, .meta-prompts, .meta-assembled, .meta-reading-time { font-size: 9pt; color: #666 !important; }
+  .meta-date, .meta-count, .meta-prompts, .meta-assembled, .meta-reading-time { font-size: 9pt; color: #666 !important; background: none !important; border: none !important; padding: 0 !important; margin-left: 0 !important; }
+  .meta-prompts__trigger, .meta-responses__trigger, .meta-assembled__trigger { background: none !important; border: none !important; padding: 0 !important; color: #333 !important; }
   .prompts-overlay, .assembled-overlay { display: none !important; }
   .meta-reading-time[hidden] { display: inline !important; }
 
@@ -1112,7 +1445,7 @@ body { position: relative; }
   font-size: 12px;
   color: var(--text-secondary);
   line-height: 1;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .sticky-note__mode-btn:hover,
@@ -1268,7 +1601,7 @@ body { position: relative; }
   border-radius: var(--radius-full);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .sticky-notes-toggle:hover {
@@ -1355,7 +1688,7 @@ body { position: relative; }
   border-radius: var(--radius-full);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .ann-summary-btn:hover {
@@ -1482,7 +1815,7 @@ body { position: relative; }
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .sources-trigger:hover {
@@ -1708,7 +2041,7 @@ body { position: relative; }
 .reader-rating {
   display: flex;
   gap: 2px;
-  margin-top: 6px;
+  /* margin-top removed — now sits inside .reader-header__footer row */
 }
 
 .reader-star-btn {
@@ -1718,7 +2051,7 @@ body { position: relative; }
   font-size: 1.25rem;
   line-height: 1;
   padding: 2px 2px;
-  color: var(--border-primary);
+  color: var(--text-tertiary, #94a3b8); /* was --border-primary: near-invisible on light bg */
   transition: color 0.15s ease, transform 0.12s ease;
 }
 
@@ -1775,7 +2108,7 @@ body { position: relative; }
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .stale-banner__dismiss:hover {
