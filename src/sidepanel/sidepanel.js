@@ -37,12 +37,48 @@ import { logger }          from '../lib/utils/logger.js';
 import { state, elements } from './app-context.js';
 import { ChatRepository }  from './services/chat-repository.js';
 
+// ---------------------------------------------------------------------------
+// Tab switching (C.13)
+// ---------------------------------------------------------------------------
+
+/**
+ * Switch the active panel tab.
+ * @param {'sessions'|'entities'} tab
+ */
+export function switchTab(tab) {
+  state.activeTab = tab;
+  const isEntities = tab === 'entities';
+
+  if (elements.sessionPanel) elements.sessionPanel.hidden = isEntities;
+  if (elements.entityPanel)  elements.entityPanel.hidden  = !isEntities;
+
+  if (elements.tabChatSessions) {
+    elements.tabChatSessions.setAttribute('aria-selected', String(!isEntities));
+    elements.tabChatSessions.classList.toggle('panel-tab--active', !isEntities);
+  }
+  if (elements.tabChatEntities) {
+    elements.tabChatEntities.setAttribute('aria-selected', String(isEntities));
+    elements.tabChatEntities.classList.toggle('panel-tab--active', isEntities);
+  }
+
+  // Sync search-context toggle with the active tab
+  setSearchContext(isEntities ? 'entities' : 'chats');
+
+  // Lazy-init entity controller (Phase A)
+  if (isEntities && !state.entityControllerInitialized) {
+    initEntityController();
+    state.entityControllerInitialized = true;
+  }
+}
+
 import { loadTree, initTreeRenderer, saveExpandedState, renderTreeView } from './controllers/tree-controller.js';
 import {
   handleSearch,
   clearSearch,
   setupFilterBar,
   populateTopicScopeSelect,
+  setupSearchContextToggle,
+  setSearchContext,
 } from './controllers/search-controller.js';
 import {
   handleAddTopic,
@@ -62,6 +98,7 @@ import { handleExportAll, handleImport, handleClearAll } from './controllers/imp
 
 import { initSaveBanner, setSaveBtnState, handlePanelSave } from './features/save-banner.js';
 import { initBackupReminder }  from './features/backup-reminder.js';
+import { init as initEntityController, refresh as refreshEntityController } from './controllers/entity-controller.js';
 import {
   handleMultiSelectToggle,
   handleAssemble,
@@ -129,10 +166,15 @@ async function init() {
 // ---------------------------------------------------------------------------
 
 function setupEventListeners() {
+  // C.13 — tab switching
+  elements.tabChatSessions?.addEventListener('click', () => switchTab('sessions'));
+  elements.tabChatEntities?.addEventListener('click', () => switchTab('entities'));
+
   // Search
   elements.searchInput.addEventListener('input', handleSearch);
   elements.clearSearchBtn.addEventListener('click', clearSearch);
   setupFilterBar();
+  setupSearchContextToggle();
 
   // C.9 â€” topic sort
   elements.topicSortSelect?.addEventListener('change', () => {
@@ -265,7 +307,10 @@ function setupEventListeners() {
 browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'CHAT_SAVED') {
     handleChatSaved(message.data)
-      .then(() => sendResponse({ success: true }))
+      .then(() => {
+        refreshEntityController(); // keep entity tree up to date when tab is already open
+        sendResponse({ success: true });
+      })
       .catch(err => sendResponse({ success: false, error: err.message }));
     return true; // async
   }

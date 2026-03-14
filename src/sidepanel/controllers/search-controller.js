@@ -14,6 +14,8 @@
  */
 
 import { state, elements } from '../app-context.js';
+import { ENTITY_TYPES } from '../../lib/entities/chat-entity.js';
+import { setFilter as setEntityTreeFilter } from './entity-controller.js';
 import { logger } from '../../lib/utils/logger.js';
 import {
   extractSnippet,
@@ -31,7 +33,34 @@ let _state = state;
 // mutating the real singleton.  Never call from production code.
 // ---------------------------------------------------------------------------
 /** @internal */
-export function _setContext(ctx) { _state = ctx; }
+export function _setContext(ctx) {
+  _state = ctx;
+  _chipsPopulated = false; // allow repopulation after context reset
+}
+
+// ---------------------------------------------------------------------------
+// Entity search (Phase A)
+// ---------------------------------------------------------------------------
+
+let _entitySearchHandler = (_query, _opts) => {};
+
+/**
+ * Inject an entity search handler.
+ * @internal For unit tests — never call from production code.
+ */
+export function _setEntitySearchHandler(fn) {
+  _entitySearchHandler = fn;
+}
+
+/**
+ * Route entity-context search.  Passes active entityTypes filter to handler.
+ * The handler is provided by entity-controller via _setEntitySearchHandler.
+ */
+function runEntitySearch(query) {
+  const ctx         = _state.state ?? _state;
+  const entityTypes = ctx.filters?.entityTypes ?? new Set();
+  _entitySearchHandler(query, { entityTypes });
+}
 
 
 // ─── Debounce helper ─────────────────────────────────────────────────────────
@@ -89,8 +118,16 @@ export function handleSearch(event) {
   const query = event.target.value.trim();
   _state.searchQuery = query;
 
-  elements.clearSearchBtn.style.display = query ? 'block' : 'none';
+  if (elements.clearSearchBtn) elements.clearSearchBtn.style.display = query ? 'block' : 'none';
   const searchContainer = elements.searchInput?.closest('.search-container');
+
+  // C.13 — route to entity search when entity context is active
+  // Read via .state reference first so test-injected mutations on `st` are picked up
+  const searchContext = (_state.state ?? _state).searchContext;
+  if (searchContext === 'entities') {
+    if (query) runEntitySearch(query);
+    return;
+  }
 
   if (query) {
     searchContainer?.classList.add('is-typing');
@@ -215,8 +252,8 @@ export function buildResultCard(query, chat) {
 }
 
 export function hideSearchResults() {
-  elements.searchResults.style.display = 'none';
-  elements.searchResultsList.innerHTML = '';
+  if (elements.searchResults) elements.searchResults.style.display = 'none';
+  if (elements.searchResultsList) elements.searchResultsList.innerHTML = '';
 }
 
 // ─── C.3 Filter bar ──────────────────────────────────────────────────────────
@@ -379,4 +416,152 @@ export function populateTagFilterPills() {
       rerunSearch();
     });
   });
+}
+
+// ─── C.13 Search context toggle ──────────────────────────────────────────────
+
+const TYPE_LABELS_SHORT = {
+  prompt:     'Prompts',
+  citation:   'Citations',
+  table:      'Tables',
+  code:       'Code Snippets',
+  diagram:    'Diagrams',
+  toolCall:   'Tool Calls',
+  attachment: 'Attachments',
+  image:      'Images',
+  audio:      'Audio',
+  artifact:   'Artifacts',
+};
+
+let _chipsPopulated = false;
+
+/**
+ * Populate entity-type filter chips the first time the filter bar is shown
+ * in entities context. Idempotent (guarded by _chipsPopulated flag).
+ */
+function _populateEntityTypeChips() {
+  if (_chipsPopulated) return;
+
+  const _els       = _state.elements ?? elements;
+  const container  = _els.filterEntityTypePills ?? document.getElementById('filterEntityTypePills');
+  if (!container) return;
+
+  for (const type of Object.values(ENTITY_TYPES)) {
+    const pill = document.createElement('button');
+    pill.className = 'filter-pill';
+    pill.dataset.entityType = type;
+    pill.textContent = TYPE_LABELS_SHORT[type] ?? type;
+    pill.addEventListener('click', () => {
+      const ctx     = _state.state ?? _state;
+      const filters = ctx.filters;
+      if (!filters.entityTypes) filters.entityTypes = new Set();
+
+      // Toggle this type on/off (multi-select)
+      if (filters.entityTypes.has(type)) {
+        filters.entityTypes.delete(type);
+        pill.classList.remove('is-active');
+      } else {
+        filters.entityTypes.add(type);
+        pill.classList.add('is-active');
+      }
+
+      // Pass the full active Set (null = show all when nothing selected)
+      setEntityTreeFilter(filters.entityTypes.size > 0 ? filters.entityTypes : null);
+    });
+    container.appendChild(pill);
+  }
+  _chipsPopulated = true;
+}
+
+/**
+ * Apply a search-context switch to 'chats' or 'entities'.
+ *
+ * Exported so that `switchTab()` in sidepanel.js can call this directly when
+ * the user switches panel tabs, keeping the search-context toggle in sync.
+ *
+ * @param {'chats'|'entities'} ctx
+ */
+export function setSearchContext(ctx) {
+  const _els    = _state.elements ?? elements;
+  const ctxChats    = _els.searchCtxChats;
+  const ctxEntities = _els.searchCtxEntities;
+
+  _state.searchContext = ctx;
+  if (_state.state) _state.state.searchContext = ctx;
+
+  const isEntities = ctx === 'entities';
+
+  if (ctxChats)    ctxChats.classList.toggle('context-btn--active', !isEntities);
+  if (ctxEntities) ctxEntities.classList.toggle('context-btn--active', isEntities);
+
+  const bar = _els.searchFilterBar;
+  const entityTypesGroup = bar?.querySelector('#filterEntityTypes') ??
+    document.getElementById('filterEntityTypes');
+  if (entityTypesGroup) entityTypesGroup.hidden = !isEntities;
+
+  if (bar) {
+    bar.querySelectorAll('.filter-group:not(.filter-group--entity-types)').forEach(g => {
+      g.hidden = isEntities;
+    });
+  }
+
+  // Re-run search in the new context if a query is already active
+  if (_state.searchQuery) {
+    if (isEntities) {
+      runEntitySearch(_state.searchQuery);
+    } else {
+      rerunSearch();
+    }
+  }
+}
+
+/**
+ * Wire the Chats/Entities context toggle buttons.
+ * Switches `state.searchContext` between 'chats' and 'entities', toggling
+ * the visibility of chat-specific and entity-specific filter groups.
+ */
+export function setupSearchContextToggle() {
+  // Use injected test elements if available, otherwise fall back to app-context import
+  const _els = _state.elements ?? elements;
+  const ctxChats    = _els.searchCtxChats;
+  const ctxEntities = _els.searchCtxEntities;
+  if (!ctxChats || !ctxEntities) return;
+
+  // Populate entity type chips (lazy, once)
+  _populateEntityTypeChips();
+
+  const onSwitch = (ctx) => {
+    _state.searchContext = ctx;
+    // Also update the nested `.state` reference so test-injected `st` stays in sync
+    if (_state.state) _state.state.searchContext = ctx;
+    const isEntities = ctx === 'entities';
+
+    ctxChats.classList.toggle('context-btn--active', !isEntities);
+    ctxEntities.classList.toggle('context-btn--active', isEntities);
+
+    // Show/hide entity-type chips (check in scoped bar first, then document)
+    const bar = _els.searchFilterBar;
+    const entityTypesGroup = bar?.querySelector('#filterEntityTypes') ??
+      document.getElementById('filterEntityTypes');
+    if (entityTypesGroup) entityTypesGroup.hidden = !isEntities;
+
+    // Show/hide chat-specific filter groups
+    if (bar) {
+      bar.querySelectorAll('.filter-group:not(.filter-group--entity-types)').forEach(g => {
+        g.hidden = isEntities;
+      });
+    }
+
+    // Re-run search in the new context
+    if (_state.searchQuery) {
+      if (isEntities) {
+        runEntitySearch(_state.searchQuery);
+      } else {
+        rerunSearch();
+      }
+    }
+  };
+
+  ctxChats.addEventListener('click',    () => onSwitch('chats'));
+  ctxEntities.addEventListener('click', () => onSwitch('entities'));
 }

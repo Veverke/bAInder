@@ -633,6 +633,60 @@ describe('renderChat', () => {
     expect(inner).not.toContain('<strong>User</strong>');
   });
 
+  it('keeps entire assistant response in one .chat-turn--assistant when response contains internal --- rules', () => {
+    // A ChatGPT response that itself contains Markdown horizontal rules (---) must
+    // not be split across multiple groups — the whole response should land inside
+    // a single .chat-turn--assistant wrapper.
+    const chat = makeChat({
+      content: [
+        '---',
+        'title: "HR Test"',
+        'source: chatgpt',
+        'contentFormat: markdown-v1',
+        '---',
+        '',
+        '# HR Test',
+        '',
+        '🙋 User question',
+        '',
+        '---',
+        '',
+        '🤖 First paragraph of response',
+        '',
+        '---',          // <-- internal HR inside the assistant response
+        '',
+        'Second paragraph of response',
+        '',
+        '---',
+        '',
+        '🙋 Second user question',
+        '',
+        '---',
+        '',
+        '🤖 Second response',
+        '',
+      ].join('\n'),
+    });
+    renderChat(chat);
+
+    const userTurns  = document.querySelectorAll('.chat-turn--user');
+    const asstTurns  = document.querySelectorAll('.chat-turn--assistant');
+
+    // Both user messages must be wrapped
+    expect(userTurns.length).toBe(2);
+    // Both assistant responses must be wrapped — the internal --- must NOT
+    // create an extra raw group that breaks the second assistant turn.
+    expect(asstTurns.length).toBe(2);
+
+    // The first assistant turn must contain BOTH paragraphs
+    const firstAsstBody = asstTurns[0].querySelector('.chat-turn__body');
+    expect(firstAsstBody.textContent).toContain('First paragraph of response');
+    expect(firstAsstBody.textContent).toContain('Second paragraph of response');
+
+    // And the intra-message HR must still be present inside the turn body
+    expect(firstAsstBody.querySelector('hr')).not.toBeNull();
+  });
+
   it('sets excerpt badge class when isExcerpt is true in metadata', () => {
     const excerpt = makeChat({
       content:  '---\ntitle: "Excerpt"\nsource: chatgpt\nexcerpt: true\ncontentFormat: markdown-v1\n---\n\n# Excerpt\n\nSome text',

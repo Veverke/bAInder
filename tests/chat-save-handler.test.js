@@ -5,7 +5,7 @@
  * These are pure-function unit tests that run without Chrome APIs.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   detectSource,
   generateChatId,
@@ -15,6 +15,10 @@ import {
   buildExcerptPayload,
   handleSaveChat
 } from '../src/background/chat-save-handler.js';
+import {
+  registerExtractor,
+  _resetRegistry,
+} from '../src/lib/entities/entity-extractor.js';
 
 // ─── detectSource ─────────────────────────────────────────────────────────────
 
@@ -532,5 +536,48 @@ describe('buildExcerptPayload()', () => {
     const p = buildExcerptPayload('plain', 'https://copilot.microsoft.com/', rich);
     expect(() => validateChatData(p)).not.toThrow();
     expect(p.metadata.isExcerpt).toBe(true);
+  });
+});
+
+// ─── buildChatEntry() — entity extraction (Task 0.3) ─────────────────────────
+
+describe('buildChatEntry() — entity extraction', () => {
+  const baseData = {
+    title:   'Code Chat',
+    content: 'Some content',
+    source:  'chatgpt',
+    url:     'https://chat.openai.com/c/1',
+  };
+
+  afterEach(() => {
+    _resetRegistry();
+  });
+
+  it('entry contains code entities when a code extractor is registered and matches', () => {
+    registerExtractor('code', (messages, _doc, chatId) =>
+      messages
+        .filter(m => /```/.test(m.content || ''))
+        .map((m, i) => ({ id: `e${i}`, type: 'code', chatId, messageIndex: i }))
+    );
+    const data = {
+      ...baseData,
+      messages: [{ role: 'assistant', content: '```js\nconsole.log("hi");\n```' }],
+    };
+    const entry = buildChatEntry(data, '');
+    expect(Array.isArray(entry.code)).toBe(true);
+    expect(entry.code.length).toBeGreaterThan(0);
+  });
+
+  it('entry has no entity keys when no extractors are registered', () => {
+    const entry = buildChatEntry({ ...baseData, messages: [] }, '');
+    const knownBaseKeys = ['id', 'title', 'content', 'url', 'source', 'timestamp',
+                           'topicId', 'messageCount', 'messages', 'metadata'];
+    const extraKeys = Object.keys(entry).filter(k => !knownBaseKeys.includes(k));
+    expect(extraKeys).toHaveLength(0);
+  });
+
+  it('a failing extractor does not cause buildChatEntry to throw', () => {
+    registerExtractor('code', () => { throw new Error('extractor boom'); });
+    expect(() => buildChatEntry({ ...baseData, messages: [] }, '')).not.toThrow();
   });
 });
