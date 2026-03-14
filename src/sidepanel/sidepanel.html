@@ -42,6 +42,11 @@
             <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
+        <!-- C.13 — Search context toggle: Chats / Entities -->
+        <div class="search-context-toggle" role="group" aria-label="Search context">
+          <button class="context-btn context-btn--active" id="searchCtxChats" data-ctx="chats">Chats</button>
+          <button class="context-btn"                    id="searchCtxEntities" data-ctx="entities">Entities</button>
+        </div>
         <!-- C.3 — filter toggle button -->
         <button id="filterToggleBtn" class="btn-filter-toggle" title="Search filters" aria-label="Toggle search filters" aria-expanded="false">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -52,6 +57,11 @@
 
       <!-- C.3 — Search filter bar (collapsed by default) -->
       <div id="searchFilterBar" class="search-filter-bar" aria-hidden="true">
+        <!-- C.13 — Entity-type filter chips (shown when search context = entities) -->
+        <div id="filterEntityTypes" class="filter-group filter-group--entity-types" hidden>
+          <span class="filter-group__label">Entity type</span>
+          <div class="filter-pills" id="filterEntityTypePills"></div>
+        </div>
         <div class="filter-group">
           <span class="filter-group__label">Source</span>
           <div class="filter-pills" id="filterSourcePills">
@@ -105,6 +115,17 @@
         <button id="backupDismissBtn" class="backup-reminder-banner__dismiss" aria-label="Dismiss reminder">×</button>
       </div>
     </div>
+
+    <!-- C.13 — Two-tab panel switcher -->
+    <div class="panel-tabs" role="tablist">
+      <button class="panel-tab panel-tab--active" id="tabChatSessions"
+              role="tab" aria-selected="true" aria-controls="sessionPanel">Chat Sessions</button>
+      <button class="panel-tab" id="tabChatEntities"
+              role="tab" aria-selected="false" aria-controls="entityPanel">Chat Entities</button>
+    </div>
+
+    <!-- SESSION PANEL: wraps the existing main content -->
+    <div id="sessionPanel" role="tabpanel" aria-labelledby="tabChatSessions">
 
     <!-- Main Content Area -->
     <main class="main-content">
@@ -260,6 +281,13 @@
         </div>
       </section>
     </main>
+
+    </div><!-- /#sessionPanel -->
+
+    <!-- ENTITY PANEL: mounts the ChatEntityTree (hidden by default) -->
+    <div id="entityPanel" role="tabpanel" aria-labelledby="tabChatEntities" hidden>
+      <div id="entityTree"></div>
+    </div>
 
     <!-- C.17 — Multi-select action bar (hidden until multi-select mode active) -->
     <div id="selectionBar" class="selection-bar" style="display:none" role="status" aria-live="polite">

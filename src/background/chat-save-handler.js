@@ -9,6 +9,9 @@
 import { messagesToMarkdown } from '../lib/io/markdown-serialiser.js';
 import { generateId } from '../lib/utils/search-utils.js';
 import { logger } from '../lib/utils/logger.js';
+import { extractChatEntities } from '../lib/entities/entity-extractor.js';
+// Register Phase-A extractors (prompts, citations, tables) as a side effect.
+import '../lib/entities/extractors/index.js';
 
 /**
  * Detect the AI source platform from a URL string.
@@ -79,8 +82,14 @@ export function buildChatEntry(chatData, tabUrl) {
   const url    = chatData.url || tabUrl || '';
   const source = chatData.source || detectSource(url);
 
+  const generatedId = generateId();
+
+  // Run entity extraction — doc is null in background context; extractors handle this gracefully.
+  const entities = extractChatEntities(chatData.messages ?? [], null, generatedId);
+  logger.debug('buildChatEntry: entity types extracted:', Object.keys(entities), '| message count:', (chatData.messages ?? []).length);
+
   return {
-    id:           generateChatId(),
+    id:           generatedId,
     title:        chatData.title.trim(),
     content:      chatData.content.trim(),
     url,
@@ -89,7 +98,8 @@ export function buildChatEntry(chatData, tabUrl) {
     topicId:      null,
     messageCount: chatData.messageCount || 0,
     messages:     chatData.messages     || [],
-    metadata:     chatData.metadata     || {}
+    metadata:     chatData.metadata     || {},
+    ...entities,
   };
 }
 

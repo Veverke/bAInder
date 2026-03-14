@@ -1,4 +1,4 @@
-/**
+﻿/**
  * bAInder Reader \u2014 reader.js
  *
  * Loads a saved chat from browser.storage.local and renders it in the reader page.
@@ -496,6 +496,34 @@ export function wrapChatTurns(contentEl) {
   if (current.length) groups.push(current);
 
   contentEl.innerHTML = '';
+
+  // For the emoji format, merge groups that have no role-emoji paragraph with
+  // the preceding group.  A Markdown HR (---) embedded *inside* a message body
+  // is indistinguishable from the turn-separator HR in the stored markdown, so
+  // renderMarkdown converts both to <hr>.  Without this merge step, any HR
+  // within a ChatGPT (or other) response splits that response into multiple
+  // raw/unstyled blocks — only the first sub-block (which has the 🤖 prefix)
+  // ends up inside the styled .chat-turn--assistant wrapper.
+  if (hasEmojiRoles) {
+    const hasRoleEmoji = grp => grp.some(n =>
+      n.nodeType === 1 && n.nodeName === 'P' &&
+      (n.textContent.trimStart().startsWith(USER_EMOJI) ||
+       n.textContent.trimStart().startsWith(ASST_EMOJI))
+    );
+    const merged = [];
+    for (const grp of groups) {
+      if (!hasRoleEmoji(grp) && merged.length > 0) {
+        // Continuation of the previous turn — merge it in, inserting a visual
+        // <hr> so the intra-message horizontal rule is still rendered.
+        const hr = document.createElement('hr');
+        merged[merged.length - 1].push(hr, ...grp);
+      } else {
+        merged.push([...grp]);
+      }
+    }
+    groups.length = 0;
+    groups.push(...merged);
+  }
 
   for (const group of groups) {
     // Drop whitespace-only text nodes
@@ -1776,7 +1804,37 @@ export async function init(storage) {
 
     renderChat(chat);
     setupReaderCopyButton(chat, storage);  // C.26 � copy button
-    restoreScrollPosition(chatId);        // C.22
+    // C.22 -- restore saved scroll, unless a hash anchor was requested
+    // (entity navigation opens with #p<N>/#r<N> -- honour that instead).
+    if (window.location.hash) {
+      const hash        = window.location.hash.slice(1);
+      const snippetHint = new URLSearchParams(window.location.search).get('snippet');
+      // Defer to rAF so elements are laid out and getBoundingClientRect is accurate.
+      requestAnimationFrame(() => {
+        const anchorEl = document.getElementById(hash);
+        if (!anchorEl) return;
+        // Offset by the sticky header height so the target isn't hidden behind it.
+        const header  = document.getElementById('reader-header');
+        const headerH = header ? header.offsetHeight : 0;
+
+        // If a snippet hint was provided, try to locate the specific block within
+        // the turn and scroll to it instead of just the message start.
+        if (snippetHint) {
+          const target = _findEntityBlock(anchorEl, snippetHint);
+          if (target) {
+            const blockTop = target.getBoundingClientRect().top + window.scrollY - headerH - 12;
+            window.scrollTo({ top: Math.max(0, blockTop), behavior: 'instant' });
+            _flashEntityTarget(target);
+            return;
+          }
+        }
+
+        const top = anchorEl.getBoundingClientRect().top + window.scrollY - headerH - 8;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+      });
+    } else {
+      restoreScrollPosition(chatId);        // C.22
+    }
     setupRating(chatId, chat.rating, storage);
     setupStaleBanner(chatId, chat, storage);
     setupScrollFeatures(chatId);          // C.22 \u2014 pass chatId for persistence
@@ -1787,6 +1845,71 @@ export async function init(storage) {
   } catch (err) {
     showError(`Failed to load conversation: ${err.message}`);
   }
+}
+
+// ── Entity-target helpers ──────────────────────────────────────────────────────
+
+/**
+ * Given a turn anchor element and a snippet hint string, locate the best
+ * matching entity block (code block, citation link, table) within that turn's
+ * rendered content.
+ *
+ * For code blocks the hint is the first non-empty line of the code body.
+ * The search walks forward from anchorEl through all subsequent siblings until
+ * the next same-level turn anchor is encountered.
+ *
+ * @param {Element} anchorEl  The turn element (#r1, #p2, …)
+ * @param {string}  hint      Short identifying string built by entity-navigation.js
+ * @returns {Element|null}    The best matching block element, or null
+ */
+export function _findEntityBlock(anchorEl, hint) {
+  if (!hint) return null;
+  const hintLc = hint.toLowerCase().trim();
+
+  // Collect all candidate blocks from anchorEl downwards until the next turn.
+  const candidates = [];
+  let el = anchorEl;
+  // Include anchorEl itself, then walk nextElementSibling until we hit another
+  // turn anchor (id="p..." or id="r...") or run out of siblings.
+  while (el) {
+    // Fenced code blocks → .code-block
+    el.querySelectorAll('.code-block').forEach(block => {
+      const codeEl = block.querySelector('code');
+      if (codeEl) {
+        const text = codeEl.textContent ?? '';
+        const firstLine = text.split('\n').find(l => l.trim() !== '') ?? '';
+        if (firstLine.toLowerCase().trim() === hintLc) candidates.push({ el: block, score: 2 });
+        else if (text.toLowerCase().includes(hintLc))  candidates.push({ el: block, score: 1 });
+      }
+    });
+    // Anchor links (citation hint = url or title)
+    el.querySelectorAll('a[href]').forEach(a => {
+      if (a.href.toLowerCase().includes(hintLc) ||
+          a.textContent.toLowerCase().trim() === hintLc) {
+        candidates.push({ el: a, score: 2 });
+      }
+    });
+    el = el.nextElementSibling;
+    // Stop when we reach the next turn anchor
+    if (el && /^[pr]\d+$/.test(el.id ?? '')) break;
+  }
+
+  if (candidates.length === 0) return null;
+  // Return highest-scored candidate (first one wins ties — document order)
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0].el;
+}
+
+const FLASH_CLASS = 'entity-target';
+const FLASH_DURATION_MS = 2400;
+
+/**
+ * Briefly apply `.entity-target` to the matched block so users can see which
+ * element was navigated to.  The class is removed after the animation completes.
+ */
+export function _flashEntityTarget(el) {
+  el.classList.add(FLASH_CLASS);
+  setTimeout(() => el.classList.remove(FLASH_CLASS), FLASH_DURATION_MS);
 }
 
 // ── Auto-run when loaded as a browser extension page ──────────────────────────

@@ -981,6 +981,21 @@ body.ordinals-hidden .msg-ordinal {
   white-space: pre;
 }
 
+/* ── Entity-target flash (fired when navigating from the Entities panel) ──── */
+@keyframes entity-target-flash {
+  0%   { box-shadow: 0 0 0 3px var(--primary, #6366f1), 0 0 16px 4px var(--primary, #6366f1); outline-color: var(--primary, #6366f1); }
+  60%  { box-shadow: 0 0 0 3px var(--primary, #6366f1), 0 0 16px 4px var(--primary, #6366f1); }
+  100% { box-shadow: none; }
+}
+
+.entity-target {
+  animation: entity-target-flash 2.4s ease-out forwards;
+  border-radius: var(--radius-md, 6px);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  scroll-margin-top: 72px; /* keep below sticky header */
+}
+
 /* Images */
 .chat-image {
   display: block;

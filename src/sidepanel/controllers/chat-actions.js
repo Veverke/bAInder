@@ -179,8 +179,11 @@ export async function handleRateChatAction(value) {
 // ---------------------------------------------------------------------------
 
 export async function handleChatSaved(chatEntry) {
-  // 1. Update in-memory list before the dialog (so the chat is visible)
-  _state.chats = [..._state.chats, chatEntry];
+  // 1. Upsert into the in-memory list before the dialog (so the chat is
+  //    visible immediately).  Remove any stale copy with the same id first
+  //    to prevent transient duplicates if loadAll() ran after the background
+  //    already wrote to storage.
+  _state.chats = [..._state.chats.filter(c => c.id !== chatEntry.id), chatEntry];
   _state.renderer.setChatData(_state.chats);
 
   // 2. Prompt assignment
