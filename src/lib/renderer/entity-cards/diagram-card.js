@@ -32,7 +32,16 @@ export function diagramCard(entity, { onOpen } = {}) {
   if (thumbnailSvg) {
     const svgWrapper = document.createElement('div');
     svgWrapper.className = 'entity-card__svg-preview';
-    svgWrapper.innerHTML = thumbnailSvg;
+    const svgDoc = new DOMParser().parseFromString(thumbnailSvg, 'image/svg+xml');
+    ['script', 'foreignObject'].forEach(tag =>
+      svgDoc.querySelectorAll(tag).forEach(el => el.remove())
+    );
+    svgDoc.querySelectorAll('*').forEach(el => {
+      [...el.attributes]
+        .filter(a => /^on/i.test(a.name) || /javascript:/i.test(a.value))
+        .forEach(a => el.removeAttribute(a.name));
+    });
+    svgWrapper.innerHTML = new XMLSerializer().serializeToString(svgDoc);
     el.appendChild(svgWrapper);
   } else if (source) {
     // Show first 4 lines as a code preview; full source is the hover tooltip.

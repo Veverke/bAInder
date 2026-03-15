@@ -819,10 +819,31 @@ describe('DialogManager – _sanitiseHtml() strips dangerous content', () => {
     expect(result).toContain('data-action="ok"');
   });
 
-  it('preserves <style> blocks (needed by import-dialog)', () => {
+  it('strips <style> blocks (CSS injection vector)', () => {
     const result = dialog._sanitiseHtml('<style>.foo { color: red; }</style><p>test</p>');
-    expect(result).toContain('<style>');
-    expect(result).toContain('.foo');
+    expect(result).not.toContain('<style>');
+    expect(result).toContain('<p>test</p>');
+  });
+
+  it('strips <base> tags (base URL manipulation vector)', () => {
+    const result = dialog._sanitiseHtml('<base href="https://evil.com"><p>test</p>');
+    expect(result).not.toContain('<base');
+    expect(result).toContain('<p>test</p>');
+  });
+
+  it('strips vbscript: href URLs', () => {
+    const result = dialog._sanitiseHtml('<a href="vbscript:msgbox(1)">link</a>');
+    expect(result).not.toContain('vbscript:');
+  });
+
+  it('strips data: href URLs', () => {
+    const result = dialog._sanitiseHtml('<a href="data:text/html,<h1>xss</h1>">link</a>');
+    expect(result).not.toContain('data:');
+  });
+
+  it('strips xlink:href with javascript: URL', () => {
+    const result = dialog._sanitiseHtml('<use xlink:href="javascript:alert(1)"></use>');
+    expect(result).not.toContain('javascript:');
   });
 });
 

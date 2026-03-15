@@ -61,6 +61,15 @@ export class IStorageService {
   }
 
   /**
+   * Low-level key deletion — removes one or more keys from storage.
+   * @param {string|string[]} keys
+   * @returns {Promise<void>}
+   */
+  async remove(keys) {
+    throw new Error('Method not implemented');
+  }
+
+  /**
    * Low-level key/value read — mirrors `browser.storage.local.get(keys)`.
    * Intended for use by `ChatRepository` and similar focused repositories
    * that own a specific key space but should not bypass the service layer.
@@ -98,9 +107,11 @@ export class ChromeStorageAdapter extends IStorageService {
   constructor() {
     super();
     this.KEYS = {
-      TOPIC_TREE: 'topicTree',
-      CHATS: 'chats',
-      METADATA: 'metadata'
+      TOPIC_TREE:        'topicTree',
+      CHATS:             'chats',           // legacy; retained for migration detection
+      CHAT_INDEX:        'chatIndex',
+      CHAT_SEARCH_INDEX: 'chatSearchIndex',
+      METADATA:          'metadata'
     };
   }
 
@@ -156,8 +167,10 @@ export class ChromeStorageAdapter extends IStorageService {
       if (chats !== null) {
         chatList = chats;
       } else {
-        const result = await browser.storage.local.get(this.KEYS.CHATS);
-        chatList = result[this.KEYS.CHATS] || [];
+        // Use the text-search index (maintained by ChatRepository).
+        // Falls back to legacy 'chats' key if the index hasn't been populated yet.
+        const result = await browser.storage.local.get([this.KEYS.CHAT_SEARCH_INDEX, this.KEYS.CHATS]);
+        chatList = result[this.KEYS.CHAT_SEARCH_INDEX] ?? result[this.KEYS.CHATS] ?? [];
       }
 
       // ── Filter-only mode: no query text, return all chats unranked ───────
@@ -183,7 +196,10 @@ export class ChromeStorageAdapter extends IStorageService {
    */
   _buildSearchableText(chat) {
     const tagText = (chat.tags || []).join(' ');
-    return `${chat.title || ''} ${chat.content || ''} ${tagText}`.toLowerCase();
+    // Use pre-built searchableText (from chatSearchIndex) when present;
+    // fall back to full content (legacy in-memory chats array path).
+    const text = chat.searchableText !== undefined ? chat.searchableText : (chat.content || '');
+    return `${chat.title || ''} ${text} ${tagText}`.toLowerCase();
   }
 
   /**
@@ -275,17 +291,18 @@ export class ChromeStorageAdapter extends IStorageService {
       // parallel and we make only two round-trips instead of three.
       const [bytesInUse, storageData] = await Promise.all([
         browser.storage.local.getBytesInUse(),
-        browser.storage.local.get([this.KEYS.TOPIC_TREE, this.KEYS.CHATS]),
+        browser.storage.local.get([this.KEYS.TOPIC_TREE, this.KEYS.CHAT_INDEX, this.KEYS.CHATS]),
       ]);
       const tree  = storageData[this.KEYS.TOPIC_TREE] || { topics: {} };
-      const chats = storageData[this.KEYS.CHATS] || [];
+      // Prefer per-chat-key index; fall back to legacy monolithic array.
+      const index = storageData[this.KEYS.CHAT_INDEX] ?? storageData[this.KEYS.CHATS] ?? [];
 
       return {
         bytesUsed:   bytesInUse,
         bytesQuota:  quota,
         percentUsed: null,
         topicCount:  Object.keys(tree.topics || {}).length,
-        chatCount:   chats.length,
+        chatCount:   Array.isArray(index) ? index.length : 0,
       };
     } catch (error) {
       logger.error('Error getting storage usage:', error);
@@ -324,6 +341,10 @@ export class ChromeStorageAdapter extends IStorageService {
    */
   async set(data) {
     return browser.storage.local.set(data);
+  }
+
+  async remove(keys) {
+    return browser.storage.local.remove(keys);
   }
 
   /**

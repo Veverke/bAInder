@@ -1,13 +1,15 @@
-/**
+﻿/**
  * Tests for src/sidepanel/services/chat-repository.js
  *
- * All tests use constructor-injected mock storage adapters — no browser
+ * All tests use constructor-injected mock storage adapters â€” no browser
  * global or chrome.storage.local mock is required.  This validates both the
  * repository behaviour AND the DI benefit described in issue 8.4.
+ *
+ * Storage format (P1.1): chatIndex + chatSearchIndex + chat:<id> keys.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ChatRepository, MAX_CHATS_IN_MEMORY } from '../src/sidepanel/services/chat-repository.js';
+import { ChatRepository, MAX_CHATS_IN_MEMORY, CHAT_INDEX_KEY, CHAT_SEARCH_INDEX_KEY } from '../src/sidepanel/services/chat-repository.js';
 import { StorageService } from '../src/lib/storage.js';
 
 // ---------------------------------------------------------------------------
@@ -15,9 +17,8 @@ import { StorageService } from '../src/lib/storage.js';
 // ---------------------------------------------------------------------------
 
 /**
- * Build a minimal in-memory storage adapter that satisfies the `get`/`set`
- * contract without touching any browser API.  Spied methods allow assertions
- * on call counts and arguments.
+ * Build a minimal in-memory storage adapter that satisfies the `get`/`set`/`remove`
+ * contract without touching any browser API.
  */
 function makeAdapter(initial = {}) {
   const store = { ...initial };
@@ -29,10 +30,15 @@ function makeAdapter(initial = {}) {
     set: vi.fn(async (data) => {
       Object.assign(store, data);
     }),
+    remove: vi.fn(async (keys) => {
+      const keyArr = Array.isArray(keys) ? keys : [keys];
+      keyArr.forEach(k => delete store[k]);
+    }),
     _store: store,
   };
 }
 
+/** Create a full chat object. */
 function chat(overrides = {}) {
   return {
     id: 'chat_1',
@@ -45,11 +51,30 @@ function chat(overrides = {}) {
   };
 }
 
+/** Strip content from a chat to produce a metadata-only entry (as stored in chatIndex). */
+function meta({ content: _c, ...rest }) { return rest; }
+
+/**
+ * Build a pre-populated store from an array of full chat objects.
+ * Creates chatIndex, chatSearchIndex, and individual chat:<id> keys.
+ */
+function makeStore(chats) {
+  const store = {
+    [CHAT_INDEX_KEY]: chats.map(meta),
+    [CHAT_SEARCH_INDEX_KEY]: chats.map(c => ({
+      id: c.id, title: c.title, tags: c.tags ?? [],
+      timestamp: c.timestamp, searchableText: c.content ?? '',
+    })),
+  };
+  chats.forEach(c => { store[`chat:${c.id}`] = c; });
+  return store;
+}
+
 // ---------------------------------------------------------------------------
 // Constructor
 // ---------------------------------------------------------------------------
 
-describe('ChatRepository — constructor injection', () => {
+describe('ChatRepository â€” constructor injection', () => {
   it('accepts an explicit storage adapter without throwing', () => {
     const adapter = makeAdapter();
     expect(() => new ChatRepository(adapter)).not.toThrow();
@@ -66,8 +91,8 @@ describe('ChatRepository.loadAll()', () => {
     await expect(repo.loadAll()).resolves.toEqual([]);
   });
 
-  it('strips the content field from each chat', async () => {
-    const adapter = makeAdapter({ chats: [chat()] });
+  it('strips the content field from each chat (chatIndex has no content)', async () => {
+    const adapter = makeAdapter({ [CHAT_INDEX_KEY]: [meta(chat())] });
     const repo = new ChatRepository(adapter);
     const result = await repo.loadAll();
     expect(result).toHaveLength(1);
@@ -75,42 +100,42 @@ describe('ChatRepository.loadAll()', () => {
   });
 
   it('preserves all other metadata fields', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1', title: 'Hello', tags: ['ai'] })] });
+    const c = chat({ id: 'c1', title: 'Hello', tags: ['ai'] });
+    const adapter = makeAdapter({ [CHAT_INDEX_KEY]: [meta(c)] });
     const repo = new ChatRepository(adapter);
-    const [meta] = await repo.loadAll();
-    expect(meta.id).toBe('c1');
-    expect(meta.title).toBe('Hello');
-    expect(meta.tags).toEqual(['ai']);
+    const [m] = await repo.loadAll();
+    expect(m.id).toBe('c1');
+    expect(m.title).toBe('Hello');
+    expect(m.tags).toEqual(['ai']);
   });
 
   it('returns empty array when storage.get rejects', async () => {
-    const adapter = { get: vi.fn().mockRejectedValue(new Error('boom')), set: vi.fn() };
+    const adapter = { get: vi.fn().mockRejectedValue(new Error('boom')), set: vi.fn(), remove: vi.fn() };
     const repo = new ChatRepository(adapter);
     await expect(repo.loadAll()).resolves.toEqual([]);
   });
 
   it('never calls adapter.set', async () => {
-    const adapter = makeAdapter({ chats: [chat()] });
+    const adapter = makeAdapter({ [CHAT_INDEX_KEY]: [meta(chat())] });
     const repo = new ChatRepository(adapter);
     await repo.loadAll();
     expect(adapter.set).not.toHaveBeenCalled();
   });
 
   it('returns chats sorted by timestamp descending (most-recent first)', async () => {
-    const c1 = chat({ id: 'c1', timestamp: 1000, content: 'x' });
-    const c2 = chat({ id: 'c2', timestamp: 3000, content: 'x' });
-    const c3 = chat({ id: 'c3', timestamp: 2000, content: 'x' });
-    const adapter = makeAdapter({ chats: [c1, c2, c3] });
+    const c1 = meta(chat({ id: 'c1', timestamp: 1000 }));
+    const c2 = meta(chat({ id: 'c2', timestamp: 3000 }));
+    const c3 = meta(chat({ id: 'c3', timestamp: 2000 }));
+    const adapter = makeAdapter({ [CHAT_INDEX_KEY]: [c1, c2, c3] });
     const repo = new ChatRepository(adapter);
     const result = await repo.loadAll();
     expect(result.map(c => c.id)).toEqual(['c2', 'c3', 'c1']);
   });
 
   it('treats missing timestamp as 0 when sorting', async () => {
-    const c1 = chat({ id: 'c1', timestamp: 500, content: 'x' });
-    // Build c2 without a timestamp field (not using chat() helper which defaults to 1000)
-    const c2 = { id: 'c2', title: 'No timestamp', source: 'chatgpt', content: 'x', tags: [] };
-    const adapter = makeAdapter({ chats: [c1, c2] });
+    const c1 = meta(chat({ id: 'c1', timestamp: 500 }));
+    const c2 = { id: 'c2', title: 'No timestamp', source: 'chatgpt', tags: [] };
+    const adapter = makeAdapter({ [CHAT_INDEX_KEY]: [c1, c2] });
     const repo = new ChatRepository(adapter);
     const result = await repo.loadAll();
     expect(result[0].id).toBe('c1');
@@ -119,34 +144,31 @@ describe('ChatRepository.loadAll()', () => {
 
   it('caps the returned array at MAX_CHATS_IN_MEMORY', async () => {
     const many = Array.from({ length: MAX_CHATS_IN_MEMORY + 10 }, (_, i) =>
-      chat({ id: `c${i}`, timestamp: i, content: 'x' })
+      meta(chat({ id: `c${i}`, timestamp: i }))
     );
-    const adapter = makeAdapter({ chats: many });
+    const adapter = makeAdapter({ [CHAT_INDEX_KEY]: many });
     const repo = new ChatRepository(adapter);
     const result = await repo.loadAll();
     expect(result).toHaveLength(MAX_CHATS_IN_MEMORY);
   });
 
   it('cap keeps the most-recent entries', async () => {
-    // Create MAX+1 chats; highest timestamps should survive the cap.
     const many = Array.from({ length: MAX_CHATS_IN_MEMORY + 1 }, (_, i) =>
-      chat({ id: `c${i}`, timestamp: i, content: 'x' })
+      meta(chat({ id: `c${i}`, timestamp: i }))
     );
-    const adapter = makeAdapter({ chats: many });
+    const adapter = makeAdapter({ [CHAT_INDEX_KEY]: many });
     const repo = new ChatRepository(adapter);
     const result = await repo.loadAll();
-    // The oldest chat (timestamp 0, id c0) must be evicted.
     expect(result.find(c => c.id === 'c0')).toBeUndefined();
-    // The newest chat (timestamp MAX_CHATS_IN_MEMORY, id c{MAX}) must be present.
     expect(result.find(c => c.id === `c${MAX_CHATS_IN_MEMORY}`)).toBeDefined();
   });
 
   it('logs a warning when the cap is applied', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const many = Array.from({ length: MAX_CHATS_IN_MEMORY + 1 }, (_, i) =>
-      chat({ id: `c${i}`, timestamp: i, content: 'x' })
+      meta(chat({ id: `c${i}`, timestamp: i }))
     );
-    const adapter = makeAdapter({ chats: many });
+    const adapter = makeAdapter({ [CHAT_INDEX_KEY]: many });
     const repo = new ChatRepository(adapter);
     await repo.loadAll();
     expect(warnSpy).toHaveBeenCalledWith(
@@ -160,9 +182,9 @@ describe('ChatRepository.loadAll()', () => {
   it('does not warn when count is at or below MAX_CHATS_IN_MEMORY', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const exactly = Array.from({ length: MAX_CHATS_IN_MEMORY }, (_, i) =>
-      chat({ id: `c${i}`, timestamp: i, content: 'x' })
+      meta(chat({ id: `c${i}`, timestamp: i }))
     );
-    const adapter = makeAdapter({ chats: exactly });
+    const adapter = makeAdapter({ [CHAT_INDEX_KEY]: exactly });
     const repo = new ChatRepository(adapter);
     await repo.loadAll();
     const warnedAboutCap = warnSpy.mock.calls.some(args =>
@@ -170,6 +192,19 @@ describe('ChatRepository.loadAll()', () => {
     );
     expect(warnedAboutCap).toBe(false);
     warnSpy.mockRestore();
+  });
+
+  it('auto-migrates from legacy monolithic chats key when chatIndex is absent', async () => {
+    const oldChat = chat({ id: 'c1', content: 'body' });
+    const adapter = makeAdapter({ chats: [oldChat] });
+    const repo = new ChatRepository(adapter);
+    const result = await repo.loadAll();
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('c1');
+    expect(result[0]).not.toHaveProperty('content');
+    // New keys should now exist in storage
+    expect(Array.isArray(adapter._store[CHAT_INDEX_KEY])).toBe(true);
+    expect(adapter._store['chat:c1']).toBeDefined();
   });
 });
 
@@ -179,19 +214,19 @@ describe('ChatRepository.loadAll()', () => {
 
 describe('ChatRepository.getFullContent()', () => {
   it('returns the content field of the matching chat', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1', content: 'hello world' })] });
+    const adapter = makeAdapter({ 'chat:c1': chat({ id: 'c1', content: 'hello world' }) });
     const repo = new ChatRepository(adapter);
     await expect(repo.getFullContent('c1')).resolves.toBe('hello world');
   });
 
   it('returns null when the chat does not exist', async () => {
-    const adapter = makeAdapter({ chats: [] });
+    const adapter = makeAdapter({});
     const repo = new ChatRepository(adapter);
     await expect(repo.getFullContent('missing')).resolves.toBeNull();
   });
 
   it('returns null when storage.get rejects', async () => {
-    const adapter = { get: vi.fn().mockRejectedValue(new Error('fail')), set: vi.fn() };
+    const adapter = { get: vi.fn().mockRejectedValue(new Error('fail')), set: vi.fn(), remove: vi.fn() };
     const repo = new ChatRepository(adapter);
     await expect(repo.getFullContent('x')).resolves.toBeNull();
   });
@@ -203,26 +238,30 @@ describe('ChatRepository.getFullContent()', () => {
 
 describe('ChatRepository.updateChat()', () => {
   it('merges updates into the matching chat and persists', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1', title: 'Old' })] });
+    const c1 = chat({ id: 'c1', title: 'Old' });
+    const adapter = makeAdapter(makeStore([c1]));
     const repo = new ChatRepository(adapter);
     await repo.updateChat('c1', { title: 'New' });
-    const { chats } = adapter._store;
-    expect(chats.find(c => c.id === 'c1').title).toBe('New');
+    expect(adapter._store[CHAT_INDEX_KEY].find(m => m.id === 'c1').title).toBe('New');
+    expect(adapter._store['chat:c1'].title).toBe('New');
   });
 
   it('returns metadata-only list (no content field)', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1' })] });
+    const c1 = chat({ id: 'c1' });
+    const adapter = makeAdapter(makeStore([c1]));
     const repo = new ChatRepository(adapter);
     const result = await repo.updateChat('c1', { title: 'Updated' });
     expect(result[0]).not.toHaveProperty('content');
   });
 
   it('does not mutate other chats', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1' }), chat({ id: 'c2', title: 'Other' })] });
+    const c1 = chat({ id: 'c1' });
+    const c2 = chat({ id: 'c2', title: 'Other' });
+    const adapter = makeAdapter(makeStore([c1, c2]));
     const repo = new ChatRepository(adapter);
     await repo.updateChat('c1', { title: 'Changed' });
-    const { chats } = adapter._store;
-    expect(chats.find(c => c.id === 'c2').title).toBe('Other');
+    expect(adapter._store[CHAT_INDEX_KEY].find(m => m.id === 'c2').title).toBe('Other');
+    expect(adapter._store['chat:c2'].title).toBe('Other');
   });
 });
 
@@ -232,7 +271,7 @@ describe('ChatRepository.updateChat()', () => {
 
 describe('ChatRepository.addChat()', () => {
   it('appends a new chat and returns updated metadata list', async () => {
-    const adapter = makeAdapter({ chats: [] });
+    const adapter = makeAdapter({});
     const repo = new ChatRepository(adapter);
     const result = await repo.addChat(chat({ id: 'c1' }));
     expect(result).toHaveLength(1);
@@ -240,21 +279,25 @@ describe('ChatRepository.addChat()', () => {
     expect(result[0]).not.toHaveProperty('content');
   });
 
-  it('deduplicates — replaces an existing entry with the same id', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1', title: 'Old' })] });
+  it('deduplicates â€” replaces an existing entry with the same id', async () => {
+    const c1old = chat({ id: 'c1', title: 'Old' });
+    const adapter = makeAdapter(makeStore([c1old]));
     const repo = new ChatRepository(adapter);
     await repo.addChat(chat({ id: 'c1', title: 'New' }));
-    const { chats } = adapter._store;
-    expect(chats).toHaveLength(1);
-    expect(chats[0].title).toBe('New');
+    expect(adapter._store[CHAT_INDEX_KEY]).toHaveLength(1);
+    expect(adapter._store[CHAT_INDEX_KEY][0].title).toBe('New');
   });
 
-  it('persists via adapter.set', async () => {
-    const adapter = makeAdapter({ chats: [] });
+  it('persists via adapter.set with chatIndex and per-chat key', async () => {
+    const adapter = makeAdapter({});
     const repo = new ChatRepository(adapter);
     await repo.addChat(chat({ id: 'c1' }));
     expect(adapter.set).toHaveBeenCalledTimes(1);
-    expect(adapter.set).toHaveBeenCalledWith(expect.objectContaining({ chats: expect.any(Array) }));
+    expect(adapter.set).toHaveBeenCalledWith(expect.objectContaining({
+      'chat:c1': expect.any(Object),
+      [CHAT_INDEX_KEY]: expect.any(Array),
+      [CHAT_SEARCH_INDEX_KEY]: expect.any(Array),
+    }));
   });
 });
 
@@ -264,23 +307,28 @@ describe('ChatRepository.addChat()', () => {
 
 describe('ChatRepository.removeChat()', () => {
   it('removes the chat with the given id', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1' }), chat({ id: 'c2' })] });
+    const c1 = chat({ id: 'c1' });
+    const c2 = chat({ id: 'c2' });
+    const adapter = makeAdapter(makeStore([c1, c2]));
     const repo = new ChatRepository(adapter);
     const result = await repo.removeChat('c1');
-    expect(result.map(c => c.id)).toEqual(['c2']);
+    expect(result.map(m => m.id)).toEqual(['c2']);
   });
 
   it('returns an empty list when the only chat is removed', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1' })] });
+    const adapter = makeAdapter(makeStore([chat({ id: 'c1' })]));
     const repo = new ChatRepository(adapter);
     await expect(repo.removeChat('c1')).resolves.toEqual([]);
   });
 
-  it('persists via adapter.set', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1' })] });
+  it('persists via adapter.set and removes per-chat key', async () => {
+    const adapter = makeAdapter(makeStore([chat({ id: 'c1' })]));
     const repo = new ChatRepository(adapter);
     await repo.removeChat('c1');
-    expect(adapter.set).toHaveBeenCalledWith({ chats: [] });
+    expect(adapter.set).toHaveBeenCalledWith(expect.objectContaining({
+      [CHAT_INDEX_KEY]: [],
+    }));
+    expect(adapter.remove).toHaveBeenCalledWith(['chat:c1']);
   });
 });
 
@@ -290,23 +338,24 @@ describe('ChatRepository.removeChat()', () => {
 
 describe('ChatRepository.removeManyChats()', () => {
   it('removes all specified chats', async () => {
-    const adapter = makeAdapter({
-      chats: [chat({ id: 'c1' }), chat({ id: 'c2' }), chat({ id: 'c3' })],
-    });
+    const c1 = chat({ id: 'c1' });
+    const c2 = chat({ id: 'c2' });
+    const c3 = chat({ id: 'c3' });
+    const adapter = makeAdapter(makeStore([c1, c2, c3]));
     const repo = new ChatRepository(adapter);
     const result = await repo.removeManyChats(['c1', 'c2']);
-    expect(result.map(c => c.id)).toEqual(['c3']);
+    expect(result.map(m => m.id)).toEqual(['c3']);
   });
 
   it('accepts a Set as the ids argument', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1' }), chat({ id: 'c2' })] });
+    const adapter = makeAdapter(makeStore([chat({ id: 'c1' }), chat({ id: 'c2' })]));
     const repo = new ChatRepository(adapter);
     const result = await repo.removeManyChats(new Set(['c1']));
-    expect(result.map(c => c.id)).toEqual(['c2']);
+    expect(result.map(m => m.id)).toEqual(['c2']);
   });
 
   it('returns full list when no ids match', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1' })] });
+    const adapter = makeAdapter(makeStore([chat({ id: 'c1' })]));
     const repo = new ChatRepository(adapter);
     const result = await repo.removeManyChats(['zzz']);
     expect(result).toHaveLength(1);
@@ -318,12 +367,13 @@ describe('ChatRepository.removeManyChats()', () => {
 // ---------------------------------------------------------------------------
 
 describe('ChatRepository.replaceAll()', () => {
-  it('overwrites the entire chats array in storage', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'old' })] });
+  it('overwrites the entire chat collection in storage', async () => {
+    const adapter = makeAdapter(makeStore([chat({ id: 'old' })]));
     const repo = new ChatRepository(adapter);
     await repo.replaceAll([chat({ id: 'new1' }), chat({ id: 'new2' })]);
-    const { chats } = adapter._store;
-    expect(chats.map(c => c.id)).toEqual(['new1', 'new2']);
+    expect(adapter._store[CHAT_INDEX_KEY].map(m => m.id)).toEqual(['new1', 'new2']);
+    expect(adapter._store['chat:new1']).toBeDefined();
+    expect(adapter._store['chat:new2']).toBeDefined();
   });
 
   it('returns metadata-only list', async () => {
@@ -348,11 +398,9 @@ describe('ChatRepository.replaceAll()', () => {
 describe('ChatRepository.loadFullByIds()', () => {
   it('returns full objects (with content) for matching ids', async () => {
     const adapter = makeAdapter({
-      chats: [
-        chat({ id: 'c1', content: 'content-1' }),
-        chat({ id: 'c2', content: 'content-2' }),
-        chat({ id: 'c3', content: 'content-3' }),
-      ],
+      'chat:c1': chat({ id: 'c1', content: 'content-1' }),
+      'chat:c2': chat({ id: 'c2', content: 'content-2' }),
+      'chat:c3': chat({ id: 'c3', content: 'content-3' }),
     });
     const repo = new ChatRepository(adapter);
     const result = await repo.loadFullByIds(['c1', 'c3']);
@@ -361,20 +409,23 @@ describe('ChatRepository.loadFullByIds()', () => {
   });
 
   it('returns an empty array when no ids match', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1' })] });
+    const adapter = makeAdapter({});
     const repo = new ChatRepository(adapter);
     await expect(repo.loadFullByIds(['zzz'])).resolves.toEqual([]);
   });
 
   it('accepts a Set as the ids argument', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1' }), chat({ id: 'c2' })] });
+    const adapter = makeAdapter({
+      'chat:c1': chat({ id: 'c1' }),
+      'chat:c2': chat({ id: 'c2' }),
+    });
     const repo = new ChatRepository(adapter);
     const result = await repo.loadFullByIds(new Set(['c2']));
     expect(result.map(c => c.id)).toEqual(['c2']);
   });
 
   it('never calls adapter.set', async () => {
-    const adapter = makeAdapter({ chats: [chat({ id: 'c1' })] });
+    const adapter = makeAdapter({ 'chat:c1': chat({ id: 'c1' }) });
     const repo = new ChatRepository(adapter);
     await repo.loadFullByIds(['c1']);
     expect(adapter.set).not.toHaveBeenCalled();
@@ -382,13 +433,13 @@ describe('ChatRepository.loadFullByIds()', () => {
 });
 
 // ---------------------------------------------------------------------------
-// DI isolation proof — no browser global required
+// DI isolation proof â€” no browser global required
 // ---------------------------------------------------------------------------
 
-describe('ChatRepository — DI isolation', () => {
+describe('ChatRepository â€” DI isolation', () => {
   it('completes a full save/load cycle using only the injected adapter', async () => {
     // Deliberately does NOT use global.chrome or any browser API
-    const adapter = makeAdapter({ chats: [] });
+    const adapter = makeAdapter({});
     const repo = new ChatRepository(adapter);
 
     await repo.addChat(chat({ id: 'c1', title: 'Alpha', content: 'text' }));
@@ -408,10 +459,10 @@ describe('ChatRepository — DI isolation', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Constructor – default (singleton) path: storageAdapter ?? StorageService.getInstance()
+// Constructor â€“ default (singleton) path: storageAdapter ?? StorageService.getInstance()
 // ---------------------------------------------------------------------------
 
-describe('ChatRepository — constructor without explicit adapter', () => {
+describe('ChatRepository â€” constructor without explicit adapter', () => {
   beforeEach(() => {
     StorageService.resetInstance();
   });
@@ -421,8 +472,6 @@ describe('ChatRepository — constructor without explicit adapter', () => {
   });
 
   it('uses StorageService singleton when no adapter is provided (right-hand of ?? is taken)', async () => {
-    // This exercises the `?? StorageService.getInstance()` branch.
-    // The chrome mock is active so storage reads return empty results.
     const repo = new ChatRepository(); // no adapter
     const result = await repo.loadAll();
     expect(Array.isArray(result)).toBe(true);
@@ -430,18 +479,19 @@ describe('ChatRepository — constructor without explicit adapter', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Array.isArray false-branch: methods with storage that has no chats key
+// Array.isArray false-branch: methods with storage that has no index keys
 // ---------------------------------------------------------------------------
 
-describe('ChatRepository — Array.isArray false branch (no chats key in storage)', () => {
-  it('updateChat returns [] metadata when storage has no chats key', async () => {
-    const adapter = makeAdapter({}); // no 'chats' key → result.chats = undefined
+describe('ChatRepository â€” false branch (no chatIndex in storage)', () => {
+  it('updateChat returns [] when chat does not exist anywhere', async () => {
+    const adapter = makeAdapter({});
     const repo = new ChatRepository(adapter);
     const result = await repo.updateChat('ghost', { title: 'x' });
     expect(Array.isArray(result)).toBe(true);
+    expect(result).toEqual([]);
   });
 
-  it('addChat creates first entry when storage has no chats key', async () => {
+  it('addChat creates first entry when storage is empty', async () => {
     const adapter = makeAdapter({});
     const repo = new ChatRepository(adapter);
     const result = await repo.addChat(chat({ id: 'c1' }));
@@ -449,21 +499,21 @@ describe('ChatRepository — Array.isArray false branch (no chats key in storage
     expect(result[0].id).toBe('c1');
   });
 
-  it('removeChat returns [] when storage has no chats key', async () => {
+  it('removeChat returns [] when storage is empty', async () => {
     const adapter = makeAdapter({});
     const repo = new ChatRepository(adapter);
     const result = await repo.removeChat('c1');
     expect(result).toEqual([]);
   });
 
-  it('removeManyChats returns [] when storage has no chats key', async () => {
+  it('removeManyChats returns [] when storage is empty', async () => {
     const adapter = makeAdapter({});
     const repo = new ChatRepository(adapter);
     const result = await repo.removeManyChats(['c1', 'c2']);
     expect(result).toEqual([]);
   });
 
-  it('loadFullByIds returns [] when storage has no chats key', async () => {
+  it('loadFullByIds returns [] when storage is empty', async () => {
     const adapter = makeAdapter({});
     const repo = new ChatRepository(adapter);
     const result = await repo.loadFullByIds(['c1']);

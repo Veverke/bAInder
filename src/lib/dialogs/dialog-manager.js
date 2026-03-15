@@ -59,20 +59,24 @@ export class DialogManager {
   _sanitiseHtml(html) {
     const doc = new DOMParser().parseFromString(html, 'text/html');
 
-    // Remove all <script> elements
-    doc.querySelectorAll('script').forEach(el => el.remove());
+    // Remove dangerous block-level elements entirely
+    doc.querySelectorAll('script, style, base').forEach(el => el.remove());
 
-    // Strip event-handler attributes and javascript: URLs from all elements
+    // Strip dangerous attributes from remaining elements
+    const SAFE_SCHEMES = /^(https?:|mailto:|\/|#|[^:]*$)/i;
     doc.body.querySelectorAll('*').forEach(el => {
       for (const attr of [...el.attributes]) {
-        if (attr.name.startsWith('on')) {
+        const name = attr.name.toLowerCase();
+        // Remove all event-handler attributes
+        if (/^on/i.test(name)) {
           el.removeAttribute(attr.name);
+          continue;
         }
-        if (
-          (attr.name === 'href' || attr.name === 'src' || attr.name === 'action') &&
-          /^\s*javascript:/i.test(attr.value)
-        ) {
-          el.removeAttribute(attr.name);
+        // Validate URLs in href/src/action and SVG's xlink:href
+        if (name === 'href' || name === 'src' || name === 'action' || attr.name === 'xlink:href') {
+          if (!SAFE_SCHEMES.test(attr.value.trim())) {
+            el.removeAttribute(attr.name);
+          }
         }
       }
     });
