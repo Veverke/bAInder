@@ -89,6 +89,108 @@ describe('ChatEntityTree — byType mode (default)', () => {
     expect(types).toContain('code');
     expect(types).not.toContain('table');
   });
+
+  it('render() shows entity cards directly in the section body (no intermediate topic nodes)', () => {
+    const entity = makeEntity('prompt', 'c1', 0, { text: 'Hello world' });
+    const chats = [makeChat('c1', 't1', { prompt: [entity] })];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, null);
+    tree.render();
+
+    // Entity item nodes are direct children of the section body
+    expect(container.querySelectorAll('.entity-item-node').length).toBe(1);
+    // No intermediate topic-node grouping in byType mode
+    expect(container.querySelectorAll('.entity-topic-node').length).toBe(0);
+  });
+
+  it('renders a source chip showing the topic name below the entity card', () => {
+    const topicTree = makeTopicTree({ 't1': { name: 'Science', chatIds: ['c1'] } });
+    const entity = makeEntity('prompt', 'c1', 0, { text: 'Explain quantum' });
+    const chats = [makeChat('c1', 't1', { prompt: [entity] })];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, topicTree);
+    tree.render();
+
+    const chips = [...container.querySelectorAll('.entity-source-chip')];
+    expect(chips.length).toBe(1);
+    expect(chips[0].textContent).toBe('Science');
+  });
+
+  it('de-duplicates entities with identical text and shows one node with multiple source chips', () => {
+    const topicTree = makeTopicTree({
+      't1': { name: 'Topic A', chatIds: ['c1'] },
+      't2': { name: 'Topic B', chatIds: ['c2'] },
+    });
+    const sameText = 'Write a poem';
+    const e1 = makeEntity('prompt', 'c1', 0, { text: sameText });
+    const e2 = makeEntity('prompt', 'c2', 0, { text: sameText });
+    const chats = [
+      makeChat('c1', 't1', { prompt: [e1] }),
+      makeChat('c2', 't2', { prompt: [e2] }),
+    ];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, topicTree);
+    tree.render();
+
+    // Only one entity node (de-duplicated)
+    expect(container.querySelectorAll('.entity-item-node').length).toBe(1);
+    // Count badge shows (2)
+    const badge = container.querySelector('.entity-item-node__count');
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toBe('(2)');
+    // Two source chips, sorted alphabetically by topic name
+    const chipTexts = [...container.querySelectorAll('.entity-source-chip')].map(c => c.textContent);
+    expect(chipTexts).toEqual(['Topic A', 'Topic B']);
+  });
+
+  it('source chips are sorted alphabetically by topic name', () => {
+    const topicTree = makeTopicTree({
+      't1': { name: 'Zebra', chatIds: ['c1'] },
+      't2': { name: 'Apple', chatIds: ['c2'] },
+      't3': { name: 'Mango', chatIds: ['c3'] },
+    });
+    const sameText = 'shared prompt';
+    const chats = [
+      makeChat('c1', 't1', { prompt: [makeEntity('prompt', 'c1', 0, { text: sameText })] }),
+      makeChat('c2', 't2', { prompt: [makeEntity('prompt', 'c2', 0, { text: sameText })] }),
+      makeChat('c3', 't3', { prompt: [makeEntity('prompt', 'c3', 0, { text: sameText })] }),
+    ];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, topicTree);
+    tree.render();
+
+    const chipTexts = [...container.querySelectorAll('.entity-source-chip')].map(c => c.textContent);
+    expect(chipTexts).toEqual(['Apple', 'Mango', 'Zebra']);
+    // Count badge shows (3)
+    expect(container.querySelector('.entity-item-node__count').textContent).toBe('(3)');
+  });
+
+  it('no count badge when entity appears only once', () => {
+    const entity = makeEntity('prompt', 'c1', 0, { text: 'unique prompt' });
+    const chats = [makeChat('c1', 't1', { prompt: [entity] })];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, null);
+    tree.render();
+
+    expect(container.querySelector('.entity-item-node__count')).toBeNull();
+  });
+
+  it('section label shows unique entity count after de-duplication', () => {
+    const sameText = 'duplicate prompt';
+    const e1 = makeEntity('prompt', 'c1', 0, { text: sameText });
+    const e2 = makeEntity('prompt', 'c2', 0, { text: sameText });
+    const chats = [
+      makeChat('c1', 't1', { prompt: [e1] }),
+      makeChat('c2', 't1', { prompt: [e2] }),
+    ];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, null);
+    tree.render();
+
+    const label = container.querySelector('.entity-section__label');
+    // 2 raw entities but 1 unique — label should show 1
+    expect(label.textContent).toContain('1');
+  });
 });
 
 describe('ChatEntityTree — byTopic mode', () => {
@@ -270,10 +372,10 @@ describe('ChatEntityTree — topic-tree reverse-lookup', () => {
     const tree  = new ChatEntityTree(container, store, cardRenderers, topicTree);
     tree.render();
 
-    // Should appear under 'DevOps', NOT under 'Uncategorised'
-    const topicNames = [...container.querySelectorAll('.entity-topic-node__name')].map(n => n.textContent);
-    expect(topicNames).toContain('DevOps');
-    expect(topicNames).not.toContain('Uncategorised');
+    // Source chip should show 'DevOps', NOT 'Uncategorised'
+    const chips = [...container.querySelectorAll('.entity-source-chip')].map(c => c.textContent);
+    expect(chips).toContain('DevOps');
+    expect(chips).not.toContain('Uncategorised');
   });
 
   it('chat.topicId fallback used when topic tree has no chatIds entry', () => {
@@ -284,8 +386,8 @@ describe('ChatEntityTree — topic-tree reverse-lookup', () => {
     const tree  = new ChatEntityTree(container, store, cardRenderers, topicTree);
     tree.render();
 
-    const topicNames = [...container.querySelectorAll('.entity-topic-node__name')].map(n => n.textContent);
-    expect(topicNames).toContain('Legacy');
+    const chips = [...container.querySelectorAll('.entity-source-chip')].map(c => c.textContent);
+    expect(chips).toContain('Legacy');
   });
 
   it('entity goes to Uncategorised when not in topic tree and chat.topicId is null', () => {
@@ -295,7 +397,12 @@ describe('ChatEntityTree — topic-tree reverse-lookup', () => {
     const tree  = new ChatEntityTree(container, store, cardRenderers, topicTree);
     tree.render();
 
-    const topicNames = [...container.querySelectorAll('.entity-topic-node__name')].map(n => n.textContent);
-    expect(topicNames).toContain('Uncategorised');
+    // Uncategorised entities show the chat title as chip text (fallback to chatId)
+    const chips = [...container.querySelectorAll('.entity-source-chip')].map(c => c.textContent);
+    // The chat title is 'Chat c1' (from makeChat helper), which is the fallback display
+    expect(chips.length).toBe(1);
+    // Chip shows chat title (not 'Uncategorised' text) because topicName === 'Uncategorised'
+    // so the chip falls back to chatTitle
+    expect(chips[0]).toBe('Chat c1');
   });
 });

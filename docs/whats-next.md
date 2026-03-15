@@ -5,7 +5,7 @@
 > Generated: March 3, 2026  
 > Source: AI-assisted brainstorming session — features not already covered by the roadmap or design specs.  
 > These are catalogued as **C.13 – C.32** in Appendix C of `DESIGN_SPECS.md` and `roadmap.html`.  
-> Last updated: March 14, 2026 — sorted by impact/complexity ROI; completed features moved to end. C.18 completed March 13, 2026. C.20 completed March 12, 2026. C.26 completed March 12, 2026. C.28 completed March 12, 2026. C.13 and C.13.1 superseded by Chat Entities framework March 14, 2026. C.33–C.37 added March 14, 2026.
+> Last updated: March 15, 2026 — sorted by impact/complexity ROI; completed features moved to end. C.18 completed March 13, 2026. C.20 completed March 12, 2026. C.26 completed March 12, 2026. C.28 completed March 12, 2026. C.13 and C.13.1 superseded by Chat Entities framework March 14, 2026. C.33–C.37 added March 14, 2026. Chat Entities Groups A–E all completed March 15, 2026.
 
 ---
 
@@ -25,7 +25,7 @@ Items are ordered by return on investment: highest differentiator with lowest ef
 | C.31 · C.34 | Chat Entities · **Group B** — Code Snippets, Diagrams | Medium | High |
 | C.36 · C.30 | Chat Entities · **Group C** — Tool-Use Traces, Attachments | Medium | High |
 | C.29 · C.32 | Chat Entities · **Group D** — Images, Audio recordings | Medium–High | High |
-| C.35 | Chat Entities · **Group E** — Artifacts & Canvas | Medium–High | Very High |
+| C.35 | ✅ COMPLETED (March 15, 2026) Chat Entities · **Group E** — Artifacts & Canvas | Medium–High | Very High |
 | C.27 | Source auditing (citation provenance) | Medium–High | Very High |
 
 ---

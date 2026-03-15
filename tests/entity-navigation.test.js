@@ -98,4 +98,18 @@ describe('openChatAtMessage()', () => {
     openChatAtMessage('c', diagramEntity, { onChatClick });
     expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: null }));
   });
+
+  it('passes filename as snippetHint for attachment entities', () => {
+    const onChatClick = vi.fn();
+    const attachmentEntity = { role: 'assistant', roleOrdinal: 1, type: 'attachment', filename: 'report.pdf' };
+    openChatAtMessage('c', attachmentEntity, { onChatClick });
+    expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: 'report.pdf' }));
+  });
+
+  it('passes null snippetHint for attachment without filename', () => {
+    const onChatClick = vi.fn();
+    const attachmentEntity = { role: 'assistant', roleOrdinal: 1, type: 'attachment' };
+    openChatAtMessage('c', attachmentEntity, { onChatClick });
+    expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: null }));
+  });
 });

@@ -20,10 +20,11 @@ export class ChatDialogs {
    * Show dialog to assign a newly saved chat to a topic.
    * Also lets the user edit the title before assigning.
    *
-   * @param {Object} chatEntry  The ChatEntry returned by the background save
+   * @param {Object}      chatEntry        The ChatEntry returned by the background save
+   * @param {string|null} preferredTopicId Topic to pre-select (matches the button label)
    * @returns {Promise<{topicId: string, title: string}|null>}
    */
-  async showAssignChat(chatEntry) {
+  async showAssignChat(chatEntry, preferredTopicId = null) {
     if (!chatEntry) throw new Error('Chat entry is required');
 
     const topicOptions = this._buildTopicOptions();
@@ -60,6 +61,7 @@ export class ChatDialogs {
           label:    'Assign to Topic',
           type:     'select',
           options:  topicOptions,
+          value:    preferredTopicId ?? undefined,
           required: true
         }
       ],

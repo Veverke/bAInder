@@ -186,8 +186,10 @@ export async function handleChatSaved(chatEntry) {
   _state.chats = [..._state.chats.filter(c => c.id !== chatEntry.id), chatEntry];
   _state.renderer.setChatData(_state.chats);
 
-  // 2. Prompt assignment
-  const result = await _state.chatDialogs.showAssignChat(chatEntry);
+  // 2. Prompt assignment — pass the same topic the button label shows so the
+  //    select defaults to the one the user already has in mind.
+  const preferredTopicId = _state.lastCreatedTopicId || _state.lastUsedTopicId || null;
+  const result = await _state.chatDialogs.showAssignChat(chatEntry, preferredTopicId);
   if (!result) {
     // User cancelled — reset save button without marking success
     setSaveBtnState('default');

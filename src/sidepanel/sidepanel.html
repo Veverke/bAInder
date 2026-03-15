@@ -308,8 +308,9 @@
         </button>
         <!-- C.26 — Copy all selected chats -->
         <button id="copyAllBtn" class="selection-bar__btn" disabled title="Select at least 2 chats to copy">
-          <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M7.09 3c.2-.58.76-1 1.41-1h3c.65 0 1.2.42 1.41 1h1.59c.83 0 1.5.67 1.5 1.5v12c0 .83-.67 1.5-1.5 1.5h-9A1.5 1.5 0 0 1 4 16.5v-12C4 3.67 4.67 3 5.5 3h1.59ZM8.5 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3Z"/>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="13" height="13" x="9" y="9" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
           </svg>
           Copy all
         </button>
@@ -400,8 +401,9 @@
     </div>
     <!-- C.26 — Copy all chats in topic to clipboard -->
     <div class="context-menu-item" data-action="copy-all">
-      <svg class="icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M7.09 3c.2-.58.76-1 1.41-1h3c.65 0 1.2.42 1.41 1h1.59c.83 0 1.5.67 1.5 1.5v12c0 .83-.67 1.5-1.5 1.5h-9A1.5 1.5 0 0 1 4 16.5v-12C4 3.67 4.67 3 5.5 3h1.59ZM8.5 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3Z"/>
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="13" height="13" x="9" y="9" rx="2"/>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
       </svg>
       <span>Copy all chats</span>
     </div>
@@ -472,8 +474,9 @@
     </div>
     <!-- C.26 — Copy chat to clipboard -->
     <div class="context-menu-item" data-chat-action="copy">
-      <svg class="icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M7.09 3c.2-.58.76-1 1.41-1h3c.65 0 1.2.42 1.41 1h1.59c.83 0 1.5.67 1.5 1.5v12c0 .83-.67 1.5-1.5 1.5h-9A1.5 1.5 0 0 1 4 16.5v-12C4 3.67 4.67 3 5.5 3h1.59ZM8.5 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3Z"/>
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="13" height="13" x="9" y="9" rx="2"/>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
       </svg>
       <span>Copy to Clipboard</span>
     </div>
@@ -658,6 +661,38 @@
 
       </div>
     </aside>
+  </div>
+
+  <!-- E.3 — Sandboxed artifact preview panel (hidden by default) -->
+  <div id="artifactPreviewPanel" class="artifact-preview-panel" hidden aria-hidden="true" aria-label="Artifact preview">
+    <div class="artifact-preview-panel__header">
+      <span class="artifact-preview__title">Artifact</span>
+      <div class="artifact-preview-panel__actions">
+        <button id="artifactCopySourceBtn" class="btn-icon" title="Copy source">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="13" height="13" x="9" y="9" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+        </button>
+        <button id="artifactDownloadBtn" class="btn-icon" title="Download">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M8 3V11M8 11L5 8M8 11L11 8M3 13H13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button id="artifactPreviewCloseBtn" class="btn-icon" aria-label="Close preview">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M2 2L14 14M2 14L14 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <iframe
+      id="artifactFrame"
+      sandbox="allow-scripts"
+      class="artifact-preview-panel__frame"
+      title="Artifact preview"
+      aria-label="Sandboxed artifact preview"
+    ></iframe>
   </div>
 
   <script type="module" src="sidepanel.js"></script>

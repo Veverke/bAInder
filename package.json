@@ -28,8 +28,8 @@
     "organizer",
     "notebook"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Avraham Y. Kahana",
+  "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
     "@fontsource/inter": "^5.2.8",
     "@fontsource/press-start-2p": "^5.2.7",

@@ -20,6 +20,7 @@ import {
   saveScrollPosition,
   restoreScrollPosition,
   setupReaderCopyButton,
+  _findEntityBlock,
 } from '../src/reader/reader.js';
 import { messagesToMarkdown } from '../src/lib/io/markdown-serialiser.js';
 
@@ -347,6 +348,157 @@ describe('renderMarkdown', () => {
     expect(html).toContain('designer-card');
     expect(html).not.toContain('<iframe');
     expect(html).toContain('<p>Let me know!</p>');
+  });
+
+  // ── Generated audio block ───────────────────────────────────────────────
+  it('audio marker with data: src renders <audio controls> player', () => {
+    const src  = 'data:audio/mpeg;base64,AAAA';
+    const html = renderMarkdown(`[🔊 Generated audio](${src})`);
+    expect(html).toContain('class="audio-card"');
+    expect(html).toContain('<audio controls');
+    expect(html).toContain(`src="${src}"`);
+    expect(html).not.toContain('audio-card--unavailable');
+  });
+
+  it('audio marker with https: src renders <audio controls> player', () => {
+    const src  = 'https://cdn.example.com/speech.mp3';
+    const html = renderMarkdown(`[🔊 Generated audio](${src})`);
+    expect(html).toContain('<audio controls');
+    expect(html).toContain(`src="${src}"`);
+  });
+
+  it('audio marker with blob: src renders unavailable notice', () => {
+    const html = renderMarkdown('[🔊 Generated audio (session-only)](blob:https://chatgpt.com/abc)');
+    expect(html).toContain('audio-card--unavailable');
+    expect(html).not.toContain('<audio controls');
+    expect(html).toContain('session expired');
+  });
+
+  it('audio marker without URL (not captured) renders unavailable notice', () => {
+    const html = renderMarkdown('[🔊 Generated audio (not captured)]');
+    expect(html).toContain('audio-card--unavailable');
+    expect(html).not.toContain('<audio controls');
+  });
+
+  it('audio card does not clobber surrounding text', () => {
+    const src = 'data:audio/mpeg;base64,AAAA';
+    const md  = `Here is the audio:\n\n[🔊 Generated audio](${src})\n\nEnjoy!`;
+    const html = renderMarkdown(md);
+    expect(html).toContain('<p>Here is the audio:</p>');
+    expect(html).toContain('audio-card');
+    expect(html).toContain('<p>Enjoy!</p>');
+  });
+
+  it('audio src URL is HTML-escaped in the output', () => {
+    const src  = 'https://example.com/audio?a=1&b=2';
+    const html = renderMarkdown(`[🔊 Generated audio](${src})`);
+    expect(html).toContain('a=1&amp;b=2');
+    expect(html).not.toContain('a=1&b=2');
+  });
+
+  // ── File attachment chip ────────────────────────────────────────────────
+  it('standalone PDF filename renders as file-attachment-chip', () => {
+    const html = renderMarkdown('termination_letter_template.pdf');
+    expect(html).toContain('class="file-attachment-chip"');
+    expect(html).toContain('termination_letter_template.pdf');
+    expect(html).toContain('PDF');
+    expect(html).not.toContain('<p>termination_letter_template.pdf</p>');
+  });
+
+  it('chip includes session note text', () => {
+    const html = renderMarkdown('report.pdf');
+    expect(html).toContain('file-attachment-chip__note');
+  });
+
+  it('without sourceUrl chip renders as <div>', () => {
+    const html = renderMarkdown('report.pdf');
+    expect(html).toContain('<div class="file-attachment-chip"');
+    expect(html).not.toContain('<a class="file-attachment-chip"');
+  });
+
+  it('with sourceUrl chip renders as <a> linking to the source', () => {
+    const html = renderMarkdown('report.pdf', { sourceUrl: 'https://copilot.microsoft.com/chats/abc' });
+    expect(html).toContain('<a class="file-attachment-chip"');
+    expect(html).toContain('href="https://copilot.microsoft.com/chats/abc"');
+    expect(html).toContain('target="_blank"');
+  });
+
+  it('emoji-prefixed filename (from messagesToMarkdown) renders chip', () => {
+    // messagesToMarkdown prepends "🤖 " to the first line of every assistant message
+    const html = renderMarkdown('🤖 termination_letter_template.pdf\n\nPDF');
+    expect(html).toContain('class="file-attachment-chip"');
+    expect(html).toContain('termination_letter_template.pdf');
+    expect(html).not.toContain('<p>PDF</p>');
+    // The emoji-marker <p> must still be emitted so wrapChatTurns can detect the turn
+    expect(html).toContain('<p>🤖</p>');
+  });
+
+  it('emoji-prefixed filename in full serialised content renders chip inside assistant turn', () => {
+    // Realistic slice of messagesToMarkdown output (last assistant turn)
+    const md = '---\ntitle: "Test"\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Test\n\n' +
+      '🙋 Yes, create the PDF\n\n---\n\n🤖 termination_letter_template.pdf\n\nPDF\n\nYour PDF is ready.\n';
+    const html = renderMarkdown(md);
+    expect(html).toContain('class="file-attachment-chip"');
+    expect(html).toContain('termination_letter_template.pdf');
+    // The emoji marker must be present for wrapChatTurns
+    expect(html).toContain('<p>🤖</p>');
+  });
+
+  it('sourceUrl is passed through to emoji-prefixed chip', () => {
+    const html = renderMarkdown('🤖 report.pdf', { sourceUrl: 'https://example.com/chat/1' });
+    expect(html).toContain('href="https://example.com/chat/1"');
+    expect(html).toContain('class="file-attachment-chip"');
+  });
+
+  it('filename + blank line + type label renders chip, drops bare type label', () => {
+    const html = renderMarkdown('termination_letter_template.pdf\n\nPDF');
+    expect(html).toContain('class="file-attachment-chip"');
+    // "PDF" as a standalone paragraph must be suppressed (already shown in the ext badge)
+    expect(html).not.toContain('<p>PDF</p>');
+  });
+
+  it('DOCX file renders chip with correct ext badge', () => {
+    const html = renderMarkdown('proposal.docx');
+    expect(html).toContain('class="file-attachment-chip"');
+    expect(html).toContain('DOCX');
+  });
+
+  it('CSV file renders chip with correct ext badge', () => {
+    const html = renderMarkdown('data.csv');
+    expect(html).toContain('class="file-attachment-chip"');
+    expect(html).toContain('CSV');
+  });
+
+  it('Python file renders chip', () => {
+    const html = renderMarkdown('analysis.py');
+    expect(html).toContain('class="file-attachment-chip"');
+    expect(html).toContain('PY');
+  });
+
+  it('filename embedded in prose is NOT rendered as chip', () => {
+    const html = renderMarkdown('Please read the file report.pdf and share feedback.');
+    expect(html).not.toContain('file-attachment-chip');
+    expect(html).toContain('<p>');
+  });
+
+  it('filename inside code block is NOT rendered as chip', () => {
+    const html = renderMarkdown('```\nreport.pdf\n```');
+    expect(html).not.toContain('file-attachment-chip');
+    expect(html).toContain('report.pdf');
+  });
+
+  it('chip does not clobber surrounding text', () => {
+    const md = 'Here is the file:\n\nanalysis.py\n\nLet me know if you have questions.';
+    const html = renderMarkdown(md);
+    expect(html).toContain('file-attachment-chip');
+    expect(html).toContain('<p>Here is the file:</p>');
+    expect(html).toContain('Let me know if you have questions.');
+  });
+
+  it('multiple attachment lines each render as separate chips', () => {
+    const html = renderMarkdown('report.pdf\n\ndata.csv');
+    const chipCount = (html.match(/file-attachment-chip"/g) || []).length;
+    expect(chipCount).toBe(2);
   });
 
   it('renders - list items as <ul>', () => {
@@ -1052,5 +1204,60 @@ describe('setupReaderCopyButton', () => {
     await new Promise(r => setTimeout(r, 0));
     const label = document.querySelector('.btn-reader-action__label');
     expect(label.textContent).toBe('Select all + paste');
+  });
+});
+
+// ─── _findEntityBlock — attachment chip matching ──────────────────────────────
+
+describe('_findEntityBlock — attachment chips', () => {
+  function makeAnchor(innerHtml = '') {
+    const anchor = document.createElement('div');
+    anchor.id = 'r1';
+    anchor.innerHTML = innerHtml;
+    document.body.appendChild(anchor);
+    return anchor;
+  }
+
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('finds a .file-attachment-chip by filename hint', () => {
+    const anchor = makeAnchor(
+      `<div class="file-attachment-chip">` +
+        `<span class="file-attachment-chip__icon">📄</span>` +
+        `<span class="file-attachment-chip__name">report.pdf</span>` +
+        `<span class="file-attachment-chip__ext">PDF</span>` +
+      `</div>`
+    );
+    const result = _findEntityBlock(anchor, 'report.pdf');
+    expect(result).not.toBeNull();
+    expect(result.classList.contains('file-attachment-chip')).toBe(true);
+  });
+
+  it('matching is case-insensitive', () => {
+    const anchor = makeAnchor(
+      `<div class="file-attachment-chip">` +
+        `<span class="file-attachment-chip__name">Report.PDF</span>` +
+      `</div>`
+    );
+    const result = _findEntityBlock(anchor, 'report.pdf');
+    expect(result).not.toBeNull();
+  });
+
+  it('returns null when filename does not match', () => {
+    const anchor = makeAnchor(
+      `<div class="file-attachment-chip">` +
+        `<span class="file-attachment-chip__name">other.pdf</span>` +
+      `</div>`
+    );
+    expect(_findEntityBlock(anchor, 'report.pdf')).toBeNull();
+  });
+
+  it('returns null when hint is null', () => {
+    const anchor = makeAnchor(
+      `<div class="file-attachment-chip">` +
+        `<span class="file-attachment-chip__name">report.pdf</span>` +
+      `</div>`
+    );
+    expect(_findEntityBlock(anchor, null)).toBeNull();
   });
 });
