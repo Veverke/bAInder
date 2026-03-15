@@ -16,6 +16,10 @@ import { saveTree, renderTreeView } from '../controllers/tree-controller.js';
 import { assignChatToTopic } from '../../lib/chat/chat-manager.js';
 import { copyChatsToClipboard } from '../../lib/export/clipboard-serialiser.js';
 
+// Maximum chats that can be loaded simultaneously for bulk operations.
+// Above this threshold the heap cost is too high for typical devices.
+const MAX_BULK_EXPORT_CHATS = 100;
+
 // ---------------------------------------------------------------------------
 // Mode management
 // ---------------------------------------------------------------------------
@@ -130,6 +134,10 @@ export async function handleAssemble() {
   let fullChats;
   try {
     const selectedIds = new Set(metaChats.map(c => c.id));
+    if (selectedIds.size > MAX_BULK_EXPORT_CHATS) {
+      showNotification(`Cannot assemble more than ${MAX_BULK_EXPORT_CHATS} chats at once — select fewer`, 'error');
+      return;
+    }
     fullChats = await state.chatRepo.loadFullByIds(selectedIds);
   } catch (err) {
     console.error('Failed to load full chat content for assembly:', err);
@@ -212,6 +220,10 @@ export async function handleExportDigest() {
   let fullChats;
   try {
     const selectedIds = new Set(metaChats.map(c => c.id));
+    if (selectedIds.size > MAX_BULK_EXPORT_CHATS) {
+      showNotification(`Cannot export more than ${MAX_BULK_EXPORT_CHATS} chats at once — select fewer`, 'error');
+      return;
+    }
     fullChats = await state.chatRepo.loadFullByIds(selectedIds);
   } catch (err) {
     console.error('Failed to load full chat content for digest export:', err);

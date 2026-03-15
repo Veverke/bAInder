@@ -251,32 +251,31 @@ export function buildExcerptPayload(selectionText, pageUrl, richMarkdown = null)
 }
 
 /**
- * High-level save handler – reads from storage, deduplicates, appends, writes.
+ * High-level save handler – deduplicates and persists a new chat via
+ * the ChatRepository abstraction.
  *
  * @param {Object}   chatData   Payload from content script SAVE_CHAT message
  * @param {Object}   sender     chrome.runtime.MessageSender
- * @param {Object}   storage    chrome.storage.local (injected for testability)
- * @returns {Promise<Object>}   The saved chat entry
+ * @param {import('../sidepanel/services/chat-repository.js').ChatRepository} repo
+ *   A ChatRepository instance (injected for testability).
+ * @returns {Promise<Object>}   The saved (or existing) chat entry
  */
-export async function handleSaveChat(chatData, sender, storage) {
+export async function handleSaveChat(chatData, sender, repo) {
   validateChatData(chatData);
 
   const tabUrl = sender?.tab?.url || '';
 
-  // Get existing chats
-  const result = await storage.get(['chats']);
-  const chats  = result.chats || [];
+  // loadAll() returns metadata-only; url and timestamp suffice for deduplication.
+  const existingMetas = await repo.loadAll();
 
-  // Deduplication
-  const duplicate = findDuplicate(chats, chatData.url || tabUrl);
+  const duplicate = findDuplicate(existingMetas, chatData.url || tabUrl);
   if (duplicate) {
     logger.info('Duplicate save skipped — returning existing:', duplicate.id);
     return duplicate;
   }
 
   const newChat = await buildChatEntry(chatData, tabUrl);
-  chats.push(newChat);
-  await storage.set({ chats });
+  await repo.addChat(newChat);
 
   logger.info('Chat saved:', newChat.id);
   return newChat;

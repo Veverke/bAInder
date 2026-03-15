@@ -282,14 +282,17 @@ describe('buildChatEntry()', () => {
 // ─── handleSaveChat ───────────────────────────────────────────────────────────
 
 describe('handleSaveChat()', () => {
-  let mockStorage;
-  let storedChats;
+  // Mock a ChatRepository: tracks addChat calls and exposes loadAll
+  let mockRepo;
+  let existingMetas;
+  let savedEntries;
 
   beforeEach(() => {
-    storedChats  = [];
-    mockStorage  = {
-      get:  vi.fn(async () => ({ chats: storedChats })),
-      set:  vi.fn(async (obj) => { storedChats = obj.chats; })
+    existingMetas = [];
+    savedEntries  = [];
+    mockRepo = {
+      loadAll: vi.fn(async () => [...existingMetas]),
+      addChat: vi.fn(async (entry) => { savedEntries.push(entry); }),
     };
   });
 
@@ -304,51 +307,46 @@ describe('handleSaveChat()', () => {
   };
 
   it('saves a valid chat and returns the new entry', async () => {
-    const result = await handleSaveChat(validPayload, {}, mockStorage);
+    const result = await handleSaveChat(validPayload, {}, mockRepo);
     expect(result.title).toBe('Test Chat');
     expect(result.source).toBe('chatgpt');
-    expect(mockStorage.set).toHaveBeenCalledOnce();
+    expect(mockRepo.addChat).toHaveBeenCalledOnce();
   });
 
-  it('appends to existing chats', async () => {
-    storedChats = [{ id: 'existing', url: 'https://other.com', timestamp: 0 }];
-    await handleSaveChat(validPayload, {}, mockStorage);
-    expect(storedChats).toHaveLength(2);
+  it('calls addChat with the new entry', async () => {
+    await handleSaveChat(validPayload, {}, mockRepo);
+    expect(savedEntries).toHaveLength(1);
   });
 
   it('throws for invalid title', async () => {
-    await expect(handleSaveChat({ ...validPayload, title: '' }, {}, mockStorage))
+    await expect(handleSaveChat({ ...validPayload, title: '' }, {}, mockRepo))
       .rejects.toThrow('Chat title is required');
   });
 
   it('throws for invalid content', async () => {
-    await expect(handleSaveChat({ ...validPayload, content: '' }, {}, mockStorage))
+    await expect(handleSaveChat({ ...validPayload, content: '' }, {}, mockRepo))
       .rejects.toThrow('Chat content is required');
   });
 
   it('throws for invalid source', async () => {
-    await expect(handleSaveChat({ ...validPayload, source: 'unknown' }, {}, mockStorage))
+    await expect(handleSaveChat({ ...validPayload, source: 'unknown' }, {}, mockRepo))
       .rejects.toThrow('Invalid source');
   });
 
   it('deduplicates: returns existing chat without saving again', async () => {
-    // Pre-populate with a chat from same URL, saved just now
     const existing = { id: 'old-id', url: validPayload.url, timestamp: Date.now() - 100 };
-    storedChats = [existing];
+    existingMetas = [existing];
 
-    const result = await handleSaveChat(validPayload, {}, mockStorage);
-    expect(result.id).toBe('old-id');          // returned existing
-    expect(mockStorage.set).not.toHaveBeenCalled(); // no new save
+    const result = await handleSaveChat(validPayload, {}, mockRepo);
+    expect(result.id).toBe('old-id');
+    expect(mockRepo.addChat).not.toHaveBeenCalled();
   });
 
   it('does NOT deduplicate when same URL saved a long time ago', async () => {
-    storedChats = [{
-      id:        'old', url: validPayload.url,
-      timestamp: Date.now() - 60_000 // 1 minute ago
-    }];
-    const result = await handleSaveChat(validPayload, {}, mockStorage);
+    existingMetas = [{ id: 'old', url: validPayload.url, timestamp: Date.now() - 60_000 }];
+    const result = await handleSaveChat(validPayload, {}, mockRepo);
     expect(result.id).not.toBe('old');
-    expect(mockStorage.set).toHaveBeenCalledOnce();
+    expect(mockRepo.addChat).toHaveBeenCalledOnce();
   });
 
   it('infers source from tab URL when payload source missing', async () => {
@@ -356,21 +354,21 @@ describe('handleSaveChat()', () => {
     const result = await handleSaveChat(
       { ...noSource, source: 'claude', url: 'https://claude.ai/chat/abc' },
       { tab: { url: 'https://claude.ai/chat/abc' } },
-      mockStorage
+      mockRepo
     );
     expect(result.source).toBe('claude');
   });
 
-  it('starts chats from [] when storage is empty', async () => {
-    mockStorage.get = vi.fn(async () => ({})); // no chats key
-    await handleSaveChat(validPayload, {}, mockStorage);
-    expect(mockStorage.set).toHaveBeenCalledWith({
-      chats: expect.arrayContaining([expect.objectContaining({ title: 'Test Chat' })])
-    });
+  it('starts from empty list when loadAll returns []', async () => {
+    // existingMetas is [] by default
+    await handleSaveChat(validPayload, {}, mockRepo);
+    expect(mockRepo.addChat).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Test Chat' })
+    );
   });
 
   it('returns an entry with all required fields', async () => {
-    const result = await handleSaveChat(validPayload, {}, mockStorage);
+    const result = await handleSaveChat(validPayload, {}, mockRepo);
     expect(result).toMatchObject({
       id:           expect.any(String),
       title:        'Test Chat',

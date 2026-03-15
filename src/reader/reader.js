@@ -136,13 +136,15 @@ export function applyInline(escaped) {
   });
 
   // Inline links [text](url)
+  const SAFE_HREF = /^(https?:|mailto:|\/|#|[^:]*$)/i;
   s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
     // Internal navigation: select a chat in the sidepanel tree
     if (href.startsWith('bainder://select-chat?id=')) {
       const chatId = href.slice('bainder://select-chat?id='.length);
       return protect(`<a href="#" class="source-chat-link" data-select-chat="${chatId}" title="Select this chat in the tree">${text}</a>`);
     }
-    return protect(`<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`);
+    const safeHref = SAFE_HREF.test(href) ? href : '#';
+    return protect(`<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${text}</a>`);
   });
 
   // ── Pass 3: auto-link bare https?:// URLs ──────────────────────────────
@@ -1796,12 +1798,18 @@ export function setupStaleBanner(chatId, chat, storage) {
   banner.querySelector('.stale-banner__dismiss')?.addEventListener('click', async () => {
     banner.hidden = true;
     try {
-      const result  = await storage.get(['chats']);
-      const chats   = result.chats || [];
-      const updated = chats.map(c =>
-        c.id === chatId ? { ...c, flaggedAsStale: false } : c
-      );
-      await storage.set({ chats: updated });
+      // New per-chat-key format: patch only the individual key.
+      const r = await storage.get([`chat:${chatId}`, 'chats']);
+      if (r[`chat:${chatId}`]) {
+        await storage.set({ [`chat:${chatId}`]: { ...r[`chat:${chatId}`], flaggedAsStale: false } });
+      } else {
+        // Legacy format fallback.
+        const chats   = r.chats || [];
+        const updated = chats.map(c =>
+          c.id === chatId ? { ...c, flaggedAsStale: false } : c
+        );
+        await storage.set({ chats: updated });
+      }
     } catch (err) {
       console.error('Failed to mark chat as reviewed:', err);
     }
@@ -1827,10 +1835,16 @@ export function setupRating(chatId, initRating, storage) {
         rating = (rating === i) ? 0 : i;
         renderStars();
         try {
-          const result = await storage.get(['chats']);
-          const chats  = result.chats || [];
-          const updated = chats.map(c => c.id === chatId ? { ...c, rating: rating || null } : c);
-          await storage.set({ chats: updated });
+          // New per-chat-key format: patch only the individual key.
+          const r = await storage.get([`chat:${chatId}`, 'chats']);
+          if (r[`chat:${chatId}`]) {
+            await storage.set({ [`chat:${chatId}`]: { ...r[`chat:${chatId}`], rating: rating || null } });
+          } else {
+            // Legacy format fallback.
+            const chats  = r.chats || [];
+            const updated = chats.map(c => c.id === chatId ? { ...c, rating: rating || null } : c);
+            await storage.set({ chats: updated });
+          }
         } catch (err) {
           console.error('Failed to save rating:', err);
         }
@@ -1917,9 +1931,11 @@ export async function init(storage) {
       return;
     }
 
-    const result = await storage.get(['chats']);
-    const chats = result.chats || [];
-    const chat = chats.find(c => c.id === chatId) || null;
+    const result = await storage.get([`chat:${chatId}`, 'chats']);
+    // Support both new per-chat-key format and legacy 'chats' array.
+    const chat = result[`chat:${chatId}`]
+      || (Array.isArray(result.chats) ? result.chats.find(c => c.id === chatId) : null)
+      || null;
 
     if (!chat) {
       showError(`Conversation not found (id: ${chatId}). It may have been deleted.`);
@@ -1936,6 +1952,13 @@ export async function init(storage) {
         document.body.classList.remove('ordinals-hidden');
       }
     } catch (_) {}
+
+    // For backlinks we need metadata about other chats.
+    // Try new chatIndex first, fall back to legacy chats array.
+    const idxResult = await storage.get(['chatIndex', 'chats']);
+    const chats = Array.isArray(idxResult.chatIndex)
+      ? idxResult.chatIndex
+      : (Array.isArray(idxResult.chats) ? idxResult.chats : []);
 
     renderChat(chat);
     setupReaderCopyButton(chat, storage);  // C.26 — copy button
