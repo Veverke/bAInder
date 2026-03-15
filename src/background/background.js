@@ -140,7 +140,16 @@ browser.action.onClicked.addListener((tab) => {
 // Handle messages from content scripts and side panel
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   logger.debug('Runtime message received:', message.type);
-  
+
+  // Forward logs from content scripts (tab console → SW console).
+  if (message.type === 'CONTENT_LOG') {
+    const lvl = message.level || 'info';
+    if (lvl === 'warn')  logger.warn('[content]', message.msg);
+    else if (lvl === 'error') logger.error('[content]', message.msg);
+    else                 logger.info('[content]', message.msg);
+    return; // no sendResponse needed
+  }
+
   switch (message.type) {
     case 'FETCH_IMAGE_AS_DATA_URL': {
       // Content scripts cannot bypass CORP: same-site for cross-origin image hosts

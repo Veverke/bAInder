@@ -127,6 +127,8 @@ export async function extractCopilot(doc) {
     const resolvedEl = await resolveImageBlobs(processEl, bgFetch, el);
     let content = stripRoleLabels(htmlToMarkdown(resolvedEl));
     if (role === 'assistant') content += extractSourceLinks(el);
+    console.log('[bAInder] [copilot] extracted msg', messages.length, role,
+      '| len:', content.length, '| preview:', JSON.stringify(content.slice(0, 300)));
     if (content) messages.push(formatMessage(role, content));
   }
 

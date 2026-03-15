@@ -9,6 +9,77 @@
 import { messagesToMarkdown } from '../lib/io/markdown-serialiser.js';
 import { generateId } from '../lib/utils/search-utils.js';
 import { logger } from '../lib/utils/logger.js';
+import { extractChatEntities } from '../lib/entities/entity-extractor.js';
+// Register Phase-A extractors (prompts, citations, tables) as a side effect.
+import '../lib/entities/extractors/index.js';
+
+// ── Audio text heuristics ────────────────────────────────────────────────────
+// When conversation content is captured from AI platforms that generate audio
+// via JavaScript blobs (ChatGPT code-interpreter, Gemini), no <audio> element
+// or src attribute is present in the DOM at save time.  These heuristics detect
+// common textual patterns in the captured markdown and inject a
+// [🔊 Generated audio (not captured)] placeholder so the reader and entity
+// extractor know audio is present.
+//
+// Run in the background (not only the content-script) so that existing tabs
+// with old content-script versions still benefit after an extension update.
+
+const _AUDIO_GENERAL_RE   = /\b(wav|mp3|ogg|webm|m4a|aac|flac|opus|audio|sound|ambient|soundscape)\b/i;
+// ChatGPT code-interpreter: always writes "**Download it here:**" before the download widget.
+const _CHATGPT_DOWNLOAD_RE = /(\*{0,2}Download(?:\s+it)?\s*here:?\*{0,2}[ \t]*)\n/i;
+// Gemini: writes phrases like "It's ready to play!" / "ready to listen" when an audio widget is shown.
+// Match to end of sentence so we insert the marker after the full sentence, not mid-word.
+const _GEMINI_READY_RE = /\b(ready\s+to\s+play|ready\s+to\s+listen|you\s+can\s+(?:play|listen)|play\s+it\s+(?:here|below|now))([^\n.!?]*[.!?]?)/i;
+
+/**
+ * Post-process extracted messages to inject audio markers where the AI platform
+ * generated an audio file but the download widget had no static DOM src.
+ * Also strips ChatGPT response-variant pagination ("1 / 2") from trailing content.
+ *
+ * Mutates the array in place; always returns the same array.
+ *
+ * @param {Array<{role:string, content:string}>} messages
+ * @param {string} source  'chatgpt' | 'gemini' | 'claude' | 'copilot' | 'unknown'
+ * @returns {Array}
+ */
+export function normaliseMessages(messages, source) {
+  if (!Array.isArray(messages)) return messages;
+
+  for (const msg of messages) {
+    if (msg.role !== 'assistant' || typeof msg.content !== 'string') continue;
+
+    // Skip if audio already captured (either a full marker or a placeholder).
+    if (msg.content.includes('🔊')) continue;
+
+    const hasAudioSignal = _AUDIO_GENERAL_RE.test(msg.content);
+
+    // ChatGPT: "**Download it here:**" gap heuristic
+    if ((source === 'chatgpt' || source === 'unknown') &&
+        _CHATGPT_DOWNLOAD_RE.test(msg.content) && hasAudioSignal) {
+      logger.info('[chat-save-handler] audio heuristic (chatgpt): injecting placeholder');
+      msg.content = msg.content.replace(
+        _CHATGPT_DOWNLOAD_RE,
+        '$1\n[🔊 Generated audio (not captured)]\n'
+      );
+    }
+
+    // Gemini: "It's ready to play!" heuristic
+    if ((source === 'gemini' || source === 'unknown') &&
+        _GEMINI_READY_RE.test(msg.content) && hasAudioSignal) {
+      logger.info('[chat-save-handler] audio heuristic (gemini): injecting placeholder');
+      // Append after the "ready to play" sentence so it reads naturally.
+      msg.content = msg.content.replace(
+        _GEMINI_READY_RE,
+        '$1$2\n\n[🔊 Generated audio (not captured)]'
+      );
+    }
+
+    // Strip ChatGPT response-variant pagination ("1 / 2", "2/3", …) from the end.
+    msg.content = msg.content.replace(/\n+\d+\s*\/\s*\d+\s*$/, '').trimEnd();
+  }
+
+  return messages;
+}
 
 /**
  * Detect the AI source platform from a URL string.
@@ -73,23 +144,63 @@ export function findDuplicate(existingChats, url, windowMs = 5000) {
  * Build the chat entry object to persist.
  * @param {Object} chatData
  * @param {string} tabUrl   URL of the sender tab (from chrome.runtime message sender)
- * @returns {Object}
+ * @returns {Promise<Object>}
  */
-export function buildChatEntry(chatData, tabUrl) {
+export async function buildChatEntry(chatData, tabUrl) {
   const url    = chatData.url || tabUrl || '';
   const source = chatData.source || detectSource(url);
 
+  const generatedId = generateId();
+
+  // Normalise messages: inject audio markers, strip pagination artefacts.
+  // Run before entity extraction so extractors see the corrected content.
+  const messages = normaliseMessages(chatData.messages ?? [], source);
+
+  // Run entity extraction — doc is null in background context; extractors handle this gracefully.
+  const entities = await extractChatEntities(messages, null, generatedId);
+  logger.debug('buildChatEntry: entity types extracted:', Object.keys(entities), '| message count:', messages.length);
+
+  // Apply the same normalisation patches to the stored content string so that
+  // the reader sees the corrected markdown.  We patch the content directly rather
+  // than re-serialising to avoid changing the frontmatter or formatting.
+  let content = chatData.content.trim();
+  if (messages.length > 0 && content.startsWith('---')) {
+    // Apply ChatGPT download-gap heuristic to content string
+    if ((source === 'chatgpt' || source === 'unknown') &&
+        !content.includes('🔊') &&
+        _CHATGPT_DOWNLOAD_RE.test(content) &&
+        _AUDIO_GENERAL_RE.test(content)) {
+      content = content.replace(
+        _CHATGPT_DOWNLOAD_RE,
+        '$1\n[🔊 Generated audio (not captured)]\n'
+      );
+    }
+    // Apply Gemini "ready to play" heuristic to content string
+    if ((source === 'gemini' || source === 'unknown') &&
+        !content.includes('🔊') &&
+        _GEMINI_READY_RE.test(content) &&
+        _AUDIO_GENERAL_RE.test(content)) {
+      content = content.replace(
+        _GEMINI_READY_RE,
+        '$1$2\n\n[🔊 Generated audio (not captured)]'
+      );
+    }
+    // Strip ChatGPT response-variant pagination from content string
+    content = content.replace(/\n+\d+\s*\/\s*\d+\s*$/, '').trimEnd();
+  }
+
   return {
-    id:           generateChatId(),
+    id:           generatedId,
     title:        chatData.title.trim(),
-    content:      chatData.content.trim(),
+    content,
     url,
     source,
     timestamp:    Date.now(),
     topicId:      null,
     messageCount: chatData.messageCount || 0,
-    messages:     chatData.messages     || [],
-    metadata:     chatData.metadata     || {}
+    messages,
+    metadata:     chatData.metadata     || {},
+    ...entities,
   };
 }
 
@@ -163,7 +274,7 @@ export async function handleSaveChat(chatData, sender, storage) {
     return duplicate;
   }
 
-  const newChat = buildChatEntry(chatData, tabUrl);
+  const newChat = await buildChatEntry(chatData, tabUrl);
   chats.push(newChat);
   await storage.set({ chats });
 

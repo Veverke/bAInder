@@ -27,6 +27,99 @@ const SOURCE_LABELS = {
   copilot: 'Copilot',
 };
 
+// C.25 — entity type display labels for the hover overlay (excludes 'prompt'
+// which is shown as part of the message-count row, and 'code' which gets its
+// own language-breakdown row).
+const _ENTITY_OVERLAY_LABELS = {
+  citation:   'Citations',
+  table:      'Tables',
+  diagram:    'Diagrams',
+  toolCall:   'Tool Calls',
+  attachment: 'Attachments',
+  image:      'Images',
+  audio:      'Audio',
+  artifact:   'Artifacts',
+};
+
+/**
+ * Build the inner content fragment for the C.25 chat hover overlay.
+ * Returns a DocumentFragment with one or more `.hover-row` divs, or null if
+ * there is nothing meaningful to show.
+ * @param {Object} chat — chat entry from state.chats
+ * @returns {DocumentFragment|null}
+ */
+function _buildChatInfoOverlay(chat) {
+  const frag = document.createDocumentFragment();
+  let rowCount = 0;
+
+  const addRow = (className, text) => {
+    const row = document.createElement('div');
+    row.className = `hover-row ${className}`;
+    row.textContent = text;
+    frag.appendChild(row);
+    rowCount++;
+  };
+
+  // ── Size + total message count ──────────────────────────────────────────
+  const sizeKB = chat.content
+    ? `${(chat.content.length / 1024).toFixed(1)} KB`
+    : null;
+  const msgCount = chat.messageCount ?? 0;
+  const metaParts = [];
+  if (sizeKB) metaParts.push(sizeKB);
+  if (msgCount > 0) metaParts.push(`${msgCount} ${msgCount === 1 ? 'message' : 'messages'}`);
+  if (metaParts.length > 0) addRow('hover-row--meta', metaParts.join(' · '));
+
+  // ── Prompt / response split ─────────────────────────────────────────────
+  if (msgCount > 0) {
+    const promptCount   = chat.prompt?.length ?? 0;
+    const responseCount = msgCount - promptCount;
+    addRow('hover-row--turns',
+      `${promptCount} ${promptCount === 1 ? 'prompt' : 'prompts'} · ` +
+      `${responseCount} ${responseCount === 1 ? 'response' : 'responses'}`);
+  }
+
+  // ── Code snippet language breakdown ─────────────────────────────────────
+  if (Array.isArray(chat.code) && chat.code.length > 0) {
+    const langCounts = {};
+    for (const entity of chat.code) {
+      const lang = entity.language || 'text';
+      langCounts[lang] = (langCounts[lang] ?? 0) + 1;
+    }
+    const langStr = Object.entries(langCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([lang, n]) => `${lang}: ${n}`)
+      .join(', ');
+    addRow('hover-row--code', `Code: ${langStr}`);
+  }
+
+  // ── Other entity-type counts ─────────────────────────────────────────────
+  const entityParts = [];
+  for (const [key, label] of Object.entries(_ENTITY_OVERLAY_LABELS)) {
+    const count = chat[key]?.length ?? 0;
+    if (count > 0) entityParts.push(`${label}: ${count}`);
+  }
+  if (entityParts.length > 0) addRow('hover-row--entities', entityParts.join(' · '));
+
+  // ── Tag pills ────────────────────────────────────────────────────────────
+  const tags = chat.tags || [];
+  if (tags.length > 0) {
+    const tagsRow = document.createElement('div');
+    tagsRow.className = 'hover-row hover-row--tags';
+    tags.forEach(tag => {
+      const pill = document.createElement('span');
+      pill.className = 'tree-tag-chip tree-tag-chip--overlay';
+      pill.style.setProperty('--tag-hue', getTagColor(tag));
+      pill.textContent = tag;
+      tagsRow.appendChild(pill);
+    });
+    frag.appendChild(tagsRow);
+    rowCount++;
+  }
+
+  return rowCount > 0 ? frag : null;
+}
+
 /**
  * Build a rendered <li> element for one chat entry.
  * @param {Object}      chat
@@ -139,7 +232,7 @@ export function buildChatItem(chat, level, ctx) {
     label.appendChild(staleBadge);
   }
 
-  // ── Tag chips + hover overlay ────────────────────────────────────────────
+  // ── Tag chips + hover overlay (C.25) ────────────────────────────────────
   const tags = chat.tags || [];
   if (tags.length > 0) {
     const tagsEl = document.createElement('span');
@@ -152,8 +245,11 @@ export function buildChatItem(chat, level, ctx) {
       tagsEl.appendChild(chip);
     });
     label.appendChild(tagsEl);
+  }
 
-    // Floating hover overlay showing coloured tag pills
+  // C.25 — Rich hover overlay: size, message counts, code breakdown, entity counts, tags
+  const _overlayContent = _buildChatInfoOverlay(chat);
+  if (_overlayContent) {
     let _overlay = null;
     let _docOverListener = null;
     const _hideOverlay = () => {
@@ -166,22 +262,13 @@ export function buildChatItem(chat, level, ctx) {
     const _showOverlay = (anchorRect) => {
       if (_overlay) return;
       _overlay = document.createElement('div');
-      _overlay.className = 'tree-tag-hover-overlay';
-      tags.forEach((tag) => {
-        const pill = document.createElement('span');
-        pill.className = 'tree-tag-chip tree-tag-chip--overlay';
-        pill.style.setProperty('--tag-hue', getTagColor(tag));
-        pill.textContent = tag;
-        _overlay.appendChild(pill);
-      });
+      _overlay.className = 'tree-chat-hover-overlay';
+      _overlay.appendChild(_overlayContent.cloneNode(true));
       document.body.appendChild(_overlay);
-      const left = Math.min(anchorRect.left, window.innerWidth - 240);
+      const left = Math.min(anchorRect.left, window.innerWidth - 260);
       const top  = anchorRect.bottom + 4;
       _overlay.style.left = `${left}px`;
       _overlay.style.top  = `${top}px`;
-      // Safety net: if content is removed from the DOM (e.g. tree re-render,
-      // virtual scroll) the mouseleave never fires. Hide on the next mouseover
-      // that lands outside content or after content has been detached.
       _docOverListener = (e) => {
         if (!document.contains(content) || !content.contains(e.target)) {
           _hideOverlay();

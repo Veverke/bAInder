@@ -68,6 +68,18 @@ export const elements = {
   multiSelectCancelBtn: document.getElementById('multiSelectCancelBtn'),
   // C.18 — compare selected chats
   compareBtn:           document.getElementById('compareBtn'),
+  // C.13 — tab switching
+  tabChatSessions:      document.getElementById('tabChatSessions'),
+  tabChatEntities:      document.getElementById('tabChatEntities'),
+  sessionPanel:         document.getElementById('sessionPanel'),
+  entityPanel:          document.getElementById('entityPanel'),
+  entityTree:           document.getElementById('entityTree'),
+  // C.13 — search context toggle
+  searchCtxChats:         document.getElementById('searchCtxChats'),
+  searchCtxEntities:      document.getElementById('searchCtxEntities'),
+  // C.13 — entity-type filter chips
+  filterEntityTypes:      document.getElementById('filterEntityTypes'),
+  filterEntityTypePills:  document.getElementById('filterEntityTypePills'),
 };
 
 // ---------------------------------------------------------------------------
@@ -95,16 +107,26 @@ export const state = {
   // Search
   searchQuery: '',
   filters: {
-    sources:   new Set(),   // active source keys (empty = all)
-    dateFrom:  null,        // 'YYYY-MM-DD' or null
-    dateTo:    null,        // 'YYYY-MM-DD' or null
-    topicId:   '',          // '' = all topics
-    minRating: null,        // C.15 — 1–5 or null
-    tags:      new Set()    // active tag strings (empty = all)
+    sources:     new Set(),   // active source keys (empty = all)
+    dateFrom:    null,        // 'YYYY-MM-DD' or null
+    dateTo:      null,        // 'YYYY-MM-DD' or null
+    topicId:     '',          // '' = all topics
+    minRating:   null,        // C.15 — 1–5 or null
+    tags:        new Set(),   // active tag strings (empty = all)
+    entityTypes: new Set(),   // C.13 — active entity-type keys (empty = all)
   },
 
   // C.9 — topic sort mode (persisted to localStorage)
   sortMode: localStorage.getItem('topicSortMode') || 'alpha-asc',
+
+  // C.13 — active tab: 'sessions' | 'entities'
+  activeTab: 'sessions',
+
+  // C.13 — search context: 'chats' | 'entities'
+  searchContext: 'chats',
+
+  // C.13 — entity controller initialisation flag
+  entityControllerInitialized: false,
 
   // Toast timer handle
   _toastTimer: null,
