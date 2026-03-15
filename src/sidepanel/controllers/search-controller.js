@@ -15,7 +15,7 @@
 
 import { state, elements } from '../app-context.js';
 import { ENTITY_TYPES } from '../../lib/entities/chat-entity.js';
-import { setFilter as setEntityTreeFilter } from './entity-controller.js';
+import { setFilter as setEntityTreeFilter, getPresentEntityTypes } from './entity-controller.js';
 import { logger } from '../../lib/utils/logger.js';
 import {
   extractSnippet,
@@ -446,11 +446,15 @@ function _populateEntityTypeChips() {
   const container  = _els.filterEntityTypePills ?? document.getElementById('filterEntityTypePills');
   if (!container) return;
 
+  const presentTypes = new Set(getPresentEntityTypes());
+
   for (const type of Object.values(ENTITY_TYPES)) {
     const pill = document.createElement('button');
     pill.className = 'filter-pill';
     pill.dataset.entityType = type;
     pill.textContent = TYPE_LABELS_SHORT[type] ?? type;
+    // Hide chips for entity types that have no entities yet
+    if (presentTypes.size > 0 && !presentTypes.has(type)) pill.hidden = true;
     pill.addEventListener('click', () => {
       const ctx     = _state.state ?? _state;
       const filters = ctx.filters;
@@ -471,6 +475,22 @@ function _populateEntityTypeChips() {
     container.appendChild(pill);
   }
   _chipsPopulated = true;
+}
+
+/**
+ * Re-evaluate chip visibility after new chats (and their entities) have been
+ * saved. Shows chips for newly-present types; hides chips for types that no
+ * longer have any entities.
+ */
+export function refreshEntityTypeChipVisibility() {
+  const _els = _state.elements ?? elements;
+  const container = _els.filterEntityTypePills ?? document.getElementById('filterEntityTypePills');
+  if (!container) return;
+  const presentTypes = new Set(getPresentEntityTypes());
+  if (presentTypes.size === 0) return; // no data yet — leave chips as-is
+  container.querySelectorAll('[data-entity-type]').forEach(pill => {
+    pill.hidden = !presentTypes.has(pill.dataset.entityType);
+  });
 }
 
 /**

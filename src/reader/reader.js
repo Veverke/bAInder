@@ -13,6 +13,7 @@ import {
 import { setupStickyNotes } from '../lib/sticky-notes/sticky-notes-ui.js';
 import browser from '../lib/vendor/browser.js';
 import { escapeHtml, generateId } from '../lib/utils/search-utils.js';
+import { logger } from '../lib/utils/logger.js';
 import {
   getClipboardSettings,
   serialiseChats,
@@ -182,10 +183,13 @@ export function applyInline(escaped) {
  *   - Inline: **bold**, *italic*, `code`
  *
  * @param {string} markdown
+ * @param {{ sourceUrl?: string }} [options]
  * @returns {string}  HTML string
  */
-export function renderMarkdown(markdown) {
+export function renderMarkdown(markdown, options = {}) {
   if (!markdown || typeof markdown !== 'string') return '';
+  const _sourceUrl = (options.sourceUrl && typeof options.sourceUrl === 'string')
+    ? options.sourceUrl.trim() : '';
 
   // Strip YAML frontmatter
   let text = markdown;
@@ -251,6 +255,48 @@ export function renderMarkdown(markdown) {
         continue;
       }
     }
+    // ── Generated audio block ─────────────────────────────────────────────
+    // Matches the marker emitted by htmlToMarkdown's <audio> case:
+    //   [🔊 Generated audio](src)              → playable <audio> element
+    //   [🔊 Generated audio (session-only)](blob:…) → session-expired notice
+    //   [🔊 Generated audio (not captured)]    → capture-failed notice  (no URL)
+    {
+      const audioMarkerRe = /^\[🔊 Generated audio([^\]]*)\](?:\(([^)]*)\))?$/;
+      const audioMatch = line.trim().match(audioMarkerRe);
+      if (audioMatch) {
+        flushPara(paraBuf); paraBuf = '';
+        flushList();
+        const note = (audioMatch[1] || '').trim();  // e.g. ' (session-only)'
+        const src  = audioMatch[2] || '';
+
+        let cardHtml;
+        if (src && (src.startsWith('data:') || /^https?:\/\//i.test(src))) {
+          // Resolved data: URI or https: URL — render a real player
+          const srcEsc = escapeHtml(src);
+          cardHtml =
+            `<div class="audio-card">` +
+              `<div class="audio-card__icon">🔊</div>` +
+              `<div class="audio-card__body">` +
+                `<div class="audio-card__label">Generated audio</div>` +
+                `<audio controls class="audio-card__player" src="${srcEsc}"></audio>` +
+              `</div>` +
+            `</div>`;
+        } else {
+          // Blob: URL (session expired) or no URL (not captured)
+          const label = src.startsWith('blob:')
+            ? 'Generated audio · session expired — open original chat to play'
+            : `Generated audio${note || ' · not captured'}`;
+          cardHtml =
+            `<div class="audio-card audio-card--unavailable">` +
+              `<div class="audio-card__icon">🔊</div>` +
+              `<div class="audio-card__label">${escapeHtml(label)}</div>` +
+            `</div>`;
+        }
+        htmlParts.push(cardHtml);
+        i++;
+        continue;
+      }
+    }
     // ── Standalone image line  ![alt](src) ─────────────────────────────
     if (/^!\[/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
@@ -283,7 +329,7 @@ export function renderMarkdown(markdown) {
           `<div class="code-block__header">` +
             langLabel +
             `<button class="code-block__copy" aria-label="Copy code">` +
-              `<svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M7.09 3c.2-.58.76-1 1.41-1h3c.65 0 1.2.42 1.41 1h1.59c.83 0 1.5.67 1.5 1.5v12c0 .83-.67 1.5-1.5 1.5h-9A1.5 1.5 0 0 1 4 16.5v-12C4 3.67 4.67 3 5.5 3h1.59ZM8.5 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3Z"/></svg>` +
+              `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="13" height="13" x="9" y="9" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>` +
               `<span class="code-block__copy-label">Copy</span>` +
             `</button>` +
           `</div>` +
@@ -430,6 +476,84 @@ export function renderMarkdown(markdown) {
     if (/^\s*<!--.*-->\s*$/.test(line)) {
       i++;
       continue;
+    }
+
+    // ── File attachment chip ───────────────────────────────────────────────
+    // Matches a standalone filename line (e.g. "report.pdf" or "data.xlsx").
+    // messagesToMarkdown prepends a role emoji (🙋 / 🤖) to the first content
+    // line, so strip it before matching (e.g. "🤖 report.pdf" → "report.pdf").
+    // Only fires when we're NOT mid-paragraph so we never break prose sentences.
+    {
+      const _EXT = 'pdf|docx?|xlsx?|pptx?|csv|txt|md|json|xml|ya?ml|' +
+                   'zip|gz|tar|rar|7z|' +
+                   'png|jpe?g|gif|webp|svg|bmp|ico|' +
+                   'mp3|wav|ogg|flac|aac|' +
+                   'mp4|mov|avi|mkv|webm|' +
+                   'py|js|ts|rb|java|cs|cpp?|h|go|rs|sh|bat|ps1';
+      const _attachRe = new RegExp(
+        `^([\\w][\\w .,'\\-()\\[\\]]{0,197}\\.(?:${_EXT}))\\s*$`, 'i'
+      );
+      const _typeLabelRe = /^[A-Z]{2,6}(\s+File)?\s*$/;
+
+      // Strip leading role emoji + space (added by messagesToMarkdown).
+      // Capture the emoji so we can re-emit it as a turn-marker <p> for
+      // wrapChatTurns — if we just swallow it the turn boundary is lost.
+      const _roleEmojiRe = /^([\u{1F300}-\u{1FFFF}\u{2600}-\u{27BF}])\s+/u;
+      const _emojiPrefix = line.match(_roleEmojiRe);
+      const _lineForAttach = _emojiPrefix ? line.slice(_emojiPrefix[0].length) : line;
+      const attachMatch = !paraBuf.trim() && _lineForAttach.match(_attachRe);
+      // Log any line with a known file extension so we can trace detection
+      if (/\.[a-z]{2,5}\s*$/i.test(_lineForAttach)) {
+        logger.debug('[reader] attach-check line:', JSON.stringify(line),
+          '→ stripped:', JSON.stringify(_lineForAttach), '| paraBuf empty:', !paraBuf.trim(),
+          '| match:', !!attachMatch);
+      }
+      if (attachMatch) {
+        flushList();
+        const fname = attachMatch[1].trim();
+        logger.debug('[reader] rendering chip for:', fname);
+        // If the original line carried a role emoji, re-emit it as a lone <p>
+        // so wrapChatTurns can still identify the turn boundary.  After
+        // wrapChatTurns processes it, the empty <p> becomes invisible.
+        if (_emojiPrefix) {
+          htmlParts.push(`<p>${_emojiPrefix[1]}</p>`);
+        }
+        const ext   = fname.split('.').pop().toUpperCase();
+        const iconMap = {
+          PDF: '📄',
+          DOC: '📝', DOCX: '📝', TXT: '📝', MD: '📝',
+          XLS: '📊', XLSX: '📊', CSV: '📊',
+          PPT: '📊', PPTX: '📊',
+          PNG: '🖼', JPG: '🖼', JPEG: '🖼', GIF: '🖼', WEBP: '🖼',
+          SVG: '🖼', BMP: '🖼', ICO: '🖼',
+          MP3: '🎵', WAV: '🎵', OGG: '🎵', FLAC: '🎵', AAC: '🎵',
+          MP4: '🎬', MOV: '🎬', AVI: '🎬', MKV: '🎬', WEBM: '🎬',
+          ZIP: '🗜', GZ: '🗜', TAR: '🗜', RAR: '🗜',
+          PY: '📜', JS: '📜', TS: '📜', RB: '📜', JAVA: '📜',
+          CS: '📜', CPP: '📜', GO: '📜', RS: '📜', SH: '📜',
+        };
+        const icon    = iconMap[ext] ?? '📎';
+        const nameEsc = escapeHtml(fname);
+        const extEsc  = escapeHtml(ext);
+        const urlEsc  = _sourceUrl ? escapeHtml(_sourceUrl) : '';
+        // Inner chip markup
+        const chipInner =
+          `<span class="file-attachment-chip__icon">${icon}</span>` +
+          `<span class="file-attachment-chip__name">${nameEsc}</span>` +
+          `<span class="file-attachment-chip__ext">${extEsc}</span>` +
+          `<span class="file-attachment-chip__note">session·go to original chat to download</span>`;
+        // Wrap in a link to the source chat if the URL is available
+        const chipHtml = urlEsc
+          ? `<a class="file-attachment-chip" href="${urlEsc}" target="_blank" rel="noopener noreferrer" title="Open original chat to download ${nameEsc}">${chipInner}</a>`
+          : `<div class="file-attachment-chip" title="Session-bound — open the original chat to download">${chipInner}</div>`;
+        htmlParts.push(chipHtml);
+        i++;
+        // Skip any following blank lines
+        while (i < lines.length && lines[i].trim() === '') i++;
+        // Skip a bare type-label line (e.g. "PDF" or "PDF File")
+        if (i < lines.length && _typeLabelRe.test(lines[i].trim())) i++;
+        continue;
+      }
     }
 
     // ── Regular text \u2014 accumulate into paragraph ───────────────────────────
@@ -1393,7 +1517,18 @@ export function renderChat(chat) {
   // ── Content ──────────────────────────────────────────────────────────────
   const contentEl = document.getElementById('reader-content');
 
-  contentEl.innerHTML = renderMarkdown(content);
+  // Log key lines in the content so we can trace attachment / audio rendering
+  const _pdfLines   = content.split('\n').filter(l => /\.[a-z]{2,5}\s*$/i.test(l.trim()));
+  const _audioLines = content.split('\n').filter(l => l.includes('🔊'));
+  logger.info('[reader] renderMarkdown: content length', content.length,
+    '| audio markers:', _audioLines.length,
+    '| lines with file extensions:', _pdfLines.map(l => JSON.stringify(l)));
+  if (_audioLines.length) logger.info('[reader] audio marker lines:', _audioLines.map(l => l.slice(0, 100)));
+  // Dump full assistant message content for diagnostics (first 2000 chars)
+  const _fullContent = content.length > 200 ? content.slice(0, 2000) + (content.length > 2000 ? '…' : '') : content;
+  logger.info('[reader] full content dump:', JSON.stringify(_fullContent));
+
+  contentEl.innerHTML = renderMarkdown(content, { sourceUrl: chat.url || '' });
   wrapChatTurns(contentEl);
   processSources(contentEl);
   setupSourcesPanel();
@@ -1405,10 +1540,10 @@ export function renderChat(chat) {
     copyBtn.setAttribute('aria-label', 'Copy message');
     copyBtn.title = 'Copy message';
     copyBtn.innerHTML =
-      '<svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
-      '<path d="M7.09 3c.2-.58.76-1 1.41-1h3c.65 0 1.2.42 1.41 1h1.59c.83 0 1.5.67 1.5 1.5v12' +
-      'c0 .83-.67 1.5-1.5 1.5h-9A1.5 1.5 0 0 1 4 16.5v-12C4 3.67 4.67 3 5.5 3h1.59Z' +
-      'M8.5 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3Z"/></svg>';
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<rect width="13" height="13" x="9" y="9" rx="2"/>' +
+      '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' +
+      '</svg>';
     copyBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const text = (turn.querySelector('.chat-turn__body')?.textContent ?? turn.textContent).trim();
@@ -1803,14 +1938,24 @@ export async function init(storage) {
     } catch (_) {}
 
     renderChat(chat);
-    setupReaderCopyButton(chat, storage);  // C.26 � copy button
-    // C.22 -- restore saved scroll, unless a hash anchor was requested
-    // (entity navigation opens with #p<N>/#r<N> -- honour that instead).
+    setupReaderCopyButton(chat, storage);  // C.26 — copy button
+    setupRating(chatId, chat.rating, storage);
+    setupStaleBanner(chatId, chat, storage);
+    setupScrollFeatures(chatId);          // C.22 — pass chatId for persistence
+    setupAnnotations(chatId, storage);
+    setupStickyNotes(chatId, storage, renderMarkdown);
+    // C.8 — render backlinks: chats that reference this one in annotation notes
+    await renderBacklinksSection(chatId, chat.title, chats, storage);
+
+    // C.22 -- Restore saved scroll position OR navigate to hash anchor.
+    // Deferred to AFTER all awaits so every async DOM mutation (backlinks,
+    // sticky-note overlays, annotation counts) has settled before we read
+    // getBoundingClientRect().  A double-rAF ensures the browser has had at
+    // least one layout pass to compute stable element positions.
     if (window.location.hash) {
       const hash        = window.location.hash.slice(1);
       const snippetHint = new URLSearchParams(window.location.search).get('snippet');
-      // Defer to rAF so elements are laid out and getBoundingClientRect is accurate.
-      requestAnimationFrame(() => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
         const anchorEl = document.getElementById(hash);
         if (!anchorEl) return;
         // Offset by the sticky header height so the target isn't hidden behind it.
@@ -1831,17 +1976,10 @@ export async function init(storage) {
 
         const top = anchorEl.getBoundingClientRect().top + window.scrollY - headerH - 8;
         window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
-      });
+      }));
     } else {
       restoreScrollPosition(chatId);        // C.22
     }
-    setupRating(chatId, chat.rating, storage);
-    setupStaleBanner(chatId, chat, storage);
-    setupScrollFeatures(chatId);          // C.22 \u2014 pass chatId for persistence
-    setupAnnotations(chatId, storage);
-    setupStickyNotes(chatId, storage, renderMarkdown);
-    // C.8 \u2014 render backlinks: chats that reference this one in annotation notes
-    await renderBacklinksSection(chatId, chat.title, chats, storage);
   } catch (err) {
     showError(`Failed to load conversation: ${err.message}`);
   }
@@ -1866,6 +2004,20 @@ export function _findEntityBlock(anchorEl, hint) {
   if (!hint) return null;
   const hintLc = hint.toLowerCase().trim();
 
+  // Audio cards use an index-based hint ("audio:N") — return the Nth .audio-card in the turn.
+  const audioHintMatch = hintLc.match(/^audio:(\d+)$/);
+  if (audioHintMatch) {
+    const targetIdx = parseInt(audioHintMatch[1], 10);
+    const audioCards = [];
+    let scanEl = anchorEl;
+    while (scanEl) {
+      scanEl.querySelectorAll('.audio-card').forEach(card => audioCards.push(card));
+      scanEl = scanEl.nextElementSibling;
+      if (scanEl && /^[pr]\d+$/.test(scanEl.id ?? '')) break;
+    }
+    return audioCards[targetIdx] ?? audioCards[0] ?? null;
+  }
+
   // Collect all candidate blocks from anchorEl downwards until the next turn.
   const candidates = [];
   let el = anchorEl;
@@ -1880,6 +2032,13 @@ export function _findEntityBlock(anchorEl, hint) {
         const firstLine = text.split('\n').find(l => l.trim() !== '') ?? '';
         if (firstLine.toLowerCase().trim() === hintLc) candidates.push({ el: block, score: 2 });
         else if (text.toLowerCase().includes(hintLc))  candidates.push({ el: block, score: 1 });
+      }
+    });
+    // Attachment chips → .file-attachment-chip (matched by filename)
+    el.querySelectorAll('.file-attachment-chip').forEach(chip => {
+      const nameEl = chip.querySelector('.file-attachment-chip__name');
+      if (nameEl && nameEl.textContent.toLowerCase().trim() === hintLc) {
+        candidates.push({ el: chip, score: 2 });
       }
     });
     // Anchor links (citation hint = url or title)

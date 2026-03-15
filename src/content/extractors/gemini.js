@@ -8,7 +8,7 @@
  */
 
 import { htmlToMarkdown }        from './html-to-markdown.js';
-import { resolveImageBlobs, appendShadowImages } from './image-resolver.js';
+import { resolveImageBlobs, appendShadowImages, appendShadowAudio } from './image-resolver.js';
 import { extractSourceLinks, stripSourceContainers } from './source-links.js';
 import { formatMessage, generateTitle }              from './message-utils.js';
 import { removeDescendants }                         from './shared.js';
@@ -121,6 +121,8 @@ export async function extractGemini(doc) {
     }
     // Supplement with images inside shadow-DOM roots (Gemini custom elements).
     content = await appendShadowImages(el, content, bgFetch);
+    // Supplement with audio players inside shadow-DOM roots (Gemini audio responses).
+    if (role === 'assistant') content = await appendShadowAudio(el, content);
     // Strip "Gemini said" role-label headings and "You stopped this response"
     // markers that Gemini injects into the DOM as part of its response elements.
     if (role === 'assistant') content = stripGeminiUILabels(content);
@@ -129,6 +131,29 @@ export async function extractGemini(doc) {
       '| markdown len:', content.length);
     if (role === 'assistant') content += extractSourceLinks(el);
     if (content) messages.push(formatMessage(role, content));
+  }
+
+  // Read audio blobs captured by the MAIN-world interceptor (audio-interceptor.js).
+  // Gemini generates audio via URL.createObjectURL(); the interceptor records the data URI
+  // in a hidden <meta> element accessible from this ISOLATED-world script via the DOM.
+  const cachedAudioMeta = doc.querySelectorAll('meta[name="bainder-audio-cache"]');
+  if (cachedAudioMeta.length > 0) {
+    const audioMarkers = [];
+    const seenBlobs = new Set();
+    for (const meta of cachedAudioMeta) {
+      const blobUrl = meta.getAttribute('data-blob-url') || '';
+      const dataUrl = meta.getAttribute('data-data-url') || '';
+      if (!dataUrl || seenBlobs.has(blobUrl)) continue;
+      seenBlobs.add(blobUrl);
+      console.log('[bAInder] Gemini: interceptor cache hit, blob:', blobUrl.slice(0, 60));
+      audioMarkers.push(`[🔊 Generated audio](${dataUrl})`);
+    }
+    if (audioMarkers.length > 0) {
+      const lastAsst = [...messages].reverse().find(m => m.role === 'assistant');
+      const markerText = audioMarkers.join('\n');
+      if (lastAsst) lastAsst.content += '\n\n' + markerText;
+      else messages.push(formatMessage('assistant', markerText));
+    }
   }
 
   const title = generateTitle(messages, doc.location?.href || '');

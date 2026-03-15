@@ -1,11 +1,11 @@
 /**
- * entity-controller.js — entity tab controller (Phases A + B).
+ * entity-controller.js — entity tab controller (Phases A–E).
  *
  * Lazily initialised when the user switches to the "Chat Entities" tab.
  * Creates an EntityStore and ChatEntityTree, wires the entity-click event
  * to navigate to the correct reader position, and exposes refresh/setFilter.
  *
- * Depends on: entity-store, entity-tree, Phase A+B card renderers,
+ * Depends on: entity-store, entity-tree, Phase A–E card renderers,
  *             entity-navigation, app-context, browser vendor shim.
  */
 
@@ -16,21 +16,39 @@ import { citationCard }       from '../../lib/renderer/entity-cards/citation-car
 import { tableCard }          from '../../lib/renderer/entity-cards/table-card.js';
 import { codeCard }           from '../../lib/renderer/entity-cards/code-card.js';
 import { diagramCard }        from '../../lib/renderer/entity-cards/diagram-card.js';
+import { attachmentCard }     from '../../lib/renderer/entity-cards/attachment-card.js';
+import { toolCallCard }       from '../../lib/renderer/entity-cards/tool-call-card.js';
+import { imageCard }          from '../../lib/renderer/entity-cards/image-card.js';
+import { audioCard }          from '../../lib/renderer/entity-cards/audio-card.js';
+import { artifactCard }       from '../../lib/renderer/entity-cards/artifact-card.js';
+import { showArtifactPreview } from '../features/artifact-preview.js';
 import { openChatAtMessage }  from '../../lib/entities/entity-navigation.js';
 import { state, elements }    from '../app-context.js';
 import browser                from '../../lib/vendor/browser.js';
 
 // ---------------------------------------------------------------------------
-// Card renderers registered for Phase A
+// Card renderers registered for Phases A, B, C, D and E
 // ---------------------------------------------------------------------------
 
 const CARD_RENDERERS = {
-  prompt:   promptCard,
-  citation: citationCard,
-  table:    tableCard,
-  code:     codeCard,
-  diagram:  diagramCard,
+  prompt:     promptCard,
+  citation:   citationCard,
+  table:      tableCard,
+  code:       codeCard,
+  diagram:    diagramCard,
+  attachment: attachmentCard,
+  toolCall:   toolCallCard,
+  image:      imageCard,
+  audio:      audioCard,
+  artifact:   (entity, opts) => artifactCard(entity, {
+    ...opts,
+    onPreview: _showPreview,
+  }),
 };
+
+// Allow tests to replace showArtifactPreview
+let _showPreview = showArtifactPreview;
+/** @internal */ export function _setShowPreview(fn) { _showPreview = fn; }
 
 // ---------------------------------------------------------------------------
 // Test-injection context (never mutate from production code)
@@ -64,12 +82,13 @@ let _tree  = null;
  * @internal For unit tests only — never call from production code.
  */
 export function _reset() {
-  _store       = null;
-  _tree        = null;
-  _state       = state;
-  _elements    = elements;
-  _getChatsFn  = () => state.chats;
-  _onChatClick = null;
+  _store        = null;
+  _tree         = null;
+  _state        = state;
+  _elements     = elements;
+  _getChatsFn   = () => state.chats;
+  _onChatClick  = null;
+  _showPreview  = showArtifactPreview;
 }
 
 // ---------------------------------------------------------------------------
@@ -145,4 +164,26 @@ export function refresh() {
  */
 export function setFilter(type) {
   _tree?.setFilter(type);
+}
+
+/**
+ * Returns the entity type keys that have at least one entity across all saved
+ * chats. Safe to call before init() — reads from state.chats directly in that
+ * case, falling through to the EntityStore once it has been created.
+ * @returns {string[]}
+ */
+export function getPresentEntityTypes() {
+  if (_store) return _store.getPresentTypes();
+  const chats = _getChatsFn();
+  const ENTITY_KEYS = [
+    'prompt', 'citation', 'table', 'code', 'diagram',
+    'toolCall', 'attachment', 'image', 'audio', 'artifact',
+  ];
+  const types = new Set();
+  for (const chat of chats) {
+    for (const key of ENTITY_KEYS) {
+      if (Array.isArray(chat[key]) && chat[key].length > 0) types.add(key);
+    }
+  }
+  return [...types];
 }

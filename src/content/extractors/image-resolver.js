@@ -135,6 +135,233 @@ export async function resolveImageBlobs(el, fetchViaBackground = null, dimsEl = 
 }
 
 /**
+/**
+ * Maximum audio blob size to capture (10 MB).
+ * ChatGPT TTS clips are typically 0.5–5 MB, well within this limit.
+ */
+const MAX_AUDIO_BLOB_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Clone `el` and resolve all `<audio>` elements whose src is a `blob:` URL.
+ * Blob URLs for generated audio are accessible from the content-script context
+ * while the page session is live.  After capture they are stored as `data:` URIs
+ * so the reader can play them after the session ends.
+ *
+ * - Blobs larger than 10 MB are left with a `data-binder-audio-lost` attribute
+ *   so htmlToMarkdown() can emit a "too large" notice.
+ * - If nothing needs processing the original element is returned unchanged (fast path).
+ *
+ * @param {Element} el
+ * @returns {Promise<Element>}
+ */
+export async function resolveAudioBlobs(el) {
+  const AUDIO_EXT = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)(\?|$)/i;
+
+  const audioEls = Array.from(el.querySelectorAll('audio'));
+
+  // Also handle <a download> links pointing to audio blob: URLs.
+  // ChatGPT code-interpreter often renders generated audio as a download anchor
+  // rather than (or in addition to) an inline <audio> player.
+  const dlAnchors = Array.from(el.querySelectorAll('a[href]')).filter(a => {
+    const href = a.getAttribute('href') || '';
+    const dl   = a.getAttribute('download') ?? null;
+    return dl !== null && href.startsWith('blob:') &&
+           (AUDIO_EXT.test(href) || AUDIO_EXT.test(dl));
+  });
+
+  if (audioEls.length === 0 && dlAnchors.length === 0) return el;
+
+  // Collect the effective src from the live element BEFORE cloning.
+  // `audio.src` IDL property resolves relative/blob URLs; fall back to attr.
+  const audioLiveSrcs = audioEls.map(a => {
+    let src = (typeof a.src === 'string' && a.src) ? a.src : (a.getAttribute('src') || '');
+    if (!src) {
+      const sourceEl = a.querySelector('source');
+      src = sourceEl ? (sourceEl.src || sourceEl.getAttribute('src') || '') : '';
+    }
+    return src;
+  });
+  const anchorLiveSrcs = dlAnchors.map(a => a.getAttribute('href') || '');
+
+  const needsProcessing = audioLiveSrcs.some(s => s.startsWith('blob:')) ||
+                          anchorLiveSrcs.some(s => s.startsWith('blob:'));
+  if (!needsProcessing) return el;
+
+  const clone       = el.cloneNode(true);
+  const cloneAudios = Array.from(clone.querySelectorAll('audio'));
+
+  await Promise.all(cloneAudios.map(async (cloneAudio, i) => {
+    const src = audioLiveSrcs[i];
+    if (!src || !src.startsWith('blob:')) return;
+
+    try {
+      const response = await fetch(src);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const buffer = await response.arrayBuffer();
+      if (buffer.byteLength > MAX_AUDIO_BLOB_BYTES) {
+        cloneAudio.setAttribute('data-binder-audio-lost', 'too_large');
+        return;
+      }
+
+      const mime    = (response.headers.get('content-type') ?? 'audio/mpeg').split(';')[0].trim();
+      const bytes   = new Uint8Array(buffer);
+      let   binary  = '';
+      for (let j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
+      const dataUri = `data:${mime};base64,${btoa(binary)}`;
+
+      cloneAudio.setAttribute('src', dataUri);
+      // Remove child <source> elements — src attr is now canonical
+      cloneAudio.querySelectorAll('source').forEach(s => s.remove());
+    } catch {
+      cloneAudio.setAttribute('data-binder-audio-lost', 'expired');
+    }
+  }));
+
+  // Resolve audio download anchors: replace blob: href with a data: URI so that
+  // htmlToMarkdown's case 'a' can emit a proper 🔊 marker (not session-only).
+  const cloneAnchors = Array.from(clone.querySelectorAll('a[href]')).filter(a => {
+    const href = a.getAttribute('href') || '';
+    const dl   = a.getAttribute('download') ?? null;
+    return dl !== null && href.startsWith('blob:') &&
+           (AUDIO_EXT.test(href) || AUDIO_EXT.test(dl));
+  });
+
+  await Promise.all(cloneAnchors.map(async (cloneAnchor, i) => {
+    const src = anchorLiveSrcs[i];
+    if (!src || !src.startsWith('blob:')) return;
+
+    try {
+      const response = await fetch(src);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const buffer = await response.arrayBuffer();
+      if (buffer.byteLength > MAX_AUDIO_BLOB_BYTES) {
+        cloneAnchor.setAttribute('data-binder-audio-lost', 'too_large');
+        return;
+      }
+
+      const mime    = (response.headers.get('content-type') ?? 'audio/mpeg').split(';')[0].trim();
+      const bytes   = new Uint8Array(buffer);
+      let   binary  = '';
+      for (let j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
+      const dataUri = `data:${mime};base64,${btoa(binary)}`;
+
+      // Replace the blob: href with the data: URI; html-to-markdown case 'a'
+      // detects data:audio/ anchors with a download attribute and emits 🔊.
+      cloneAnchor.setAttribute('href', dataUri);
+    } catch {
+      cloneAnchor.setAttribute('data-binder-audio-lost', 'expired');
+      cloneAnchor.setAttribute('href', '');
+    }
+  }));
+
+  return clone;
+}
+
+// ---------------------------------------------------------------------------
+// Shadow-DOM audio helpers (parallel to the image shadow helpers above)
+// ---------------------------------------------------------------------------
+
+const MAX_SHADOW_AUDIO_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Walk `root` recursively — including open shadow roots — and collect every
+ * <audio> element's effective src URL.  Standard querySelectorAll() cannot
+ * pierce shadow roots; Gemini's Angular custom elements use shadow DOM for
+ * their audio player components.
+ *
+ * Both blob: URLs (created by the page's own JS) and https: URLs are returned.
+ * data: URLs are skipped (already embedded).
+ *
+ * @param {Element|ShadowRoot|Document} root
+ * @param {number} [maxShadowDepth=6]
+ * @returns {Array<{src: string}>}
+ */
+export function collectShadowAudio(root, maxShadowDepth = 6) {
+  const results = [];
+
+  function walk(node, shadowDepth) {
+    if (!node) return;
+    const type = node.nodeType;
+    if (type !== 1 /* ELEMENT_NODE */ && type !== 11 /* DOCUMENT_FRAGMENT_NODE */) return;
+
+    if (type === 1) {
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'audio') {
+        let src = '';
+        try { src = node.src || ''; } catch (_) {}
+        if (!src) src = node.getAttribute('src') || '';
+        if (!src) {
+          const srcEl = node.querySelector('source');
+          if (srcEl) {
+            try { src = srcEl.src || ''; } catch (_) {}
+            if (!src) src = srcEl.getAttribute('src') || '';
+          }
+        }
+        // Skip data: (already embedded) and empty / relative-only URLs
+        if (src && !src.startsWith('data:') && src.includes(':')) {
+          results.push({ src });
+        }
+      }
+      if (shadowDepth > 0 && node.shadowRoot) {
+        walk(node.shadowRoot, shadowDepth - 1);
+      }
+    }
+
+    for (const child of node.childNodes) {
+      walk(child, shadowDepth);
+    }
+  }
+
+  walk(root, maxShadowDepth);
+  return results;
+}
+
+/**
+ * Fetch audio elements found via shadow-DOM traversal, convert to data: URIs,
+ * and append as [🔊 Generated audio](...) markers to existingMarkdown.
+ *
+ * blob: URLs are fetched directly (they are origin-accessible from the content
+ * script's isolated world).  https: URLs are attempted directly; if CORS blocks
+ * the request the raw URL is stored instead so the reader can try to play it.
+ *
+ * @param {Element} liveEl             Live DOM element (potentially has shadow roots)
+ * @param {string}  existingMarkdown   Already-extracted markdown for this turn
+ * @returns {Promise<string>}
+ */
+export async function appendShadowAudio(liveEl, existingMarkdown) {
+  const items = collectShadowAudio(liveEl);
+  if (items.length === 0) return existingMarkdown;
+
+  const parts = [];
+  for (const { src } of items) {
+    if (existingMarkdown.includes(src)) continue; // already captured
+
+    try {
+      const resp = await fetch(src, { credentials: 'include' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      if (blob.size > MAX_SHADOW_AUDIO_BYTES) {
+        parts.push('\n[🔊 Generated audio (file too large to capture)]\n');
+        continue;
+      }
+      const dataUrl = await blobToDataUrl(blob);
+      parts.push(`\n[🔊 Generated audio](${dataUrl})\n`);
+    } catch (_) {
+      // CORS or expired — store the raw URL; the reader will attempt playback.
+      if (src.startsWith('https:') || src.startsWith('http:')) {
+        parts.push(`\n[🔊 Generated audio](${src})\n`);
+      } else {
+        parts.push('\n[🔊 Generated audio (not captured)]\n');
+      }
+    }
+  }
+
+  return parts.length ? existingMarkdown + parts.join('') : existingMarkdown;
+}
+
+/**
  * Walk `root` recursively — including open shadow roots — and collect every
  * <img> element's src and alt.  Standard querySelectorAll() cannot pierce
  * shadow roots, so this covers images in Gemini's Angular custom elements.

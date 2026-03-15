@@ -79,6 +79,7 @@ import {
   populateTopicScopeSelect,
   setupSearchContextToggle,
   setSearchContext,
+  refreshEntityTypeChipVisibility,
 } from './controllers/search-controller.js';
 import {
   handleAddTopic,
@@ -308,8 +309,7 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'CHAT_SAVED') {
     handleChatSaved(message.data)
       .then(() => {
-        refreshEntityController(); // keep entity tree up to date when tab is already open
-        sendResponse({ success: true });
+        refreshEntityController(); // keep entity tree up to date when tab is already open        refreshEntityTypeChipVisibility(); // show/hide chips for newly present entity types        sendResponse({ success: true });
       })
       .catch(err => sendResponse({ success: false, error: err.message }));
     return true; // async

@@ -102,12 +102,34 @@ describe('diagramCard()', () => {
     vi.restoreAllMocks();
   });
 
-  it('"Download SVG" is a no-op when thumbnailSvg is null', () => {
+  it('"Download SVG" button not present when thumbnailSvg is null', () => {
     const entity = { ...BASE_ENTITY, thumbnailSvg: null };
     const card   = diagramCard(entity);
+    expect(card.querySelector('.entity-card__btn--download-svg')).toBeNull();
+  });
+
+  it('"Open in Mermaid Live" button present when source is non-empty', () => {
+    const card = diagramCard(BASE_ENTITY);
+    expect(card.querySelector('.entity-card__btn--mermaid-live')).not.toBeNull();
+  });
+
+  it('"Open in Mermaid Live" button opens mermaid.live with base64 payload', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const card = diagramCard({ ...BASE_ENTITY, thumbnailSvg: null });
     document.body.appendChild(card);
-    expect(() => card.querySelector('.entity-card__btn--download-svg').click()).not.toThrow();
-    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    card.querySelector('.entity-card__btn--mermaid-live').click();
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining('https://mermaid.live/edit#base64:'),
+      '_blank',
+      'noopener,noreferrer',
+    );
+    openSpy.mockRestore();
+  });
+
+  it('"Open in Mermaid Live" button not present when source is empty', () => {
+    const entity = { ...BASE_ENTITY, source: '', thumbnailSvg: null };
+    const card   = diagramCard(entity);
+    expect(card.querySelector('.entity-card__btn--mermaid-live')).toBeNull();
   });
 
   it('clicking card fires onOpen with the entity', () => {

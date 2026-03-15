@@ -1119,9 +1119,9 @@ At the end of each phase:
 
 | Phase | Status | Completed |
 |-------|--------|-----------|
-| 0 — Shared infrastructure | Not started | — |
-| A — Text entities (Prompts, Citations, Tables) | Not started | — |
-| B — Code entities (Snippets, Diagrams) | Not started | — |
-| C — Metadata entities (Tool Traces, Attachments) | Not started | — |
-| D — Binary entities (Images, Audio) | Not started | — |
-| E — Complex rendering (Artifacts & Canvas) | Not started | — |
+| 0 — Shared infrastructure | ✅ Completed | — |
+| A — Text entities (Prompts, Citations, Tables) | ✅ Completed | — |
+| B — Code entities (Snippets, Diagrams) | ✅ Completed | — |
+| C — Metadata entities (Tool Traces, Attachments) | ✅ Completed | — |
+| D — Binary entities (Images, Audio) | ✅ Completed | — |
+| E — Complex rendering (Artifacts & Canvas) | ⚠️ Not Tested | March 15, 2026 |

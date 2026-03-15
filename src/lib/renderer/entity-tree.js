@@ -2,8 +2,12 @@
  * entity-tree.js — generic two-mode entity tree renderer.
  *
  * Renders entities from an EntityStore in two grouping modes:
- *   byType  (default): [Type Section] → [Topic node] → [Chat node] → [Entity card]
+ *   byType  (default): [Type Section] → [Entity node] → [Source chips (topic per occurrence)]
  *   byTopic:           [Topic node]   → [Chat node]  → [Type badge + Entity card]
+ *
+ * In byType mode entities with identical content are de-duplicated: one node
+ * is shown per unique entity, and each occurrence gets a clickable source chip
+ * that navigates the user to that specific chat/topic instance.
  *
  * Uses VirtualScroll when total entity count exceeds 150 (virtualThreshold).
  * Emits a custom 'entity-click' event on the container when a card is clicked.
@@ -220,25 +224,47 @@ export class ChatEntityTree {
       toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); doSectionToggle(); });
       header.addEventListener('click', doSectionToggle);
 
-      // Group entities by topicId via chatId → chat.topicId
-      const byTopic = _groupByTopic(entities, this._store, this._topicTree);
+      // Group entities by content (de-duplicating across topics/chats)
+      const byEntity = _groupByEntity(entities, this._store, this._topicTree);
 
-      for (const { topicId, topicName, chatGroups } of byTopic) {
-        const topicCollapsed = this._collapseState.topics?.[topicId] ?? false;
-        const topicNode = _makeTopicNode(topicName, topicId, topicCollapsed, (collapsed) => {
-          if (!this._collapseState.topics) this._collapseState.topics = {};
-          this._collapseState.topics[topicId] = collapsed;
-          _saveCollapseState(this._collapseState);
-        });
-        for (const { chatId, chatTitle, entitiesInChat } of chatGroups) {
-          const chatNode = _makeChatNode(chatTitle, chatId);
-          for (const entity of entitiesInChat) {
-            const card = this._makeCard(entity, type);
-            chatNode.appendChild(card);
-          }
-          topicNode._body.appendChild(chatNode);
+      // Update label to reflect unique entity count (not raw occurrence count)
+      label.textContent = `${_typeLabel(type)} (${byEntity.length})`;
+
+      for (const { representative, occurrences } of byEntity) {
+        const entityNode = document.createElement('div');
+        entityNode.className = 'entity-item-node';
+
+        // Card rendered once for the representative entity.
+        // Clicking the card navigates to the representative's occurrence.
+        const card = this._makeCard(representative, type);
+        if (occurrences.length > 1) {
+          const countBadge = document.createElement('span');
+          countBadge.className = 'entity-item-node__count';
+          countBadge.textContent = `(${occurrences.length})`;
+          card.appendChild(countBadge);
         }
-        body.appendChild(topicNode);
+        entityNode.appendChild(card);
+
+        // Source chips — one per occurrence, each navigating to that specific
+        // chat/topic instance so the user can locate this entity in context.
+        const sourcesList = document.createElement('div');
+        sourcesList.className = 'entity-item-node__sources';
+        for (const { entity, topicName, chatTitle } of occurrences) {
+          const chip = document.createElement('button');
+          chip.className = 'entity-source-chip';
+          chip.textContent = topicName !== 'Uncategorised' ? topicName : chatTitle;
+          chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._container.dispatchEvent(new CustomEvent('entity-click', {
+              bubbles: true,
+              detail: { entity, chatId: entity.chatId },
+            }));
+          });
+          sourcesList.appendChild(chip);
+        }
+        entityNode.appendChild(sourcesList);
+
+        body.appendChild(entityNode);
       }
 
       section.appendChild(body);
@@ -312,6 +338,69 @@ export class ChatEntityTree {
 // ---------------------------------------------------------------------------
 
 /**
+ * Returns a canonical string key for de-duplicating entities of the same
+ * content within a type section.  Fields are checked in priority order;
+ * falls back to entity.id for types without a recognised text field.
+ */
+function _entityKey(entity) {
+  return entity.text ?? entity.code ?? entity.url ?? entity.id;
+}
+
+/**
+ * Build a reverse map: chatId → topicId from the topic tree.
+ * The topic tree is authoritative (updated immediately by assignChatToTopic);
+ * chat.topicId may lag while the async persist is in flight.
+ */
+function _buildChatTopicMap(topicTree) {
+  const map = new Map();
+  if (topicTree?.topics) {
+    for (const [topicId, topic] of Object.entries(topicTree.topics)) {
+      const ids = Array.isArray(topic.chatIds) ? topic.chatIds : [];
+      for (const chatId of ids) {
+        map.set(chatId, topicId);
+      }
+    }
+  }
+  return map;
+}
+
+/**
+ * Group entities by content (de-duplicating identical entities across chats
+ * and topics), gathering the topic + chat context for each occurrence.
+ *
+ * Returns an array sorted alphabetically by entity key:
+ *   { key, representative: Entity, occurrences: [{ entity, topicId, topicName, chatId, chatTitle }] }
+ */
+function _groupByEntity(entities, store, topicTree) {
+  const chatTopicMap = _buildChatTopicMap(topicTree);
+  const groups = new Map();
+
+  for (const entity of entities) {
+    const key = _entityKey(entity);
+    if (!groups.has(key)) {
+      groups.set(key, { key, representative: entity, occurrences: [] });
+    }
+    const chat = store.getChatById(entity.chatId);
+    const topicId   = chatTopicMap.get(entity.chatId) ?? chat?.topicId ?? '__uncategorised__';
+    const topicName = _resolveTopicName(topicId, topicTree);
+    groups.get(key).occurrences.push({
+      entity,
+      topicId,
+      topicName,
+      chatId:    entity.chatId,
+      chatTitle: chat?.title ?? entity.chatId,
+    });
+  }
+
+  return [...groups.values()]
+    .sort((a, b) => String(a.key ?? '').localeCompare(String(b.key ?? '')))
+    .map(group => ({
+      ...group,
+      occurrences: group.occurrences.sort((a, b) => a.topicName.localeCompare(b.topicName)),
+    }));
+}
+
+/**
  * Group entities by topic (via chatId → topic tree → topic name).
  * Returns an array of { topicId, topicName, chatGroups[] } in stable order.
  *
@@ -322,16 +411,7 @@ export class ChatEntityTree {
  * "Uncategorised" while the async persist is in flight.
  */
 function _groupByTopic(entities, store, topicTree) {
-  // Build a reverse map: chatId → topicId, from the topic tree.
-  const chatTopicMap = new Map();
-  if (topicTree?.topics) {
-    for (const [topicId, topic] of Object.entries(topicTree.topics)) {
-      const ids = Array.isArray(topic.chatIds) ? topic.chatIds : [];
-      for (const chatId of ids) {
-        chatTopicMap.set(chatId, topicId);
-      }
-    }
-  }
+  const chatTopicMap = _buildChatTopicMap(topicTree);
 
   // Build ordered map: topicId → { topicId, topicName, chatMap: Map<chatId, Entity[]> }
   const topicMap = new Map();

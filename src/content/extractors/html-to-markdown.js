@@ -76,13 +76,29 @@ export function htmlToMarkdown(el) {
     const tag = node.tagName.toLowerCase();
     if (['script', 'style', 'svg', 'noscript', 'template'].includes(tag)) return '';
     // Buttons are skipped to avoid UI text (Copy, Send, Thumbs Up, etc.).
-    // Exception: buttons used as image wrappers (Copilot wraps AI-generated images
-    // in clickable <button> elements). Emit any resolved data: images inside them.
+    // Exceptions: buttons wrapping AI-generated images (Copilot) or audio players.
     if (tag === 'button') {
       const parts = [];
       for (const img of node.querySelectorAll('img')) {
         const r = walk(img);
         if (r.trim()) parts.push(r);
+      }
+      for (const audio of node.querySelectorAll('audio')) {
+        const r = walk(audio);
+        if (r.trim()) parts.push(r);
+      }
+      if (!parts.length) {
+        const txt = (node.textContent || '').trim().replace(/\s+/g, ' ');
+        const lbl = node.getAttribute('aria-label') || '';
+        // ChatGPT code-interpreter renders file download chips as <button> whose
+        // text content or aria-label contains the filename (e.g. "morning_birds.wav").
+        // Emit a 🔊 marker so the reader and audio entity extractor know audio exists.
+        if (/\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)/i.test(txt) ||
+            /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)/i.test(lbl)) {
+          console.log('[bAInder] [htmlToMarkdown] <button> audio chip detected:', (txt || lbl).slice(0, 80));
+          return '\n[🔊 Generated audio (not captured)]\n';
+        }
+        if (txt) console.log('[bAInder] [htmlToMarkdown] dropping <button> text:', txt.slice(0, 150));
       }
       return parts.join('');
     }
@@ -182,9 +198,26 @@ export function htmlToMarkdown(el) {
 
       // ── Anchor ────────────────────────────────────────────────────────────
       case 'a': {
-        const href = node.getAttribute('href');
+        const href = node.getAttribute('href') || '';
         const text = inner.trim();
-        return href && text ? `[${text}](${href})` : text;
+        // Audio download anchor — check BEFORE the text+href shortcut so that
+        // anchors like <a href="file.wav" download>Download</a> emit a 🔊
+        // marker instead of a plain markdown link the audio extractor can't see.
+        // resolveAudioBlobs() may have pre-resolved blob: → data: already.
+        if (href && node.hasAttribute('download')) {
+          const dl = node.getAttribute('download') || '';
+          const isAudio = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)(\?|$)/i.test(href) ||
+                          /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)/i.test(dl) ||
+                          href.startsWith('data:audio/');
+          if (isAudio) {
+            if (href.startsWith('data:') || /^https?:\/\//i.test(href))
+              return `\n[🔊 Generated audio](${href})\n`;
+            if (href.startsWith('blob:'))
+              return `\n[🔊 Generated audio (session-only)](${href})\n`;
+          }
+        }
+        if (href && text) return `[${text}](${href})`;
+        return text;
       }
 
       // ── Image ─────────────────────────────────────────────────────────────
@@ -207,6 +240,34 @@ export function htmlToMarkdown(el) {
         const suffix = (w && h) ? `{width=${w} height=${h}}` : w ? `{width=${w}}` : '';
         return `\n![${alt}](${src})${suffix}\n`;
       }
+
+      // ── Audio element ─────────────────────────────────────────────────────
+      // resolveAudioBlobs() runs before htmlToMarkdown() and converts blob:
+      // audio srcs to data: URIs in-place.  Here we emit a special marker line
+      // that the reader renders as an <audio controls> player and the audio
+      // entity extractor parses to create Audio entities.
+      case 'audio': {
+        if (node.hasAttribute('data-binder-audio-lost')) {
+          const reason = node.getAttribute('data-binder-audio-lost');
+          const note   = reason === 'too_large' ? ' (file too large to capture)' : ' (not captured)';
+          return `\n[🔊 Generated audio${note}]\n`;
+        }
+        const src = node.getAttribute('src') || '';
+        if (!src) return inner || '';
+        if (src.startsWith('blob:')) {
+          // Blob was not pre-resolved — happens if resolveAudioBlobs wasn't called.
+          return `\n[🔊 Generated audio (session-only)](${src})\n`;
+        }
+        // Only emit a playable marker for publicly accessible URL schemes.
+        // sandbox: (ChatGPT code-interpreter), file:, etc. are inaccessible outside
+        // the platform's own sandbox and cannot be fetched by the reader.
+        if (src.startsWith('data:') || /^https?:\/\//i.test(src)) {
+          return `\n[🔊 Generated audio](${src})\n`;
+        }
+        return `\n[🔊 Generated audio (not captured)]\n`;
+      }
+      // <source> is rendered by its parent <audio>/<video> case; suppress here.
+      case 'source': return '';
 
       // ── Microsoft Designer iframe (M365 Copilot generated images) ─────────
       case 'iframe': {

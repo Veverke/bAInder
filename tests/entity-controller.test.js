@@ -11,6 +11,7 @@ import {
   setFilter,
   _setContext,
   _reset,
+  _setShowPreview,
 } from '../src/sidepanel/controllers/entity-controller.js';
 
 // Mock the browser vendor shim (used by _defaultOnChatClick)
@@ -399,3 +400,321 @@ describe('EntityController Phase B — code/diagram rendering', () => {
     expect(container.querySelector('.entity-card--code')).not.toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Phase C — Tool Calls & Attachments rendering (C.5)
+// ---------------------------------------------------------------------------
+
+function makeToolCallEntity(chatId = 'c1', messageIndex = 1) {
+  return {
+    id:           `toolcall-${chatId}-${messageIndex}`,
+    type:         'toolCall',
+    chatId,
+    messageIndex,
+    role:         'tool',
+    tool:         'web_search',
+    input:        'What is AI?',
+    output:       'AI is ...',
+    durationMs:   null,
+  };
+}
+
+function makeAttachmentEntity(chatId = 'c1', messageIndex = 0) {
+  return {
+    id:           `attachment-${chatId}-${messageIndex}`,
+    type:         'attachment',
+    chatId,
+    messageIndex,
+    role:         'user',
+    filename:     'report.pdf',
+    mimeType:     'application/pdf',
+    sizeBytes:    102400,
+  };
+}
+
+describe('EntityController Phase C — tool-call/attachment rendering', () => {
+  let container;
+
+  beforeEach(() => {
+    _reset();
+    document.body.innerHTML = '';
+    container = makeContainer();
+  });
+
+  afterEach(() => {
+    _reset();
+    document.body.innerHTML = '';
+  });
+
+  it('chats with tool call entities render tool-call cards', () => {
+    const chats = makeChats({ toolCall: [makeToolCallEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    expect(container.querySelector('.entity-card--tool-call')).not.toBeNull();
+  });
+
+  it('chats with attachment entities render attachment cards', () => {
+    const chats = makeChats({ attachment: [makeAttachmentEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    expect(container.querySelector('.entity-card--attachment')).not.toBeNull();
+  });
+
+  it('section header for toolCall type is present', () => {
+    const chats = makeChats({ toolCall: [makeToolCallEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    const headers = [...container.querySelectorAll('.entity-section__label')].map(h => h.textContent);
+    expect(headers.some(t => /tool/i.test(t))).toBe(true);
+  });
+
+  it('section header for attachment type is present', () => {
+    const chats = makeChats({ attachment: [makeAttachmentEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    const headers = [...container.querySelectorAll('.entity-section__label')].map(h => h.textContent);
+    expect(headers.some(t => /attachment/i.test(t))).toBe(true);
+  });
+
+  it('refresh() after adding a tool-call entity chat re-renders', () => {
+    const chats = makeChats({ prompt: [makePromptEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    chats.push({
+      id:       'c2',
+      title:    'API Chat',
+      topicId:  null,
+      toolCall: [makeToolCallEntity('c2', 1)],
+    });
+    refresh();
+    expect(container.querySelector('.entity-card--tool-call')).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase D — Images & Audio rendering (D.6)
+// ---------------------------------------------------------------------------
+
+function makeImageEntity(chatId = 'c1', messageIndex = 1) {
+  return {
+    id:              `image-${chatId}-${messageIndex}`,
+    type:            'image',
+    chatId,
+    messageIndex,
+    role:            'assistant',
+    src:             'https://example.com/photo.png',
+    mimeType:        'image/png',
+    altText:         'A photo',
+    thumbnailDataUri: null,
+    oversize:        false,
+  };
+}
+
+function makeAudioEntity(chatId = 'c1', messageIndex = 1) {
+  return {
+    id:              `audio-${chatId}-${messageIndex}`,
+    type:            'audio',
+    chatId,
+    messageIndex,
+    role:            'assistant',
+    src:             'https://example.com/speech.mp3',
+    mimeType:        'audio/mpeg',
+    durationSeconds: 30,
+    transcript:      null,
+    captureError:    null,
+  };
+}
+
+describe('EntityController Phase D — image/audio rendering', () => {
+  let container;
+
+  beforeEach(() => {
+    _reset();
+    document.body.innerHTML = '';
+    container = makeContainer();
+  });
+
+  afterEach(() => {
+    _reset();
+    document.body.innerHTML = '';
+  });
+
+  it('chats with image entities render image cards', () => {
+    const chats = makeChats({ image: [makeImageEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    expect(container.querySelector('.entity-card--image')).not.toBeNull();
+  });
+
+  it('chats with audio entities render audio cards', () => {
+    const chats = makeChats({ audio: [makeAudioEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    expect(container.querySelector('.entity-card--audio')).not.toBeNull();
+  });
+
+  it('section header for image type is present', () => {
+    const chats = makeChats({ image: [makeImageEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    const headers = [...container.querySelectorAll('.entity-section__label')].map(h => h.textContent);
+    expect(headers.some(t => /image/i.test(t))).toBe(true);
+  });
+
+  it('section header for audio type is present', () => {
+    const chats = makeChats({ audio: [makeAudioEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    const headers = [...container.querySelectorAll('.entity-section__label')].map(h => h.textContent);
+    expect(headers.some(t => /audio/i.test(t))).toBe(true);
+  });
+
+  it('refresh() after adding an image entity chat re-renders', () => {
+    const chats = makeChats({ prompt: [makePromptEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    chats.push({
+      id:      'c2',
+      title:   'Image Chat',
+      topicId: null,
+      image:   [makeImageEntity('c2', 1)],
+    });
+    refresh();
+    expect(container.querySelector('.entity-card--image')).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase E — Artifact rendering (E.5)
+// ---------------------------------------------------------------------------
+
+function makeArtifactEntity(chatId = 'c1', messageIndex = 0) {
+  return {
+    id:               `artifact-${chatId}-${messageIndex}`,
+    type:             'artifact',
+    chatId,
+    messageIndex,
+    role:             'assistant',
+    artifactType:     'html',
+    title:            'My App',
+    source:           '<p>Hello</p>',
+    mimeType:         'text/html',
+    screenshotDataUri: null,
+  };
+}
+
+describe('EntityController Phase E — artifact rendering', () => {
+  let container;
+
+  beforeEach(() => {
+    _reset();
+    document.body.innerHTML = '';
+    container = makeContainer();
+  });
+
+  afterEach(() => {
+    _reset();
+    document.body.innerHTML = '';
+  });
+
+  it('chats with artifact entities render artifact cards', () => {
+    const chats = makeChats({ artifact: [makeArtifactEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    expect(container.querySelector('.entity-card--artifact')).not.toBeNull();
+  });
+
+  it('section header for artifact type is present', () => {
+    const chats = makeChats({ artifact: [makeArtifactEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    const headers = [...container.querySelectorAll('.entity-section__label')].map(h => h.textContent);
+    expect(headers.some(t => /artifact/i.test(t))).toBe(true);
+  });
+
+  it('refresh() after adding an artifact entity chat re-renders artifact section', () => {
+    const chats = makeChats({ prompt: [makePromptEntity()] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    chats.push({
+      id:       'c2',
+      title:    'Artifact Chat',
+      topicId:  null,
+      artifact: [makeArtifactEntity('c2', 0)],
+    });
+    refresh();
+    expect(container.querySelector('.entity-card--artifact')).not.toBeNull();
+  });
+
+  it('"Preview" button on artifact card calls showArtifactPreview', () => {
+    const showPreviewSpy = vi.fn();
+    _setShowPreview(showPreviewSpy);
+
+    const entity = makeArtifactEntity();
+    const chats = makeChats({ artifact: [entity] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+
+    const previewBtn = container.querySelector('.entity-card__btn--preview');
+    expect(previewBtn).not.toBeNull();
+    previewBtn.click();
+    expect(showPreviewSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'artifact' }));
+  });
+});
+

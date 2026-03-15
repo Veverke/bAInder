@@ -18,20 +18,22 @@ export function registerExtractor(type, fn) {
 
 /**
  * Run all registered extractors over the messages and return a sparse map of
- * type → Entity[].  Extractors that throw are caught and skipped; the pipeline
- * always completes.  Empty extractor results are omitted from the output.
+ * type → Entity[].  Extractors that throw (or reject) are caught and skipped;
+ * the pipeline always completes.  Empty extractor results are omitted from the
+ * output.  Async extractors (those that return a Promise) are properly awaited.
  *
  * @param {Array}       messages  Array of message objects from the chat
  * @param {Document|null} doc     Rendered DOM document; null in background context
  * @param {string}      chatId    ID of the parent chat entry — stamped on every entity
- * @returns {Object}  e.g. { code: [...], table: [...] } — sparse, no empty arrays
+ * @returns {Promise<Object>}  e.g. { code: [...], table: [...] } — sparse, no empty arrays
  */
-export function extractChatEntities(messages, doc, chatId) {
+export async function extractChatEntities(messages, doc, chatId) {
   const result = {};
   console.debug('[bAInder] extractChatEntities: registry size =', _registry.size, '| messages =', messages.length);
   for (const [type, fn] of _registry) {
     try {
-      const entities = fn(messages, doc, chatId);
+      // Await to properly handle both sync and async extractors.
+      const entities = await Promise.resolve(fn(messages, doc, chatId));
       if (Array.isArray(entities) && entities.length > 0) {
         result[type] = entities;
       }

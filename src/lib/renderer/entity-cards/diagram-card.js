@@ -64,22 +64,39 @@ export function diagramCard(entity, { onOpen } = {}) {
   });
   actions.appendChild(copyBtn);
 
-  // Download SVG button
-  const downloadBtn = document.createElement('button');
-  downloadBtn.className = 'entity-card__btn entity-card__btn--download-svg';
-  downloadBtn.textContent = 'Download SVG';
-  downloadBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (!thumbnailSvg) return;
-    const blob = new Blob([thumbnailSvg], { type: 'image/svg+xml' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `diagram-${diagramType}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-  actions.appendChild(downloadBtn);
+  // Download SVG button — only when a pre-rendered SVG thumbnail is available
+  if (thumbnailSvg) {
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'entity-card__btn entity-card__btn--download-svg';
+    downloadBtn.textContent = 'Download SVG';
+    downloadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const blob = new Blob([thumbnailSvg], { type: 'image/svg+xml' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `diagram-${diagramType}.svg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    actions.appendChild(downloadBtn);
+  }
+
+  // "Open in Mermaid Live" — available whenever we have source text.
+  // Mermaid Live accepts a base64-encoded JSON payload in the URL fragment so
+  // the user can render, edit, and export SVG/PNG without any local rendering.
+  if (source) {
+    const liveBtn = document.createElement('button');
+    liveBtn.className = 'entity-card__btn entity-card__btn--mermaid-live';
+    liveBtn.textContent = 'Open in Mermaid Live ↗';
+    liveBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const payload = JSON.stringify({ code: source, mermaid: { theme: 'default' } });
+      const encoded = btoa(unescape(encodeURIComponent(payload)));
+      window.open(`https://mermaid.live/edit#base64:${encoded}`, '_blank', 'noopener,noreferrer');
+    });
+    actions.appendChild(liveBtn);
+  }
 
   el.appendChild(actions);
   return el;

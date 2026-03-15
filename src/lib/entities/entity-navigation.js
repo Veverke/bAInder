@@ -53,6 +53,10 @@ function _snippetHint(entity) {
     case 'diagram':
       // First non-empty line of the diagram source uniquely identifies the block
       return (entity.source ?? '').split('\n').find(l => l.trim() !== '')?.slice(0, 120) ?? null;
+    case 'attachment':
+      return entity.filename ?? null;
+    case 'audio':
+      return `audio:${entity.snippetIndex ?? 0}`;
     default:
       return null;
   }

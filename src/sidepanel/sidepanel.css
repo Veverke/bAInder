@@ -700,6 +700,23 @@ mark.search-highlight {
   text-overflow: ellipsis;
 }
 
+.save-banner__msg--warn {
+  color: var(--warning, #f59e0b);
+  background: var(--warning-bg, #fef3c7);
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--warning, #f59e0b);
+  white-space: normal;
+  animation: warn-pulse 1.8s ease-in-out 2;
+}
+
+@keyframes warn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%       { box-shadow: 0 0 0 3px rgba(245,158,11,0.35); }
+}
+
 .save-banner__btn {
   /* size-only override Ã¢â‚¬â€ colour/shape/skin come from .btn-primary */
   padding: var(--space-xs) var(--space-md);
@@ -2161,6 +2178,55 @@ button:focus-visible {
   animation: contextMenuAppear 0.1s ease;
 }
 
+/* C.25 — Rich chat hover overlay (size, message counts, code, entities, tags) */
+.tree-chat-hover-overlay {
+  position: fixed;
+  z-index: 9999;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+  animation: contextMenuAppear 0.1s ease;
+  min-width: 160px;
+  max-width: 280px;
+}
+
+.hover-row {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hover-row--meta {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hover-row--turns { color: var(--text-secondary); }
+
+.hover-row--code {
+  color: var(--primary);
+  font-family: var(--font-mono, monospace);
+}
+
+.hover-row--entities { color: var(--text-secondary); }
+
+.hover-row--tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 1px;
+  padding-top: 3px;
+  border-top: 1px solid var(--border-primary);
+}
+
 /* More-actions (Ã¢â€¹Â®) button on tree nodes Ã¢â‚¬â€ hidden until row is hovered */
 .tree-more-btn {
   display: flex;
@@ -3569,6 +3635,52 @@ ul.tree-root.drop-target {
   padding-top: var(--space-xs);
 }
 
+/* Entity item node (byType mode) — wraps one unique entity + its source chips */
+.entity-item-node {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Row of source chips below an entity card */
+.entity-item-node__sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 2px 2px;
+}
+
+/* Individual source chip — navigates to a specific topic/chat occurrence */
+.entity-source-chip {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.65rem;
+  font-weight: 500;
+  line-height: 1;
+  padding: 3px 8px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.entity-source-chip::before {
+  content: '↗\00a0';
+  font-size: 0.6rem;
+  opacity: 0.7;
+}
+
+.entity-source-chip:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
 /* Topic grouping node */
 .entity-topic-node {
   display: flex;
@@ -3638,6 +3750,23 @@ ul.tree-root.drop-target {
 /* Card wrapper (handles click affordance) */
 .entity-card-wrapper {
   cursor: pointer;
+  position: relative;
+}
+
+/* Occurrence count badge — shown top-right when entity appears in multiple topics */
+.entity-item-node__count {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-full);
+  color: var(--text-tertiary);
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 6px;
+  pointer-events: none;
 }
 
 .entity-card-wrapper:hover .entity-card {
@@ -3927,6 +4056,46 @@ ul.tree-root.drop-target {
 
 .entity-card__btn--download-svg {
   color: var(--text-secondary);
+}
+
+/* ── Image card ──────────────────────────────────────────────────────────── */
+
+.entity-card--image {
+  border-left: 3px solid #f59e0b;
+}
+
+.entity-card__thumbnail {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  display: block;
+  max-height: 140px;
+  max-width: 100%;
+  object-fit: contain;
+  width: auto;
+}
+
+.entity-card__image-placeholder {
+  align-items: center;
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-secondary);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  display: flex;
+  font-size: 0.75rem;
+  justify-content: center;
+  min-height: 52px;
+}
+
+.entity-card__caption {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.entity-card__badge--mime {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 /* ── Type badges (byTopic mode) ──────────────────────────────────────────── */

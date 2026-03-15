@@ -368,7 +368,7 @@ describe('buildChatItem', () => {
     document.body.appendChild(li);
     const content = li.querySelector('.tree-node-content');
     content.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-    const overlay = document.querySelector('.tree-tag-hover-overlay');
+    const overlay = document.querySelector('.tree-chat-hover-overlay');
     expect(overlay).not.toBeNull();
     li.remove();
     overlay?.remove();
@@ -380,7 +380,7 @@ describe('buildChatItem', () => {
     const content = li.querySelector('.tree-node-content');
     content.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
     content.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
-    const overlay = document.querySelector('.tree-tag-hover-overlay');
+    const overlay = document.querySelector('.tree-chat-hover-overlay');
     expect(overlay).toBeNull();
     li.remove();
   });
