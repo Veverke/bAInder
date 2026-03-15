@@ -6,10 +6,15 @@
 
 import { handleSaveChat as _handleSaveChat, detectSource, buildExcerptPayload } from './chat-save-handler.js';
 import { checkStaleChats } from './stale-check.js';
+import { ChatRepository } from '../sidepanel/services/chat-repository.js';
 import browser from '../lib/vendor/browser.js';
 import { logger } from '../lib/utils/logger.js';
 
 logger.info('Background service worker initialized');
+
+// Shared ChatRepository instance backed by browser.storage.local.
+// Centralises all chat I/O through the per-chat-key format.
+const _chatRepo = new ChatRepository(browser.storage.local);
 
 // Cache for rich excerpt markdown pushed proactively by content script on right-click.
 // Stored in browser.storage.session so it survives service worker restarts between
@@ -117,11 +122,10 @@ browser.runtime.onInstalled.addListener((details) => {
 // Set up default data structure
 async function setupDefaults() {
   try {
-    const existing = await browser.storage.local.get(['topicTree', 'chats']);
+    const existing = await browser.storage.local.get(['topicTree']);
     if (!existing.topicTree) {
       await browser.storage.local.set({
         topicTree: { rootTopicIds: [], topics: {} },
-        chats: existing.chats ?? [],
       });
     }
   } catch (error) {
@@ -139,6 +143,9 @@ browser.action.onClicked.addListener((tab) => {
 
 // Handle messages from content scripts and side panel
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Reject messages from any sender that is not this extension itself
+  if (!sender.id || sender.id !== browser.runtime.id) return false;
+
   logger.debug('Runtime message received:', message.type);
 
   // Forward logs from content scripts (tab console → SW console).
@@ -249,9 +256,9 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Handle saving a chat from content script
-// Delegates to the testable handler module, passing browser.storage.local as storage
+// Delegates to the testable handler module, passing the shared ChatRepository
 async function handleSaveChat(chatData, sender) {
-  return _handleSaveChat(chatData, sender, browser.storage.local);
+  return _handleSaveChat(chatData, sender, _chatRepo);
 }
 
 // Get storage usage

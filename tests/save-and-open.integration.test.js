@@ -43,12 +43,16 @@ function setupReaderDom() {
 // ─── In-memory storage helper ─────────────────────────────────────────────────
 
 /**
- * Returns a minimal chrome.storage.local–compatible mock that shares state
- * across get/set calls during a single test.
+ * Returns a storage mock that satisfies both:
+ * - chrome.storage.local API (get/set) — used by reader.js::init() which reads 'chats'
+ * - ChatRepository API (loadAll/addChat) — used by handleSaveChat()
+ *
+ * Both APIs share `store.chats` so saves written via addChat() are visible to init().
  */
 function makeStorage(initialData = {}) {
-  const store = { ...initialData };
+  const store = { chats: [], ...initialData };
   return {
+    // storage.local API
     get:  vi.fn(async (keys) => {
       if (Array.isArray(keys)) {
         return Object.fromEntries(keys.map(k => [k, store[k]]));
@@ -56,7 +60,12 @@ function makeStorage(initialData = {}) {
       return { [keys]: store[keys] };
     }),
     set:  vi.fn(async (obj) => { Object.assign(store, obj); }),
-    _store: store,   // expose for assertions
+    _store: store,
+    // ChatRepository-compatible API for handleSaveChat()
+    loadAll: vi.fn(async () => [...(store.chats ?? [])]),
+    addChat: vi.fn(async (chat) => {
+      store.chats = [...(store.chats ?? []), chat];
+    }),
   };
 }
 

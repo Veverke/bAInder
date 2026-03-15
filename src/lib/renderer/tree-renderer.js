@@ -394,10 +394,20 @@ export class TreeRenderer {
 
   /** Context for the virtual-scroll path. */
   _makeVirtualCtx() {
+    // Build a topic→chatCount index once per render; renderVirtualRow does a
+    // constant-time Map.get() instead of a linear Array.filter() for every
+    // row stamped during a scroll event (fixes P2.1 — O(n×m) scroll cost).
+    const chatCountByTopic = new Map();
+    for (const chat of this.chats) {
+      if (chat.topicId) {
+        chatCountByTopic.set(chat.topicId, (chatCountByTopic.get(chat.topicId) ?? 0) + 1);
+      }
+    }
     return {
       expandedNodes:   this.expandedNodes,
       selectedNodeId:  this.selectedNodeId,
       chats:           this.chats,
+      chatCountByTopic,
       tree:            this.tree,
       virtualThreshold: this.virtualThreshold,
       toggleExpand:    (id) => {

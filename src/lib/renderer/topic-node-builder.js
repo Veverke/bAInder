@@ -217,9 +217,29 @@ export function buildTopicNode(topic, level, ctx) {
       }
     });
 
-    topicChats.forEach(chat => {
+    // Cap initial render at CHAT_RENDER_THRESHOLD to avoid stamping hundreds of
+    // full DOM nodes for large topics in one synchronous pass (fixes P2.2).
+    const CHAT_RENDER_THRESHOLD = 100;
+    topicChats.slice(0, CHAT_RENDER_THRESHOLD).forEach(chat => {
       childrenUl.appendChild(buildChatItem(chat, level + 1, ctx));
     });
+
+    if (topicChats.length > CHAT_RENDER_THRESHOLD) {
+      const remaining = topicChats.length - CHAT_RENDER_THRESHOLD;
+      const showMoreLi = document.createElement('li');
+      showMoreLi.className = 'tree-chat-showmore';
+      const showMoreBtn = document.createElement('button');
+      showMoreBtn.className = 'tree-chat-showmore__btn';
+      showMoreBtn.textContent = `Show ${remaining} more chat${remaining !== 1 ? 's' : ''}…`;
+      showMoreBtn.addEventListener('click', () => {
+        showMoreLi.remove();
+        topicChats.slice(CHAT_RENDER_THRESHOLD).forEach(chat => {
+          childrenUl.appendChild(buildChatItem(chat, level + 1, ctx));
+        });
+      });
+      showMoreLi.appendChild(showMoreBtn);
+      childrenUl.appendChild(showMoreLi);
+    }
 
     li.appendChild(childrenUl);
   }

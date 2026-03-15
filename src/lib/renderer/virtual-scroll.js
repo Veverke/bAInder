@@ -48,8 +48,9 @@ export function renderVirtualRow(item, ctx) {
   if (item.type === 'topic') {
     const isExpanded  = ctx.expandedNodes.has(item.id);
     const children    = ctx.tree ? ctx.tree.getChildren(item.id) : [];
-    const chats       = ctx.chats.filter(c => c.topicId === item.id);
-    const hasChildren = children.length > 0 || chats.length > 0;
+    // O(1) lookup via pre-built Map instead of O(n) Array.filter() on every row render.
+    const chatCount   = ctx.chatCountByTopic?.get(item.id) ?? 0;
+    const hasChildren = children.length > 0 || chatCount > 0;
 
     // Chevron
     const chevron = document.createElement('span');
@@ -64,10 +65,10 @@ export function renderVirtualRow(item, ctx) {
     row.appendChild(name);
 
     // Chat count badge
-    if (chats.length > 0) {
+    if (chatCount > 0) {
       const count = document.createElement('span');
       count.className   = 'tree-virtual-row__count';
-      count.textContent = chats.length;
+      count.textContent = chatCount;
       row.appendChild(count);
     }
 

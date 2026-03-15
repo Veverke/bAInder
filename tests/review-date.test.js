@@ -15,7 +15,9 @@ import { TopicTree } from '../src/lib/tree/tree.js';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function makeStorage(chats = []) {
-  const store = { chats };
+  // Provide both new format (chatIndex + chat:<id>) and legacy (chats) for reader.js compat.
+  const store = { chatIndex: chats, chats };
+  chats.forEach(c => { store[`chat:${c.id}`] = c; });
   return {
     get: vi.fn(async (keys) => {
       const result = {};
@@ -71,7 +73,7 @@ describe('checkStaleChats', () => {
     const count = await checkStaleChats(storage, '2026-03-04');
     expect(count).toBe(1);
     expect(storage.set).toHaveBeenCalledOnce();
-    const saved = storage.set.mock.calls[0][0].chats;
+    const saved = storage.set.mock.calls[0][0].chatIndex;
     expect(saved.find(c => c.id === chat.id).flaggedAsStale).toBe(true);
   });
 
@@ -80,7 +82,7 @@ describe('checkStaleChats', () => {
     const storage = makeStorage([chat]);
     const count = await checkStaleChats(storage, '2026-03-04');
     expect(count).toBe(1);
-    const saved = storage.set.mock.calls[0][0].chats;
+    const saved = storage.set.mock.calls[0][0].chatIndex;
     expect(saved.find(c => c.id === chat.id).flaggedAsStale).toBe(true);
   });
 
@@ -99,7 +101,7 @@ describe('checkStaleChats', () => {
     const storage = makeStorage([stale, future, noDate]);
     const count = await checkStaleChats(storage, '2026-03-04');
     expect(count).toBe(1);
-    const saved = storage.set.mock.calls[0][0].chats;
+    const saved = storage.set.mock.calls[0][0].chatIndex;
     expect(saved.find(c => c.id === stale.id).flaggedAsStale).toBe(true);
     expect(saved.find(c => c.id === future.id).flaggedAsStale).toBe(false);
     expect(saved.find(c => c.id === noDate.id).flaggedAsStale).toBe(false);
@@ -117,7 +119,7 @@ describe('checkStaleChats', () => {
     const chat = makeChat({ reviewDate: '2025-01-01', rating: 4, tags: ['a', 'b'] });
     const storage = makeStorage([chat]);
     await checkStaleChats(storage, '2026-03-04');
-    const saved = storage.set.mock.calls[0][0].chats[0];
+    const saved = storage.set.mock.calls[0][0].chatIndex[0];
     expect(saved.rating).toBe(4);
     expect(saved.tags).toEqual(['a', 'b']);
     expect(saved.title).toBe(chat.title);
@@ -186,8 +188,10 @@ describe('setupStaleBanner', () => {
 
     expect(banner.hidden).toBe(true);
     expect(storage.set).toHaveBeenCalled();
-    const saved = storage.set.mock.calls[0][0].chats;
-    expect(saved.find(c => c.id === chat.id).flaggedAsStale).toBe(false);
+    // New format: the dismiss handler patches the individual chat:<id> key.
+    const setArg = storage.set.mock.calls[0][0];
+    const savedChat = setArg[`chat:${chat.id}`] ?? setArg.chats?.find(c => c.id === chat.id);
+    expect(savedChat.flaggedAsStale).toBe(false);
   });
 });
 
