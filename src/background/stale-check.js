@@ -3,12 +3,15 @@
  * Stale-check logic: scans all saved chats for overdue review dates
  * and sets flaggedAsStale = true on any that have passed.
  *
+ * Supports both the legacy monolithic 'chats' format and the new per-chat-key
+ * format ('chatIndex' + 'chat:<id>' keys introduced by P1.1).
+ *
  * Extracted into its own module for testability — background.js imports
  * and calls this on extension startup and via a daily chrome.alarms event.
  */
 
 /**
- * Scan the chats array and flag any whose reviewDate is on or before `today`.
+ * Scan the chats index and flag any whose reviewDate is on or before `today`.
  *
  * @param {Object} storage  browser.storage.local-like API ({ get, set })
  * @param {string} [today]  ISO date string YYYY-MM-DD; defaults to actual today.
@@ -17,23 +20,40 @@
 export async function checkStaleChats(storage, today = null) {
   const todayStr = today || new Date().toISOString().slice(0, 10);
 
-  const result = await storage.get(['chats']);
-  const chats  = Array.isArray(result.chats) ? result.chats : [];
+  // Support both new per-chat-key format (chatIndex) and legacy ('chats') format.
+  const result      = await storage.get(['chatIndex', 'chats']);
+  const isNewFormat = Array.isArray(result.chatIndex);
+  const index       = isNewFormat
+    ? result.chatIndex
+    : (Array.isArray(result.chats) ? result.chats : []);
 
-  let flaggedCount = 0;
-  const updated = chats.map(chat => {
-    // Only act on chats with a reviewDate that has been reached or passed
-    // and that haven't already been flagged.
-    if (chat.reviewDate && chat.reviewDate <= todayStr && !chat.flaggedAsStale) {
-      flaggedCount++;
-      return { ...chat, flaggedAsStale: true };
+  const stale = index.filter(chat =>
+    chat.reviewDate && chat.reviewDate <= todayStr && !chat.flaggedAsStale
+  );
+
+  if (stale.length === 0) return 0;
+
+  if (isNewFormat) {
+    // Update chatIndex entries and individual chat:<id> keys in a single set call.
+    const newIndex = index.map(chat =>
+      stale.some(s => s.id === chat.id) ? { ...chat, flaggedAsStale: true } : chat
+    );
+    const writes = { chatIndex: newIndex };
+    for (const meta of stale) {
+      const chatResult = await storage.get([`chat:${meta.id}`]);
+      const fullChat   = chatResult[`chat:${meta.id}`];
+      if (fullChat) {
+        writes[`chat:${meta.id}`] = { ...fullChat, flaggedAsStale: true };
+      }
     }
-    return chat;
-  });
-
-  if (flaggedCount > 0) {
+    await storage.set(writes);
+  } else {
+    // Legacy format: update the monolithic 'chats' array.
+    const updated = index.map(chat =>
+      stale.some(s => s.id === chat.id) ? { ...chat, flaggedAsStale: true } : chat
+    );
     await storage.set({ chats: updated });
   }
 
-  return flaggedCount;
+  return stale.length;
 }

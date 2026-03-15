@@ -22,7 +22,7 @@ _Scope: full extension source (background, content scripts, sidepanel, reader, c
 
 ---
 
-## P1 — Fix before / immediately after launch
+## P1 — Fix before / immediately after launch ✅ DONE
 
 ### P1.1 — SVG innerHTML injection in `diagram-card.js`
 
@@ -101,7 +101,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 ---
 
-## P2 — Fix in first minor releases
+## P2 — Fix in first minor releases ✅ DONE
 
 ### P2.1 — Artifact preview srcdoc renders SVG without stripping scripts
 

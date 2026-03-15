@@ -173,13 +173,15 @@ export class ChatEntityTree {
   }
 
   _renderVirtualPlaceholder(types, totalCount) {
-    // Virtual scroll not yet implemented — render a simple list until Phase A+
-    this._renderByType(types);
+    // Render with lazy body creation: collapsed sections skip DOM creation until
+    // opened, preventing 150+ entity card nodes from blocking the main thread.
+    this._renderByType(types, /* lazy = */ true);
     if (this._query) _applyHighlight(this._container, this._query);
   }
 
   /** byType mode: one section per entity type */
-  _renderByType(types) {
+  /** @param {string[]} types @param {boolean} [lazy] — defer body DOM until section first opens */
+  _renderByType(types, lazy = false) {
     for (const type of types) {
       const entities = this._store.getAllByType(type);
       if (entities.length === 0) continue;
@@ -212,7 +214,63 @@ export class ChatEntityTree {
       const body = document.createElement('div');
       body.className = 'entity-section__body';
       if (sectionCollapsed) body.style.display = 'none';
+
+      // Group entities by content (de-duplicating across topics/chats).
+      // O(n) data work; done unconditionally so the label count is always correct.
+      const byEntity = _groupByEntity(entities, this._store, this._topicTree);
+
+      // Update label to reflect unique entity count (not raw occurrence count)
+      label.textContent = `${_typeLabel(type)} (${byEntity.length})`;
+
+      // Body population closure — when lazy=true and the section starts collapsed,
+      // entity card DOM is deferred until the user first opens the section,
+      // preventing 150+ card nodes from blocking the main thread on initial render.
+      let bodyPopulated = false;
+      const populateBody = () => {
+        if (bodyPopulated) return;
+        bodyPopulated = true;
+        for (const { representative, occurrences } of byEntity) {
+          const entityNode = document.createElement('div');
+          entityNode.className = 'entity-item-node';
+
+          // Card rendered once for the representative entity.
+          // Clicking the card navigates to the representative's occurrence.
+          const card = this._makeCard(representative, type);
+          if (occurrences.length > 1) {
+            const countBadge = document.createElement('span');
+            countBadge.className = 'entity-item-node__count';
+            countBadge.textContent = `(${occurrences.length})`;
+            card.appendChild(countBadge);
+          }
+          entityNode.appendChild(card);
+
+          // Source chips — one per occurrence, each navigating to that specific
+          // chat/topic instance so the user can locate this entity in context.
+          const sourcesList = document.createElement('div');
+          sourcesList.className = 'entity-item-node__sources';
+          for (const { entity, topicName, chatTitle } of occurrences) {
+            const chip = document.createElement('button');
+            chip.className = 'entity-source-chip';
+            chip.textContent = topicName !== 'Uncategorised' ? topicName : chatTitle;
+            chip.addEventListener('click', (e) => {
+              e.stopPropagation();
+              this._container.dispatchEvent(new CustomEvent('entity-click', {
+                bubbles: true,
+                detail: { entity, chatId: entity.chatId },
+              }));
+            });
+            sourcesList.appendChild(chip);
+          }
+          entityNode.appendChild(sourcesList);
+
+          body.appendChild(entityNode);
+        }
+        // Re-apply any active search highlight to freshly-populated content.
+        if (this._query) _applyHighlight(body, this._query);
+      };
+
       const doSectionToggle = () => {
+        populateBody(); // no-op after first call; triggers deferred render on first open
         const isCollapsed = body.style.display === 'none';
         body.style.display = isCollapsed ? '' : 'none';
         toggleBtn.setAttribute('aria-expanded', String(isCollapsed));
@@ -224,48 +282,8 @@ export class ChatEntityTree {
       toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); doSectionToggle(); });
       header.addEventListener('click', doSectionToggle);
 
-      // Group entities by content (de-duplicating across topics/chats)
-      const byEntity = _groupByEntity(entities, this._store, this._topicTree);
-
-      // Update label to reflect unique entity count (not raw occurrence count)
-      label.textContent = `${_typeLabel(type)} (${byEntity.length})`;
-
-      for (const { representative, occurrences } of byEntity) {
-        const entityNode = document.createElement('div');
-        entityNode.className = 'entity-item-node';
-
-        // Card rendered once for the representative entity.
-        // Clicking the card navigates to the representative's occurrence.
-        const card = this._makeCard(representative, type);
-        if (occurrences.length > 1) {
-          const countBadge = document.createElement('span');
-          countBadge.className = 'entity-item-node__count';
-          countBadge.textContent = `(${occurrences.length})`;
-          card.appendChild(countBadge);
-        }
-        entityNode.appendChild(card);
-
-        // Source chips — one per occurrence, each navigating to that specific
-        // chat/topic instance so the user can locate this entity in context.
-        const sourcesList = document.createElement('div');
-        sourcesList.className = 'entity-item-node__sources';
-        for (const { entity, topicName, chatTitle } of occurrences) {
-          const chip = document.createElement('button');
-          chip.className = 'entity-source-chip';
-          chip.textContent = topicName !== 'Uncategorised' ? topicName : chatTitle;
-          chip.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this._container.dispatchEvent(new CustomEvent('entity-click', {
-              bubbles: true,
-              detail: { entity, chatId: entity.chatId },
-            }));
-          });
-          sourcesList.appendChild(chip);
-        }
-        entityNode.appendChild(sourcesList);
-
-        body.appendChild(entityNode);
-      }
+      // Populate immediately unless we're in lazy mode and the section starts collapsed.
+      if (!lazy || !sectionCollapsed) populateBody();
 
       section.appendChild(body);
       this._container.appendChild(section);

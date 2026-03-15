@@ -8,6 +8,8 @@
  * Depends on: #artifactPreviewPanel already in sidepanel.html.
  */
 
+import { sanitiseSvg } from '../../lib/utils/sanitise-svg.js';
+
 // ---------------------------------------------------------------------------
 // Internal state
 // ---------------------------------------------------------------------------
@@ -63,7 +65,8 @@ export function showArtifactPreview(entity) {
   // Build srcdoc content
   let srcdoc;
   if (mimeType === 'image/svg+xml') {
-    srcdoc = `<!DOCTYPE html><html><body style="margin:0;background:transparent;">${source}</body></html>`;
+    const safeSvg = sanitiseSvg(source);
+    srcdoc = `<!DOCTYPE html><html><body style="margin:0;background:transparent;">${safeSvg}</body></html>`;
   } else if (mimeType === 'text/plain') {
     srcdoc = `<!DOCTYPE html><html><body><pre style="margin:0;white-space:pre-wrap;">${_escHtml(source)}</pre></body></html>`;
   } else {

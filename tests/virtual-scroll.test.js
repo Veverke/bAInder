@@ -12,10 +12,17 @@ function makeCtx(overrides = {}) {
     getChildren: vi.fn(() => []),
     topics: {},
   };
+  const chats = overrides.chats ?? [];
+  // Build the chatCountByTopic Map from chats (mirrors what _makeVirtualCtx does).
+  const chatCountByTopic = new Map();
+  for (const c of chats) {
+    if (c.topicId) chatCountByTopic.set(c.topicId, (chatCountByTopic.get(c.topicId) ?? 0) + 1);
+  }
   return {
     expandedNodes:      new Set(),
     selectedNodeId:     null,
-    chats:              [],
+    chats,
+    chatCountByTopic,
     tree,
     virtualThreshold:   50,
     toggleExpand:       vi.fn(),

@@ -18,9 +18,9 @@ This document lists scalability issues identified before the initial public rele
 
 ---
 
-## P1 — Address before or immediately after public release
+## P1 — Address before or immediately after public release ✅ DONE
 
-### P1.1 — Monolithic `chats` key: full-array read-modify-write on every mutation
+### P1.1 — Monolithic `chats` key: full-array read-modify-write on every mutation ✅ DONE
 
 **File:** `src/sidepanel/services/chat-repository.js` — `updateChat()`, `addChat()`, `removeChat()`  
 **File:** `src/background/stale-check.js`
@@ -39,7 +39,7 @@ Every single-chat mutation (rating change, tag edit, move, delete, stale flag) r
 
 ---
 
-### P1.2 — Search triggers a full storage read (with content) on every debounced keystroke
+### P1.2 — Search triggers a full storage read (with content) on every debounced keystroke ✅ DONE
 
 **File:** `src/sidepanel/controllers/search-controller.js` — `runSearch()`  
 **File:** `src/lib/storage.js` — `ChromeStorageAdapter.searchChats()`
@@ -56,9 +56,9 @@ Every single-chat mutation (rating change, tag edit, move, delete, stale flag) r
 
 ---
 
-## P2 — Address in first few minor releases
+## P2 — Address in first few minor releases ✅ DONE
 
-### P2.1 — Virtual-scroll topic row renders O(n × m) chat-count filter
+### P2.1 — Virtual-scroll topic row renders O(n × m) chat-count filter ✅ DONE
 
 **File:** `src/lib/renderer/virtual-scroll.js` — `renderVirtualRow()` line `ctx.chats.filter(c => c.topicId === item.id)`
 
@@ -68,7 +68,7 @@ For each row rendered during a scroll event, the renderer filters the entire `ct
 
 ---
 
-### P2.2 — Topic chat list renders all items at once (no virtual scroll for the chat list)
+### P2.2 — Topic chat list renders all items at once (no virtual scroll for the chat list) ✅ DONE
 
 **File:** `src/lib/renderer/tree-renderer.js` — topic-selected chat item rendering
 
@@ -78,7 +78,7 @@ When a topic is selected, all chat items for that topic are rendered as individu
 
 ---
 
-### P2.3 — Entity tree virtual scroll is a placeholder (not implemented)
+### P2.3 — Entity tree virtual scroll is a placeholder (not implemented) ✅ DONE
 
 **File:** `src/lib/renderer/entity-tree.js` — `_renderVirtualPlaceholder()`
 
@@ -88,7 +88,7 @@ The entity-tree renderer detects when `totalCount > 150` and calls `_renderVirtu
 
 ---
 
-### P2.4 — Multi-chat export loads all selected chats into memory simultaneously
+### P2.4 — Multi-chat export loads all selected chats into memory simultaneously ✅ DONE
 
 **File:** `src/sidepanel/features/multi-select.js` — `loadFullByIds()`
 

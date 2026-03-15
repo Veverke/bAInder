@@ -8,6 +8,8 @@
  * sidepanel), not the background script.
  */
 
+import { sanitiseSvg } from '../utils/sanitise-svg.js';
+
 /**
  * Render `source` into a hidden sandboxed iframe and capture a screenshot.
  *
@@ -32,7 +34,8 @@ export async function captureArtifactScreenshot(source, mimeType = 'text/html', 
       // Build the srcdoc content based on mimeType
       let srcdoc;
       if (mimeType === 'image/svg+xml') {
-        srcdoc = `<!DOCTYPE html><html><body style="margin:0;background:transparent;">${source}</body></html>`;
+        const safeSvg = sanitiseSvg(source);
+        srcdoc = `<!DOCTYPE html><html><body style="margin:0;background:transparent;">${safeSvg}</body></html>`;
       } else {
         // html / jsx / text — wrap bare text in <pre> for readability
         srcdoc = mimeType === 'text/plain'
