@@ -179,12 +179,17 @@ export async function handleRateChatAction(value) {
 // ---------------------------------------------------------------------------
 
 export async function handleChatSaved(chatEntry) {
-  // 1. Update in-memory list before the dialog (so the chat is visible)
-  _state.chats = [..._state.chats, chatEntry];
+  // 1. Upsert into the in-memory list before the dialog (so the chat is
+  //    visible immediately).  Remove any stale copy with the same id first
+  //    to prevent transient duplicates if loadAll() ran after the background
+  //    already wrote to storage.
+  _state.chats = [..._state.chats.filter(c => c.id !== chatEntry.id), chatEntry];
   _state.renderer.setChatData(_state.chats);
 
-  // 2. Prompt assignment
-  const result = await _state.chatDialogs.showAssignChat(chatEntry);
+  // 2. Prompt assignment — pass the same topic the button label shows so the
+  //    select defaults to the one the user already has in mind.
+  const preferredTopicId = _state.lastCreatedTopicId || _state.lastUsedTopicId || null;
+  const result = await _state.chatDialogs.showAssignChat(chatEntry, preferredTopicId);
   if (!result) {
     // User cancelled — reset save button without marking success
     setSaveBtnState('default');

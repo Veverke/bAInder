@@ -15,11 +15,22 @@
 const browser = chrome;
 
 // Local logger shim: keeps this bundle standalone (no cross-file imports).
+// info/warn/error are also forwarded to the background service worker so they
+// appear in the extension's background console, not just the tab console.
 const logger = {
   debug: (...args) => console.debug(...args),
-  info: (...args) => console.info(...args),
-  warn: (...args) => console.warn(...args),
-  error: (...args) => console.error(...args)
+  info: (...args) => {
+    console.info(...args);
+    try { browser.runtime.sendMessage({ type: 'CONTENT_LOG', level: 'info', msg: args.map(String).join(' ') }); } catch (_) {}
+  },
+  warn: (...args) => {
+    console.warn(...args);
+    try { browser.runtime.sendMessage({ type: 'CONTENT_LOG', level: 'warn', msg: args.map(String).join(' ') }); } catch (_) {}
+  },
+  error: (...args) => {
+    console.error(...args);
+    try { browser.runtime.sendMessage({ type: 'CONTENT_LOG', level: 'error', msg: args.map(String).join(' ') }); } catch (_) {}
+  },
 };
 
 (function bAInderContentScript() {
@@ -28,6 +39,11 @@ const logger = {
   // Prevent double-injection (e.g. if content script runs twice)
   if (window.__bAInderInjected) return;
   window.__bAInderInjected = true;
+
+  // Emit version stamp so it appears in the background SW console immediately.
+  // If you don't see this after reloading the extension + refreshing the tab,
+  // the content script is not running.
+  logger.info('content script v2 active on', window.location.hostname);
 
   // ─── Microsoft Designer postMessage interceptor ───────────────────────────
   // Designer (cross-origin iframe) sends postMessages to M365 when image
@@ -537,6 +553,233 @@ const logger = {
     return parts.length ? existingContent + parts.join('') : existingContent;
   }
 
+  // ─── Audio capture helpers ──────────────────────────────────────────────────
+  // collectAudioFromPage() reads meta elements written by the MAIN-world
+  // audio-interceptor.js (which patches URL.createObjectURL, HTMLAnchorElement
+  // .click, and window.fetch) AND sweeps the live DOM (including shadow roots)
+  // for any <audio> elements the extractors might have missed.
+
+  const _MAX_AUDIO_BYTES_CS = 10 * 1024 * 1024; // 10 MB
+
+  // Return a persistent src for an audio URL: data: URI (preferred) or the URL.
+  async function _captureAudioSrc(src) {
+    if (!src) return null;
+    if (src.startsWith('data:')) return src.startsWith('data:audio/') ? src : null;
+    if (src.startsWith('blob:')) {
+      try {
+        const resp = await fetch(src);
+        if (!resp.ok) return null;
+        const buf = await resp.arrayBuffer();
+        if (buf.byteLength > _MAX_AUDIO_BYTES_CS) return 'too_large';
+        const mime = (resp.headers.get('content-type') || 'audio/mpeg').split(';')[0].trim();
+        return await _blobToDataUrl(new Blob([buf], { type: mime }));
+      } catch (_) { return null; }
+    }
+    if (src.startsWith('http:') || src.startsWith('https:')) {
+      // Route through background service worker which has host_permissions.
+      return new Promise((resolve) => {
+        browser.runtime.sendMessage({ type: 'FETCH_IMAGE_AS_DATA_URL', url: src }, resp => {
+          if (browser.runtime.lastError) { resolve(src); return; }
+          const du = resp?.dataUrl || '';
+          // Only return a data: URI if it is actually audio content.
+          // Falls back to the original src URL on fetch failure (expired link etc.).
+          if (resp?.success && du.startsWith('data:audio/')) { resolve(du); return; }
+          if (!resp?.success) { resolve(src); return; } // fetch error — keep URL as fallback
+          resolve(null); // fetched fine but wrong content-type (image, PDF, …)
+        });
+      });
+    }
+    return null;
+  }
+
+  // Walk root recursively including open shadow roots, collect all <audio> srcs
+  // AND all <a> hrefs that look like audio file downloads.
+  function collectShadowAudio(root, maxShadowDepth) {
+    if (maxShadowDepth === undefined) maxShadowDepth = 8;
+    // Match audio extension anywhere in URL (e.g. ?name=audio.wav& or path/audio.mp3?token).
+    const AUDIO_EXT_RE_CS = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)(?:[^a-zA-Z]|$)/i;
+    // ChatGPT code-interpreter stores generated files here; Gemini on GCS.
+    const AUDIO_CDN_RE_CS = /files\.oaiusercontent\.com|storage\.googleapis\.com|storage\.cloud\.google\.com/i;
+    // URL contains audio content-type hint:
+    //   content_type=audio  — generic pattern
+    //   type=audio%2F       — URL-encoded mime
+    //   rsct=audio          — Azure Blob signed URL response-content-type (ChatGPT)
+    //   rscd=...filename.ext — response-content-disposition with audio filename
+    const AUDIO_CT_RE_CS  = /content[_-]?type=audio|type=audio%2F|rsct=audio|rscd=[^&]*\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)/i;
+    const audioSrcs = [];
+    const anchorHrefs = [];
+    function walkAudio(node, depth) {
+      if (!node) return;
+      const type = node.nodeType;
+      if (type !== 1 && type !== 11) return;
+      if (type === 1) {
+        const tag = node.tagName.toLowerCase();
+        if (tag === 'audio') {
+          let src = '';
+          try { src = node.src || ''; } catch (_) {}
+          if (!src) src = node.getAttribute('src') || '';
+          if (!src) {
+            const srcEl = node.querySelector('source');
+            if (srcEl) {
+              try { src = srcEl.src || ''; } catch (_) {}
+              if (!src) src = srcEl.getAttribute('src') || '';
+            }
+          }
+          // Diagnostic: log every audio element so we can see what its src is.
+          let hasSrcObject = false;
+          try { hasSrcObject = !!node.srcObject; } catch (_) {}
+          logger.info('[bAInder] audio el found: src=' + (src || '(empty)').slice(0, 100) +
+            ' srcObject=' + hasSrcObject + ' paused=' + node.paused + ' readyState=' + node.readyState);
+          if (src && !src.startsWith('data:') && src.includes(':')) audioSrcs.push(src);
+        } else if (tag === 'a') {
+          const href = node.getAttribute('href') || '';
+          const dl   = node.getAttribute('download');
+          // A download link with an audio extension, OR a CDN link that has audio ext / content-type / download attr.
+          const hasAudioExt = AUDIO_EXT_RE_CS.test(href);
+          // Capture any CDN anchor that: has audio extension, OR audio content-type hint,
+          // OR has a download attribute (content-type will be verified on fetch).
+          const isCDNAudio  = AUDIO_CDN_RE_CS.test(href) && (dl !== null || hasAudioExt || AUDIO_CT_RE_CS.test(href));
+          if (href && (hasAudioExt || isCDNAudio)) {
+            anchorHrefs.push(href);
+          }
+        }
+        if (depth > 0 && node.shadowRoot) walkAudio(node.shadowRoot, depth - 1);
+      }
+      for (const child of node.childNodes) walkAudio(child, depth);
+    }
+    walkAudio(root, maxShadowDepth);
+    return { audioSrcs, anchorHrefs };
+  }
+
+  // Main entry: reads meta cache + shadow DOM + light DOM <audio>/<a> elements.
+  // Returns array of [🔊 Generated audio](...) marker strings.
+  async function collectAudioFromPage(doc) {
+    const markers  = [];
+    const seenSrcs = new Set();
+    // Match audio extension anywhere in URL.
+    const AUDIO_EXT_RE_CS = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)(?:[^a-zA-Z]|$)/i;
+    const AUDIO_CDN_RE_CS = /files\.oaiusercontent\.com|storage\.googleapis\.com|storage\.cloud\.google\.com/i;
+    const AUDIO_CT_RE_CS  = /content[_-]?type=audio|type=audio%2F|rsct=audio|rscd=[^&]*\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)/i;
+
+    // 1. Meta cache written by the MAIN-world audio-interceptor.js.
+    const metaEls = doc.querySelectorAll('meta[name="bainder-audio-cache"]');
+    logger.info('[bAInder] collectAudioFromPage: meta cache entries=' + metaEls.length +
+      ' lightAudio=' + doc.querySelectorAll('audio').length +
+      ' lightAnchors=' + doc.querySelectorAll('a[href]').length);
+    // Diagnostic: log every CDN anchor even if it doesn't match audio criteria.
+    const _allCDNAnchors = doc.querySelectorAll(
+      'a[href*="files.oaiusercontent.com"], a[href*="storage.googleapis.com"], a[href*="storage.cloud.google.com"]');
+    if (_allCDNAnchors.length > 0) {
+      logger.info('[bAInder] CDN anchors in DOM: ' + _allCDNAnchors.length + ' — ' +
+        [..._allCDNAnchors].slice(0, 3).map(a => (a.getAttribute('href') || '').slice(0, 100)).join(' | '));
+    }
+    for (const meta of metaEls) {
+      const key     = meta.getAttribute('data-blob-url') || '';
+      const dataUrl = meta.getAttribute('data-data-url') || '';
+      if (!dataUrl || seenSrcs.has(key)) continue;
+      seenSrcs.add(key);
+      logger.info('[bAInder] audio meta cache hit:', key.slice(0, 80));
+      const persistent = await _captureAudioSrc(dataUrl);
+      if (persistent && persistent !== 'too_large') {
+        markers.push(`[\uD83D\uDD0A Generated audio](${persistent})`);
+      } else if (persistent === 'too_large') {
+        markers.push('[\uD83D\uDD0A Generated audio (file too large to capture)]');
+      }
+    }
+
+    // 2. Full shadow+light DOM walk — <audio> srcs and <a> download hrefs.
+    const { audioSrcs, anchorHrefs } = collectShadowAudio(doc.documentElement || doc.body);
+
+    // 2a. <audio> elements (shadow + light DOM)
+    for (const src of audioSrcs) {
+      if (seenSrcs.has(src)) continue;
+      seenSrcs.add(src);
+      logger.info('[bAInder] audio element src:', src.slice(0, 80));
+      const resolved = await _captureAudioSrc(src);
+      if (resolved === 'too_large')   markers.push('[\uD83D\uDD0A Generated audio (file too large to capture)]');
+      else if (resolved)              markers.push(`[\uD83D\uDD0A Generated audio](${resolved})`);
+      else                            markers.push('[\uD83D\uDD0A Generated audio (not captured)]');
+    }
+
+    // 2b. <a download> links pointing to audio file URLs
+    for (const href of anchorHrefs) {
+      if (seenSrcs.has(href)) continue;
+      seenSrcs.add(href);
+      logger.info('[bAInder] audio anchor href (shadow):', href.slice(0, 100));
+      const resolved = await _captureAudioSrc(href);
+      if (resolved === 'too_large')   markers.push('[\uD83D\uDD0A Generated audio (file too large to capture)]');
+      else if (resolved === href)     markers.push(`[\uD83D\uDD0A Generated audio](${resolved})`); // HTTPS URL as fallback
+      else if (resolved)              markers.push(`[\uD83D\uDD0A Generated audio](${resolved})`);
+    }
+
+    // 2c. Also scan light-DOM <a> elements (some may not be in shadow roots).
+    for (const a of doc.querySelectorAll('a[href]')) {
+      const href = a.getAttribute('href') || '';
+      const dl   = a.getAttribute('download');
+      if (!href || seenSrcs.has(href)) continue;
+      const isAudio    = AUDIO_EXT_RE_CS.test(href);
+      const isCDNAudio  = AUDIO_CDN_RE_CS.test(href) && (dl !== null || isAudio || AUDIO_CT_RE_CS.test(href));
+      if (!isAudio && !isCDNAudio) continue;
+      seenSrcs.add(href);
+      logger.info('[bAInder] audio anchor (light DOM):', href.slice(0, 100));
+      const resolved = await _captureAudioSrc(href);
+      if (resolved === 'too_large')   markers.push('[\uD83D\uDD0A Generated audio (file too large to capture)]');
+      else if (resolved)              markers.push(`[\uD83D\uDD0A Generated audio](${resolved})`);
+    }
+
+    // 2d. Brute-force: scan the page HTML for CDN URLs.
+    //     Catches file URLs embedded in React data props, inline scripts, JSON blobs, etc.
+    //     that are invisible to DOM anchor/audio element scanning.
+    //     For <a download> CDN links we already captured them in 2b/2c above.
+    //     Here we also scan innerHTML to catch hidden/deferred URLs.
+    try {
+      const htmlContent = doc.documentElement ? doc.documentElement.innerHTML : '';
+      let _htmlCDNCount = 0;
+      for (const re of [
+        /https:\/\/files\.oaiusercontent\.com\/[^\s"'<>)]+/g,
+        /https:\/\/storage\.googleapis\.com\/[^\s"'<>)]+/g,
+      ]) {
+        let _m;
+        while ((_m = re.exec(htmlContent)) !== null) {
+          const url = _m[0].replace(/&amp;/g, '&').replace(/[)"'\\,]+$/, '');
+          _htmlCDNCount++;
+          if (seenSrcs.has(url)) continue;
+          // Log every CDN URL found in HTML for diagnosis.
+          logger.info('[bAInder] HTML-scan CDN URL (audio-hint=' +
+            (AUDIO_EXT_RE_CS.test(url) || AUDIO_CT_RE_CS.test(url)) + '):', url.slice(0, 120));
+          // Only fetch URLs that have an audio hint in them.
+          if (!AUDIO_EXT_RE_CS.test(url) && !AUDIO_CT_RE_CS.test(url)) continue;
+          seenSrcs.add(url);
+          const resolved = await _captureAudioSrc(url);
+          if (resolved === 'too_large') markers.push('[\uD83D\uDD0A Generated audio (file too large to capture)]');
+          else if (resolved)            markers.push(`[\uD83D\uDD0A Generated audio](${resolved})`);
+        }
+      }
+      if (_htmlCDNCount === 0) logger.info('[bAInder] HTML-scan: no CDN URLs found in page HTML');
+    } catch (_) {}
+
+    // 2e. Direct query for CDN download anchors — broadest net, content-type verified on fetch.
+    //     This catches <a download href="https://files.oaiusercontent.com/..."> without audio hints.
+    try {
+      const _cdnDLAnchors = doc.querySelectorAll(
+        'a[download][href*="files.oaiusercontent.com"],' +
+        'a[download][href*="storage.googleapis.com"],' +
+        'a[download][href*="storage.cloud.google.com"]');
+      for (const a of _cdnDLAnchors) {
+        const href = a.href || a.getAttribute('href') || '';
+        if (!href || seenSrcs.has(href)) continue;
+        seenSrcs.add(href);
+        logger.info('[bAInder] CDN download anchor (no-hint capture):', href.slice(0, 100));
+        const resolved = await _captureAudioSrc(href);
+        if (resolved === 'too_large') markers.push('[\uD83D\uDD0A Generated audio (file too large to capture)]');
+        else if (resolved)            markers.push(`[\uD83D\uDD0A Generated audio](${resolved})`);
+      }
+    } catch (_) {}
+
+    logger.info('[bAInder] collectAudioFromPage done: ' + markers.length + ' marker(s)');
+    return markers;
+  }
+
   function formatMessage(role, content) {
     return { role: role || 'unknown', content: (content || '').trim() };
   }
@@ -666,6 +909,24 @@ const logger = {
         const content = htmlToMarkdown(resolvedEl);
         logger.info('[bAInder] ChatGPT fallback turn role=' + role + ' len=' + content.length);
         if (content) messages.push(formatMessage(role, content));
+      }
+    }
+    // ── Audio sweep ──────────────────────────────────────────────────────────
+    // Read meta cache (MAIN-world interceptor) + shadow/light DOM <audio> elements.
+    // Append to the last assistant message if audio was captured without a marker.
+    const audioMarkers = await collectAudioFromPage(doc);
+    if (audioMarkers.length > 0) {
+      const lastAsst = [...messages].reverse().find(m => m.role === 'assistant');
+      if (lastAsst) {
+        if (!lastAsst.content.includes('\uD83D\uDD0A')) {
+          lastAsst.content += '\n\n' + audioMarkers.join('\n');
+        } else if (audioMarkers.some(m => m.includes('](data:') || m.includes('](http'))) {
+          // Have real audio — replace any existing "not captured" placeholder.
+          lastAsst.content = lastAsst.content.replace(/\[\uD83D\uDD0A Generated audio[^\]]*\](?!\()/g, '').trimEnd();
+          lastAsst.content += '\n\n' + audioMarkers.join('\n');
+        }
+      } else {
+        messages.push(formatMessage('assistant', audioMarkers.join('\n')));
       }
     }
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
@@ -812,6 +1073,21 @@ const logger = {
         '| markdown len:', content.length);
       if (role === 'assistant') content += extractSourceLinks(el);
       if (content) messages.push(formatMessage(role, content));
+    }
+    // ── Audio sweep (Gemini) ─────────────────────────────────────────────────
+    const audioMarkersG = await collectAudioFromPage(doc);
+    if (audioMarkersG.length > 0) {
+      const lastAsstG = [...messages].reverse().find(m => m.role === 'assistant');
+      if (lastAsstG) {
+        if (!lastAsstG.content.includes('\uD83D\uDD0A')) {
+          lastAsstG.content += '\n\n' + audioMarkersG.join('\n');
+        } else if (audioMarkersG.some(m => m.includes('](data:') || m.includes('](http'))) {
+          lastAsstG.content = lastAsstG.content.replace(/\[\uD83D\uDD0A Generated audio[^\]]*\](?!\()/g, '').trimEnd();
+          lastAsstG.content += '\n\n' + audioMarkersG.join('\n');
+        }
+      } else {
+        messages.push(formatMessage('assistant', audioMarkersG.join('\n')));
+      }
     }
     return { title: generateTitle(messages, doc.location.href), messages, messageCount: messages.length };
   }

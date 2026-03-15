@@ -68,7 +68,10 @@ export async function initSaveBanner() {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
     const platform = tab ? detectPlatformFromUrl(tab.url) : null;
     if (platform) {
-      if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = `${platform} conversation detected`;
+      if (elements.saveBannerMsg) {
+        elements.saveBannerMsg.textContent = `${platform} conversation detected`;
+        elements.saveBannerMsg.classList.remove('save-banner__msg--warn');
+      }
       elements.saveBanner.style.display = 'flex';
       setSaveBtnState('default');
     } else {
@@ -142,7 +145,10 @@ export async function handlePanelSave() {
     const noCS      = /receiving end does not exist|could not establish connection/i.test(err.message);
     const ctxLost   = /context.*(lost|invalidated)/i.test(err.message);
     if (noCS || ctxLost) {
-      if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = '⚠️ Reload this page to activate bAInder';
+      if (elements.saveBannerMsg) {
+        elements.saveBannerMsg.textContent = '⚠️ Reload this page to activate bAInder';
+        elements.saveBannerMsg.classList.add('save-banner__msg--warn');
+      }
       setSaveBtnState('reload');
     } else {
       setSaveBtnState('error');

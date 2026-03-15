@@ -5,7 +5,7 @@
  * These are pure-function unit tests that run without Chrome APIs.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   detectSource,
   generateChatId,
@@ -15,6 +15,10 @@ import {
   buildExcerptPayload,
   handleSaveChat
 } from '../src/background/chat-save-handler.js';
+import {
+  registerExtractor,
+  _resetRegistry,
+} from '../src/lib/entities/entity-extractor.js';
 
 // ─── detectSource ─────────────────────────────────────────────────────────────
 
@@ -220,58 +224,58 @@ describe('buildChatEntry()', () => {
     metadata:     { extractedAt: 12345 }
   };
 
-  it('includes an auto-generated id', () => {
-    const entry = buildChatEntry(chatData, '');
+  it('includes an auto-generated id', async () => {
+    const entry = await buildChatEntry(chatData, '');
     expect(typeof entry.id).toBe('string');
     expect(entry.id.length).toBeGreaterThan(0);
   });
 
-  it('trims title and content', () => {
-    const entry = buildChatEntry({ ...chatData, title: '  My Chat  ', content: '  Content  ' }, '');
+  it('trims title and content', async () => {
+    const entry = await buildChatEntry({ ...chatData, title: '  My Chat  ', content: '  Content  ' }, '');
     expect(entry.title).toBe('My Chat');
     expect(entry.content).toBe('Content');
   });
 
-  it('sets source from chatData.source', () => {
-    expect(buildChatEntry(chatData, '').source).toBe('chatgpt');
+  it('sets source from chatData.source', async () => {
+    expect((await buildChatEntry(chatData, '')).source).toBe('chatgpt');
   });
 
-  it('infers source from URL when chatData.source missing', () => {
+  it('infers source from URL when chatData.source missing', async () => {
     // Remove BOTH source and url from chatData so tabUrl drives the inference
     const { source, url, ...noSourceNoUrl } = chatData;
-    const entry = buildChatEntry(noSourceNoUrl, 'https://claude.ai/chat/1');
+    const entry = await buildChatEntry(noSourceNoUrl, 'https://claude.ai/chat/1');
     expect(entry.source).toBe('claude');
   });
 
-  it('uses tabUrl when chatData.url is missing', () => {
+  it('uses tabUrl when chatData.url is missing', async () => {
     const { url, ...noUrl } = chatData;
-    const entry = buildChatEntry(noUrl, 'https://chat.openai.com/c/fallback');
+    const entry = await buildChatEntry(noUrl, 'https://chat.openai.com/c/fallback');
     expect(entry.url).toBe('https://chat.openai.com/c/fallback');
   });
 
-  it('sets topicId to null (assigned later in Stage 7)', () => {
-    expect(buildChatEntry(chatData, '').topicId).toBeNull();
+  it('sets topicId to null (assigned later in Stage 7)', async () => {
+    expect((await buildChatEntry(chatData, '')).topicId).toBeNull();
   });
 
-  it('includes timestamp close to Date.now()', () => {
+  it('includes timestamp close to Date.now()', async () => {
     const before = Date.now();
-    const entry  = buildChatEntry(chatData, '');
+    const entry  = await buildChatEntry(chatData, '');
     expect(entry.timestamp).toBeGreaterThanOrEqual(before);
   });
 
-  it('copies messages and messageCount', () => {
-    const entry = buildChatEntry(chatData, '');
+  it('copies messages and messageCount', async () => {
+    const entry = await buildChatEntry(chatData, '');
     expect(entry.messageCount).toBe(3);
     expect(entry.messages).toHaveLength(1);
   });
 
-  it('copies metadata', () => {
-    expect(buildChatEntry(chatData, '').metadata).toEqual({ extractedAt: 12345 });
+  it('copies metadata', async () => {
+    expect((await buildChatEntry(chatData, '')).metadata).toEqual({ extractedAt: 12345 });
   });
 
-  it('defaults messageCount to 0 when not provided', () => {
+  it('defaults messageCount to 0 when not provided', async () => {
     const { messageCount, ...noCount } = chatData;
-    expect(buildChatEntry(noCount, '').messageCount).toBe(0);
+    expect((await buildChatEntry(noCount, '')).messageCount).toBe(0);
   });
 });
 
@@ -392,26 +396,26 @@ describe('buildChatEntry() – optional-field fallbacks', () => {
     url:     'https://gemini.google.com/app/x'
   };
 
-  it('defaults messages to [] when not provided', () => {
+  it('defaults messages to [] when not provided', async () => {
     const { messages, ...noMessages } = { ...base, messages: undefined };
     // just omit messages entirely
-    const entry = buildChatEntry(base, '');
+    const entry = await buildChatEntry(base, '');
     // base has messages undefined but tests above showed messages is read from chatData
     // We need to omit it entirely:
     const noMsg = { title: base.title, content: base.content, source: base.source, url: base.url };
-    const e = buildChatEntry(noMsg, '');
+    const e = await buildChatEntry(noMsg, '');
     expect(e.messages).toEqual([]);
   });
 
-  it('defaults metadata to {} when not provided', () => {
+  it('defaults metadata to {} when not provided', async () => {
     const noMeta = { title: base.title, content: base.content, source: base.source, url: base.url };
-    const e = buildChatEntry(noMeta, '');
+    const e = await buildChatEntry(noMeta, '');
     expect(e.metadata).toEqual({});
   });
 
-  it('uses empty string url when both chatData.url and tabUrl are falsy', () => {
+  it('uses empty string url when both chatData.url and tabUrl are falsy', async () => {
     const noUrl = { title: base.title, content: base.content, source: base.source };
-    const e = buildChatEntry(noUrl, '');  // tabUrl is also ''
+    const e = await buildChatEntry(noUrl, '');  // tabUrl is also ''
     expect(e.url).toBe('');
   });
 });
@@ -532,5 +536,48 @@ describe('buildExcerptPayload()', () => {
     const p = buildExcerptPayload('plain', 'https://copilot.microsoft.com/', rich);
     expect(() => validateChatData(p)).not.toThrow();
     expect(p.metadata.isExcerpt).toBe(true);
+  });
+});
+
+// ─── buildChatEntry() — entity extraction (Task 0.3) ─────────────────────────
+
+describe('buildChatEntry() — entity extraction', () => {
+  const baseData = {
+    title:   'Code Chat',
+    content: 'Some content',
+    source:  'chatgpt',
+    url:     'https://chat.openai.com/c/1',
+  };
+
+  afterEach(() => {
+    _resetRegistry();
+  });
+
+  it('entry contains code entities when a code extractor is registered and matches', async () => {
+    registerExtractor('code', (messages, _doc, chatId) =>
+      messages
+        .filter(m => /```/.test(m.content || ''))
+        .map((m, i) => ({ id: `e${i}`, type: 'code', chatId, messageIndex: i }))
+    );
+    const data = {
+      ...baseData,
+      messages: [{ role: 'assistant', content: '```js\nconsole.log("hi");\n```' }],
+    };
+    const entry = await buildChatEntry(data, '');
+    expect(Array.isArray(entry.code)).toBe(true);
+    expect(entry.code.length).toBeGreaterThan(0);
+  });
+
+  it('entry has no entity keys when no extractors are registered', async () => {
+    const entry = await buildChatEntry({ ...baseData, messages: [] }, '');
+    const knownBaseKeys = ['id', 'title', 'content', 'url', 'source', 'timestamp',
+                           'topicId', 'messageCount', 'messages', 'metadata'];
+    const extraKeys = Object.keys(entry).filter(k => !knownBaseKeys.includes(k));
+    expect(extraKeys).toHaveLength(0);
+  });
+
+  it('a failing extractor does not cause buildChatEntry to throw', async () => {
+    registerExtractor('code', () => { throw new Error('extractor boom'); });
+    await expect(buildChatEntry({ ...baseData, messages: [] }, '')).resolves.not.toThrow();
   });
 });

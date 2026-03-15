@@ -5,7 +5,7 @@
 > Generated: March 3, 2026  
 > Source: AI-assisted brainstorming session — features not already covered by the roadmap or design specs.  
 > These are catalogued as **C.13 – C.32** in Appendix C of `DESIGN_SPECS.md` and `roadmap.html`.  
-> Last updated: March 13, 2026 — sorted by impact/complexity ROI; completed features moved to end. C.18 completed March 13, 2026. C.20 completed March 12, 2026. C.26 completed March 12, 2026. C.28 completed March 12, 2026.
+> Last updated: March 15, 2026 — sorted by impact/complexity ROI; completed features moved to end. C.18 completed March 13, 2026. C.20 completed March 12, 2026. C.26 completed March 12, 2026. C.28 completed March 12, 2026. C.13 and C.13.1 superseded by Chat Entities framework March 14, 2026. C.33–C.37 added March 14, 2026. Chat Entities Groups A–E all completed March 15, 2026.
 
 ---
 
@@ -16,15 +16,16 @@ Items are ordered by return on investment: highest differentiator with lowest ef
 | Ref | Feature | Effort | Differentiator |
 |-----|---------|--------|----------------|
 | C.24 | Internal API-based extraction — platform-wide strategy | Low/platform | Moderate |
-| C.16 | Cross-platform prompt launch | Medium | Very High |
+| C.16 | Cross-platform prompt launch *(Re-fire action on Prompt entities — see Chat Entities)* | Medium | Very High |
 | C.23 | Platform expansion: DeepSeek, Grok & Perplexity | Medium | Very High |
 | C.25 | Chat hover overlay (tree preview) | Medium | High |
-| C.13 | Prompt Library | Medium | High |
 | C.21 | Direct Obsidian push (Local REST API) | Medium | High |
-| C.31 | Manage code snippets (tree view) | Medium | High |
-| C.29 | Manage embedded images (tree view) | Medium | High |
-| C.30 | Manage attachments (tree view) | Medium | High |
-| C.32 | Manage audio recordings (tree view) | Medium | Moderate |
+| — | **Chat Entities Manager — shared infrastructure** | Low–Medium | — |
+| C.13 · C.33 · C.37 | Chat Entities · **Group A** — Prompts, Tables, Citations & Sources | Low–Medium | High |
+| C.31 · C.34 | Chat Entities · **Group B** — Code Snippets, Diagrams | Medium | High |
+| C.36 · C.30 | Chat Entities · **Group C** — Tool-Use Traces, Attachments | Medium | High |
+| C.29 · C.32 | Chat Entities · **Group D** — Images, Audio recordings | Medium–High | High |
+| C.35 | ✅ COMPLETED (March 15, 2026) Chat Entities · **Group E** — Artifacts & Canvas | Medium–High | Very High |
 | C.27 | Source auditing (citation provenance) | Medium–High | Very High |
 
 ---
@@ -207,34 +208,15 @@ Gives users instant insight into chat content and code density without opening e
 
 ---
 
-## C.13 — Prompt Library
+## C.13 — Prompt Library ⛔ SUPERSEDED
 
-**Idea:** Automatically extract the user-turn prompts from every saved chat and surface them in a dedicated "Prompt Library" panel. One-click to copy or re-fire any saved prompt on any supported AI platform.
-
-**Value:** Power users re-use prompts constantly. This elevates bAInder from a passive archive into an active productivity tool — the closest analogy is a personal snippet manager, but for AI prompts.
-
-**Implementation sketch:**
-- On save, extract all user-turn messages into a `prompts[]` array stored alongside the `ChatEntry`.
-- Add a "Prompt Library" view (or collapsible section) in the side panel, listing prompts with their source topic, date, and platform badge.
-- "Copy" button copies the raw text; "Re-fire" opens the appropriate platform URL with the prompt pre-filled in the URL query param (where supported — ChatGPT and Claude both accept `?q=` or similar deep links).
-
-**Effort:** Medium. **Differentiator:** High — no mainstream extension does this today.
+**Status:** Superseded March 14, 2026 by the **Chat Entities** framework. Prompts are now a first-class entity type extracted at save time and browsed through the **Chat Entities** tab (Group A). The Re-fire capability planned here is implemented as the **Re-fire** action on Prompt entity cards, using the platform URL logic from C.16.
 
 ---
 
-### C.13.1 — Prompt Manager (Tabbed Tree View)
+### C.13.1 — Prompt Manager (Tabbed Tree View) ⛔ SUPERSEDED
 
-**Feature:**
-- Add a Prompt Manager as another tree view. The main screen will now be tabbed:
-  - Tab 1: Topic tree viewer
-  - Tab 2: Prompt tree viewer
-  - Tab 3: Code snippets tree viewer
-- Clicking a prompt in tab 2 or a code snippet in tab 3 opens the saved chat from which that prompt or code snippet was taken, highlighting the prompt or code snippet in the chat contents.
-
-**Value:**
-Streamlines navigation and retrieval of prompts and code, supporting power-user workflows.
-
-**Effort:** Medium. **Differentiator:** High — combines advanced navigation with cross-linking and content highlighting.
+**Status:** Superseded March 14, 2026. The two-tab side panel model (Chat Sessions / Chat Entities) with a shared entity tree renderer replaces the ad-hoc tabbed view described here. See **Chat Entities Manager — Unified Work Plan**.
 
 ---
 
@@ -256,87 +238,138 @@ Streamlines navigation and retrieval of prompts and code, supporting power-user 
 
 ---
 
-## C.31 — Manage Code Snippets (Tree View)
+## Chat Entities Manager — Unified Work Plan
 
-**Idea:** Build a dedicated **Code Snippets** tree view listing every fenced code block across all saved chats, grouped by programming language and then by topic/chat. Each snippet is browsable and copyable without opening the full chat.
+**Covers:** C.13 · C.29 · C.30 · C.31 · C.32 · C.33 · C.34 · C.35 · C.36 · C.37
 
-**Value:** This is the primary retrieval workflow for developer users — they save a chat because it contains a useful function or script, then later need to find and copy that exact snippet. The current approach requires opening the chat and scrolling. The C.13.1 Prompt Manager already proposes a Code Snippets tab; this entry defines the full feature scope.
+**Idea:** Extend bAInder's save pipeline to extract every distinct entity a chat can contain — both user-authored (prompts) and assistant-generated (code snippets, tables, diagrams, images, etc.) — and surface them through a unified **Chat Entities** tab in the side panel.
 
-**Implementation sketch:**
-- At save time, extract all fenced code blocks from assistant messages: parse ` ```lang \n code \n ``` ` patterns; store `{ id, language, code, lineCount, messageIndex, chatId }`.
-- Add a **Code** tab to the tabbed view (this is the "Tab 3" referenced in C.13.1).
-- **Two-level grouping modes** (toggle in header):
-  1. *By language* → **JavaScript → Topic / Chat → snippet preview**
-  2. *By topic* → **Topic → Chat → snippet list** (mirrors main tree)
-- Render each snippet as a compact card: language badge, first 3 lines preview, line count, copy button.
-- Clicking the card opens the reader at the correct message anchor.
-- **Copy button** on each card copies the raw code to clipboard directly from the tree — no need to open the chat.
-- **Search:** full-text search within code snippet contents (not just filenames).
-- **Export:** select multiple snippets → export as a single `.md` or `.zip` of individual files named `<language>-snippet-<N>.<ext>`.
-- Extends the hover overlay (C.25): "Code Snippets: Python: 3, JavaScript: 2" is already planned there — this view is the backing data source.
+The side panel becomes a two-tab window:
+- **Tab 1 — Chat Sessions:** the existing topic/chat tree, unchanged.
+- **Tab 2 — Chat Entities:** a new tree view where all extracted entities across all saved chats are browsable, searchable, and actionable.
 
-**Effort:** Medium. **Differentiator:** High — the most developer-facing feature in the suite; directly increases daily utility for the core power-user segment.
+All ten entity types share a single codebase for extraction, storage, tree rendering, and reader navigation. Each type contributes only its extractor logic and its item card renderer. This prevents ten near-identical silos and makes adding a future entity type trivial. C.13 (Prompt Library) and C.13.1 (Prompt Manager) are fully superseded by this framework.
 
----
+### Shared Infrastructure (prerequisite for all groups)
 
-## C.29 — Manage Embedded Images (Tree View)
+Build this once before starting any group:
 
-**Idea:** Build a dedicated **Images** tree view listing every image embedded across all saved chats, grouped by topic (mirroring the main chat tree hierarchy). Clicking any image thumbnail opens the source chat at the point where the image appears.
-
-**Value:** Users who save chats containing diagrams, screenshots, charts, or AI-generated images currently have no way to browse those assets without opening each chat individually. A centralised image gallery turns bAInder into a visual research archive.
-
-**Implementation sketch:**
-- At save time (or lazily on first view), scan each `ChatEntry` for embedded images: inline `<img>` tags, data-URI blobs, and image attachments in the messages array.
-- Store an `images[]` array on `ChatEntry`: `{ id, src, mimeType, altText, messageIndex, thumbnailDataUri }`.
-- Add an **Images** tab to the main tabbed view (alongside the existing topic tree and Prompt Manager from C.13.1).
-- Render as a two-level tree: **Topic → Chat title → image thumbnails** (grid layout within each chat node).
-- Clicking a thumbnail opens the reader at the correct message (`#r<N>` anchor from C.28).
-- Filter bar: filter by topic, by platform, or by image type (photo / diagram / generated).
-- **Edge cases:** Very large images (> 5 MB data URI) — store only the thumbnail; link to the full image in the reader rather than embedding in the tree.
-
-**Effort:** Medium. **Differentiator:** High — unique visual asset management for AI chat archives.
+- **`ChatEntity` base type** — `{ id: string, type: string, messageIndex: number, chatId: string, role: 'user'|'assistant' }`. All concrete entity types extend this.
+- **`ChatEntry` arrays** — optional fields: `prompts[]`, `tables[]`, `images[]`, `attachments[]`, `audioRecordings[]`, `codeSnippets[]`, `diagrams[]`, `artifacts[]`, `toolCalls[]`, `citations[]`. Absent arrays are omitted — fully backward-compatible with existing saved chats.
+- **`extractChatEntities(messages, doc)`** — called by the save handler; dispatches to each registered per-type extractor and returns the populated arrays. Extractors are registered via a simple map; adding a new type requires no changes to the pipeline.
+- **`ChatEntityTree`** — generic renderer with two grouping modes (toggle in the tab header):
+  - **By Type** (default): `Entity type → Topic → Chat → item cards` — the primary retrieval workflow ("show me all my Python snippets").
+  - **By Topic**: `Topic → Chat → [type-badged mixed entity cards]` — mirrors the Chat Sessions tree.
+  - Reuses `VirtualScroll` from the existing tree renderer for large lists.
+- **Two-tab side panel host** — tab bar at the top of the side panel: "Chat Sessions" | "Chat Entities". The existing panel content moves wholesale into Tab 1; Tab 2 hosts the entity tree.
+- **Search context toggle** — the search bar gains a **Chats / Entities** toggle. In Chats mode, behaviour is unchanged. In Entities mode, the query runs against entity-specific indexes (code text, table cell values, citation URLs/titles, prompt text, etc.) and the filter chips switch to entity-type checkboxes (Prompts, Tables, Code, Diagrams, Citations, Tool Calls, Attachments, Images, Audio, Artifacts). Entity-type chips are hidden in Chats mode.
+- **`openChatAtMessage(chatId, messageIndex)`** — shared navigation helper; opens the reader and scrolls to the correct message anchor. Used identically by all entity types.
 
 ---
 
-## C.30 — Manage Attachments (Tree View)
+### Group A — Text entities · easiest (Low–Medium effort)
 
-**Idea:** Build a dedicated **Attachments** tree view listing every file attachment present across all saved chats — PDFs, spreadsheets, Word documents, code files, etc. — grouped by topic, with metadata (filename, type, size, originating chat).
+Pure text extraction; no binary data, no rendering libraries, no session-scoped URLs. Highest ROI relative to effort — implement first.
 
-**Value:** Power users frequently attach documents to AI sessions for analysis. Locating a specific attachment currently requires opening every chat. A centralised attachment browser enables instant retrieval.
+#### C.13 — Prompts
+- Extract all user-turn messages at save time.
+- Store `prompts[]` on `ChatEntry`: `{ id, text, wordCount, messageIndex }`.
+- Tree: type → topic → chat → prompt cards. Card: truncated first line, word count, platform badge.
+- Per-card: **Copy** copies raw text; **Re-fire** opens the appropriate platform with the prompt pre-filled (C.16 platform URL logic: `?q=` param for ChatGPT/Claude/Perplexity; open tab + content-script injection for Gemini/Grok/DeepSeek). Click → reader at `#p<N>` anchor.
+- Search: full-text across prompt content.
 
-**Implementation sketch:**
-- At save time, scan `ChatEntry` messages for attachment metadata: filename, MIME type, size (where available from the platform DOM/API), and the `messageIndex` where it appears.
-- Store as `attachments[]` on `ChatEntry`: `{ id, filename, mimeType, sizeBytes, messageIndex, platform }`.
-- Add an **Attachments** tab to the tabbed view (alongside Images, Prompts, topic tree).
-- Render as a two-level tree: **Topic → Chat title → attachment list** with file-type icons and size badges.
-- Clicking an attachment entry opens the reader at the message where the attachment appears.
-- Filter/sort: by file type, by date, by size; search by filename.
-- **Note:** bAInder stores chat text and metadata — it does not store the actual binary file contents (those remain on the AI platform). The attachment entry is a reference/pointer, not a local copy. Show a clear label: *"Original file on [Platform]"*.
+#### C.37 — Citations & Sources
+- Scan assistant messages for citation blocks at save time: Perplexity footnote drawer, Copilot `<citation-block>`, Gemini Sources panel, ChatGPT browse-mode `mapping` annotations.
+- Store `citations[]` on `ChatEntry`: `{ id, url, title, snippet, number, messageIndex }`.
+- Tree: type → topic → chat → source list (favicon + domain + snippet preview). Click → opens URL in new tab.
+- "All sources" flat view deduplicates the same URL across chats with back-references to originating chats.
+- Export: BibTeX / Markdown list / plain URL list. Search: by domain, title keyword, snippet text.
+- *(The `citations[]` array also serves as the data source for C.27's reader-level provenance view.)*
 
-**Effort:** Medium. **Differentiator:** High — closes a significant gap for users who rely on document-upload AI workflows.
+#### C.33 — Tables
+- Parse Markdown tables from assistant messages at save time: detect `| … |` rows + `|---|` separator row; capture headers + data rows.
+- Store `tables[]` on `ChatEntry`: `{ id, headers: string[], rows: string[][], rowCount, messageIndex }`.
+- Tree: type → topic → chat → table preview cards (header + first 2 data rows; expand for full table).
+- Per-card: **Copy as Markdown**, **Export as CSV** (RFC 4180). Click → reader at `#r<N>`. Search: by header or cell text.
 
 ---
 
-## C.32 — Manage Audio Recordings (Tree View)
+### Group B — Code & structured text (Medium effort)
 
-**Idea:** Build a dedicated **Audio** tree view listing every audio recording or voice message embedded in saved chats, grouped by topic. Inline playback and transcript display are available directly from the tree without opening the full chat.
+Text extraction with a rendering step; no binary storage. Requires a bundled diagram library for C.34 but no network calls.
 
-**Value:** Voice-input AI workflows (Gemini voice mode, ChatGPT Advanced Voice, Copilot voice) are growing. Users who save voice-driven chats currently have no way to locate or replay specific recordings. A centralised audio browser closes this gap.
+#### C.31 — Code Snippets
+- Extract fenced ` ```lang … ``` ` blocks from assistant messages at save time.
+- Store `codeSnippets[]` on `ChatEntry`: `{ id, language, code, lineCount, messageIndex }`.
+- Tree: type → topic → chat → snippet cards. Secondary grouping by language available via toggle. Card: language badge, first 3 lines, line count, **Copy** button.
+- Full-text search within code. Export: selected snippets → single `.md` or `.zip` of language-named files.
 
-**Implementation sketch:**
-- At save time, detect audio assets in chat messages: `<audio>` elements, blob URLs, or audio-attachment metadata from the platform DOM/API.
-- Store as `audioRecordings[]` on `ChatEntry`: `{ id, durationSeconds, mimeType, src, transcript, messageIndex }`.
-  - `transcript`: if the platform provides an auto-generated transcript (Gemini/Copilot often do), capture it alongside the audio reference.
-- Add an **Audio** tab to the tabbed view.
-- Render as a two-level tree: **Topic → Chat title → recording list** with duration badges and waveform placeholders.
-- Each entry shows:
-  - Duration, timestamp, platform badge.
-  - Inline `<audio>` player (if the src is accessible — note blob URLs expire with the page session).
-  - Expandable transcript (if available), with the assistant response rendered below it.
-- **Blob URL caveat:** Audio blob URLs created by the platform are session-scoped and will be invalid after the tab closes. At save time, attempt to read the blob via `fetch(blobUrl)` → `arrayBuffer()` and store as a base64 data URI within the `ChatEntry` (size-capped at a configurable limit, default 10 MB). If the blob is unavailable or too large, show a *"Audio not saved — original page required"* notice.
-- Filter/sort: by platform, by date, by duration; filter to only entries with transcripts.
+#### C.34 — Diagrams
+- Extract fenced ` ```mermaid … ``` ` blocks and platform-rendered `<svg>` elements at save time.
+- For Mermaid: render source → SVG at save time using bundled `mermaid` lib (no network call).
+- Store `diagrams[]` on `ChatEntry`: `{ id, source, diagramType, thumbnailSvg, messageIndex }`.
+- Tree: type → topic → chat → inline SVG thumbnails. Per-card: **Copy source**, **Download SVG**. Filter: by type (flowchart / sequence / ER / Gantt / other).
 
-**Effort:** Medium. **Differentiator:** Moderate — relatively niche today but increasingly relevant as voice AI usage grows; positions bAInder ahead of the curve.
+---
+
+### Group C — API-sourced metadata (Medium effort)
+
+Structured data from the platform's internal API or DOM. Metadata-only pointers; no binary content stored.
+
+#### C.36 — Tool-Use Traces
+- Detect tool invocations at save time: ChatGPT `tool_call` mapping nodes, Claude `tool_use`/`tool_result` blocks, Perplexity search query + result DOM.
+- Store `toolCalls[]` on `ChatEntry`: `{ id, tool, input, output (≤ 10 KB), durationMs, messageIndex }`.
+- Tree: type → topic → chat → tool call list with type badge (`web_search` / `code_interpreter` / `function` / `browser`). Expand: full input + output + the assistant message that followed. Filter by tool type; full-text search.
+
+#### C.30 — Attachments
+- Scan messages for attachment metadata at save time: filename, MIME type, size, `messageIndex`.
+- Store `attachments[]` on `ChatEntry`: `{ id, filename, mimeType, sizeBytes, messageIndex, platform }`.
+- Tree: type → topic → chat → attachment list with file-type icon + size badge. Click → reader at `#r<N>`.
+- **Note:** metadata pointer only — bAInder does not store the binary. Label: *"Original file on [Platform]"*. Filter/sort: by filetype, date, size; search by filename.
+
+---
+
+### Group D — Binary / visual assets (Medium–High effort)
+
+Require capturing and storing binary content as data URIs. Implement large-payload guards and handle session-scoped blob URLs.
+
+#### C.29 — Images
+- Scan the rendered DOM for `<img>` tags, inline data-URI blobs, and image attachments at save time.
+- Generate a ≤ 400 px thumbnail at save time. Full image stored only if ≤ 5 MB; otherwise thumbnail only + link to reader.
+- Store `images[]` on `ChatEntry`: `{ id, src, mimeType, altText, messageIndex, thumbnailDataUri }`.
+- Tree: type → topic → chat → thumbnail grid. Filter: by topic, platform, image type.
+
+#### C.32 — Audio
+- Detect `<audio>` elements and blob URLs at save time; immediately `fetch(blobUrl) → arrayBuffer() → base64 data URI` before the tab closes. Cap at 10 MB; show *"Audio not saved — original page required"* if unavailable or over limit.
+- Store `audioRecordings[]` on `ChatEntry`: `{ id, durationSeconds, mimeType, src, transcript, messageIndex }`.
+- Tree: type → topic → chat → recording list with duration badges. Per-entry: inline `<audio>` player, expandable transcript.
+- Filter: by platform, date, duration; "transcripts only" toggle.
+
+---
+
+### Group E — Complex rendering · hardest (Medium–High effort)
+
+Requires sandboxed iframe preview, screenshot capture, and deep platform-specific DOM/API detection. Build last.
+
+#### C.35 — Artifacts & Canvas
+- Detect at save time: Claude `.artifact-container` / `[data-artifact-type]`, ChatGPT Canvas sidebar. Capture `type` (`html`|`react`|`svg`|`text`), `title`, full source, and screenshot thumbnail (via `html2canvas` or platform's own preview).
+- Store `artifacts[]` on `ChatEntry`: `{ id, type, title, source, mimeType, screenshotDataUri, messageIndex }`.
+- Tree: type → topic → chat → artifact cards (title + type badge + screenshot thumbnail).
+- Click → opens **sandboxed preview panel** (`<iframe sandbox="allow-scripts">`) rendering the artifact from stored source. No network access inside sandbox.
+- Per-card: **Copy source**, **Download** (`.html` / `.jsx` / `.svg`).
+
+---
+
+### Effort summary
+
+| Group | Entity types | Effort | Order |
+|-------|-------------|--------|-------|
+| Shared infra | (all types) | Low–Medium | 0 — prerequisite |
+| A — Text | C.13 Prompts, C.37 Citations, C.33 Tables | Low–Medium | 1st |
+| B — Code | C.31 Snippets, C.34 Diagrams | Medium | 2nd |
+| C — Metadata | C.36 Tool Traces, C.30 Attachments | Medium | 3rd |
+| D — Binary | C.29 Images, C.32 Audio | Medium–High | 4th |
+| E — Rendering | C.35 Artifacts & Canvas | Medium–High | 5th |
 
 ---
 
