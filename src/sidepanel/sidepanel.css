@@ -2732,28 +2732,32 @@ ul.tree-root.drop-target {
 
 .recent-rail {
   display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-secondary) transparent;
-  padding: var(--space-sm) 0;
-  padding-bottom: calc(var(--space-sm) + 4px);
+  flex-direction: column;
   margin-bottom: var(--space-md);
   flex-shrink: 0;
 }
 
-.recent-rail::-webkit-scrollbar {
+.recent-rail__chips {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-secondary) transparent;
+  padding: var(--space-sm) 0;
+  padding-bottom: calc(var(--space-sm) + 4px);
+}
+
+.recent-rail__chips::-webkit-scrollbar {
   height: 4px;
 }
 
-.recent-rail::-webkit-scrollbar-track {
+.recent-rail__chips::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.recent-rail::-webkit-scrollbar-thumb {
+.recent-rail__chips::-webkit-scrollbar-thumb {
   background: var(--border-secondary);
   border-radius: 2px;
 }
@@ -2782,7 +2786,6 @@ ul.tree-root.drop-target {
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  scroll-snap-align: start;
   transition: background var(--transition-fast), border-color var(--transition-fast),
               color var(--transition-fast), transform var(--transition-fast);
   max-width: 180px;
