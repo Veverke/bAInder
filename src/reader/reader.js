@@ -14,6 +14,7 @@ import { setupStickyNotes } from '../lib/sticky-notes/sticky-notes-ui.js';
 import browser from '../lib/vendor/browser.js';
 import { escapeHtml, generateId } from '../lib/utils/search-utils.js';
 import { logger } from '../lib/utils/logger.js';
+import { HOVER_OUT_DISMISS_MS } from '../lib/utils/constants.js';
 import {
   getClipboardSettings,
   serialiseChats,
@@ -81,10 +82,12 @@ export function formatDate(isoStr) {
 export function sourceLabel(source, isExcerpt) {
   if (isExcerpt) return 'Excerpt';
   const map = {
-    chatgpt: 'ChatGPT',
-    claude:  'Claude',
-    gemini:  'Gemini',
-    copilot: 'Copilot',
+    chatgpt:    'ChatGPT',
+    claude:     'Claude',
+    gemini:     'Gemini',
+    copilot:    'Copilot',
+    perplexity: 'Perplexity',
+    deepseek:   'DeepSeek',
   };
   return map[source] || source || 'Unknown';
 }
@@ -97,7 +100,7 @@ export function sourceLabel(source, isExcerpt) {
  */
 export function badgeClass(source, isExcerpt) {
   if (isExcerpt) return 'badge badge--excerpt';
-  const known = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity'];
+  const known = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'deepseek'];
   return known.includes(source) ? `badge badge--${source}` : 'badge badge--unknown';
 }
 
@@ -1205,7 +1208,7 @@ export async function setupAnnotations(chatId, storage) {
     annDropdown.hidden = false;
   }
   function _scheduleAnnHide() {
-    _annHideTimer = setTimeout(() => { annDropdown.hidden = true; }, 150);
+    _annHideTimer = setTimeout(() => { annDropdown.hidden = true; }, HOVER_OUT_DISMISS_MS);
   }
   if (annBtn) {
     annBtn.addEventListener('mouseenter', _showAnnDropdown);
@@ -1548,7 +1551,7 @@ export function renderChat(chat) {
   }
 
   // ── Per-source body tint (T3) ──────────────────────────────────────────────
-  const knownSources = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity'];
+  const knownSources = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'deepseek'];
   if (knownSources.includes(source)) {
     document.body.setAttribute('data-source', source);
   }

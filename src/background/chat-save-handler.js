@@ -84,7 +84,7 @@ export function normaliseMessages(messages, source) {
 /**
  * Detect the AI source platform from a URL string.
  * @param {string} url
- * @returns {'chatgpt'|'claude'|'gemini'|'unknown'}
+ * @returns {'chatgpt'|'claude'|'gemini'|'copilot'|'perplexity'|'deepseek'|'unknown'}
  */
 export function detectSource(url) {
   if (!url || typeof url !== 'string') return 'unknown';
@@ -92,6 +92,8 @@ export function detectSource(url) {
   if (url.includes('claude.ai'))         return 'claude';
   if (url.includes('gemini.google.com')) return 'gemini';
   if (url.includes('copilot.microsoft.com') || url.includes('m365.cloud.microsoft')) return 'copilot';
+  if (url.includes('perplexity.ai'))      return 'perplexity';
+  if (url.includes('chat.deepseek.com'))  return 'deepseek';
   return 'unknown';
 }
 
@@ -118,7 +120,7 @@ export function validateChatData(chatData) {
   if (!chatData.content || typeof chatData.content !== 'string' || !chatData.content.trim()) {
     throw new Error('Chat content is required');
   }
-  const validSources = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity'];
+  const validSources = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'deepseek'];
   const source = chatData.source || 'unknown';
   if (!validSources.includes(source)) {
     throw new Error(`Invalid source: ${source}. Must be one of: ${validSources.join(', ')}`);

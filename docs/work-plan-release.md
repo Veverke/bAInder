@@ -4,73 +4,72 @@
 
 ---
 
-## Phase 1 — Code cleanup before submission
+## ~~Phase 1 — Code cleanup before submission~~
 
-### 1.1 Strip audio entity (Option A)
-**Decision:** Remove the audio capture feature for v1.0. The pipeline is architecturally correct but too unreliable to ship — the MAIN-world injection also attracts CWS reviewer scrutiny.
-
-**Steps:**
-- [ ] Remove the `audio-interceptor.js` entry from `manifest.json` `content_scripts` (the `document_start` / `MAIN` world block)
-- [ ] Remove `_collectDocAudio` / `collectShadowAudio` / `_captureAudioSrc` from `src/content/content.js`
-- [ ] Remove the `[🔊 Generated audio …]` marker rendering block from `src/reader/reader.js`
-- [ ] Remove `.audio-card` and `.audio-card--unavailable` CSS rules from `src/reader/reader.css`
-- [ ] Remove `src/content/audio-interceptor.js` from the repo (or keep with a clear `// NOT SHIPPED` comment)
-- [ ] Remove `host_permissions` entries that were only needed for audio CDN fetching:
-  - `https://files.oaiusercontent.com/*`
-  - `https://oaidalleapiprodscus.blob.core.windows.net/*`
-  - `https://oaidalleaeuropeprodscus.blob.core.windows.net/*`
-  - `https://lh3.google.com/*`
-  - `https://lh3.googleusercontent.com/*`
-  - `https://storage.googleapis.com/*`
-  - Only remove the ones **not** needed by any other feature (image capture, etc.) — verify first
-- [ ] Update tests: remove or skip any audio-entity tests
-- [ ] Run `npm run test:run` — all tests green
-
-**Future (v1.1):** Re-implement audio capture using a MutationObserver that proactively fetches the signed URL as soon as the ChatGPT download chip appears, rather than on `.click()`. Ship when the capture success rate is consistently high.
+### ~~1.1 Strip audio entity (Option A)~~
+**Superseded:** v1.0 keeps audio entities via Option B. When capture is unavailable, the reader shows an "Open in original" fallback instead of stripping the feature.
 
 ---
 
-### 1.2 Verify remaining host_permissions are justified
-After audio cleanup, audit every remaining `host_permissions` entry and confirm it maps to a shipped feature. Prepare a one-line justification for each (needed for CWS submission form):
+### ~~1.2 Verify remaining host_permissions are justified~~
+Audit every remaining `host_permissions` entry and confirm it maps to a shipped feature. Prepare a one-line justification for each (needed for CWS submission form).
+
+Audit result:
+- `https://storage.googleapis.com/*` was removed from `manifest.json`; it only mapped to legacy audio-capture selectors and is not required by the shipped image or Compare Mode flows.
 
 | Origin | Justification |
 |---|---|
-| `https://chat.openai.com/*` | Content script — save button, chat extraction |
-| `https://chatgpt.com/*` | Content script — save button, chat extraction |
-| `https://claude.ai/*` | Content script — save button, chat extraction |
-| `https://gemini.google.com/*` | Content script — save button, chat extraction |
-| `https://copilot.microsoft.com/*` | Content script — save button, chat extraction |
-| `https://m365.cloud.microsoft/*` | Content script — Copilot enterprise variant |
-| `https://www.perplexity.ai/*` | Compare Mode — `scripting.executeScript` on open tab |
-| `https://perplexity.ai/*` | Compare Mode — bare-domain variant |
-| `https://th.bing.com/*` | Copilot image thumbnails (verify still needed after audio cut) |
-| `https://www.bing.com/*` | Copilot image thumbnails (verify still needed after audio cut) |
+| `https://chat.openai.com/*` | Content script on the legacy ChatGPT domain for save button injection and chat extraction |
+| `https://chatgpt.com/*` | Content script on the current ChatGPT domain for save button injection, chat extraction, and Compare Mode target matching |
+| `https://files.oaiusercontent.com/*` | Background fetch proxy for ChatGPT-generated images that would otherwise fail CORP from the content script |
+| `https://oaidalleapiprodscus.blob.core.windows.net/*` | Background fetch proxy for ChatGPT / DALL-E generated images served from Azure Blob storage |
+| `https://oaidalleaeuropeprodscus.blob.core.windows.net/*` | Background fetch proxy for ChatGPT / DALL-E generated images served from the EU Azure Blob variant |
+| `https://claude.ai/*` | Content script for save button and extraction, plus Claude conversation API fetches from the page context |
+| `https://gemini.google.com/*` | Content script for save button and chat extraction |
+| `https://lh3.google.com/*` | Background fetch proxy for Gemini images on Google-hosted asset URLs that are blocked by CORP from the content script |
+| `https://lh3.googleusercontent.com/*` | Background fetch proxy for Gemini image variants served from Googleusercontent hosts |
+| `https://copilot.microsoft.com/*` | Content script for save button and chat extraction, plus Compare Mode prompt injection target |
+| `https://m365.cloud.microsoft/*` | Content script for the Microsoft 365 Copilot enterprise variant and redirect target |
+| `https://th.bing.com/*` | Background fetch proxy for Copilot image thumbnails and inline images served from Bing CDN hosts |
+| `https://www.bing.com/*` | Background fetch proxy for Copilot image assets served from Bing hosts |
+| `https://www.perplexity.ai/*` | Content script for save button and extraction, plus Compare Mode execution on the `www` host |
+| `https://perplexity.ai/*` | Content script and Compare Mode execution on the bare-domain Perplexity host |
+| `https://chat.deepseek.com/*` | Content script for save button and chat extraction on the DeepSeek chat interface |
 
 ---
 
-## Phase 2 — Store assets
+## ~~Phase 2 — Store assets~~
 
-### 2.1 Privacy Policy (required)
+### ~~2.1 Privacy Policy (required)~~
 CWS mandates a hosted privacy policy for extensions with broad host_permissions.
 
-- [ ] Write the policy — key points to cover:
+- [x] Write the policy — key points to cover:
   - No data leaves the browser; all storage is `chrome.storage.local`
   - No analytics, no telemetry, no accounts
   - Purpose of each host_permission group
-- [ ] Host it at a public URL (options: GitHub Pages, a `/privacy` section of a project site, or a plain GitHub raw file served via a Pages redirect)
-- [ ] Record the URL — needed in the CWS dashboard
+- [x] Host it at a public URL — repo will be made public before CWS submission; `docs/privacy/index.html` will be served via GitHub Pages automatically
+- [x] Record the URL — deferred until repo is public; enter in CWS dashboard during Phase 4.2
 
-### 2.2 Promotional tile images (required / strongly recommended)
+Implemented in repo:
+- `docs/privacy-policy.md`
+- `docs/privacy/index.html` (ready for GitHub Pages hosting)
+
+### ~~2.2 Promotional tile images (required / strongly recommended)~~
 Screenshots in `assets/screenshots/` are for the listing gallery. The store also needs standalone artwork:
 
-- [ ] **Small promo tile** — 440×280 px PNG (required for featured placement)
-- [ ] **Large promo tile** — 920×680 px PNG (optional)
-- [ ] **Marquee image** — 1400×560 px PNG (optional, used if the extension is featured)
+- [x] **Small promo tile** — 440×280 px PNG (required for featured placement)
+- [x] **Large promo tile** — 920×680 px PNG (optional)
+- [x] **Marquee image** — 1400×560 px PNG (optional, used if the extension is featured)
 
-### 2.3 Verify screenshot dimensions
+Generated files:
+- `assets/store/small-promo-tile-440x280.png`
+- `assets/store/large-promo-tile-920x680.png`
+- `assets/store/marquee-1400x560.png`
+
+### ~~2.3 Verify screenshot dimensions~~
 CWS requires exactly **1280×800** or **640×400** pixels per screenshot (up to 5).
 
-- [ ] Check current screenshots:
+- [x] Check current screenshots:
   ```powershell
   Add-Type -AssemblyName System.Drawing
   Get-Item "assets\screenshots\*.png" | ForEach-Object {
@@ -79,12 +78,22 @@ CWS requires exactly **1280×800** or **640×400** pixels per screenshot (up to 
     $img.Dispose()
   }
   ```
-- [ ] Resize or re-export any that don't match
+- [x] Resize or re-export any that don't match
+
+Result:
+- Original screenshots in `assets/screenshots/` are not CWS-compliant dimensions.
+- CWS-ready screenshots were created in `assets/screenshots-cws/`:
+  - `cws-screenshot-1-1280x800.png`
+  - `cws-screenshot-2-1280x800.png`
+  - `cws-screenshot-3-1280x800.png`
+  - `cws-screenshot-5-1280x800.png`
 
 ---
 
 ## Phase 3 — Build the Chrome package
 
+- [ ] Make the GitHub repository public (enables GitHub Pages for the privacy policy)
+- [ ] Create a `docs/done/` folder and move all work-plan and design docs relating to already-completed work there
 - [ ] Run:
   ```powershell
   npm run package:chrome
@@ -164,11 +173,11 @@ git push --tags
 
 | # | Item | Done |
 |---|---|---|
-| 1 | Remove audio entity (manifest, content.js, reader.js, css) | ☐ |
-| 2 | Audit and justify all remaining host_permissions | ☐ |
+| 1 | Audio entity handled via Option B (`Open in original` fallback); Option A cleanup not needed | ☑ |
+| 2 | Audit and justify all remaining host_permissions | ☑ |
 | 3 | Write and host Privacy Policy | ☐ |
-| 4 | Create promo tile artwork (440×280 minimum) | ☐ |
-| 5 | Verify screenshot dimensions (1280×800) | ☐ |
+| 4 | Create promo tile artwork (440×280 minimum) | ☑ |
+| 5 | Verify screenshot dimensions (1280×800) | ☑ |
 | 6 | Build Chrome zip (`npm run package:chrome`) | ☐ |
 | 7 | Smoke-test zip locally | ☐ |
 | 8 | Register CWS developer account ($5) | ☐ |

@@ -23,6 +23,7 @@ import { extractClaude }                             from './extractors/claude.j
 import { extractGemini }                             from './extractors/gemini.js';
 import { extractCopilot }                            from './extractors/copilot.js';
 import { extractPerplexity }                         from './extractors/perplexity.js';
+import { extractDeepSeek }                           from './extractors/deepseek.js';
 
 // Re-export all implementation-level public APIs so callers stay unchanged.
 export {
@@ -37,6 +38,7 @@ export {
   extractGemini,
   extractCopilot,
   extractPerplexity,
+  extractDeepSeek,
 };
 
 // ─── Platform Detection ──────────────────────────────────────────────────────
@@ -44,7 +46,7 @@ export {
 /**
  * Detect the AI platform from a hostname.
  * @param {string} hostname
- * @returns {'chatgpt'|'claude'|'gemini'|'copilot'|'perplexity'|null}
+ * @returns {'chatgpt'|'claude'|'gemini'|'copilot'|'perplexity'|'deepseek'|null}
  */
 export function detectPlatform(hostname) {
   if (!hostname || typeof hostname !== 'string') return null;
@@ -54,6 +56,7 @@ export function detectPlatform(hostname) {
   if (h.includes('gemini.google.com')) return 'gemini';
   if (h.includes('copilot.microsoft.com') || h.includes('m365.cloud.microsoft')) return 'copilot';
   if (h.includes('perplexity.ai'))     return 'perplexity';
+  if (h.includes('chat.deepseek.com')) return 'deepseek';
   return null;
 }
 
@@ -83,6 +86,10 @@ export async function extractChat(platform, doc, url) {
     case 'perplexity':
       if (!doc) throw new Error('Document is required');
       result = await extractPerplexity(doc);
+      break;
+    case 'deepseek':
+      if (!doc) throw new Error('Document is required');
+      result = await extractDeepSeek(doc);
       break;
     default:
       throw new Error(`Unsupported platform: ${platform}`);

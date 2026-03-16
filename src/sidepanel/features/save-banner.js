@@ -14,6 +14,7 @@ import { state, elements } from '../app-context.js';
 import { logger } from '../../lib/utils/logger.js';
 import browser from '../../lib/vendor/browser.js';
 import { updateStorageUsage } from './storage-usage.js';
+import { SAVE_BTN_RESET_MS } from '../../lib/utils/constants.js';
 let _state = state;
 // ---------------------------------------------------------------------------
 // Test injection hook - lets unit tests provide a mock app context instead of
@@ -51,6 +52,7 @@ const PLATFORM_PATTERNS = [
   { re: /gemini\.google\.com/,                                 name: 'Gemini'     },
   { re: /copilot\.microsoft\.com|m365\.cloud\.microsoft/,      name: 'Copilot'    },
   { re: /perplexity\.ai/,                                      name: 'Perplexity' },
+  { re: /chat\.deepseek\.com/,                                 name: 'DeepSeek'   },
 ];
 
 export function detectPlatformFromUrl(url) {
@@ -114,7 +116,7 @@ export function setSaveBtnState(s) {
   btn._reloadMode = (s === 'reload');
 
   if (s === 'success' || s === 'error' || s === 'empty') {
-    setTimeout(() => setSaveBtnState('default'), 3500);
+    setTimeout(() => setSaveBtnState('default'), SAVE_BTN_RESET_MS);
   }
 }
 

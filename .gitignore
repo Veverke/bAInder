@@ -46,3 +46,9 @@ Desktop.ini
 # ThemeStudio SDK — installed theme files (managed by installer.ps1, not committed)
 src/**/themes/*.json
 theme-sdk-install.json
+
+# Local agent settings (machine-specific)
+.claude/settings.local.json
+
+# Built release artifacts (publish via GitHub Releases, not git)
+releases/*.zip

@@ -580,6 +580,7 @@ body.ordinals-hidden .msg-ordinal {
 .badge--gemini   { background: #eff6ff; color: #1e40af; }
 .badge--copilot  { background: #f5f0ff; color: #5b21b6; }
 .badge--perplexity { background: #f9f0e3; color: #6b4620; }
+.badge--deepseek   { background: #ddd6fe; color: #2e1065; }
 .badge--unknown  { background: var(--bg-code); color: var(--text-secondary); }
 .badge--excerpt  { background: #fef9c3; color: #713f12; }
 
@@ -618,6 +619,7 @@ body.ordinals-hidden .msg-ordinal {
   .badge--gemini   { background: #1e3a8a; color: #93c5fd; }
   .badge--copilot     { background: #2e1065; color: #c4b5fd; }
   .badge--perplexity  { background: #3d2008; color: #fcd5aa; }
+  .badge--deepseek    { background: #2e1065; color: #ddd6fe; }
   .badge--excerpt     { background: #422006; color: #fde68a; }
 }
 

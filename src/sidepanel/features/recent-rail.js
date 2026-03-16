@@ -46,6 +46,9 @@ export function updateRecentRail(onChatClick = () => {}) {
   label.textContent = 'Recent';
   rail.appendChild(label);
 
+  const chipsEl = document.createElement('div');
+  chipsEl.className = 'recent-rail__chips';
+
   for (const c of sorted) {
     const src  = c.source || 'unknown';
     const chip = document.createElement('button');
@@ -63,6 +66,8 @@ export function updateRecentRail(onChatClick = () => {}) {
     chip.appendChild(titleEl);
 
     chip.addEventListener('click', () => onChatClick(c));
-    rail.appendChild(chip);
+    chipsEl.appendChild(chip);
   }
+
+  rail.appendChild(chipsEl);
 }

@@ -25,6 +25,8 @@ const SOURCE_LABELS = {
   claude:  'Claude',
   gemini:  'Gemini',
   copilot: 'Copilot',
+  perplexity: 'Perplexity',
+  deepseek:   'DeepSeek',
 };
 
 // C.25 — entity type display labels for the hover overlay (excludes 'prompt'

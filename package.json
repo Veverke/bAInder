@@ -19,7 +19,7 @@
     "e2e": "npm run build:chrome && playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:debug": "playwright test --debug",
-    "lint": "eslint src/**/*.js"
+    "lint": "eslint src/**/*.js tests/**/*.js"
   },
   "keywords": [
     "chrome-extension",
@@ -44,7 +44,6 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "diff-match-patch": "^1.0.5",
     "jszip": "^3.10.1",
     "webextension-polyfill": "^0.12.0"
   }

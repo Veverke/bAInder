@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bAInder Privacy Policy</title>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --card: #ffffff;
+      --ink: #16223a;
+      --muted: #4d5f85;
+      --accent: #1f6fd6;
+      --border: #dbe4f2;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at 15% 10%, #e8f0ff, transparent 40%),
+                  radial-gradient(circle at 90% 0%, #d8ebff, transparent 38%),
+                  var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    .wrap {
+      width: min(920px, 92vw);
+      margin: 36px auto 52px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 26px 26px 30px;
+      box-shadow: 0 14px 36px rgba(17, 40, 79, 0.08);
+    }
+
+    h1 {
+      margin-top: 4px;
+      margin-bottom: 6px;
+      font-size: clamp(1.7rem, 2.5vw, 2.2rem);
+      letter-spacing: 0.01em;
+    }
+
+    h2 {
+      margin-top: 24px;
+      margin-bottom: 8px;
+      font-size: 1.15rem;
+      color: var(--accent);
+    }
+
+    p,
+    li {
+      color: var(--muted);
+    }
+
+    ul {
+      padding-left: 20px;
+      margin-top: 8px;
+      margin-bottom: 10px;
+    }
+
+    .meta {
+      font-size: 0.95rem;
+      color: #6a7ba0;
+      margin-bottom: 14px;
+    }
+
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      color: #0f2e6d;
+      background: #eef4ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid #d9e6ff;
+    }
+
+    .notice {
+      background: #edf4ff;
+      border: 1px solid #d6e6ff;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 12px 0 6px;
+      color: #284270;
+    }
+
+    @media (max-width: 700px) {
+      .wrap {
+        padding: 20px 16px 22px;
+        margin-top: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>bAInder Privacy Policy</h1>
+    <div class="meta">Last updated: 2026-03-16</div>
+
+    <div class="notice">
+      bAInder stores your saved data locally in your browser and does not send your chat archive to bAInder-operated servers.
+    </div>
+
+    <h2>Summary</h2>
+    <ul>
+      <li>No analytics and no telemetry.</li>
+      <li>No account required.</li>
+      <li>Saved data is stored in <code>chrome.storage.local</code>.</li>
+      <li>No sale of personal data.</li>
+    </ul>
+
+    <h2>Data Accessed</h2>
+    <p>
+      bAInder accesses conversation data on supported AI chat pages so you can save, organize,
+      search, and compare chats within the extension.
+    </p>
+    <ul>
+      <li>Chat messages and titles</li>
+      <li>Metadata required for display and sorting</li>
+      <li>Image URLs and image data required for saved artifacts</li>
+    </ul>
+
+    <h2>Data Storage</h2>
+    <p>
+      Saved content is stored locally in your browser via <code>chrome.storage.local</code>. bAInder
+      does not upload your saved archive to bAInder servers.
+    </p>
+
+    <h2>Permissions and Purpose</h2>
+    <p>Extension permissions are used for local organization features:</p>
+    <ul>
+      <li><code>storage</code>, <code>unlimitedStorage</code>: local archive storage.</li>
+      <li><code>tabs</code>, <code>activeTab</code>, <code>scripting</code>: capture and compare interactions on supported tabs.</li>
+      <li><code>sidePanel</code>: extension UI in the browser side panel.</li>
+      <li><code>contextMenus</code>: right-click actions.</li>
+      <li><code>alarms</code>: local scheduled tasks.</li>
+    </ul>
+
+    <p>Host permissions are limited to supported chat providers and related image hosts:</p>
+    <ul>
+      <li>OpenAI/ChatGPT: chat.openai.com, chatgpt.com, files.oaiusercontent.com, oaidalleapiprodscus.blob.core.windows.net, oaidalleaeuropeprodscus.blob.core.windows.net</li>
+      <li>Anthropic Claude: claude.ai</li>
+      <li>Google Gemini: gemini.google.com, lh3.google.com, lh3.googleusercontent.com</li>
+      <li>Microsoft Copilot: copilot.microsoft.com, m365.cloud.microsoft, th.bing.com, www.bing.com</li>
+      <li>Perplexity: www.perplexity.ai, perplexity.ai</li>
+    </ul>
+
+    <h2>Data Sharing</h2>
+    <p>
+      bAInder does not sell or rent your data. Data is only accessed as needed to perform extension
+      features in your browser context.
+    </p>
+
+    <h2>Children's Privacy</h2>
+    <p>bAInder is not intended for children under 13.</p>
+
+    <h2>Policy Updates</h2>
+    <p>
+      This policy may be updated over time. The current version will remain available at this page URL.
+    </p>
+
+    <h2>Contact</h2>
+    <p>For privacy questions, open an issue in the project repository.</p>
+  </main>
+</body>
+</html>

@@ -141,6 +141,7 @@ const logger = {
     if (h.includes('gemini.google.com'))  return 'gemini';
     if (h.includes('copilot.microsoft.com') || h.includes('m365.cloud.microsoft')) return 'copilot';
     if (h.includes('perplexity.ai'))      return 'perplexity';
+    if (h.includes('chat.deepseek.com'))  return 'deepseek';
     return null;
   }
 
@@ -1710,6 +1711,30 @@ const logger = {
     return { title, messages, messageCount: messages.length };
   }
 
+  async function extractDeepSeek(doc) {
+    const messages = [];
+    const _UI_NOISE_RE     = /^(retry|copy|share|edit|regenerate)$/i;
+    const _TITLE_SUFFIX_RE = /\s*[-|\u2013]\s*deepseek\s*$/i;
+
+    const nodes = removeDescendants(Array.from(doc.querySelectorAll('.ds-message')));
+    for (const el of nodes) {
+      const style = (el.getAttribute('style') || '').toLowerCase();
+      const role  = style.includes('--assistant') ? 'assistant' : 'user';
+      const content = htmlToMarkdown(el)
+        .split('\n')
+        .filter(line => !_UI_NOISE_RE.test(line.trim()))
+        .join('\n')
+        .trim();
+      if (!content) continue;
+      messages.push(formatMessage(role, content));
+    }
+
+    const pageTitle = (doc.title || '').replace(_TITLE_SUFFIX_RE, '').trim();
+    const firstUser = messages.find(m => m.role === 'user')?.content || '';
+    const title = pageTitle || firstUser || generateTitle(messages, doc.location?.href || '');
+    return { title, messages, messageCount: messages.length };
+  }
+
   async function extractChat(platform, doc) {
     if (!platform) throw new Error('Platform is required');
     if (!doc)      throw new Error('Document is required');
@@ -1720,6 +1745,7 @@ const logger = {
       case 'gemini':   result = await extractGemini(doc);   break;
       case 'copilot':     result = await extractCopilot(doc);     break;
       case 'perplexity':  result = await extractPerplexity(doc);  break;
+      case 'deepseek':    result = await extractDeepSeek(doc);    break;
       default: throw new Error(`Unsupported platform: ${platform}`);
     }
     return {
