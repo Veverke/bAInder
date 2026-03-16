@@ -14,6 +14,7 @@ import { state, elements } from '../app-context.js';
 import { logger } from '../../lib/utils/logger.js';
 import browser from '../../lib/vendor/browser.js';
 import { updateStorageUsage } from './storage-usage.js';
+import { SAVE_BTN_RESET_MS } from '../../lib/utils/constants.js';
 let _state = state;
 // ---------------------------------------------------------------------------
 // Test injection hook - lets unit tests provide a mock app context instead of
@@ -114,7 +115,7 @@ export function setSaveBtnState(s) {
   btn._reloadMode = (s === 'reload');
 
   if (s === 'success' || s === 'error' || s === 'empty') {
-    setTimeout(() => setSaveBtnState('default'), 3500);
+    setTimeout(() => setSaveBtnState('default'), SAVE_BTN_RESET_MS);
   }
 }
 

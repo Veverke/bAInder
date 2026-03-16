@@ -33,6 +33,7 @@ import { ExportDialog }    from '../lib/dialogs/export-dialog.js';
 import { ImportDialog }    from '../lib/dialogs/import-dialog.js';
 import browser             from '../lib/vendor/browser.js';
 import { logger }          from '../lib/utils/logger.js';
+import { TREE_FLASH_MS }   from '../lib/utils/constants.js';
 
 import { state, elements } from './app-context.js';
 import { ChatRepository }  from './services/chat-repository.js';
@@ -347,7 +348,10 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'CHAT_SAVED') {
     handleChatSaved(message.data)
       .then(() => {
-        refreshEntityController(); // keep entity tree up to date when tab is already open        refreshEntityTypeChipVisibility(); // show/hide chips for newly present entity types        _refreshTagSuggestions();         // keep autocomplete up to date        sendResponse({ success: true });
+        refreshEntityController(); // keep entity tree up to date when tab is already open
+        refreshEntityTypeChipVisibility(); // show/hide chips for newly present entity types
+        _refreshTagSuggestions(); // keep autocomplete up to date
+        sendResponse({ success: true });
       })
       .catch(err => sendResponse({ success: false, error: err.message }));
     return true; // async
@@ -366,7 +370,7 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (node) {
         node.scrollIntoView({ behavior: 'smooth', block: 'center' });
         node.classList.add('tree-chat-item--flash');
-        setTimeout(() => node.classList.remove('tree-chat-item--flash'), 1500);
+        setTimeout(() => node.classList.remove('tree-chat-item--flash'), TREE_FLASH_MS);
       }
     }, chat?.topicId ? 80 : 0); // brief delay to let render complete
     sendResponse({ success: true });

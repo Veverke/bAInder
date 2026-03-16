@@ -95,6 +95,16 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 | 🔔 **Backup reminder** | Configurable banner that reminds you to export a backup ZIP when your last export was too long ago; supports snooze and "never remind" options. |
 | ⚙️ **Settings panel** | Slide-in settings for clipboard format, emoji/image/attachment inclusion, custom chat/turn separators, Reader ordinal labels, log level, and backup reminder interval. |
 
+### ThemeStudioSDK Integration
+
+bAInder supports out-of-the-box theming through **ThemeStudioSDK**.
+
+- End users can install and apply ThemeStudioSDK themes without changing bAInder source code.
+- Theme files are intentionally not stored in this repository.
+- ThemeStudioSDK is currently maintained as a separate repository (private for now, planned to be public).
+
+This keeps the core bAInder repository focused on extension functionality while theme packs are managed as a third-party service.
+
 ---
 
 ## 🆚 How bAInder Compares

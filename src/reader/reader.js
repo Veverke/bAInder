@@ -14,6 +14,7 @@ import { setupStickyNotes } from '../lib/sticky-notes/sticky-notes-ui.js';
 import browser from '../lib/vendor/browser.js';
 import { escapeHtml, generateId } from '../lib/utils/search-utils.js';
 import { logger } from '../lib/utils/logger.js';
+import { HOVER_OUT_DISMISS_MS } from '../lib/utils/constants.js';
 import {
   getClipboardSettings,
   serialiseChats,
@@ -1205,7 +1206,7 @@ export async function setupAnnotations(chatId, storage) {
     annDropdown.hidden = false;
   }
   function _scheduleAnnHide() {
-    _annHideTimer = setTimeout(() => { annDropdown.hidden = true; }, 150);
+    _annHideTimer = setTimeout(() => { annDropdown.hidden = true; }, HOVER_OUT_DISMISS_MS);
   }
   if (annBtn) {
     annBtn.addEventListener('mouseenter', _showAnnDropdown);
