@@ -25,7 +25,7 @@ export const elements = {
   importBtn:            document.getElementById('importBtn'),
   exportAllBtn:         document.getElementById('exportAllBtn'),
   clearAllBtn:          document.getElementById('clearAllBtn'),
-  settingsBtn:          document.getElementById('settingsBtn'),
+
   contextMenu:          document.getElementById('contextMenu'),
   chatContextMenu:      document.getElementById('chatContextMenu'),
   modalContainer:       document.getElementById('modalContainer'),

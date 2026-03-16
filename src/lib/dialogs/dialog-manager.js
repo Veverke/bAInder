@@ -270,13 +270,22 @@ export class DialogManager {
     }
 
     // Default: text, number, date, and all other input types
+    const listAttr = Array.isArray(field.datalist) && field.datalist.length > 0
+      ? `list="dl-${field.name}-${index}"`
+      : '';
+    const datalistHtml = Array.isArray(field.datalist) && field.datalist.length > 0
+      ? `<datalist id="dl-${field.name}-${index}">${
+          field.datalist.map(v => `<option value="${this.escapeHtml(v)}"></option>`).join('')
+        }</datalist>`
+      : '';
     return `
           <div class="form-group">
             <label for="${id}">${this.escapeHtml(field.label)}</label>
             <input type="${field.type || 'text'}" id="${id}" class="form-input"
               data-field="${field.name}"
               value="${this.escapeHtml(field.value || '')}"
-              placeholder="${this.escapeHtml(field.placeholder || '')}" ${required}>
+              placeholder="${this.escapeHtml(field.placeholder || '')}" ${required} ${listAttr}>
+            ${datalistHtml}
             ${hint}
           </div>
         `;

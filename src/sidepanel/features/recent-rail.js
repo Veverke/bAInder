@@ -20,10 +20,11 @@ export function _setContext(ctx) { _state = ctx; }
 
 /**
  * Populate the "Recently saved" horizontal chip rail (U4).
- * @param {Function} [onChatClick]    Click handler; defaults to a no-op.
- * @param {Function} [isOverflowing]  Overflow detector; defaults to scrollWidth check.
+ * Shows the 8 most-recently saved chats as scrollable chips.
+ * Visible as soon as there is at least 1 chat (threshold lowered from 3 → 1).
+ * @param {Function} [onChatClick]  Click handler; defaults to a no-op.
  */
-export function updateRecentRail(onChatClick = () => {}, isOverflowing = (rail) => rail.scrollWidth > rail.clientWidth) {
+export function updateRecentRail(onChatClick = () => {}) {
   const rail = document.getElementById('recentRail');
   if (!rail) return;
 
@@ -32,7 +33,7 @@ export function updateRecentRail(onChatClick = () => {}, isOverflowing = (rail) 
     .sort((a, b) => (b.savedAt || b.timestamp) - (a.savedAt || a.timestamp))
     .slice(0, 8);
 
-  if (sorted.length < 3) {
+  if (sorted.length < 1) {
     rail.style.display = 'none';
     return;
   }
@@ -63,12 +64,5 @@ export function updateRecentRail(onChatClick = () => {}, isOverflowing = (rail) 
 
     chip.addEventListener('click', () => onChatClick(c));
     rail.appendChild(chip);
-
-    if (isOverflowing(rail)) {
-      rail.removeChild(chip);
-      break;
-    }
   }
-
-  if (rail.children.length <= 1) rail.style.display = 'none';
 }
