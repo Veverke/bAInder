@@ -125,7 +125,6 @@ Every AI chat platform saves your conversations — but discovery, organisation,
 | Native Claude support | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
 | Native Perplexity support | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | **Single tool covers all 5** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-
 ### 💾 Saving & Capturing
 
 | Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **bAInder** |
