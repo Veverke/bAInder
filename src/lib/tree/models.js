@@ -196,8 +196,8 @@ export class ChatEntry {
   validate() {
     if (!this.title   || typeof this.title   !== 'string') throw new Error('Chat must have a valid title');
     if (!this.content || typeof this.content !== 'string') throw new Error('Chat must have valid content');
-    if (!['chatgpt', 'claude', 'gemini'].includes(this.source)) {
-      throw new Error('Chat must have a valid source (chatgpt, claude, or gemini)');
+    if (!['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity'].includes(this.source)) {
+      throw new Error('Chat must have a valid source (chatgpt, claude, gemini, copilot, or perplexity)');
     }
     return true;
   }
