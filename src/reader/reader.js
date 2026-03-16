@@ -271,9 +271,48 @@ export function renderMarkdown(markdown, options = {}) {
         const note = (audioMatch[1] || '').trim();  // e.g. ' (session-only)'
         const src  = audioMatch[2] || '';
 
+        const isLikelyBlockedCrossSiteMedia =
+          /^https?:\/\/contribution\.usercontent\.google\.com\//i.test(src);
+        const originalChatUrl = _sourceUrl || src;
+
         let cardHtml;
-        if (src && (src.startsWith('data:') || /^https?:\/\//i.test(src))) {
-          // Resolved data: URI or https: URL — render a real player
+        if (src.startsWith('data:')) {
+          // Permanently captured data: URI — render player + download button
+          const srcEsc = escapeHtml(src);
+          const ext = (src.match(/^data:audio\/([^;,]+)/) || [])[1]?.replace('mpeg', 'mp3') || 'audio';
+          const dlHtml = `<a class="audio-card__download" href="${srcEsc}" download="generated-audio.${ext}" title="Download audio">⬇️</a>`;
+          cardHtml =
+            `<div class="audio-card">` +
+              `<div class="audio-card__icon">🔊</div>` +
+              `<div class="audio-card__body">` +
+                `<div class="audio-card__label">Generated audio${dlHtml}</div>` +
+                `<audio controls class="audio-card__player" src="${srcEsc}"></audio>` +
+              `</div>` +
+            `</div>`;
+        } else if (note.includes('not captured') && src && /^https?:\/\//i.test(src)) {
+          // Detected but not captured — src is the original chat URL, not an audio file.
+          const srcEsc = escapeHtml(src);
+          cardHtml =
+            `<div class="audio-card audio-card--unavailable">` +
+              `<div class="audio-card__icon">🔊</div>` +
+              `<div class="audio-card__body">` +
+                `<div class="audio-card__label">Generated audio · not captured</div>` +
+                `<a class="audio-card__original-link" href="${srcEsc}" target="_blank" rel="noopener noreferrer">Open original chat ↗</a>` +
+              `</div>` +
+            `</div>`;
+        } else if (isLikelyBlockedCrossSiteMedia && src) {
+          // URL points to cross-site media that often cannot be fetched/played from extension pages.
+          const originalEsc = escapeHtml(originalChatUrl);
+          cardHtml =
+            `<div class="audio-card audio-card--unavailable">` +
+              `<div class="audio-card__icon">🔊</div>` +
+              `<div class="audio-card__body">` +
+                `<div class="audio-card__label">Generated audio · open original chat to play</div>` +
+                `<a class="audio-card__original-link" href="${originalEsc}" target="_blank" rel="noopener noreferrer">Open original chat ↗</a>` +
+              `</div>` +
+            `</div>`;
+        } else if (src && /^https?:\/\//i.test(src)) {
+          // Session-limited https: CDN URL — render player (may expire)
           const srcEsc = escapeHtml(src);
           cardHtml =
             `<div class="audio-card">` +

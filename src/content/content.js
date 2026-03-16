@@ -598,9 +598,10 @@ const logger = {
   function collectShadowAudio(root, maxShadowDepth) {
     if (maxShadowDepth === undefined) maxShadowDepth = 8;
     // Match audio extension anywhere in URL (e.g. ?name=audio.wav& or path/audio.mp3?token).
-    const AUDIO_EXT_RE_CS = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)(?:[^a-zA-Z]|$)/i;
-    // ChatGPT code-interpreter stores generated files here; Gemini on GCS.
-    const AUDIO_CDN_RE_CS = /files\.oaiusercontent\.com|storage\.googleapis\.com|storage\.cloud\.google\.com/i;
+    // mp4 included because Gemini wraps generated music in <video> with an .mp4 container.
+    const AUDIO_EXT_RE_CS = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus|mp4)(?:[^a-zA-Z]|$)/i;
+    // ChatGPT code-interpreter stores generated files here; Gemini on GCS and contribution CDN.
+    const AUDIO_CDN_RE_CS = /files\.oaiusercontent\.com|storage\.googleapis\.com|storage\.cloud\.google\.com|contribution\.usercontent\.google\.com/i;
     // URL contains audio content-type hint:
     //   content_type=audio  — generic pattern
     //   type=audio%2F       — URL-encoded mime
@@ -609,13 +610,14 @@ const logger = {
     const AUDIO_CT_RE_CS  = /content[_-]?type=audio|type=audio%2F|rsct=audio|rscd=[^&]*\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)/i;
     const audioSrcs = [];
     const anchorHrefs = [];
+    let hasUnresolvableAudio = false;
     function walkAudio(node, depth) {
       if (!node) return;
       const type = node.nodeType;
       if (type !== 1 && type !== 11) return;
       if (type === 1) {
         const tag = node.tagName.toLowerCase();
-        if (tag === 'audio') {
+        if (tag === 'audio' || tag === 'video') {
           let src = '';
           try { src = node.src || ''; } catch (_) {}
           if (!src) src = node.getAttribute('src') || '';
@@ -626,12 +628,21 @@ const logger = {
               if (!src) src = srcEl.getAttribute('src') || '';
             }
           }
-          // Diagnostic: log every audio element so we can see what its src is.
+          // For <video>, only capture if wrapped in a Gemini music/audio custom element.
+          if (tag === 'video' && src) {
+            let isAudioCtx = false;
+            let p = node.parentElement;
+            while (p) { if (/generated.music|video.player|audio.chip/i.test(p.tagName)) { isAudioCtx = true; break; } p = p.parentElement; }
+            if (!isAudioCtx && !AUDIO_CDN_RE_CS.test(src)) { src = ''; } // skip unrelated videos
+          }
+          // Diagnostic: log every audio/video element so we can see what its src is.
           let hasSrcObject = false;
           try { hasSrcObject = !!node.srcObject; } catch (_) {}
-          logger.info('[bAInder] audio el found: src=' + (src || '(empty)').slice(0, 100) +
+          logger.info('[bAInder] ' + tag + ' el found: src=' + (src || '(empty)').slice(0, 100) +
             ' srcObject=' + hasSrcObject + ' paused=' + node.paused + ' readyState=' + node.readyState);
           if (src && !src.startsWith('data:') && src.includes(':')) audioSrcs.push(src);
+          // Empty src means the player exists but audio wasn't preloaded (lazy / closed shadow).
+          else if (tag === 'audio' && (!src || src === (window.location && window.location.href))) hasUnresolvableAudio = true;
         } else if (tag === 'a') {
           const href = node.getAttribute('href') || '';
           const dl   = node.getAttribute('download');
@@ -649,17 +660,19 @@ const logger = {
       for (const child of node.childNodes) walkAudio(child, depth);
     }
     walkAudio(root, maxShadowDepth);
-    return { audioSrcs, anchorHrefs };
+    return { audioSrcs, anchorHrefs, hasUnresolvableAudio };
   }
 
   // Main entry: reads meta cache + shadow DOM + light DOM <audio>/<a> elements.
   // Returns array of [🔊 Generated audio](...) marker strings.
-  async function collectAudioFromPage(doc) {
+  // Pass `seenSrcs` (a shared Set) to skip URLs already captured per-turn.
+  async function collectAudioFromPage(doc, seenSrcs) {
     const markers  = [];
-    const seenSrcs = new Set();
+    if (!seenSrcs) seenSrcs = new Set();
     // Match audio extension anywhere in URL.
-    const AUDIO_EXT_RE_CS = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)(?:[^a-zA-Z]|$)/i;
-    const AUDIO_CDN_RE_CS = /files\.oaiusercontent\.com|storage\.googleapis\.com|storage\.cloud\.google\.com/i;
+    // mp4 included because Gemini wraps generated music in <video> with an .mp4 container.
+    const AUDIO_EXT_RE_CS = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus|mp4)(?:[^a-zA-Z]|$)/i;
+    const AUDIO_CDN_RE_CS = /files\.oaiusercontent\.com|storage\.googleapis\.com|storage\.cloud\.google\.com|contribution\.usercontent\.google\.com/i;
     const AUDIO_CT_RE_CS  = /content[_-]?type=audio|type=audio%2F|rsct=audio|rscd=[^&]*\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)/i;
 
     // 1. Meta cache written by the MAIN-world audio-interceptor.js.
@@ -699,7 +712,7 @@ const logger = {
       const resolved = await _captureAudioSrc(src);
       if (resolved === 'too_large')   markers.push('[\uD83D\uDD0A Generated audio (file too large to capture)]');
       else if (resolved)              markers.push(`[\uD83D\uDD0A Generated audio](${resolved})`);
-      else                            markers.push('[\uD83D\uDD0A Generated audio (not captured)]');
+      else                            markers.push(`[\uD83D\uDD0A Generated audio (not captured)](${(typeof location !== 'undefined' && location.href) || ''})`);
     }
 
     // 2b. <a download> links pointing to audio file URLs
@@ -739,6 +752,7 @@ const logger = {
       for (const re of [
         /https:\/\/files\.oaiusercontent\.com\/[^\s"'<>)]+/g,
         /https:\/\/storage\.googleapis\.com\/[^\s"'<>)]+/g,
+        /https:\/\/contribution\.usercontent\.google\.com\/[^\s"'<>)]+/g,
       ]) {
         let _m;
         while ((_m = re.exec(htmlContent)) !== null) {
@@ -778,6 +792,48 @@ const logger = {
     } catch (_) {}
 
     logger.info('[bAInder] collectAudioFromPage done: ' + markers.length + ' marker(s)');
+    return markers;
+  }
+
+  // Scoped variant: walk just `el`'s subtree (no meta-cache read).
+  // `seenSrcs` is a shared Set — pass the same instance across all turns so
+  // URLs captured in one turn are not double-counted in the residual page sweep.
+  async function collectAudioFromElement(el, seenSrcs) {
+    const markers = [];
+    const { audioSrcs, anchorHrefs, hasUnresolvableAudio } = collectShadowAudio(el, 8);
+    for (const src of audioSrcs) {
+      if (seenSrcs.has(src)) continue;
+      seenSrcs.add(src);
+      logger.info('[bAInder] per-turn audio el:', src.slice(0, 80));
+      const resolved = await _captureAudioSrc(src);
+      if (resolved === 'too_large')  markers.push('[\uD83D\uDD0A Generated audio (file too large to capture)]');
+      else if (resolved)             markers.push(`[\uD83D\uDD0A Generated audio](${resolved})`);
+      else                           markers.push(`[\uD83D\uDD0A Generated audio (not captured)](${(typeof location !== 'undefined' && location.href) || ''})`);
+    }
+    for (const href of anchorHrefs) {
+      if (seenSrcs.has(href)) continue;
+      seenSrcs.add(href);
+      logger.info('[bAInder] per-turn audio anchor:', href.slice(0, 100));
+      const resolved = await _captureAudioSrc(href);
+      if (resolved === 'too_large')  markers.push('[\uD83D\uDD0A Generated audio (file too large to capture)]');
+      else if (resolved)             markers.push(`[\uD83D\uDD0A Generated audio](${resolved})`);
+    }
+    // If nothing was captured, check for audio UI elements that signal generated audio
+    // but whose src/URL we couldn’t resolve (empty-src <audio> or ChatGPT behavior-btn).
+    if (markers.length === 0) {
+      let detected = hasUnresolvableAudio;
+      if (!detected) {
+        try {
+          detected = [...el.querySelectorAll('button.behavior-btn')]
+            .some(b => /download|wav|mp3|ogg|webm|aac|audio/i.test(b.textContent || ''));
+        } catch (_) {}
+      }
+      if (detected) {
+        const originalUrl = (typeof location !== 'undefined' && location.href) || '';
+        logger.info('[bAInder] per-turn: audio UI detected but not capturable; emitting placeholder');
+        markers.push(`[\uD83D\uDD0A Generated audio (not captured)](${originalUrl})`);
+      }
+    }
     return markers;
   }
 
@@ -821,6 +877,8 @@ const logger = {
   async function extractChatGPT(doc) {
     const messages = [];
     const turns = doc.querySelectorAll('article[data-testid^="conversation-turn"]');
+    // Shared dedup set: URLs captured per-turn are excluded from the residual sweep.
+    const audioSeenSrcs = new Set();
 
     logger.info('[bAInder] ChatGPT extraction: turns=' + turns.length);
 
@@ -898,6 +956,11 @@ const logger = {
         ' hasImg=' + content.includes('![') +
         ' hasPlaceholder=' + content.includes('🖼️'));
       if (role === 'assistant') content += extractSourceLinks(turn, contentEl);
+      // Per-turn audio: associate audio from this turn's DOM subtree with this turn.
+      if (role === 'assistant') {
+        const turnAudio = await collectAudioFromElement(turn, audioSeenSrcs);
+        if (turnAudio.length > 0) content = (content ? content + '\n\n' : '') + turnAudio.join('\n');
+      }
       if (content) messages.push(formatMessage(role, content));
     }
     if (messages.length === 0) {
@@ -912,10 +975,11 @@ const logger = {
         if (content) messages.push(formatMessage(role, content));
       }
     }
-    // ── Audio sweep ──────────────────────────────────────────────────────────
-    // Read meta cache (MAIN-world interceptor) + shadow/light DOM <audio> elements.
-    // Append to the last assistant message if audio was captured without a marker.
-    const audioMarkers = await collectAudioFromPage(doc);
+    // ── Residual audio sweep ──────────────────────────────────────────────────
+    // Reads meta-cache written by Patches 3/4 (fetch/XHR interceptors) for audio
+    // captured asynchronously and not tied to a specific turn's DOM subtree.
+    // audioSeenSrcs excludes URLs already collected per-turn above.
+    const audioMarkers = await collectAudioFromPage(doc, audioSeenSrcs);
     if (audioMarkers.length > 0) {
       const lastAsst = [...messages].reverse().find(m => m.role === 'assistant');
       if (lastAsst) {
@@ -1044,6 +1108,8 @@ const logger = {
       ...userEls.map(el => ({ el, role: 'user' })),
       ...modelEls.map(el => ({ el, role: 'assistant' }))
     ].sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+    // Shared dedup set: URLs captured per-turn are excluded from the residual sweep.
+    const audioSeenSrcs = new Set();
     for (const { el, role } of allEls) {
       const processEl = role === 'assistant' ? stripSourceContainers(el) : el;
       // Route https: fetches through the background service worker to bypass CORP:
@@ -1073,10 +1139,16 @@ const logger = {
         '| light imgs:', el.querySelectorAll('img').length,
         '| markdown len:', content.length);
       if (role === 'assistant') content += extractSourceLinks(el);
+      // Per-turn audio: associate audio from this turn's DOM subtree with this turn.
+      if (role === 'assistant') {
+        const turnAudio = await collectAudioFromElement(el, audioSeenSrcs);
+        if (turnAudio.length > 0) content = (content ? content + '\n\n' : '') + turnAudio.join('\n');
+      }
       if (content) messages.push(formatMessage(role, content));
     }
-    // ── Audio sweep (Gemini) ─────────────────────────────────────────────────
-    const audioMarkersG = await collectAudioFromPage(doc);
+    // ── Residual audio sweep (Gemini) ────────────────────────────────────────
+    // audioSeenSrcs excludes URLs already collected per-turn above.
+    const audioMarkersG = await collectAudioFromPage(doc, audioSeenSrcs);
     if (audioMarkersG.length > 0) {
       const lastAsstG = [...messages].reverse().find(m => m.role === 'assistant');
       if (lastAsstG) {
