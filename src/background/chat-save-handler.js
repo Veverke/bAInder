@@ -118,7 +118,7 @@ export function validateChatData(chatData) {
   if (!chatData.content || typeof chatData.content !== 'string' || !chatData.content.trim()) {
     throw new Error('Chat content is required');
   }
-  const validSources = ['chatgpt', 'claude', 'gemini', 'copilot'];
+  const validSources = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity'];
   const source = chatData.source || 'unknown';
   if (!validSources.includes(source)) {
     throw new Error(`Invalid source: ${source}. Must be one of: ${validSources.join(', ')}`);

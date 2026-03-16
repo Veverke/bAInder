@@ -368,7 +368,8 @@ body {
 .badge--chatgpt  { background: rgba(16,163,127,.12);  color: #10a37f; }
 .badge--claude   { background: rgba(204,120,85,.12);   color: #cc7855; }
 .badge--gemini   { background: rgba(66,133,244,.12);   color: #4285f4; }
-.badge--copilot  { background: rgba(0,120,212,.12);    color: #0078d4; }
+.badge--copilot     { background: rgba(0,120,212,.12);    color: #0078d4; }
+.badge--perplexity  { background: rgba(155,107,46,.12);   color: #9b6b2e; }
 .badge--unknown  { background: rgba(136,136,136,.12);  color: #666;    }
 .badge--excerpt  { background: rgba(167,139,250,.12);  color: #7c3aed; }
 

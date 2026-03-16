@@ -46,10 +46,11 @@ function _saveBtnTopicName() {
 // ─── Platform detection ───────────────────────────────────────────────────────
 
 const PLATFORM_PATTERNS = [
-  { re: /chatgpt\.com|chat\.openai\.com/,                     name: 'ChatGPT'  },
-  { re: /claude\.ai/,                                          name: 'Claude'   },
-  { re: /gemini\.google\.com/,                                 name: 'Gemini'   },
-  { re: /copilot\.microsoft\.com|m365\.cloud\.microsoft/,      name: 'Copilot'  },
+  { re: /chatgpt\.com|chat\.openai\.com/,                     name: 'ChatGPT'    },
+  { re: /claude\.ai/,                                          name: 'Claude'     },
+  { re: /gemini\.google\.com/,                                 name: 'Gemini'     },
+  { re: /copilot\.microsoft\.com|m365\.cloud\.microsoft/,      name: 'Copilot'    },
+  { re: /perplexity\.ai/,                                      name: 'Perplexity' },
 ];
 
 export function detectPlatformFromUrl(url) {

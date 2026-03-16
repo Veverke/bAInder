@@ -97,7 +97,7 @@ export function sourceLabel(source, isExcerpt) {
  */
 export function badgeClass(source, isExcerpt) {
   if (isExcerpt) return 'badge badge--excerpt';
-  const known = ['chatgpt', 'claude', 'gemini', 'copilot'];
+  const known = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity'];
   return known.includes(source) ? `badge badge--${source}` : 'badge badge--unknown';
 }
 
@@ -1509,7 +1509,7 @@ export function renderChat(chat) {
   }
 
   // ── Per-source body tint (T3) ──────────────────────────────────────────────
-  const knownSources = ['chatgpt', 'claude', 'gemini', 'copilot'];
+  const knownSources = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity'];
   if (knownSources.includes(source)) {
     document.body.setAttribute('data-source', source);
   }
