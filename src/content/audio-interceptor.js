@@ -40,15 +40,20 @@
 
   const MAX_BYTES    = 10 * 1024 * 1024; // 10 MB
   const CACHE_NAME   = 'bainder-audio-cache';
+
+  // Gated debug logger — set window.__bAInderDebug = true in DevTools to enable.
+  // Checked at call time (not const) so it can be toggled live in the console.
+  function _log(...args) { if (window.__bAInderDebug) console.log(...args); }
   // Audio file extension anywhere in URL (path, query param like ?name=audio.wav).
-  const AUDIO_EXT_RE = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)(?:[^a-zA-Z]|$)/i;
+  // mp4 included because Gemini wraps generated music in <video> with an .mp4 container.
+  const AUDIO_EXT_RE = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus|mp4)(?:[^a-zA-Z]|$)/i;
   // Known AI audio CDN domains.
-  const AUDIO_CDN_RE = /files\.oaiusercontent\.com|storage\.googleapis\.com|storage\.cloud\.google\.com/i;
+  const AUDIO_CDN_RE = /files\.oaiusercontent\.com|storage\.googleapis\.com|storage\.cloud\.google\.com|contribution\.usercontent\.google\.com/i;
   // Patterns in a URL that hint at audio content:
   //   - audio file extension
   //   - rsct=audio%2F... (Azure Blob signed URL response-content-type param used by ChatGPT)
   //   - rscd=...filename.wav (response-content-disposition with audio filename)
-  const AUDIO_URL_HINT_RE = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)(?:[^a-zA-Z]|$)|rsct=audio|rscd=[^&]*\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)/i;
+  const AUDIO_URL_HINT_RE = /\.(wav|mp3|ogg|webm|m4a|aac|flac|opus|mp4)(?:[^a-zA-Z]|$)|rsct=audio|rscd=[^&]*\.(wav|mp3|ogg|webm|m4a|aac|flac|opus)/i;
 
   // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -191,7 +196,7 @@
                 const bytes = new Uint8Array(buf);
                 let b = '';
                 for (let i = 0; i < bytes.length; i++) b += String.fromCharCode(bytes[i]);
-                console.log('[bAInder main] fetch interceptor: audio', url.slice(0, 80), 'size:', buf.byteLength);
+                _log('[bAInder main] fetch interceptor: audio', url.slice(0, 80), 'size:', buf.byteLength);
                 _writeMeta(url, `data:${mime};base64,${btoa(b)}`, mime);
               } catch (_) {}
             })();
@@ -239,7 +244,7 @@
           if (!blob || blob.size === 0 || blob.size > MAX_BYTES) return;
           const reader = new FileReader();
           reader.onload = function () {
-            console.log('[bAInder main] XHR interceptor: audio', url.slice(0, 80));
+            _log('[bAInder main] XHR interceptor: audio', url.slice(0, 80));
             _writeMeta(url, /** @type {string} */ (reader.result), mime);
           };
           reader.readAsDataURL(blob);
@@ -261,7 +266,7 @@
       set(value) {
         const v = String(value || '');
         if (this instanceof HTMLAudioElement && v && !v.startsWith('data:')) {
-          console.log('[bAInder main] audio.src setter:', v.slice(0, 100));
+          _log('[bAInder main] audio.src setter:', v.slice(0, 100));
           if (v.startsWith('blob:')) {
             _tryCaptureBlobSrc(v);
           } else if ((v.startsWith('https:') || v.startsWith('http:')) &&
@@ -294,12 +299,14 @@
     if (_findMeta(href)) return; // already cached
     // Store the HTTPS URL immediately as a recoverable fallback.
     _writeMeta(href, href, '');
-    console.log('[bAInder main] MutationObserver: CDN audio link queued:', href.slice(0, 100));
+    _log('[bAInder main] MutationObserver: CDN audio link queued:', href.slice(0, 100));
     // Async: fetch bytes and upgrade to a permanent data: URI.
     ;(async () => {
       try {
         const resp = await _origFetch(href, { credentials: 'include' });
-        if (!resp.ok) { _findMeta(href) && _findMeta(href).remove(); return; }
+        // On non-OK response keep the HTTPS URL in the meta element as a fallback:
+        // content.js will retry the fetch via the background SW (which has host_permissions).
+        if (!resp.ok) { _log('[bAInder main] MutationObserver: CDN fetch non-OK', resp.status, href.slice(0, 60)); return; }
         const ct = (resp.headers.get('content-type') || '').split(';')[0].trim();
         if (!ct.startsWith('audio/')) { const m = _findMeta(href); if (m) m.remove(); return; }
         const buf = await resp.arrayBuffer();
@@ -307,10 +314,10 @@
         const bytes = new Uint8Array(buf);
         let b = '';
         for (let i = 0; i < bytes.length; i++) b += String.fromCharCode(bytes[i]);
-        console.log('[bAInder main] MutationObserver: cached audio', href.slice(0, 80), 'bytes:', buf.byteLength);
+        _log('[bAInder main] MutationObserver: cached audio', href.slice(0, 80), 'bytes:', buf.byteLength);
         _writeMeta(href, `data:${ct};base64,${btoa(b)}`, ct);
       } catch (err) {
-        console.log('[bAInder main] MutationObserver: fetch failed', href.slice(0, 80), String(err));
+        _log('[bAInder main] MutationObserver: fetch failed', href.slice(0, 80), String(err));
       }
     })();
   }
@@ -325,7 +332,7 @@
         if (!blob.type.startsWith('audio/') || !blob.size || blob.size > MAX_BYTES) return;
         const reader = new FileReader();
         reader.onload = function () {
-          console.log('[bAInder main] MutationObserver: blob audio captured:', src.slice(0, 80));
+          _log('[bAInder main] MutationObserver: blob audio captured:', src.slice(0, 80));
           _writeMeta(src, /** @type {string} */ (reader.result), blob.type);
         };
         reader.readAsDataURL(blob);
@@ -333,7 +340,75 @@
     })();
   }
 
-  function _scanAddedNode(node) {
+  // ── Patch 7: behavior-btn React fiber extraction ─────────────────────────
+  // ChatGPT renders audio download buttons as <button class="behavior-btn">
+  // (not <a download>), so Patches 2/5 never fire.  Walk the React fiber tree
+  // upward from the button to find the signed CDN URL in component props/state,
+  // then proactively capture it without requiring user interaction.
+  function _tryCaptureBehaviorBtn(btn) {
+    const fk = Object.keys(btn).find(k => /^__reactFiber|^__reactInternals/.test(k));
+    if (!fk) return;
+    const visited = new WeakSet();
+    let found = false;
+    function scanFiber(node, depth) {
+      if (found || !node || depth > 30) return;
+      try { if (visited.has(node)) return; visited.add(node); } catch (_) { return; }
+      for (const bag of [node.memoizedProps, node.memoizedState, node.pendingProps]) {
+        if (!bag || typeof bag !== 'object') continue;
+        try {
+          for (const val of Object.values(bag)) {
+            if (typeof val === 'string' && val.length < 4000 &&
+                AUDIO_CDN_RE.test(val) && AUDIO_URL_HINT_RE.test(val)) {
+              _log('[bAInder main] behavior-btn: CDN URL in React fiber:', val.slice(0, 100));
+              _tryCaptureCDNHref(val, true);
+              found = true;
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+      // Scan upward first (parent components hold the URL as a prop passed down).
+      scanFiber(node.return, depth + 1);
+      if (!found) scanFiber(node.child, depth + 1);
+    }
+    try { scanFiber(btn[fk], 0); } catch (_) {}
+    if (!found) _log('[bAInder main] behavior-btn: no CDN URL found in React fiber for:', (btn.textContent || '').trim().slice(0, 60));
+  }
+
+  function _scanBehaviorBtns(root) {
+    try {
+      for (const btn of root.querySelectorAll('button.behavior-btn')) {
+        const txt = (btn.textContent || '').toLowerCase();
+        if (/download|wav|mp3|ogg|webm|aac|audio/.test(txt)) {
+          _log('[bAInder main] behavior-btn found:', btn.textContent?.trim().slice(0, 60));
+          _tryCaptureBehaviorBtn(btn);
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Attach the MutationObserver to an open shadow root so chips rendered inside
+  // it are captured.  Marked with __bAInderObserved to prevent re-observation.
+  function _observeShadowRoot(sr, depth) {
+    if (!sr || sr.__bAInderObserved) return;
+    sr.__bAInderObserved = true;
+    if (depth === undefined) depth = 4;
+    _domObserver.observe(sr, { childList: true, subtree: true, attributeFilter: ['src', 'href'] });
+    // Initial sweep of this shadow root's content.
+    for (const audio of sr.querySelectorAll('audio')) _scanAddedNode(audio, depth);
+    for (const a of sr.querySelectorAll('a[href]')) {
+      _tryCaptureCDNHref(a.href || a.getAttribute('href') || '', a.hasAttribute('download'));
+    }
+    _scanBehaviorBtns(sr);
+    if (depth > 0) {
+      try { for (const el of sr.querySelectorAll('*')) {
+        if (el.shadowRoot) _observeShadowRoot(el.shadowRoot, depth - 1);
+      } } catch (_) {}
+    }
+  }
+
+  function _scanAddedNode(node, depth) {
+    if (depth === undefined) depth = 5;
     if (!node || node.nodeType !== 1) return;
     const tag = node.tagName.toLowerCase();
     if (tag === 'audio') {
@@ -348,11 +423,25 @@
     } else if (tag === 'a') {
       const hasDL = node.hasAttribute('download');
       _tryCaptureCDNHref(node.href || node.getAttribute('href') || '', hasDL);
+    } else if (tag === 'button' && node.classList.contains('behavior-btn')) {
+      const txt = (node.textContent || '').toLowerCase();
+      if (/download|wav|mp3|ogg|webm|aac|audio/.test(txt)) {
+        _log('[bAInder main] behavior-btn added:', node.textContent?.trim().slice(0, 60));
+        _tryCaptureBehaviorBtn(node);
+      }
     } else {
-      for (const audio of node.querySelectorAll('audio')) _scanAddedNode(audio);
+      for (const audio of node.querySelectorAll('audio')) _scanAddedNode(audio, depth);
       for (const a of node.querySelectorAll('a[href]')) {
         const hasDL = a.hasAttribute('download');
         _tryCaptureCDNHref(a.href || a.getAttribute('href') || '', hasDL);
+      }
+      _scanBehaviorBtns(node);
+      // Walk open shadow roots hosted by this element or any of its descendants.
+      if (depth > 0) {
+        if (node.shadowRoot) _observeShadowRoot(node.shadowRoot, depth - 1);
+        try { for (const el of node.querySelectorAll('*')) {
+          if (el.shadowRoot) _observeShadowRoot(el.shadowRoot, depth - 1);
+        } } catch (_) {}
       }
     }
   }
@@ -370,6 +459,8 @@
       _domObserver.observe(root, { childList: true, subtree: true, attributeFilter: ['src', 'href'] });
       // Initial scan: catch elements already present when the interceptor loads.
       _scanAddedNode(document.documentElement);
+      // Explicitly scan for behavior-btn buttons already in the DOM at load time.
+      _scanBehaviorBtns(document.documentElement);
     } else {
       // Body not ready yet (document_start on slow pages).
       new MutationObserver(function (_, obs) {
