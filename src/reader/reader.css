@@ -579,6 +579,7 @@ body.ordinals-hidden .msg-ordinal {
 .badge--claude   { background: #fdf4e7; color: #92400e; }
 .badge--gemini   { background: #eff6ff; color: #1e40af; }
 .badge--copilot  { background: #f5f0ff; color: #5b21b6; }
+.badge--perplexity { background: #f9f0e3; color: #6b4620; }
 .badge--unknown  { background: var(--bg-code); color: var(--text-secondary); }
 .badge--excerpt  { background: #fef9c3; color: #713f12; }
 
@@ -615,8 +616,9 @@ body.ordinals-hidden .msg-ordinal {
   .badge--chatgpt  { background: #14532d; color: #86efac; }
   .badge--claude   { background: #451a03; color: #fed7aa; }
   .badge--gemini   { background: #1e3a8a; color: #93c5fd; }
-  .badge--copilot  { background: #2e1065; color: #c4b5fd; }
-  .badge--excerpt  { background: #422006; color: #fde68a; }
+  .badge--copilot     { background: #2e1065; color: #c4b5fd; }
+  .badge--perplexity  { background: #3d2008; color: #fcd5aa; }
+  .badge--excerpt     { background: #422006; color: #fde68a; }
 }
 
 /* ── Main content ────────────────────────────────────────────────────────── */
@@ -1238,6 +1240,7 @@ body[data-source="chatgpt"] { background-color: color-mix(in srgb, #16a34a 4%, v
 body[data-source="claude"]  { background-color: color-mix(in srgb, #d97706 5%, var(--bg-primary)); }
 body[data-source="gemini"]  { background-color: color-mix(in srgb, #2563eb 4%, var(--bg-primary)); }
 body[data-source="copilot"] { background-color: color-mix(in srgb, #7c3aed 4%, var(--bg-primary)); }
+body[data-source="perplexity"] { background-color: color-mix(in srgb, #9b6b2e 4%, var(--bg-primary)); }
 
 /* Fallback for browsers without color-mix (e.g. older Chromium) */
 @supports not (background: color-mix(in srgb, red, blue)) {
@@ -1245,12 +1248,14 @@ body[data-source="copilot"] { background-color: color-mix(in srgb, #7c3aed 4%, v
   body[data-source="claude"]  { background-color: #fff7ed; }
   body[data-source="gemini"]  { background-color: #eff6ff; }
   body[data-source="copilot"] { background-color: #f5f3ff; }
+  body[data-source="perplexity"] { background-color: #fdf8f2; }
 
   @media (prefers-color-scheme: dark) {
-    body[data-source="chatgpt"] { background-color: #052e16; }
-    body[data-source="claude"]  { background-color: #1c0a00; }
-    body[data-source="gemini"]  { background-color: #0c1a3a; }
-    body[data-source="copilot"] { background-color: #1a0a2e; }
+    body[data-source="chatgpt"]    { background-color: #052e16; }
+    body[data-source="claude"]      { background-color: #1c0a00; }
+    body[data-source="gemini"]      { background-color: #0c1a3a; }
+    body[data-source="copilot"]    { background-color: #1a0a2e; }
+    body[data-source="perplexity"] { background-color: #231408; }
   }
 }
 

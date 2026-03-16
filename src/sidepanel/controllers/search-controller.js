@@ -210,7 +210,7 @@ export function renderSearchResults(results, query) {
 
 /** Build a single result-card HTML string. */
 export function buildResultCard(query, chat) {
-  const LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Copilot' };
+  const LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', copilot: 'Copilot', perplexity: 'Perplexity' };
   const KNOWN_SOURCES = Object.keys(LABELS);
   const source     = chat.source || 'unknown';
   const badgeCls   = KNOWN_SOURCES.includes(source) ? `badge badge--${source}` : 'badge badge--unknown';
