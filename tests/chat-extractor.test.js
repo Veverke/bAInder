@@ -18,6 +18,7 @@ import {
   extractClaude,
   extractGemini,
   extractCopilot,
+  extractPerplexity,
   extractChat,
   prepareChatForSave
 } from '../src/content/chat-extractor.js';
@@ -105,6 +106,24 @@ function buildCopilotDoc(turns = []) {
   return document;
 }
 
+/**
+ * Build a minimal Perplexity-style DOM document with the given conversation turns.
+ * User messages use class "query"; assistant messages use class "prose".
+ * Both are placed inside a <main> element (matching the extractor's scope).
+ */
+function buildPerplexityDoc(turns = []) {
+  const main = document.createElement('main');
+  turns.forEach(turn => {
+    const el = document.createElement('div');
+    el.className = turn.role === 'user' ? 'query' : 'prose';
+    el.textContent = turn.content;
+    main.appendChild(el);
+  });
+  document.body.innerHTML = '';
+  document.body.appendChild(main);
+  return document;
+}
+
 // ─── detectPlatform ───────────────────────────────────────────────────────────
 
 describe('detectPlatform()', () => {
@@ -159,6 +178,14 @@ describe('detectPlatform()', () => {
 
   it('matches on substrings (e.g. subdomain)', async () => {
     expect(detectPlatform('chat.openai.com')).toBe('chatgpt');
+  });
+
+  it('returns "perplexity" for www.perplexity.ai', () => {
+    expect(detectPlatform('www.perplexity.ai')).toBe('perplexity');
+  });
+
+  it('returns "perplexity" for perplexity.ai', () => {
+    expect(detectPlatform('perplexity.ai')).toBe('perplexity');
   });
 });
 
@@ -1783,6 +1810,110 @@ describe('extractSourceLinks()', () => {
   });
 });
 
+// ─── extractPerplexity ────────────────────────────────────────────────────────
+
+describe('extractPerplexity()', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('throws when document is null', async () => {
+    await expect(extractPerplexity(null)).rejects.toThrow('Document is required');
+  });
+
+  it('returns empty messages when no elements found', async () => {
+    document.body.innerHTML = '<div></div>';
+    const result = await extractPerplexity(document);
+    expect(result.messages).toHaveLength(0);
+    expect(result.messageCount).toBe(0);
+    expect(result.title).toBeDefined();
+  });
+
+  it('extracts a single user message via class "query"', async () => {
+    buildPerplexityDoc([{ role: 'user', content: 'Hello Perplexity' }]);
+    const result = await extractPerplexity(document);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('user');
+    expect(result.messages[0].content).toBe('Hello Perplexity');
+  });
+
+  it('extracts a single assistant message via class "prose"', async () => {
+    buildPerplexityDoc([{ role: 'assistant', content: 'Hi there!' }]);
+    const result = await extractPerplexity(document);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('assistant');
+    expect(result.messages[0].content).toBe('Hi there!');
+  });
+
+  it('extracts a full conversation in correct order', async () => {
+    buildPerplexityDoc([
+      { role: 'user',      content: 'Question 1' },
+      { role: 'assistant', content: 'Answer 1'   },
+      { role: 'user',      content: 'Question 2' },
+      { role: 'assistant', content: 'Answer 2'   },
+    ]);
+    const result = await extractPerplexity(document);
+    expect(result.messages).toHaveLength(4);
+    expect(result.messages[0].role).toBe('user');
+    expect(result.messages[0].content).toBe('Question 1');
+    expect(result.messages[1].role).toBe('assistant');
+    expect(result.messages[1].content).toBe('Answer 1');
+  });
+
+  it('strips "Sources" heading from assistant content', async () => {
+    const main = document.createElement('main');
+    const el = document.createElement('div');
+    el.className = 'prose';
+    el.innerHTML = '<p>Main answer</p><h2>Sources</h2>';
+    main.appendChild(el);
+    document.body.innerHTML = '';
+    document.body.appendChild(main);
+    const result = await extractPerplexity(document);
+    const msg = result.messages.find(m => m.role === 'assistant');
+    expect(msg).toBeDefined();
+    expect(msg.content).toContain('Main answer');
+    expect(msg.content).not.toMatch(/^##\s*sources/im);
+  });
+
+  it('strips footnote-only lines like "[1] [2]"', async () => {
+    const main = document.createElement('main');
+    const el = document.createElement('div');
+    el.className = 'prose';
+    el.innerHTML = '<p>Real content</p><p>[1] [2]</p>';
+    main.appendChild(el);
+    document.body.innerHTML = '';
+    document.body.appendChild(main);
+    const result = await extractPerplexity(document);
+    const msg = result.messages.find(m => m.role === 'assistant');
+    expect(msg).toBeDefined();
+    expect(msg.content).toContain('Real content');
+    expect(msg.content).not.toMatch(/^\[1\] \[2\]$/m);
+  });
+
+  it('uses first <h1> as title', async () => {
+    buildPerplexityDoc([{ role: 'user', content: 'Query text' }]);
+    const h1 = document.createElement('h1');
+    h1.textContent = 'My H1 Title';
+    document.body.prepend(h1);
+    const result = await extractPerplexity(document);
+    expect(result.title).toBe('My H1 Title');
+  });
+
+  it('falls back to generating title from messages when no h1', async () => {
+    buildPerplexityDoc([{ role: 'user', content: 'A question about things' }]);
+    const result = await extractPerplexity(document);
+    expect(typeof result.title).toBe('string');
+    expect(result.title.length).toBeGreaterThan(0);
+  });
+
+  it('messageCount matches messages array length', async () => {
+    buildPerplexityDoc([
+      { role: 'user',      content: 'Q' },
+      { role: 'assistant', content: 'A' },
+    ]);
+    const result = await extractPerplexity(document);
+    expect(result.messageCount).toBe(result.messages.length);
+  });
+});
+
 // ─── extractChat (dispatch) ───────────────────────────────────────────────────
 
 describe('extractChat()', () => {
@@ -1840,6 +1971,13 @@ describe('extractChat()', () => {
     const result = await extractChat('copilot', document);
     expect(result.platform).toBe('copilot');
     expect(result.messages[0].content).toBe('Copilot question');
+  });
+
+  it('dispatches to extractPerplexity', async () => {
+    buildPerplexityDoc([{ role: 'user', content: 'Perplexity question' }]);
+    const result = await extractChat('perplexity', document);
+    expect(result.platform).toBe('perplexity');
+    expect(result.messages[0].content).toBe('Perplexity question');
   });
 
   it('includes extractedAt timestamp', async () => {

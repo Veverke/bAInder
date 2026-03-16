@@ -6,10 +6,11 @@
  * Exports the full public API so all callers and tests remain unchanged.
  *
  * Supported platforms:
- *   - ChatGPT (chat.openai.com)
- *   - Claude  (claude.ai)
- *   - Gemini  (gemini.google.com)
- *   - Copilot (copilot.microsoft.com → redirects to m365.cloud.microsoft/chat)
+ *   - ChatGPT    (chat.openai.com)
+ *   - Claude     (claude.ai)
+ *   - Gemini     (gemini.google.com)
+ *   - Copilot    (copilot.microsoft.com → redirects to m365.cloud.microsoft/chat)
+ *   - Perplexity (www.perplexity.ai)
  */
 
 import { messagesToMarkdown }                        from '../lib/io/markdown-serialiser.js';
@@ -21,6 +22,7 @@ import { extractChatGPT }                            from './extractors/chatgpt.
 import { extractClaude }                             from './extractors/claude.js';
 import { extractGemini }                             from './extractors/gemini.js';
 import { extractCopilot }                            from './extractors/copilot.js';
+import { extractPerplexity }                         from './extractors/perplexity.js';
 
 // Re-export all implementation-level public APIs so callers stay unchanged.
 export {
@@ -34,6 +36,7 @@ export {
   extractClaude,
   extractGemini,
   extractCopilot,
+  extractPerplexity,
 };
 
 // ─── Platform Detection ──────────────────────────────────────────────────────
@@ -41,7 +44,7 @@ export {
 /**
  * Detect the AI platform from a hostname.
  * @param {string} hostname
- * @returns {'chatgpt'|'claude'|'gemini'|'copilot'|null}
+ * @returns {'chatgpt'|'claude'|'gemini'|'copilot'|'perplexity'|null}
  */
 export function detectPlatform(hostname) {
   if (!hostname || typeof hostname !== 'string') return null;
@@ -50,6 +53,7 @@ export function detectPlatform(hostname) {
   if (h.includes('claude.ai'))         return 'claude';
   if (h.includes('gemini.google.com')) return 'gemini';
   if (h.includes('copilot.microsoft.com') || h.includes('m365.cloud.microsoft')) return 'copilot';
+  if (h.includes('perplexity.ai'))     return 'perplexity';
   return null;
 }
 
@@ -75,6 +79,10 @@ export async function extractChat(platform, doc, url) {
     case 'copilot':
       if (!doc) throw new Error('Document is required');
       result = await extractCopilot(doc);
+      break;
+    case 'perplexity':
+      if (!doc) throw new Error('Document is required');
+      result = await extractPerplexity(doc);
       break;
     default:
       throw new Error(`Unsupported platform: ${platform}`);
