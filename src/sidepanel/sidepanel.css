@@ -682,6 +682,10 @@ mark.search-highlight {
   box-shadow: 0 -2px 8px var(--overlay-light);
 }
 
+.footer-actions {
+  margin-left: auto;
+}
+
 /* Save-to-bAInder banner (shown when on a supported AI chat page) */
 .save-banner {
   display: flex;
@@ -2445,6 +2449,37 @@ ul.tree-root.drop-target {
 .toast--success { background: #15803d;                 border-left-color: #4ade80; }
 .toast--error   { background: #b91c1c;                 border-left-color: #fca5a5; }
 
+/* Undo-action toast */
+.toast--undo {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+  background: var(--text-primary);
+  border-left-color: var(--warning);
+}
+
+.toast__undo {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.toast__undo:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 .toast--loading {
   background: var(--text-secondary);
   overflow: visible;   /* allow ::after spinner to render outside clipping box */
@@ -2699,10 +2734,28 @@ ul.tree-root.drop-target {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-secondary) transparent;
   padding: var(--space-sm) 0;
+  padding-bottom: calc(var(--space-sm) + 4px);
   margin-bottom: var(--space-md);
   flex-shrink: 0;
+}
+
+.recent-rail::-webkit-scrollbar {
+  height: 4px;
+}
+
+.recent-rail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.recent-rail::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 2px;
 }
 
 .recent-rail__label {
@@ -2729,6 +2782,7 @@ ul.tree-root.drop-target {
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  scroll-snap-align: start;
   transition: background var(--transition-fast), border-color var(--transition-fast),
               color var(--transition-fast), transform var(--transition-fast);
   max-width: 180px;

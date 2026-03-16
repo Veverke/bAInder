@@ -31,3 +31,46 @@ export function showNotification(message, type = 'info') {
     }, TOAST_DISMISS_MS);
   }
 }
+
+/**
+ * Show a dismissible "undo" toast with an action button.
+ * The deferred callback is NOT called here — the caller is responsible for
+ * scheduling the permanent action after `timeoutMs` and cancelling it if
+ * `onUndo` fires.
+ *
+ * @param {string}   message    — e.g. "Chat deleted"
+ * @param {Function} onUndo     — called immediately when the user clicks Undo
+ * @param {number}   [timeoutMs=6000]
+ */
+export function showUndoToast(message, onUndo, timeoutMs = 6000) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+
+  // Clear any existing toast / timer
+  clearTimeout(state._toastTimer);
+  toast.className = 'toast';
+
+  // Build content safely (no innerHTML with user data)
+  const msgSpan = document.createElement('span');
+  msgSpan.textContent = message;
+
+  const undoBtn = document.createElement('button');
+  undoBtn.className = 'toast__undo';
+  undoBtn.textContent = 'Undo';
+
+  toast.replaceChildren(msgSpan, undoBtn);
+  toast.className = 'toast toast--undo toast--visible';
+
+  const hide = () => {
+    toast.className = 'toast';
+    toast.replaceChildren();
+  };
+
+  state._toastTimer = setTimeout(hide, timeoutMs);
+
+  undoBtn.addEventListener('click', () => {
+    clearTimeout(state._toastTimer);
+    hide();
+    onUndo();
+  }, { once: true });
+}

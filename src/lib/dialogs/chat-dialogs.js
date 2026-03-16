@@ -14,6 +14,16 @@ export class ChatDialogs {
     if (!topicTree)     throw new Error('TopicTree is required');
     this.dialog = dialogManager;
     this.tree   = topicTree;
+    this._tagSuggestions = [];
+  }
+
+  /**
+   * Update the list of known tags used for autocomplete datalists.
+   * Call this after chats are loaded or whenever tags change.
+   * @param {string[]} tags  Sorted array of all known tag strings.
+   */
+  setTagSuggestions(tags) {
+    this._tagSuggestions = Array.isArray(tags) ? tags : [];
   }
 
   /**
@@ -54,7 +64,8 @@ export class ChatDialogs {
           label:       'Tags',
           type:        'text',
           value:       (chatEntry.tags || []).join(', '),
-          placeholder: 'e.g. react, performance, debugging'
+          placeholder: 'e.g. react, performance, debugging',
+          datalist:    this._tagSuggestions,
         },
         {
           name:     'topicId',
@@ -90,7 +101,8 @@ export class ChatDialogs {
           label:       'Tags',
           type:        'text',
           value:       (chat.tags || []).join(', '),
-          placeholder: 'e.g. react, performance, debugging'
+          placeholder: 'e.g. react, performance, debugging',
+          datalist:    this._tagSuggestions,
         }
       ],
       `Edit Tags: "${this._truncate(chat.title, 40)}"`,      'Save Tags'
@@ -124,7 +136,8 @@ export class ChatDialogs {
           label:       'Tags',
           type:        'text',
           value:       (chat.tags || []).join(', '),
-          placeholder: 'e.g. react, performance, debugging'
+          placeholder: 'e.g. react, performance, debugging',
+          datalist:    this._tagSuggestions,
         }
       ],
       'Edit Chat',

@@ -116,6 +116,19 @@ import { updateStorageUsage }  from './features/storage-usage.js';
 logger.log('Side Panel loaded');
 
 // ---------------------------------------------------------------------------
+// Tag suggestions helper
+// ---------------------------------------------------------------------------
+
+function _refreshTagSuggestions() {
+  if (!state.chatDialogs) return;
+  const tagSet = new Set();
+  for (const c of state.chats) {
+    if (Array.isArray(c.tags)) c.tags.forEach(t => tagSet.add(t));
+  }
+  state.chatDialogs.setTagSuggestions([...tagSet].sort());
+}
+
+// ---------------------------------------------------------------------------
 // Bootstrap
 // ---------------------------------------------------------------------------
 
@@ -136,6 +149,9 @@ async function init() {
   state.chatDialogs  = new ChatDialogs(state.dialog, state.tree);
   state.exportDialog = new ExportDialog(state.dialog);
   state.importDialog = new ImportDialog(state.dialog);
+
+  // Seed tag autocomplete from loaded chats
+  _refreshTagSuggestions();
 
   // C.9 â€” sync sort selector
   if (elements.topicSortSelect) elements.topicSortSelect.value = state.sortMode;
@@ -170,6 +186,27 @@ function setupEventListeners() {
   // C.13 — tab switching
   elements.tabChatSessions?.addEventListener('click', () => switchTab('sessions'));
   elements.tabChatEntities?.addEventListener('click', () => switchTab('entities'));
+
+  // Global keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd+K — focus the search bar
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      elements.searchInput?.focus();
+      elements.searchInput?.select();
+      return;
+    }
+    // Escape — clear search → exit multi-select (dialogs handle their own Escape)
+    if (e.key === 'Escape') {
+      if (state.searchQuery) {
+        clearSearch();
+        return;
+      }
+      if (state.renderer?.multiSelectMode) {
+        exitMultiSelectMode();
+      }
+    }
+  });
 
   // Search
   elements.searchInput.addEventListener('input', handleSearch);
@@ -214,7 +251,8 @@ function setupEventListeners() {
   elements.multiSelectCancelBtn?.addEventListener('click', exitMultiSelectMode);
 
   // Settings
-  elements.settingsBtn.addEventListener('click', openSettingsPanel);
+
+  document.getElementById('settingsHeaderBtn')?.addEventListener('click', openSettingsPanel);
 
   // Context menus: hide on outside click
   document.addEventListener('click', (e) => {
@@ -309,7 +347,7 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'CHAT_SAVED') {
     handleChatSaved(message.data)
       .then(() => {
-        refreshEntityController(); // keep entity tree up to date when tab is already open        refreshEntityTypeChipVisibility(); // show/hide chips for newly present entity types        sendResponse({ success: true });
+        refreshEntityController(); // keep entity tree up to date when tab is already open        refreshEntityTypeChipVisibility(); // show/hide chips for newly present entity types        _refreshTagSuggestions();         // keep autocomplete up to date        sendResponse({ success: true });
       })
       .catch(err => sendResponse({ success: false, error: err.message }));
     return true; // async

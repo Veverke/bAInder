@@ -13,8 +13,9 @@
 
 import { state, elements } from '../app-context.js';
 import { logger } from '../../lib/utils/logger.js';
-import { showNotification } from '../notification.js';
+import { showNotification, showUndoToast } from '../notification.js';
 import { copyChatsToClipboard } from '../../lib/export/clipboard-serialiser.js';
+import { Topic } from '../../lib/tree/tree.js';
 import {
   saveTree,
   renderTreeView,
@@ -145,21 +146,73 @@ export async function handleMoveTopic() {
 
 export async function handleDeleteTopic() {
   if (!_state.contextMenuTopic) return;
+  const topicId = _state.contextMenuTopic.id;
 
-  // Collect descendant chat IDs BEFORE the tree mutation
-  const chatIdsToDelete = collectDescendantChatIds(_state.contextMenuTopic.id);
+  // Capture subtree snapshot and related chats BEFORE any mutation
+  const subtreeSnapshot = _captureSubtree(_state.tree, topicId);
+  const parentId        = _state.tree.topics[topicId]?.parentId ?? null;
+  const chatIdsToDelete = collectDescendantChatIds(topicId);
+  const chatsSnapshot   = _state.chats.filter(c => chatIdsToDelete.includes(c.id));
 
-  const result = await _state.topicDialogs.showDeleteTopic(_state.contextMenuTopic.id);
+  // Show confirm dialog (tree mutation happens inside showDeleteTopic)
+  const result = await _state.topicDialogs.showDeleteTopic(topicId);
   if (!result) return;
 
-  if (chatIdsToDelete.length > 0) {
-    _state.chats = await _state.chatRepo.removeManyChats(chatIdsToDelete);
-    _state.renderer.setChatData(_state.chats);
-    logger.log(`Removed ${chatIdsToDelete.length} chat(s) from deleted topic tree`);
-  }
-
-  await saveTree();
+  // Optimistic UI: remove chats from memory, re-render (tree already mutated by dialog)
+  _state.chats = _state.chats.filter(c => !chatIdsToDelete.includes(c.id));
+  _state.renderer.setChatData(_state.chats);
   renderTreeView();
+
+  // Deferred storage delete — runs only if undo is not clicked
+  const deleteTimer = setTimeout(async () => {
+    try {
+      if (chatIdsToDelete.length > 0) {
+        await _state.chatRepo.removeManyChats(chatIdsToDelete);
+      }
+      await saveTree();
+    } catch (err) {
+      logger.error('Deferred topic delete failed:', err);
+    }
+  }, 6000);
+
+  showUndoToast(`Topic "${result.name}" deleted`, () => {
+    clearTimeout(deleteTimer);
+    // Restore topic nodes as proper Topic instances
+    for (const [id, plain] of Object.entries(subtreeSnapshot)) {
+      _state.tree.topics[id] = Topic.fromObject(plain);
+    }
+    // Reattach root-level hook
+    if (parentId) {
+      const parent = _state.tree.topics[parentId];
+      if (parent && !parent.children.includes(topicId)) parent.children.push(topicId);
+    } else {
+      if (!_state.tree.rootTopicIds.includes(topicId)) _state.tree.rootTopicIds.push(topicId);
+    }
+    // Restore chats
+    _state.chats = [..._state.chats, ...chatsSnapshot];
+    _state.renderer.setChatData(_state.chats);
+    renderTreeView();
+    showNotification('Topic restored', 'success');
+  });
+}
+
+/**
+ * Deep-clone all topic nodes in the subtree rooted at `topicId`.
+ * Returns a plain-object map { [id]: topicPlainObject }.
+ * @param {import('../../lib/tree/tree.js').TopicTree} tree
+ * @param {string} topicId
+ * @returns {Object}
+ */
+function _captureSubtree(tree, topicId) {
+  const snapshot = {};
+  function collect(id) {
+    const topic = tree.topics[id];
+    if (!topic) return;
+    snapshot[id] = JSON.parse(JSON.stringify(topic));
+    for (const childId of topic.children) collect(childId);
+  }
+  collect(topicId);
+  return snapshot;
 }
 
 export async function handleMergeTopic() {

@@ -13,7 +13,7 @@
 
 import { state, elements } from '../app-context.js';
 import { logger } from '../../lib/utils/logger.js';
-import { showNotification } from '../notification.js';
+import { showNotification, showUndoToast } from '../notification.js';
 import {
   assignChatToTopic,
   moveChatToTopic,
@@ -280,17 +280,39 @@ async function handleMoveChatAction() {
 
 async function handleDeleteChatAction() {
   if (!_state.contextMenuChat) return;
-  const result = await _state.chatDialogs.showDeleteChat(_state.contextMenuChat);
-  if (!result) return;
-
   const chat = _state.contextMenuChat;
-  if (chat.topicId) {
-    removeChatFromTopic(chat.id, chat.topicId, _state.tree);
-    await saveTree();
-  }
-  _state.chats = await _state.chatRepo.removeChat(chat.id);
+
+  // Snapshot metadata before any mutation
+  const chatSnapshot = { ...chat };
+
+  // Optimistic UI: remove from memory and tree immediately
+  if (chatSnapshot.topicId) removeChatFromTopic(chatSnapshot.id, chatSnapshot.topicId, _state.tree);
+  _state.chats = _state.chats.filter(c => c.id !== chatSnapshot.id);
   _state.renderer.setChatData(_state.chats);
   renderTreeView();
+
+  // Deferred storage delete — runs only if undo is not clicked
+  const deleteTimer = setTimeout(async () => {
+    try {
+      if (chatSnapshot.topicId) await saveTree();
+      await _state.chatRepo.removeChat(chatSnapshot.id);
+    } catch (err) {
+      logger.error('Deferred chat delete failed:', err);
+    }
+  }, 6000);
+
+  showUndoToast(`"${chatSnapshot.title}" deleted`, () => {
+    clearTimeout(deleteTimer);
+    // Restore chat to memory
+    const topic = chatSnapshot.topicId ? _state.tree.topics[chatSnapshot.topicId] : null;
+    if (topic && !topic.chatIds.includes(chatSnapshot.id)) {
+      topic.chatIds.push(chatSnapshot.id);
+    }
+    _state.chats = [..._state.chats, chatSnapshot];
+    _state.renderer.setChatData(_state.chats);
+    renderTreeView();
+    showNotification('Chat restored', 'success');
+  });
 }
 
 async function handleSetReviewDateAction() {
