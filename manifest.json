@@ -28,7 +28,8 @@
     "https://th.bing.com/*",
     "https://www.bing.com/*",
     "https://www.perplexity.ai/*",
-    "https://perplexity.ai/*"
+    "https://perplexity.ai/*",
+    "https://chat.deepseek.com/*"
   ],
   "action": {
     "default_title": "bAInder - Organize AI Chats",
@@ -62,7 +63,8 @@
         "https://copilot.microsoft.com/*",
         "https://m365.cloud.microsoft/*",
         "https://www.perplexity.ai/*",
-        "https://perplexity.ai/*"
+        "https://perplexity.ai/*",
+        "https://chat.deepseek.com/*"
       ],
       "js": ["src/content/audio-interceptor.js"],
       "run_at": "document_start",
@@ -77,7 +79,8 @@
         "https://copilot.microsoft.com/*",
         "https://m365.cloud.microsoft/*",
         "https://www.perplexity.ai/*",
-        "https://perplexity.ai/*"
+        "https://perplexity.ai/*",
+        "https://chat.deepseek.com/*"
       ],
       "js": ["src/content/content.js"],
       "run_at": "document_idle"

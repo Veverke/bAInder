@@ -82,10 +82,12 @@ export function formatDate(isoStr) {
 export function sourceLabel(source, isExcerpt) {
   if (isExcerpt) return 'Excerpt';
   const map = {
-    chatgpt: 'ChatGPT',
-    claude:  'Claude',
-    gemini:  'Gemini',
-    copilot: 'Copilot',
+    chatgpt:    'ChatGPT',
+    claude:     'Claude',
+    gemini:     'Gemini',
+    copilot:    'Copilot',
+    perplexity: 'Perplexity',
+    deepseek:   'DeepSeek',
   };
   return map[source] || source || 'Unknown';
 }
@@ -98,7 +100,7 @@ export function sourceLabel(source, isExcerpt) {
  */
 export function badgeClass(source, isExcerpt) {
   if (isExcerpt) return 'badge badge--excerpt';
-  const known = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity'];
+  const known = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'deepseek'];
   return known.includes(source) ? `badge badge--${source}` : 'badge badge--unknown';
 }
 
@@ -1549,7 +1551,7 @@ export function renderChat(chat) {
   }
 
   // ── Per-source body tint (T3) ──────────────────────────────────────────────
-  const knownSources = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity'];
+  const knownSources = ['chatgpt', 'claude', 'gemini', 'copilot', 'perplexity', 'deepseek'];
   if (knownSources.includes(source)) {
     document.body.setAttribute('data-source', source);
   }

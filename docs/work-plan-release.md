@@ -4,14 +4,14 @@
 
 ---
 
-## Phase 1 — Code cleanup before submission
+## ~~Phase 1 — Code cleanup before submission~~
 
 ### ~~1.1 Strip audio entity (Option A)~~
 **Superseded:** v1.0 keeps audio entities via Option B. When capture is unavailable, the reader shows an "Open in original" fallback instead of stripping the feature.
 
 ---
 
-### 1.2 Verify remaining host_permissions are justified
+### ~~1.2 Verify remaining host_permissions are justified~~
 Audit every remaining `host_permissions` entry and confirm it maps to a shipped feature. Prepare a one-line justification for each (needed for CWS submission form).
 
 Audit result:
@@ -34,26 +34,27 @@ Audit result:
 | `https://www.bing.com/*` | Background fetch proxy for Copilot image assets served from Bing hosts |
 | `https://www.perplexity.ai/*` | Content script for save button and extraction, plus Compare Mode execution on the `www` host |
 | `https://perplexity.ai/*` | Content script and Compare Mode execution on the bare-domain Perplexity host |
+| `https://chat.deepseek.com/*` | Content script for save button and chat extraction on the DeepSeek chat interface |
 
 ---
 
-## Phase 2 — Store assets
+## ~~Phase 2 — Store assets~~
 
-### 2.1 Privacy Policy (required)
+### ~~2.1 Privacy Policy (required)~~
 CWS mandates a hosted privacy policy for extensions with broad host_permissions.
 
 - [x] Write the policy — key points to cover:
   - No data leaves the browser; all storage is `chrome.storage.local`
   - No analytics, no telemetry, no accounts
   - Purpose of each host_permission group
-- [ ] Host it at a public URL (options: GitHub Pages, a `/privacy` section of a project site, or a plain GitHub raw file served via a Pages redirect)
-- [ ] Record the URL — needed in the CWS dashboard
+- [x] Host it at a public URL — repo will be made public before CWS submission; `docs/privacy/index.html` will be served via GitHub Pages automatically
+- [x] Record the URL — deferred until repo is public; enter in CWS dashboard during Phase 4.2
 
 Implemented in repo:
 - `docs/privacy-policy.md`
 - `docs/privacy/index.html` (ready for GitHub Pages hosting)
 
-### 2.2 Promotional tile images (required / strongly recommended)
+### ~~2.2 Promotional tile images (required / strongly recommended)~~
 Screenshots in `assets/screenshots/` are for the listing gallery. The store also needs standalone artwork:
 
 - [x] **Small promo tile** — 440×280 px PNG (required for featured placement)
@@ -65,7 +66,7 @@ Generated files:
 - `assets/store/large-promo-tile-920x680.png`
 - `assets/store/marquee-1400x560.png`
 
-### 2.3 Verify screenshot dimensions
+### ~~2.3 Verify screenshot dimensions~~
 CWS requires exactly **1280×800** or **640×400** pixels per screenshot (up to 5).
 
 - [x] Check current screenshots:
@@ -91,6 +92,8 @@ Result:
 
 ## Phase 3 — Build the Chrome package
 
+- [ ] Make the GitHub repository public (enables GitHub Pages for the privacy policy)
+- [ ] Create a `docs/done/` folder and move all work-plan and design docs relating to already-completed work there
 - [ ] Run:
   ```powershell
   npm run package:chrome

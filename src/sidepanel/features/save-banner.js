@@ -52,6 +52,7 @@ const PLATFORM_PATTERNS = [
   { re: /gemini\.google\.com/,                                 name: 'Gemini'     },
   { re: /copilot\.microsoft\.com|m365\.cloud\.microsoft/,      name: 'Copilot'    },
   { re: /perplexity\.ai/,                                      name: 'Perplexity' },
+  { re: /chat\.deepseek\.com/,                                 name: 'DeepSeek'   },
 ];
 
 export function detectPlatformFromUrl(url) {

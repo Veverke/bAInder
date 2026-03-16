@@ -30,7 +30,8 @@ const SUPPORTED_URL_PATTERNS = [
   'https://claude.ai/*',
   'https://gemini.google.com/*',
   'https://copilot.microsoft.com/*',
-  'https://m365.cloud.microsoft/*'
+  'https://m365.cloud.microsoft/*',
+  'https://chat.deepseek.com/*'
 ];
 
 function setupContextMenus() {

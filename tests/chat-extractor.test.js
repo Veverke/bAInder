@@ -19,6 +19,7 @@ import {
   extractGemini,
   extractCopilot,
   extractPerplexity,
+  extractDeepSeek,
   extractChat,
   prepareChatForSave
 } from '../src/content/chat-extractor.js';
@@ -124,6 +125,27 @@ function buildPerplexityDoc(turns = []) {
   return document;
 }
 
+/**
+ * Build a minimal DeepSeek-style DOM document.
+ * @param {Array<{role:'user'|'assistant', content: string}>} turns
+ * @returns {Document}
+ */
+function buildDeepSeekDoc(turns = []) {
+  const container = document.createElement('div');
+  turns.forEach(turn => {
+    const el = document.createElement('div');
+    el.className = 'ds-message';
+    if (turn.role === 'assistant') {
+      el.setAttribute('style', '--assistant-color: #000;');
+    }
+    el.textContent = turn.content;
+    container.appendChild(el);
+  });
+  document.body.innerHTML = '';
+  document.body.appendChild(container);
+  return document;
+}
+
 // ─── detectPlatform ───────────────────────────────────────────────────────────
 
 describe('detectPlatform()', () => {
@@ -186,6 +208,10 @@ describe('detectPlatform()', () => {
 
   it('returns "perplexity" for perplexity.ai', () => {
     expect(detectPlatform('perplexity.ai')).toBe('perplexity');
+  });
+
+  it('returns "deepseek" for chat.deepseek.com', () => {
+    expect(detectPlatform('chat.deepseek.com')).toBe('deepseek');
   });
 });
 
@@ -1978,6 +2004,13 @@ describe('extractChat()', () => {
     const result = await extractChat('perplexity', document);
     expect(result.platform).toBe('perplexity');
     expect(result.messages[0].content).toBe('Perplexity question');
+  });
+
+  it('dispatches to extractDeepSeek', async () => {
+    buildDeepSeekDoc([{ role: 'user', content: 'DeepSeek question' }]);
+    const result = await extractChat('deepseek', document);
+    expect(result.platform).toBe('deepseek');
+    expect(result.messages[0].content).toBe('DeepSeek question');
   });
 
   it('includes extractedAt timestamp', async () => {

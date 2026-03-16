@@ -480,6 +480,7 @@ const AI_TARGETS = [
   { id: 'gemini',     label: 'Gemini',     url: 'https://gemini.google.com/',     patterns: ['gemini.google.com']                              },
   { id: 'copilot',    label: 'Copilot',    url: 'https://copilot.microsoft.com/', patterns: ['copilot.microsoft.com', 'm365.cloud.microsoft']   },
   { id: 'perplexity', label: 'Perplexity', url: 'https://perplexity.ai/',         patterns: ['perplexity.ai']                                  },
+  { id: 'deepseek',   label: 'DeepSeek',   url: 'https://chat.deepseek.com/',     patterns: ['chat.deepseek.com']                              },
 ];
 
 /**
