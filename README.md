@@ -2,7 +2,7 @@
 
 [![License: MIT + Commons Clause](https://img.shields.io/badge/License-MIT%20%2B%20Commons%20Clause-yellow.svg)](LICENSE)
 
-> Stop losing your best AI conversations. bAInder saves, organises, and lets you search every chat from ChatGPT, Claude, Gemini, and Copilot — all in a sleek browser side panel, entirely on your device.
+> Stop losing your best AI conversations. bAInder saves, organises, and lets you search every chat from ChatGPT, Claude, Gemini, Copilot, Perplexity, and DeepSeek — all in a sleek browser side panel, entirely on your device.
 
 Install the extension, hit **Save** on any conversation, drop it into a topic, and it's yours forever — tagged, searchable, and readable in a clean viewer. No accounts, no cloud sync, no data ever leaves your browser.
 
@@ -21,6 +21,7 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 | 🔵 Gemini | `gemini.google.com` |
 | 🔷 Microsoft Copilot | `copilot.microsoft.com` |
 | 🔍 Perplexity | `perplexity.ai` |
+| 🐋 DeepSeek | `chat.deepseek.com` |
 
 ---
 
@@ -47,7 +48,7 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 | | |
 |---|---|
 | 🔍 **Powerful full-text search** | Debounced live search across titles, content, and tags with snippet previews, topic breadcrumbs, and source badges. |
-| 🎯 **Advanced filter bar** | Narrow results by platform (ChatGPT / Claude / Gemini / Copilot / Perplexity), date range, topic scope, minimum star rating, or tag name — all combinable. |
+| 🎯 **Advanced filter bar** | Narrow results by platform (ChatGPT / Claude / Gemini / Copilot / Perplexity / DeepSeek), date range, topic scope, minimum star rating, or tag name — all combinable. |
 | 🕐 **Recently saved rail** | Horizontal scrollable strip below the search bar showing your eight most recently saved chats as quick-access chips. |
 
 ### 📖 Read & Annotate
@@ -117,39 +118,40 @@ Every AI chat platform saves your conversations — but discovery, organisation,
 
 ### 🌐 Platform Coverage
 
-| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **bAInder** |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| Native ChatGPT support | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Native Gemini support | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Native Copilot support | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| Native Claude support | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
-| Native Perplexity support | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| **Single tool covers all 5** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **DeepSeek** | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Native ChatGPT support | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Native Gemini support | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Native Copilot support | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Native Claude support | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Native Perplexity support | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Native DeepSeek support | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **Single tool covers all 6** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 ### 💾 Saving & Capturing
 
-| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **bAInder** |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| One-click save to local storage | ❌¹ | ❌¹ | ❌¹ | ❌¹ | ❌¹ | ✅ |
-| Clip a highlighted text selection | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Capture generated audio persistently | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Capture AI-generated images persistently | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Works without a cloud account | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Data stays entirely on your device | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **DeepSeek** | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| One-click save to local storage | ❌¹ | ❌¹ | ❌¹ | ❌¹ | ❌¹ | ❌¹ | ✅ |
+| Clip a highlighted text selection | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Capture generated audio persistently | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Capture AI-generated images persistently | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Works without a cloud account | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Data stays entirely on your device | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ¹ Chats auto-sync to vendor servers. There is no one-click "save a snapshot locally" action.
 
 ### 🗂️ Organisation
 
-| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **bAInder** |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| Folder / project grouping | ⚠️² | ❌ | ❌ | ⚠️³ | ⚠️⁴ | ✅ |
-| Unlimited nested hierarchy | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Drag-and-drop reordering / moving | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Merge topics | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Tags (coloured chips, searchable) | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Star ratings (1–5) | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Review-by date & overdue alerts | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Pin favourite chats / topics | ❌ | ⚠️⁵ | ❌ | ❌ | ❌ | ✅ |
+| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **DeepSeek** | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Folder / project grouping | ⚠️² | ❌ | ❌ | ⚠️³ | ⚠️⁴ | ❌ | ✅ |
+| Unlimited nested hierarchy | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Drag-and-drop reordering / moving | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Merge topics | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Tags (coloured chips, searchable) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Star ratings (1–5) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Review-by date & overdue alerts | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Pin favourite chats / topics | ❌ | ⚠️⁵ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ² ChatGPT Projects are flat (no sub-projects), cloud-only, require a ChatGPT account.  
 ³ Claude Projects are flat, cloud-only, max 5 on the free tier.  
@@ -158,39 +160,39 @@ Every AI chat platform saves your conversations — but discovery, organisation,
 
 ### 🔍 Finding
 
-| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **bAInder** |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| Full-text search | ⚠️⁶ | ⚠️⁶ | ⚠️⁷ | ⚠️⁶ | ⚠️⁶ | ✅ |
-| Search across all platforms at once | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Filter by source platform | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Filter by date range | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Search within tags | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Filter results by star rating | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Snippet preview in results | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Recently saved strip | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **DeepSeek** | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Full-text search | ⚠️⁶ | ⚠️⁶ | ⚠️⁷ | ⚠️⁶ | ⚠️⁶ | ⚠️⁶ | ✅ |
+| Search across all platforms at once | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Filter by source platform | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Filter by date range | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Search within tags | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Filter results by star rating | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Snippet preview in results | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Recently saved strip | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ⁶ Search covers only that platform's own history.  
 ⁷ Copilot history search is minimal with no content preview.
 
 ### 📖 Reading & Annotating
 
-| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **bAInder** |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| Distraction-free clean reader | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Message ordinal labels with deep links | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Persistent scroll position | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Sticky notes (Markdown, draggable) | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Colour-highlight passages | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **DeepSeek** | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Distraction-free clean reader | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Message ordinal labels with deep links | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Persistent scroll position | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Sticky notes (Markdown, draggable) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Colour-highlight passages | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ### 🧬 Entity Extraction & Analysis
 
-| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **bAInder** |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| Automatically index all code snippets | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Automatically index all Artifacts / Canvas | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Automatically index tables, diagrams, citations | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Preview Artifacts in a sandboxed panel | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Navigate directly to an entity in the reader | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **DeepSeek** | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Automatically index all code snippets | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Automatically index all Artifacts / Canvas | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Automatically index tables, diagrams, citations | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Preview Artifacts in a sandboxed panel | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Navigate directly to an entity in the reader | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ### ⚖️ Comparison & Analysis
 
@@ -204,38 +206,38 @@ Every AI chat platform saves your conversations — but discovery, organisation,
 
 ### 📤 Export & Portability
 
-| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **bAInder** |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| Export to Markdown | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Export to HTML | ⚠️⁸ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Export to PDF | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Multi-chat digest with table of contents | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| ZIP archive export per topic | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| JSONL fine-tuning export | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Assemble multiple chats into one entry | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Import / restore from ZIP | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Copy to clipboard (plain / Markdown / HTML) | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Share conversation via public link | ✅ | ✅ | ❌ | ✅ | ✅ | ❌⁹ |
+| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **DeepSeek** | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Export to Markdown | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Export to HTML | ⚠️⁸ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Export to PDF | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Multi-chat digest with table of contents | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| ZIP archive export per topic | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| JSONL fine-tuning export | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Assemble multiple chats into one entry | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Import / restore from ZIP | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Copy to clipboard (plain / Markdown / HTML) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Share conversation via public link | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ❌⁹ |
 
 ⁸ ChatGPT's "Export data" (in Settings) produces a raw JSON/HTML archive of your entire account — not a per-chat usable export.  
 ⁹ By design: bAInder is local-first. Share via ZIP export instead.
 
 ### 🎛️ Customisation & Insights
 
-| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **bAInder** |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| Community theme packs | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Per-topic activity sparklines | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Local storage usage meter | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Backup reminder with configurable interval | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **DeepSeek** | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Community theme packs | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Per-topic activity sparklines | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Local storage usage meter | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Backup reminder with configurable interval | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ### 🤝 What the platforms have that bAInder doesn't
 
-| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **bAInder** |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| AI cross-chat memory / context | ✅ | ⚠️ | ❌ | ✅ | ❌ | ❌¹⁰ |
-| Team collaboration on shared projects | 🔒 | ❌ | 🔒 | 🔒 | ❌ | ❌ |
-| Integration with external services | ✅¹¹ | ❌ | ✅¹² | ❌ | ❌ | ❌ |
+| Feature | ChatGPT | Gemini | Copilot | Claude | Perplexity | **DeepSeek** | **bAInder** |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| AI cross-chat memory / context | ✅ | ⚠️ | ❌ | ✅ | ❌ | ❌ | ❌¹⁰ |
+| Team collaboration on shared projects | 🔒 | ❌ | 🔒 | 🔒 | ❌ | ❌ | ❌ |
+| Integration with external services | ✅¹¹ | ❌ | ✅¹² | ❌ | ❌ | ❌ | ❌ |
 
 ¹⁰ bAInder organises conversations — it does not add new AI capabilities.  
 ¹¹ ChatGPT Projects connect to Google Drive and Slack.  
@@ -256,7 +258,7 @@ This section walks through every major feature in the order you would naturally 
 **Use cases:** You just got a great debugging session from ChatGPT and want to keep it. You asked Claude to draft a contract clause and want to store the result. You want an offline archive before closing the tab.
 
 **UI flow:**
-1. Open any ChatGPT, Claude, Gemini, Copilot, or Perplexity conversation.
+1. Open any ChatGPT, Claude, Gemini, Copilot, Perplexity, or DeepSeek conversation.
 2. A floating **"💾 Save"** button appears in the corner of the page.
 3. Click it. The bAInder side panel opens (or focuses) and a save dialog appears.
 4. Type or accept an auto-suggested title, pick a topic from the dropdown, and add optional comma-separated tags.
@@ -323,7 +325,7 @@ This section walks through every major feature in the order you would naturally 
 
 ### 🔍 Search and filtering
 
-**Purpose:** Find any saved chat fast — by any word in its content, by platform, by tag, by date, or by rating — across all five platforms at once.
+**Purpose:** Find any saved chat fast — by any word in its content, by platform, by tag, by date, or by rating — across all six platforms at once.
 
 **Use cases:** You remember an AI wrote you a great memoize function but you can't remember which chat. You want all your five-star Gemini conversations from last month. You're looking for everything tagged `python`.
 

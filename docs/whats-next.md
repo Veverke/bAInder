@@ -165,6 +165,7 @@ This is fundamentally different from paid generation APIs (e.g. `api.anthropic.c
 - Platform badge: `deepseek` — teal colour token.
 - Supports DeepSeek-R1 chain-of-thought blocks (`<think>` tags) — collapse by default in the reader, expandable inline.
 - No `?q=` deep-link: prompt injection via content script after tab open (same pattern as Gemini).
+- **⚠️ Not yet tested: Compare feature** — side-by-side comparison with DeepSeek saved chats has not been verified. Confirm the Compare page correctly loads and renders DeepSeek entries before adding to the comparison table.
 
 ### Grok (`grok.com`)
 - Content script targets Grok's React-rendered message list (class selectors require monitoring for updates given xAI's active release cadence).
