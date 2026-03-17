@@ -1,6 +1,9 @@
 # 🗂️ bAInder — AI Chat Organizer
 
+## Badges
+
 [![License: MIT + Commons Clause](https://img.shields.io/badge/License-MIT%20%2B%20Commons%20Clause-yellow.svg)](LICENSE)
+[![codecov](https://codecov.io/gh/Veverke/bAInder/graph/badge.svg?token=VU94SFNHN3)](https://codecov.io/gh/Veverke/bAInder)
 
 > Stop losing your best AI conversations. bAInder saves, organises, and lets you search every chat from ChatGPT, Claude, Gemini, Copilot, Perplexity, and DeepSeek — all in a sleek browser side panel, entirely on your device.
 
