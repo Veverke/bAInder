@@ -23,7 +23,7 @@ export default defineConfig({
     environment: 'happy-dom',
     setupFiles: ['./tests/setup.js'],
     reporters: ['default', 'junit'],
-    outputFile: { junit: './test-results.xml' },
+    outputFile: { junit: './test-results/junit.xml' },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
