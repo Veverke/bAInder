@@ -550,6 +550,142 @@ describe('htmlToMarkdown()', () => {
     const result = htmlToMarkdown(wrapper);
     expect(result).toContain('![](https://example.com/icon.png)');
   });
+
+  // ── <audio> element ────────────────────────────────────────────────────────
+
+  it('<audio data-binder-audio-lost="too_large"> → "(file too large to capture)" note', () => {
+    const audio = document.createElement('audio');
+    audio.setAttribute('data-binder-audio-lost', 'too_large');
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(audio);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('[🔊 Generated audio (file too large to capture)]');
+  });
+
+  it('<audio data-binder-audio-lost="other"> → "(not captured)" note', () => {
+    const audio = document.createElement('audio');
+    audio.setAttribute('data-binder-audio-lost', 'session_expired');
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(audio);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('[🔊 Generated audio (not captured)]');
+  });
+
+  it('<audio> with no src → returns empty (inner fallback)', () => {
+    const audio = document.createElement('audio');
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(audio);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toBe('');
+  });
+
+  it('<audio src="blob:..."> → session-only marker with blob URL', () => {
+    const audio = document.createElement('audio');
+    audio.setAttribute('src', 'blob:https://chatgpt.com/abc-123');
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(audio);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('[🔊 Generated audio (session-only)](blob:https://chatgpt.com/abc-123)');
+  });
+
+  it('<audio src="data:audio/mp3;base64,..."> → playable marker with data URI', () => {
+    const audio = document.createElement('audio');
+    audio.setAttribute('src', 'data:audio/mp3;base64,AAAA');
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(audio);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('[🔊 Generated audio](data:audio/mp3;base64,AAAA)');
+  });
+
+  it('<audio src="https://cdn.example.com/audio.mp3"> → playable marker with https URL', () => {
+    const audio = document.createElement('audio');
+    audio.setAttribute('src', 'https://cdn.example.com/audio.mp3');
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(audio);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('[🔊 Generated audio](https://cdn.example.com/audio.mp3)');
+  });
+
+  it('<audio src="sandbox://..."> → not captured marker (inaccessible scheme)', () => {
+    const audio = document.createElement('audio');
+    audio.setAttribute('src', 'sandbox://e2b/tmp/audio.mp3');
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(audio);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('[🔊 Generated audio (not captured)]');
+  });
+
+  // ── <iframe> Microsoft Designer ────────────────────────────────────────────
+
+  it('<iframe aria-label="Microsoft Designer" src with image param> → markdown image', () => {
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-label', 'Microsoft Designer');
+    iframe.setAttribute('src', 'https://designer.microsoft.com/image-creator?imageUrl=https://cdn.example.com/img.png&other=foo');
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(iframe);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('![Generated image](https://cdn.example.com/img.png)');
+  });
+
+  it('<iframe name="Microsoft Designer"> with src but no image param → fallback link', () => {
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('name', 'Microsoft Designer');
+    iframe.setAttribute('src', 'https://designer.microsoft.com/embed?mode=view');
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(iframe);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toContain('[Microsoft Designer generated image](https://designer.microsoft.com/embed?mode=view)');
+  });
+
+  it('<iframe aria-label="Microsoft Designer"> with no src → bare placeholder', () => {
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-label', 'Microsoft Designer');
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(iframe);
+    const result = htmlToMarkdown(wrapper);
+    expect(result).toBe('[Microsoft Designer generated image]');
+  });
+
+  it('<iframe> without Microsoft Designer label → returns inner content', () => {
+    const wrapper = el('<iframe src="https://example.com">inner</iframe>');
+    const result = htmlToMarkdown(wrapper);
+    // Not a Microsoft Designer iframe — falls through to inner content
+    expect(result).not.toContain('Microsoft Designer');
+  });
+
+  // ── <table> ────────────────────────────────────────────────────────────────
+
+  it('<table> with <th> header row → GFM table with separator after header', () => {
+    const result = htmlToMarkdown(el(
+      '<table><tr><th>Name</th><th>Age</th></tr><tr><td>Alice</td><td>30</td></tr></table>'
+    ));
+    expect(result).toContain('| Name | Age |');
+    expect(result).toContain('| --- | --- |');
+    expect(result).toContain('| Alice | 30 |');
+  });
+
+  it('<table> with only <td> rows → inserts GFM separator after first row', () => {
+    const result = htmlToMarkdown(el(
+      '<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>'
+    ));
+    const lines = result.trim().split('\n');
+    // First row, then separator, then data row
+    expect(lines[0]).toContain('| A | B |');
+    expect(lines[1]).toContain('---');
+    expect(lines[2]).toContain('| C | D |');
+  });
+
+  it('<table> with pipe character in cell → pipe is escaped', () => {
+    const result = htmlToMarkdown(el(
+      '<table><tr><th>Formula</th></tr><tr><td>a | b</td></tr></table>'
+    ));
+    expect(result).toContain('a \\| b');
+  });
+
+  it('empty <table> → returns empty string', () => {
+    const result = htmlToMarkdown(el('<table></table>'));
+    expect(result).toBe('');
+  });
 });
 
 // ─── formatMessage ────────────────────────────────────────────────────────────
@@ -1355,6 +1491,129 @@ describe('extractGemini()', () => {
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].content).toContain('Partial answer here.');
     expect(result.messages[0].content).not.toMatch(/you stopped this response/i);
+  });
+
+  it('skips a model-response element whose next sibling contains "you stopped this response"', async () => {
+    // This covers the el.nextElementSibling STOPPED_RE check (line ~73-74 of gemini.js)
+    const container = document.createElement('div');
+    const modelEl = document.createElement('div');
+    modelEl.className = 'model-response-text';
+    modelEl.textContent = 'Partial model text';
+    const stopEl = document.createElement('p');
+    stopEl.textContent = 'You stopped this response';
+    container.appendChild(modelEl);
+    container.appendChild(stopEl);
+    document.body.appendChild(container);
+
+    const result = await extractGemini(document);
+    expect(result.messages).toHaveLength(0);
+  });
+
+  it('skips a model-response element when parent next sibling contains the stopped marker', async () => {
+    // Covers the parent.nextElementSibling STOPPED_RE check (line ~76-78 of gemini.js)
+    const wrapper = document.createElement('div');
+    const modelEl = document.createElement('div');
+    modelEl.className = 'model-response-text';
+    modelEl.textContent = 'Interrupted response';
+    wrapper.appendChild(modelEl);
+    const stopEl = document.createElement('div');
+    stopEl.textContent = 'You stopped this response';
+    document.body.appendChild(wrapper);
+    document.body.appendChild(stopEl);
+
+    const result = await extractGemini(document);
+    expect(result.messages).toHaveLength(0);
+  });
+
+  it('skips a model-response element when parent has a sibling child with the stopped marker', async () => {
+    // Covers parent.children.some() check (line ~80 of gemini.js)
+    const parent = document.createElement('div');
+    const modelEl = document.createElement('div');
+    modelEl.className = 'model-response-text';
+    modelEl.textContent = 'Another interrupted response';
+    const stopSibling = document.createElement('span');
+    stopSibling.textContent = 'You stopped this response';
+    parent.appendChild(modelEl);
+    parent.appendChild(stopSibling);
+    document.body.appendChild(parent);
+
+    const result = await extractGemini(document);
+    expect(result.messages).toHaveLength(0);
+  });
+
+  it('appends cached audio markers to last assistant message', async () => {
+    // Covers lines 141-155 of gemini.js (cachedAudioMeta block)
+    buildGeminiDoc([
+      { role: 'user',      content: 'Generate audio' },
+      { role: 'assistant', content: 'Here is the audio.' },
+    ]);
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', 'bainder-audio-cache');
+    meta.setAttribute('data-blob-url', 'blob:fake-url');
+    meta.setAttribute('data-data-url', 'data:audio/webm;base64,AAAA');
+    document.head.appendChild(meta);
+
+    const result = await extractGemini(document);
+    // Clean up head to avoid interfering with subsequent tests
+    document.head.querySelectorAll('meta[name="bainder-audio-cache"]').forEach(m => m.remove());
+
+    const lastAsst = result.messages.find(m => m.role === 'assistant');
+    expect(lastAsst.content).toContain('[🔊 Generated audio](data:audio/webm;base64,AAAA)');
+  });
+
+  it('creates a new assistant message for cached audio when no assistant exists', async () => {
+    // Covers the `else messages.push(...)` branch (line ~153 of gemini.js)
+    buildGeminiDoc([
+      { role: 'user', content: 'Just a user query' },
+    ]);
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', 'bainder-audio-cache');
+    meta.setAttribute('data-blob-url', 'blob:fake-url-2');
+    meta.setAttribute('data-data-url', 'data:audio/webm;base64,BBBB');
+    document.head.appendChild(meta);
+
+    const result = await extractGemini(document);
+    document.head.querySelectorAll('meta[name="bainder-audio-cache"]').forEach(m => m.remove());
+
+    expect(result.messages).toHaveLength(2);
+    const audioMsg = result.messages.find(m => m.role === 'assistant');
+    expect(audioMsg.content).toContain('[🔊 Generated audio](data:audio/webm;base64,BBBB)');
+  });
+
+  it('deduplicates cached audio with the same blob URL', async () => {
+    // Covers the seenBlobs.has(blobUrl) guard (line ~147 of gemini.js)
+    buildGeminiDoc([{ role: 'assistant', content: 'Answer.' }]);
+    const addMeta = (blobUrl, dataUrl) => {
+      const meta = document.createElement('meta');
+      meta.setAttribute('name', 'bainder-audio-cache');
+      meta.setAttribute('data-blob-url', blobUrl);
+      meta.setAttribute('data-data-url', dataUrl);
+      document.head.appendChild(meta);
+    };
+    addMeta('blob:same-url', 'data:audio/webm;base64,CCCC');
+    addMeta('blob:same-url', 'data:audio/webm;base64,DDDD'); // duplicate blob URL
+
+    const result = await extractGemini(document);
+    document.head.querySelectorAll('meta[name="bainder-audio-cache"]').forEach(m => m.remove());
+
+    const asst = result.messages.find(m => m.role === 'assistant');
+    // Only one audio marker should appear (the second is deduplicated)
+    const markersCount = (asst.content.match(/🔊/g) || []).length;
+    expect(markersCount).toBe(1);
+  });
+
+  it('logs table debug info when assistant response contains a <table>', async () => {
+    // Covers the tableCount > 0 branch (line 112 of gemini.js)
+    const el = document.createElement('div');
+    el.className = 'model-response-text';
+    el.innerHTML = '<table><tr><th>Header</th></tr><tr><td>Cell</td></tr></table>';
+    document.body.appendChild(el);
+
+    const result = await extractGemini(document);
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('assistant');
+    // Table content should be in the markdown
+    expect(result.messages[0].content).toContain('Header');
   });
 });
 

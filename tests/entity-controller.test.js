@@ -9,6 +9,7 @@ import {
   init,
   refresh,
   setFilter,
+  getPresentEntityTypes,
   _setContext,
   _reset,
   _setShowPreview,
@@ -715,6 +716,103 @@ describe('EntityController Phase E — artifact rendering', () => {
     expect(previewBtn).not.toBeNull();
     previewBtn.click();
     expect(showPreviewSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'artifact' }));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// _defaultOnChatClick (invoked when no custom onChatClick is provided)
+// ---------------------------------------------------------------------------
+
+describe('EntityController — _defaultOnChatClick', () => {
+  let container;
+
+  beforeEach(() => {
+    _reset();
+    document.body.innerHTML = '';
+    container = makeContainer();
+  });
+
+  afterEach(() => {
+    _reset();
+    document.body.innerHTML = '';
+  });
+
+  it('calls browser.tabs.create with a reader URL when entity-click fires without a custom handler', async () => {
+    const browser = (await import('../src/lib/vendor/browser.js')).default;
+    const chats = makeChats({ prompt: [makePromptEntity()] });
+    // No onChatClick provided — falls back to _defaultOnChatClick
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+      // onChatClick intentionally omitted
+    });
+    init();
+
+    const entity = { id: 'p1', chatId: 'c1', messageIndex: 0, role: 'user', roleOrdinal: 1 };
+    container.dispatchEvent(new CustomEvent('entity-click', {
+      bubbles: true,
+      detail:  { entity, chatId: 'c1' },
+    }));
+
+    expect(browser.tabs.create).toHaveBeenCalledWith(
+      expect.objectContaining({ url: expect.stringContaining('chatId=c1') })
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getPresentEntityTypes
+// ---------------------------------------------------------------------------
+
+describe('EntityController — getPresentEntityTypes', () => {
+  beforeEach(() => {
+    _reset();
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    _reset();
+  });
+
+  it('returns entity types from state.chats before init() is called', () => {
+    const chats = [
+      { id: 'c1', title: 'Chat 1', topicId: null, prompt: [makePromptEntity()], audio: [] },
+      { id: 'c2', title: 'Chat 2', topicId: null, artifact: [makeArtifactEntity('c2')] },
+    ];
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: null },
+      getChatsFn: () => chats,
+    });
+    // Do NOT call init() so we exercise the pre-init path
+    const types = getPresentEntityTypes();
+    expect(types).toContain('prompt');
+    expect(types).toContain('artifact');
+  });
+
+  it('returns types from EntityStore after init() is called', () => {
+    const container = makeContainer();
+    const chats = makeChats({ prompt: [makePromptEntity('c1')] });
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: container },
+      getChatsFn: () => chats,
+    });
+    init();
+    const types = getPresentEntityTypes();
+    expect(types).toContain('prompt');
+  });
+
+  it('returns empty array when no entities in any chat', () => {
+    const chats = [{ id: 'c1', title: 'Empty', topicId: null }];
+    _setContext({
+      state:      { chats, tree: null },
+      elements:   { entityTree: null },
+      getChatsFn: () => chats,
+    });
+    const types = getPresentEntityTypes();
+    expect(types).toEqual([]);
   });
 });
 

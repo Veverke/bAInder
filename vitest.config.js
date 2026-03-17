@@ -33,7 +33,8 @@ export default defineConfig({
         'dist/',
         '*.config.js',
         'src/**/*.original.js',
-        'src/lib/vendor/**'
+        'src/lib/vendor/**',
+        'src/content/ai-injector.js',
       ]
     },
     include: ['tests/**/*.test.js'],
