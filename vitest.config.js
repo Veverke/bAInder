@@ -22,6 +22,8 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./tests/setup.js'],
+    reporters: ['default', 'junit'],
+    outputFile: { junit: './test-results/junit.xml' },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
@@ -31,7 +33,8 @@ export default defineConfig({
         'dist/',
         '*.config.js',
         'src/**/*.original.js',
-        'src/lib/vendor/**'
+        'src/lib/vendor/**',
+        'src/content/ai-injector.js',
       ]
     },
     include: ['tests/**/*.test.js'],

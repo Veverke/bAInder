@@ -1261,3 +1261,88 @@ describe('_findEntityBlock — attachment chips', () => {
     expect(_findEntityBlock(anchor, null)).toBeNull();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// countWords()
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { countWords, estimateReadTime } from '../src/reader/reader.js';
+
+describe('countWords()', () => {
+  it('returns 0 for empty string', () => {
+    expect(countWords('')).toBe(0);
+  });
+
+  it('returns 0 for null / undefined', () => {
+    expect(countWords(null)).toBe(0);
+    expect(countWords(undefined)).toBe(0);
+  });
+
+  it('counts plain words correctly', () => {
+    expect(countWords('hello world foo')).toBe(3);
+  });
+
+  it('strips YAML frontmatter before counting', () => {
+    const text = '---\ntitle: My Title\n---\nhello world';
+    expect(countWords(text)).toBe(2);
+  });
+
+  it('strips fenced code blocks before counting', () => {
+    const text = 'before\n```js\nconst x = 1;\n```\nafter';
+    expect(countWords(text)).toBe(2);
+  });
+
+  it('strips inline code before counting', () => {
+    const text = 'see `myFunction()` for details';
+    expect(countWords(text)).toBe(3);
+  });
+
+  it('strips markdown images before counting', () => {
+    const text = '![alt text](https://example.com/img.png) and text';
+    expect(countWords(text)).toBe(2);
+  });
+
+  it('strips markdown links before counting', () => {
+    const text = 'visit [my site](https://example.com) today';
+    expect(countWords(text)).toBe(2);
+  });
+
+  it('handles whitespace-only text', () => {
+    expect(countWords('   \n\t  ')).toBe(0);
+  });
+
+  it('handles multi-line text without markdown', () => {
+    const text = 'line one\nline two\nline three';
+    expect(countWords(text)).toBe(6);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// estimateReadTime()
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('estimateReadTime()', () => {
+  it('returns 1 for 0 words (minimum)', () => {
+    expect(estimateReadTime(0)).toBe(1);
+  });
+
+  it('returns 1 for fewer than 200 words', () => {
+    expect(estimateReadTime(50)).toBe(1);
+    expect(estimateReadTime(100)).toBe(1);
+    expect(estimateReadTime(199)).toBe(1);
+  });
+
+  it('returns 1 for exactly 200 words', () => {
+    expect(estimateReadTime(200)).toBe(1);
+  });
+
+  it('rounds to nearest minute', () => {
+    expect(estimateReadTime(300)).toBe(2);  // 1.5 rounds up
+    expect(estimateReadTime(250)).toBe(1);  // 1.25 rounds down
+  });
+
+  it('returns correct value for large word counts', () => {
+    expect(estimateReadTime(2000)).toBe(10);
+    expect(estimateReadTime(1000)).toBe(5);
+  });
+});

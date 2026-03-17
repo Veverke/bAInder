@@ -224,6 +224,96 @@ describe('ChatEntityTree — byTopic mode', () => {
 
     expect(container.textContent).toContain('My Topic');
   });
+
+  it('byTopic mode renders entity-type badge for each entity', () => {
+    const topicTree = makeTopicTree({ 't1': { name: 'Science', chatIds: ['c1'] } });
+    const entity = makeEntity('code', 'c1', 0, { text: 'console.log()' });
+    const chats = [makeChat('c1', 't1', { code: [entity] })];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, topicTree);
+    tree.setGroupMode('byTopic');
+
+    const badges = container.querySelectorAll('[class*="entity-type-badge"]');
+    expect(badges.length).toBeGreaterThan(0);
+  });
+
+  it('byTopic mode renders chat node within topic node', () => {
+    const topicTree = makeTopicTree({ 't1': { name: 'History', chatIds: ['c1'] } });
+    const entity = makeEntity('prompt', 'c1', 0, { text: 'Tell me about WW2' });
+    const chats = [makeChat('c1', 't1', { prompt: [entity] })];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, topicTree);
+    tree.setGroupMode('byTopic');
+
+    expect(container.querySelectorAll('.entity-chat-node').length).toBeGreaterThan(0);
+    expect(container.querySelector('.entity-chat-node__title').textContent).toBe('Chat c1');
+  });
+
+  it('byTopic mode fires entity-click event when card is clicked', () => {
+    const topicTree = makeTopicTree({ 't1': { name: 'Tech', chatIds: ['c1'] } });
+    const entity = makeEntity('code', 'c1', 0, { text: 'fn()' });
+    const chats = [makeChat('c1', 't1', { code: [entity] })];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, topicTree);
+    tree.setGroupMode('byTopic');
+
+    let fired = null;
+    container.addEventListener('entity-click', e => { fired = e.detail; });
+    container.querySelector('.entity-card-wrapper').click();
+
+    expect(fired).not.toBeNull();
+    expect(fired.entity.id).toBe(entity.id);
+    expect(fired.chatId).toBe('c1');
+  });
+
+  it('byTopic mode: entities with no topicId fall under Uncategorised', () => {
+    const entity = makeEntity('table', 'c1', 0, { text: 'data' });
+    const chats = [makeChat('c1', null, { table: [entity] })];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, null);
+    tree.setGroupMode('byTopic');
+
+    expect(container.textContent).toContain('Uncategorised');
+  });
+
+  it('byTopic mode with no entities renders empty-state message', () => {
+    const store = makeStore([]);
+    const tree = new ChatEntityTree(container, store, cardRenderers, null);
+    tree.setGroupMode('byTopic');
+
+    expect(container.querySelector('.entity-tree__empty')).not.toBeNull();
+  });
+
+  it('byTopic mode: topic collapse toggle hides body', () => {
+    const topicTree = makeTopicTree({ 't1': { name: 'Art', chatIds: ['c1'] } });
+    const entity = makeEntity('code', 'c1', 0, { text: 'draw()' });
+    const chats = [makeChat('c1', 't1', { code: [entity] })];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, topicTree);
+    tree.setGroupMode('byTopic');
+
+    // topic node is expanded by default (topicCollapsed = false)
+    const topicNode = container.querySelector('.entity-topic-node');
+    const toggleBtn = topicNode.querySelector('.entity-topic-node__toggle');
+    const body = topicNode.querySelector('.entity-topic-node__body');
+
+    expect(body.style.display).not.toBe('none');
+    toggleBtn.click();
+    expect(body.style.display).toBe('none');
+  });
+
+  it('byTopic mode: uses _defaultCard for types without a custom renderer', () => {
+    const topicTree = makeTopicTree({ 't1': { name: 'Misc', chatIds: ['c1'] } });
+    // 'audio' type has no custom renderer in cardRenderers
+    const entity = makeEntity('audio', 'c1', 0, { text: 'speech.mp3' });
+    const chats = [makeChat('c1', 't1', { audio: [entity] })];
+    const store = makeStore(chats);
+    const tree = new ChatEntityTree(container, store, cardRenderers, topicTree);
+    tree.setGroupMode('byTopic');
+
+    // _defaultCard produces .entity-card--audio
+    expect(container.querySelectorAll('.entity-card--audio').length).toBeGreaterThan(0);
+  });
 });
 
 describe('ChatEntityTree — setFilter()', () => {
