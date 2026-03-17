@@ -44,6 +44,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           report_type: test_results
-          files: ./test-results.xml
+          files: ./test-results/**/*.xml
     
     
