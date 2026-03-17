@@ -10,7 +10,6 @@ import { elements } from '../src/sidepanel/app-context.js';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
-// ── Module mocks ──────────────────────────────────────────────────────────────
 
 const { mockGetFormatted, mockIsApproaching } = vi.hoisted(() => ({
   mockGetFormatted:  vi.fn().mockResolvedValue('1.2 MB / 5 MB'),
