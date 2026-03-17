@@ -90,17 +90,20 @@ Result:
 
 ---
 
-## Phase 3 — Build the Chrome package
+## ~~Phase 3 — Build the Chrome package~~
 
-- [ ] Make the GitHub repository public (enables GitHub Pages for the privacy policy)
-- [ ] Create a `docs/done/` folder and move all work-plan and design docs relating to already-completed work there
-- [ ] Run:
+- [x] Make the GitHub repository public (enables GitHub Pages for the privacy policy)
+- [x] Create a `docs/done/` folder and move all work-plan and design docs relating to already-completed work there
+- [x] Run:
   ```powershell
   npm run package:chrome
   ```
   Produces `releases/bainder-chrome-v1.0.0.zip`
-- [ ] Load the zip into Chrome via `chrome://extensions` → "Load packed" to smoke-test
-- [ ] Confirm the zip does **not** contain source maps, test files, or dev-only assets
+- [x] Smoke-test the production build: go to `chrome://extensions` → **Load unpacked** → select `dist/chrome/`
+  - Note: Chrome removed "Load packed" / direct `.crx` install from outside the Web Store (since Chrome 73). Loading `dist/chrome/` unpacked is equivalent — it is the exact folder that gets zipped for CWS submission.
+- [x] Confirm the zip does **not** contain source maps, test files, or dev-only assets
+
+**Phase 3 completed: March 17, 2026**
 
 ---
 
