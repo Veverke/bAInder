@@ -569,6 +569,11 @@ npm install
 npm run build:all   # produces dist/chrome/ and dist/edge/
 ```
 
+### 🛠️ Manual installation from zip
+![Manual installation guide](assets/demos/manual-installation.gif)
+
+```
+
 ---
 
 ## 🛠️ Contributing & Development
