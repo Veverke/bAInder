@@ -93,7 +93,7 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 ### 🎛️ Customise & Monitor
 | | |
 |---|---|
-| 🎨 **Themes** | Customise the look with [ThemeStudioSDK](https://github.com/Veverke/ThemeStudioSDK) themes, including community presets like Neon, Mario Bros, and Sci-Fi. |
+| 🎨 **Themes** | Customise the look with [ThemeStudioSDK](https://github.com/Veverke/ThemeStudioSDK) themes, including community presets like Neon, Sci-Fi among others. |
 | 📊 **Activity sparklines** | Per-topic mini bar charts showing weekly save activity over the last six weeks. |
 | 💿 **Storage usage meter** | Bottom-of-panel bar showing how much local storage is in use; turns orange/red when you approach the limit. |
 | 🔔 **Backup reminder** | Configurable banner that reminds you to export a backup ZIP when your last export was too long ago; supports snooze and "never remind" options. |
@@ -527,7 +527,7 @@ This section walks through every major feature in the order you would naturally 
 
 **Purpose:** Change the look of the bAInder side panel to match your taste or browser theme.
 
-**Use cases:** You prefer a dark high-contrast look (Sci-Fi theme). You want something playful for personal use (Mario Bros theme). You want a vivid neon look.
+**Use cases:** You prefer a dark high-contrast look (Sci-Fi theme). You want a vivid neon look.
 
 **UI flow:**
 1. Click the **palette icon** in the side panel toolbar.
