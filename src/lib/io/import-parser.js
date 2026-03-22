@@ -529,26 +529,7 @@ export function buildImportPlan(zipEntries, existingTree, strategy) {
     return (folderPath || '').split('/').filter(Boolean).join(' > ');
   }
 
-  // For 'create_root', choose a wrapper name
-  const importDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const rootWrapperName = `Imported ${importDate}`;
-
-  // Determine the effective folder path prefix for 'create_root'
-  const rootWrapperFolder = safeStrategy === 'create_root' ? rootWrapperName : '';
-
   // ── Resolve topics ──────────────────────────────────────────────────────────
-  const resolvedFolderPaths = safeStrategy === 'create_root'
-    ? [...topicFolders.keys()].map(p => `${rootWrapperName}/${p}`)
-    : [...topicFolders.keys()];
-
-  // For create_root, add the wrapper itself
-  if (safeStrategy === 'create_root') {
-    topicsToCreate.push({
-      name: rootWrapperName,
-      parentName: null,
-      folderPath: rootWrapperName,
-    });
-  }
 
   // Sort folders so parents come before children (shortest path first)
   const sortedFolders = [...topicFolders.keys()].sort((a, b) => {
@@ -559,9 +540,7 @@ export function buildImportPlan(zipEntries, existingTree, strategy) {
 
   for (const folderPath of sortedFolders) {
     const folder = topicFolders.get(folderPath);
-    const effectivePath = safeStrategy === 'create_root'
-      ? `${rootWrapperName}/${folderPath}`
-      : folderPath;
+    const effectivePath = folderPath;
     const namePath = folderToNamePath(effectivePath);
 
     if (safeStrategy === 'merge') {
@@ -601,9 +580,7 @@ export function buildImportPlan(zipEntries, existingTree, strategy) {
         : '',
     );
 
-    const effectiveTopicPath = safeStrategy === 'create_root' && chatFile.topicPath
-      ? `${rootWrapperName}/${chatFile.topicPath}`
-      : chatFile.topicPath;
+    const effectiveTopicPath = chatFile.topicPath;
 
     // Intra-import duplicate detection: title + source + timestamp bucket (1 h)
     const timeBucket = Math.floor(chatEntry.timestamp / 3_600_000);

@@ -112,7 +112,7 @@ export class ImportDialog {
           <span class="dim-str-icon" aria-hidden="true">📂</span>
           <span class="dim-str-body">
             <span class="dim-str-name">New Root</span>
-            <span class="dim-str-desc">Import under a brand-new parent topic</span>
+            <span class="dim-str-desc">Import as new root topics alongside existing data</span>
           </span>
           <svg class="dim-str-check" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>

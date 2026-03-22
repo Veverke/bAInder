@@ -788,36 +788,39 @@ describe('buildImportPlan() — create_root strategy', () => {
     plan = buildImportPlan(parsedEntries, cloneTree(EXISTING_TREE), 'create_root');
   });
 
-  it('includes a root wrapper topic named "Imported {YYYY-MM-DD}"', () => {
+  it('does not create an artificial wrapper topic', () => {
     const today = new Date().toISOString().slice(0, 10);
-    const rootTopic = plan.topicsToCreate.find(t => t.name === `Imported ${today}`);
-    expect(rootTopic).toBeDefined();
-    expect(rootTopic.parentName).toBeNull();
+    const wrapperTopic = plan.topicsToCreate.find(t => t.name === `Imported ${today}`);
+    expect(wrapperTopic).toBeUndefined();
   });
 
-  it('creates the wrapper root plus all imported folders', () => {
-    // wrapper + Work + Work/Projects + Personal = 4
-    expect(plan.topicsToCreate).toHaveLength(4);
+  it('creates all imported folders as root or nested topics — no wrapper', () => {
+    // Work + Work/Projects + Personal = 3 (no extra wrapper topic)
+    expect(plan.topicsToCreate).toHaveLength(3);
+  });
+
+  it('top-level imported folders have parentName null (become root topics)', () => {
+    const workTopic = plan.topicsToCreate.find(t => t.name === 'Work');
+    const personalTopic = plan.topicsToCreate.find(t => t.name === 'Personal');
+    expect(workTopic?.parentName).toBeNull();
+    expect(personalTopic?.parentName).toBeNull();
   });
 
   it('does not merge anything — topicsToMerge is empty', () => {
     expect(plan.topicsToMerge).toHaveLength(0);
   });
 
-  it('prefixes chat targetTopicPath with the wrapper root name', () => {
-    const today = new Date().toISOString().slice(0, 10);
-    const rootName = `Imported ${today}`;
+  it('chat targetTopicPath uses the original ZIP folder path (no wrapper prefix)', () => {
     for (const item of plan.chatsToImport) {
-      expect(item.targetTopicPath).toMatch(new RegExp(`^${rootName}`));
+      expect(item.targetTopicPath).not.toMatch(/^Imported /);
     }
   });
 
-  it('treats "new-root" as an alias for create_root strategy (line 421 branch)', () => {
-    // strategy === 'new-root' triggers the ternary TRUE branch
+  it('treats "new-root" as an alias for create_root strategy', () => {
     const plan2 = buildImportPlan(parsedEntries, cloneTree(EXISTING_TREE), 'new-root');
-    const today = new Date().toISOString().slice(0, 10);
-    const rootTopic = plan2.topicsToCreate.find(t => t.name === `Imported ${today}`);
-    expect(rootTopic).toBeDefined();
+    // Same count as create_root — no wrapper topic added
+    expect(plan2.topicsToCreate).toHaveLength(3);
+    expect(plan2.topicsToMerge).toHaveLength(0);
   });
 });
 
@@ -1080,29 +1083,27 @@ describe('Round-trip: parseZipEntries → buildImportPlan → executeImport', ()
 
 describe('Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root)', () => {
   let result;
-  let wrapperName;
 
   beforeEach(() => {
-    wrapperName = `Imported ${new Date().toISOString().slice(0, 10)}`;
     const parsed = parseZipEntries(WELL_FORMED_ENTRIES);
     const plan = buildImportPlan(parsed, null, 'new-root');
     result = executeImport(plan, null, []);
   });
 
-  it('creates only ONE root topic (the wrapper)', () => {
-    expect(result.updatedRootTopics).toHaveLength(1);
+  it('creates TWO root topics (Work and Personal) — no wrapper', () => {
+    expect(result.updatedRootTopics).toHaveLength(2);
   });
 
-  it('wrapper root topic name is "Imported YYYY-MM-DD"', () => {
-    const rootTopic = result.updatedTopics[result.updatedRootTopics[0]];
-    expect(rootTopic.name).toBe(wrapperName);
+  it('root topic names are the ZIP top-level folder names, not a wrapper', () => {
+    const rootNames = result.updatedRootTopics.map(id => result.updatedTopics[id].name);
+    expect(rootNames).toContain('Work');
+    expect(rootNames).toContain('Personal');
   });
 
-  it('imported topics are children of the wrapper, NOT additional roots', () => {
-    const rootTopic = result.updatedTopics[result.updatedRootTopics[0]];
-    const childNames = rootTopic.children.map(id => result.updatedTopics[id].name);
-    expect(childNames).toContain('Work');
-    expect(childNames).toContain('Personal');
+  it('no topic named "Imported YYYY-MM-DD" exists', () => {
+    const wrapperName = `Imported ${new Date().toISOString().slice(0, 10)}`;
+    const allNames = Object.values(result.updatedTopics).map(t => t.name);
+    expect(allNames).not.toContain(wrapperName);
   });
 
   it('all chats have a non-null topicId (none are unlinked)', () => {
