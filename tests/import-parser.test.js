@@ -3,6 +3,7 @@ import {
   validateZipFile,
   parseZipEntries,
   parseChatFromMarkdown,
+  parseMessagesFromExportMarkdown,
   buildImportPlan,
   executeImport,
 } from '../src/lib/io/import-parser.js';
@@ -322,6 +323,41 @@ describe('parseZipEntries()', () => {
     const work = result.topicFolders.get('Work');
     expect(work.children).toContain('Work/Projects');
   });
+
+  it('restores original topic name case from _topic.json (e.g. "ai" folder → "AI" name)', () => {
+    // Simulate a ZIP where sanitizeFilename lowercased "AI" to "ai" as the folder name
+    const entries = [
+      {
+        path: 'bAInder-export/ai/_topic.json',
+        content: JSON.stringify({ name: 'AI', chatCount: 1 }),
+      },
+      {
+        path: 'bAInder-export/ai/some-chat.md',
+        content: '---\ntitle: "Some Chat"\nsource: chatgpt\n---\n',
+      },
+    ];
+    const result = parseZipEntries(entries);
+    const topic = result.topicFolders.get('ai');
+    expect(topic).toBeDefined();
+    expect(topic.name).toBe('AI');
+  });
+
+  it('falls back to folder name when _topic.json has no name field', () => {
+    const entries = [
+      {
+        path: 'bAInder-export/mywork/_topic.json',
+        content: JSON.stringify({ chatCount: 2 }), // no name
+      },
+      {
+        path: 'bAInder-export/mywork/chat.md',
+        content: '---\ntitle: "T"\nsource: x\n---\n',
+      },
+    ];
+    const result = parseZipEntries(entries);
+    const topic = result.topicFolders.get('mywork');
+    expect(topic).toBeDefined();
+    expect(topic.name).toBe('mywork');
+  });
 });
 
 // ─── parseChatFromMarkdown ────────────────────────────────────────────────────
@@ -429,8 +465,17 @@ describe('parseChatFromMarkdown()', () => {
     expect(chat.messageCount).toBe(0);
   });
 
-  it('always returns messages as an empty array', () => {
+  it('parses messages from ### User / ### Assistant headings in the export markdown', () => {
     const chat = parseChatFromMarkdown(ALPHA_MD, 'file.md');
+    expect(Array.isArray(chat.messages)).toBe(true);
+    expect(chat.messages.length).toBe(2);
+    expect(chat.messages[0]).toMatchObject({ role: 'user',      content: 'First message'   });
+    expect(chat.messages[1]).toMatchObject({ role: 'assistant', content: 'First response'  });
+  });
+
+  it('returns empty messages array when content has no role headings', () => {
+    const noHeadings = WELL_FORMED_ENTRIES.find(e => e.path.includes('budget-analysis')).content;
+    const chat = parseChatFromMarkdown(noHeadings, 'file.md');
     expect(chat.messages).toEqual([]);
   });
 
@@ -525,6 +570,76 @@ describe('parseChatFromMarkdown()', () => {
   it('stores the full markdown content in the content field', () => {
     const chat = parseChatFromMarkdown(ALPHA_MD, 'file.md');
     expect(chat.content).toBe(ALPHA_MD);
+  });
+});
+
+// ─── parseMessagesFromExportMarkdown ─────────────────────────────────────────
+
+describe('parseMessagesFromExportMarkdown()', () => {
+  const EXPORT_MD = [
+    '---',
+    'title: "Chat"',
+    'source: chatgpt',
+    '---',
+    '',
+    '### User',
+    '',
+    'Hello there',
+    '',
+    '---',
+    '',
+    '### Assistant',
+    '',
+    'Hi!',
+    '',
+    '---',
+    '',
+    '*Exported from bAInder on March 22, 2026*',
+  ].join('\n');
+
+  it('parses user and assistant turns correctly', () => {
+    const msgs = parseMessagesFromExportMarkdown(EXPORT_MD);
+    expect(msgs).toHaveLength(2);
+    expect(msgs[0]).toMatchObject({ role: 'user',      content: 'Hello there' });
+    expect(msgs[1]).toMatchObject({ role: 'assistant', content: 'Hi!' });
+  });
+
+  it('handles multi-turn conversations', () => {
+    const md = [
+      '---', 'title: "T"', 'source: s', '---',
+      '', '### User', '', 'Q1', '', '---', '', '### Assistant', '', 'A1',
+      '', '---', '', '### User', '', 'Q2', '', '---', '', '### Assistant', '', 'A2',
+      '', '---', '', '*Exported from bAInder on today*',
+    ].join('\n');
+    const msgs = parseMessagesFromExportMarkdown(md);
+    expect(msgs).toHaveLength(4);
+    expect(msgs[0]).toMatchObject({ role: 'user',      content: 'Q1' });
+    expect(msgs[1]).toMatchObject({ role: 'assistant', content: 'A1' });
+    expect(msgs[2]).toMatchObject({ role: 'user',      content: 'Q2' });
+    expect(msgs[3]).toMatchObject({ role: 'assistant', content: 'A2' });
+  });
+
+  it('returns empty array when no role headings present', () => {
+    const md = '---\ntitle: "T"\nsource: s\n---\n\nJust some text\n';
+    expect(parseMessagesFromExportMarkdown(md)).toEqual([]);
+  });
+
+  it('returns empty array for null/empty input', () => {
+    expect(parseMessagesFromExportMarkdown(null)).toEqual([]);
+    expect(parseMessagesFromExportMarkdown('')).toEqual([]);
+  });
+
+  it('preserves markdown content inside message turns', () => {
+    const md = [
+      '---', 'title: "T"', 'source: s', '---',
+      '', '### Assistant', '',
+      '```js', 'const x = 1;', '```',
+      '', '---', '', '*Exported from bAInder on today*',
+    ].join('\n');
+    const msgs = parseMessagesFromExportMarkdown(md);
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].content).toContain('```js');
+    expect(msgs[0].content).toContain('const x = 1;');
   });
 });
 

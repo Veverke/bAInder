@@ -48,8 +48,13 @@ function _snippetHint(entity) {
     case 'citation':
       return entity.url ?? entity.title ?? null;
     case 'table':
-      // First line of the raw table text
-      return (entity.text ?? '').split('\n')[0].slice(0, 120) || null;
+      // Reconstruct the pipe-delimited header row so _findEntityBlock can match
+      // the .table-wrapper by its <thead> cells.  entity.text is never set for
+      // table entities; the extractor stores headers as an array instead.
+      if (Array.isArray(entity.headers) && entity.headers.length > 0) {
+        return ('| ' + entity.headers.join(' | ') + ' |').slice(0, 120);
+      }
+      return null;
     case 'diagram':
       // First non-empty line of the diagram source uniquely identifies the block
       return (entity.source ?? '').split('\n').find(l => l.trim() !== '')?.slice(0, 120) ?? null;
@@ -57,6 +62,16 @@ function _snippetHint(entity) {
       return entity.filename ?? null;
     case 'audio':
       return `audio:${entity.snippetIndex ?? 0}`;
+    case 'prompt':
+      // Flash the whole user turn — the anchor element itself is the target
+      return 'turn:self';
+    case 'image':
+      // Match by alt text when available; otherwise flash the whole turn
+      return entity.altText ? entity.altText.slice(0, 120) : 'turn:self';
+    case 'toolCall':
+    case 'artifact':
+      // No distinct DOM class in rendered markdown — flash the whole turn
+      return 'turn:self';
     default:
       return null;
   }

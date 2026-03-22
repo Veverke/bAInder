@@ -17,6 +17,10 @@ import { saveTree, renderTreeView } from './tree-controller.js';
 import { updateStorageUsage } from '../features/storage-usage.js';
 import { updateRecentRail } from '../features/recent-rail.js';
 import { handleChatClick } from './chat-actions.js';
+import { refresh as refreshEntityController } from './entity-controller.js';
+import { refreshEntityTypeChipVisibility } from './search-controller.js';
+import { extractChatEntities } from '../../lib/entities/entity-extractor.js';
+import '../../lib/entities/extractors/index.js'; // registers all extractors so re-extraction works in sidepanel context
 let _state = state;
 // ---------------------------------------------------------------------------
 // Test injection hook - lets unit tests provide a mock app context instead of
@@ -46,17 +50,9 @@ export async function handleImport() {
       _state.tree,
       _state.chats,
       async (updatedTopics, updatedRootTopics, updatedChats, summary) => {
-        console.warn('[bAInder] [DBG] onComplete — updatedTopicKeys:', Object.keys(updatedTopics ?? {}).length,
-          'updatedRootTopics:', JSON.stringify(updatedRootTopics),
-          'updatedChats.length:', (updatedChats ?? []).length,
-          'summary:', JSON.stringify(summary));
-
         // Rebuild tree from imported data
         _state.tree  = TopicTree.fromObject({ topics: updatedTopics, rootTopicIds: updatedRootTopics });
         _state.chats = updatedChats;
-
-        console.warn('[bAInder] [DBG] tree after fromObject — rootTopicIds:', JSON.stringify(_state.tree.rootTopicIds), 'topics:', Object.keys(_state.tree.topics ?? {}).length);
-        console.warn('[bAInder] [DBG] chats before replaceAll:', _state.chats.length);
 
         // Keep dialog instances' tree reference in sync
         _state.topicDialogs.tree = _state.tree;
@@ -64,13 +60,23 @@ export async function handleImport() {
 
         // Persist
         await saveTree();
+        // Re-extract entities from imported chats (ZIP markdown → messages was
+        // parsed in parseChatFromMarkdown; run extractors now that messages exist).
+        for (const chat of updatedChats) {
+          if (!chat.metadata?.importedAt) continue; // skip pre-existing chats
+          if (!Array.isArray(chat.messages) || chat.messages.length === 0) continue;
+          const entities = await extractChatEntities(chat.messages, null, chat.id);
+          Object.assign(chat, entities);  // mutates in-place; _state.chats already === updatedChats
+        }
+
         _state.chats = await _state.chatRepo.replaceAll(_state.chats);
-        console.warn('[bAInder] [DBG] replaceAll done — stored chats (meta).length:', _state.chats.length);
 
         // Refresh UI
         _state.renderer.setTree(_state.tree);
         _state.renderer.setChatData(_state.chats);
         renderTreeView();
+        refreshEntityController();       // keep entity panel in sync after import
+        refreshEntityTypeChipVisibility(); // show/hide type chips accurately
         await updateStorageUsage();
 
         const msg = `Imported ${summary.chatsImported} chat(s) into ${summary.topicsCreated + summary.topicsMerged} topic(s).`;
@@ -111,6 +117,8 @@ export async function handleClearAll() {
     _state.renderer.setTree(_state.tree);
     _state.renderer.setChatData(_state.chats);
     renderTreeView();
+    refreshEntityController();       // entity panel has no data after clear
+    refreshEntityTypeChipVisibility();
 
     // Hide backup reminder banner — there is nothing left to back up
     if (elements.backupReminderBanner) elements.backupReminderBanner.style.display = 'none';

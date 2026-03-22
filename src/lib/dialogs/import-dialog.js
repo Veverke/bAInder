@@ -375,11 +375,9 @@ export class ImportDialog {
     backBtn.addEventListener('click', () => showPhase(1));
 
     importNowBtn.addEventListener('click', async () => {
-      console.warn('[bAInder] [DBG] Import Now clicked — importPlan:', !!importPlan);
       if (!importPlan) return;
 
       const strategy = getStrategy();
-      console.warn('[bAInder] [DBG] strategy:', strategy);
 
       showPhase(3);
       doneContent.style.display  = 'none';
@@ -387,20 +385,11 @@ export class ImportDialog {
       doneBtnRow.style.display   = 'none';
 
       try {
-        console.warn('[bAInder] [DBG] calling executeImport — strategy:', strategy,
-          'tree arg:', strategy === 'replace' ? 'null' : 'live',
-          'chats arg:', strategy === 'replace' ? '[]' : `[${(chats||[]).length}]`);
         const result = executeImport(
           importPlan,
           strategy === 'replace' ? null : tree,
           strategy === 'replace' ? [] : chats
         );
-        console.warn('[bAInder] [DBG] executeImport done — topicsCreated:', result.summary?.topicsCreated,
-          'topicsMerged:', result.summary?.topicsMerged,
-          'chatsImported:', result.summary?.chatsImported,
-          'updatedTopicKeys:', Object.keys(result.updatedTopics ?? {}).length,
-          'updatedRootTopics:', JSON.stringify(result.updatedRootTopics),
-          'updatedChats:', result.updatedChats?.length);
         await onComplete(
           result.updatedTopics,
           result.updatedRootTopics,
@@ -482,18 +471,8 @@ export class ImportDialog {
 
     const entries = await Promise.all(entryPromises);
 
-    console.warn('[bAInder] [DBG] _prepareImport — entry paths:', JSON.stringify(entries.map(e => e.path)));
-
     const parsed = parseZipEntries(entries);
-    console.warn('[bAInder] [DBG] parseZipEntries — topicFolderKeys:', JSON.stringify([...parsed.topicFolders.keys()]),
-      'chatTopicPaths:', JSON.stringify(parsed.chatFiles.map(c => c.topicPath)),
-      'warnings:', JSON.stringify(parsed.warnings));
-
     const plan = buildImportPlan(parsed, tree, strategy);
-    console.warn('[bAInder] [DBG] buildImportPlan — strategy:', strategy,
-      'topicsToCreate:', JSON.stringify(plan.topicsToCreate.map(t => ({ name: t.name, folderPath: t.folderPath }))),
-      'chatsToImport targetPaths:', JSON.stringify(plan.chatsToImport.map(c => c.targetTopicPath)));
-
     return { parsed, plan };
   }
 

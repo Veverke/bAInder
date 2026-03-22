@@ -55,7 +55,7 @@ export function buildExportHtml(chat, topicPath, options = {}) {
 
   const titleBlock = isExcerpt
     ? `<span class="source-badge">${esc(srcLabel)}</span>`
-    : `<h1>${esc(title)}</h1>
+    : `<p class="doc-title">${esc(title)}</p>
        <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.5rem">
          <span class="source-badge">${esc(srcLabel)}</span>
          ${topicHtml}

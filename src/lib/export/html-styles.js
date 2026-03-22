@@ -32,6 +32,7 @@ export function getExportCss(fontStack) {
       padding-bottom: 1.5rem;
       margin-bottom: 2rem;
     }
+    .doc-title { font-size: 1.8rem; font-weight: 700; line-height: 1.3; margin-bottom: .5rem; }
     h1 { font-size: 1.8rem; line-height: 1.3; margin-bottom: .5rem; }
     .meta { color: #6b7280; font-size: .875rem; margin-bottom: .25rem; }
     .source-badge {

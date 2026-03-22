@@ -154,10 +154,17 @@
           <div class="section-header__right">
             <!-- C.9 — Topic sort selector -->
             <select id="topicSortSelect" class="topic-sort-select" title="Sort topics" aria-label="Sort topics">
-              <option value="alpha-asc">A → Z</option>
-              <option value="alpha-desc">Z → A</option>
-              <option value="updated">Recently updated</option>
-              <option value="count">Most chats</option>
+              <option value="alpha-asc">Topics: A → Z</option>
+              <option value="alpha-desc">Topics: Z → A</option>
+              <option value="updated">Topics: Recent</option>
+              <option value="count">Topics: Most chats</option>
+            </select>
+            <!-- C.9 — Chat sort selector -->
+            <select id="chatSortSelect" class="topic-sort-select" title="Sort chats within topics" aria-label="Sort chats">
+              <option value="alpha-asc">Chats: A → Z</option>
+              <option value="alpha-desc">Chats: Z → A</option>
+              <option value="date-desc">Chats: Newest</option>
+              <option value="date-asc">Chats: Oldest</option>
             </select>
             <span id="itemCount" class="badge">0 topics</span>
             <!-- C.17 — Multi-select toggle -->

@@ -269,9 +269,9 @@ describe('buildExportMarkdown()', () => {
     expect(md).not.toContain('tags:');
   });
 
-  it('for a regular chat: includes ## Conversation heading', () => {
+  it('for a regular chat: does NOT include redundant ## Conversation heading', () => {
     const md = buildExportMarkdown(mockChat, 'Work');
-    expect(md).toContain('## Conversation');
+    expect(md).not.toContain('## Conversation');
   });
 
   it('renders ### User heading for user messages', () => {
@@ -1638,9 +1638,7 @@ describe('buildDigestMarkdown() — single-message and no-timestamp branches', (
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('buildDigestMarkdown() — forAssembly with real messagesToMarkdown', () => {
-  it('forAssembly: real messagesToMarkdown produces # heading; strip branch fires', () => {
-    // The real messagesToMarkdown (src/lib/io/markdown-serialiser.js) returns
-    // "---\ntitle: ...\n---\n\n# Title\n\n..." so titleIdx !== -1 is guaranteed.
+  it('forAssembly: assembles chat body without duplicate title heading', () => {
     const chats = [{
       id: 'fa1', title: 'Chat Alpha', source: 'chatgpt', topicId: null,
       timestamp: 1700000000000,
@@ -1648,18 +1646,13 @@ describe('buildDigestMarkdown() — forAssembly with real messagesToMarkdown', (
       tags: [], metadata: {}, url: '',
     }];
     const md = buildDigestMarkdown(chats, {}, { forAssembly: true });
-    // Should not throw; the ## section heading drives the TOC
+    // ## section heading drives the TOC; body must not duplicate it as # heading
     expect(md).toContain('## Chat Alpha');
-    // The body # heading should have been stripped
-    // (If it was NOT stripped there would be a duplicate heading deeper in the string)
     const bodyPart = md.slice(md.indexOf('## Chat Alpha') + '## Chat Alpha'.length);
     expect(bodyPart).not.toMatch(/^# Chat Alpha/m);
   });
 
-  it('forAssembly: title line immediately followed by non-blank content (extra=1 branch)', () => {
-    // messagesToMarkdown normally inserts a blank line after the title, but if
-    // somehow it doesn't, the `extra = 1` branch should fire.
-    // We can verify the function handles both variants by checking no crash.
+  it('forAssembly: handles chats without crashing', () => {
     const chats = [{
       id: 'fa2', title: 'B', source: 'chatgpt', topicId: null,
       timestamp: 0,
@@ -1667,46 +1660,6 @@ describe('buildDigestMarkdown() — forAssembly with real messagesToMarkdown', (
       tags: [], metadata: {}, url: '',
     }];
     expect(() => buildDigestMarkdown(chats, {}, { forAssembly: true })).not.toThrow();
-  });
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
-// markdown-builder.js — extra=1 branch (line 187) via mock override
-// ═════════════════════════════════════════════════════════════════════════════
-
-describe('buildDigestMarkdown() — forAssembly extra=1 branch coverage', () => {
-  it('splices only the title line when next line is non-blank (extra=1)', () => {
-    // Make messagesToMarkdown return a body where # Title is DIRECTLY followed
-    // by non-blank content (no blank line) → extra = 1 branch
-    messagesToMarkdown.mockReturnValueOnce(
-      '---\ntitle: "T"\n---\n\n# T\nImmediate content here'
-    );
-    const chats = [{
-      id: 'e1', title: 'T', source: 'chatgpt', topicId: null,
-      timestamp: 0,
-      messages: [{ role: 'user', content: 'x' }],
-      tags: [], metadata: {}, url: '',
-    }];
-    const md = buildDigestMarkdown(chats, {}, { forAssembly: true });
-    // spliced only 1 line (the # heading) — content still present
-    expect(md).toContain('Immediate content here');
-    expect(md).not.toMatch(/^# T$/m);
-  });
-
-  it('splices title line AND blank line when next line IS blank (extra=2 branch)', () => {
-    // messagesToMarkdown returns body where # Title is followed by a blank line → extra = 2
-    messagesToMarkdown.mockReturnValueOnce(
-      '---\ntitle: "U"\n---\n\n# U\n\nBody content here'
-    );
-    const chats = [{
-      id: 'e2', title: 'U', source: 'chatgpt', topicId: null,
-      timestamp: 0,
-      messages: [{ role: 'user', content: 'y' }],
-      tags: [], metadata: {}, url: '',
-    }];
-    const md = buildDigestMarkdown(chats, {}, { forAssembly: true });
-    expect(md).toContain('Body content here');
-    expect(md).not.toMatch(/^# U$/m);
   });
 });
 

@@ -40,3 +40,34 @@ export function sortTopics(topics, mode) {
     return pinDiff !== 0 ? pinDiff : byMode(a, b);
   });
 }
+
+/**
+ * Return a comparator for the given chat sort mode.
+ * @param {'date-desc'|'date-asc'|'alpha-asc'|'alpha-desc'} mode
+ * @returns {(a: Object, b: Object) => number}
+ */
+function getChatModeComparator(mode) {
+  switch (mode) {
+    case 'date-asc':
+      return (a, b) => (a.timestamp || 0) - (b.timestamp || 0);
+    case 'alpha-asc':
+      return (a, b) => (a.title || '').toLowerCase().localeCompare((b.title || '').toLowerCase());
+    case 'alpha-desc':
+      return (a, b) => (b.title || '').toLowerCase().localeCompare((a.title || '').toLowerCase());
+    case 'date-desc':
+    default:
+      return (a, b) => (b.timestamp || 0) - (a.timestamp || 0);
+  }
+}
+
+/**
+ * Sort an array of chat objects by `mode`.
+ * The original array is not mutated.
+ * @param {Object[]} chats
+ * @param {'date-desc'|'date-asc'|'alpha-asc'|'alpha-desc'} mode
+ * @returns {Object[]}
+ */
+export function sortChats(chats, mode) {
+  const byMode = getChatModeComparator(mode);
+  return [...chats].sort(byMode);
+}

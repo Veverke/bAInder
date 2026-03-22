@@ -700,15 +700,20 @@ export function wrapChatTurns(contentEl) {
     );
     if (!nodes.length) continue;
 
-    const first = nodes[0];
-
     // -- Legacy format: <h3>User</h3> heading ---------------------------------
-    if (hasLegacyRoles && first.nodeType === 1 && first.tagName === 'H3') {
-      const roleKey = first.textContent.trim().toLowerCase();
+    // Scan for the first H3 role heading in the group — it may not be the first
+    // node (e.g. exported chats open with a <h1> title before the first turn).
+    if (hasLegacyRoles) {
+      const h3Idx  = nodes.findIndex(n => n.nodeType === 1 && n.tagName === 'H3');
+      const h3Node = h3Idx >= 0 ? nodes[h3Idx] : null;
+      const roleKey = h3Node ? h3Node.textContent.trim().toLowerCase() : '';
       const isUser      = USER_ROLES.has(roleKey);
       const isAssistant = ASSISTANT_ROLES.has(roleKey);
 
-      if (isUser || isAssistant) {
+      if (h3Node && (isUser || isAssistant)) {
+        // Flush any prefix nodes (e.g. <h1> title before first turn) directly.
+        for (const n of nodes.slice(0, h3Idx)) contentEl.appendChild(n);
+
         const turn = document.createElement('div');
         turn.className = `chat-turn ${isUser ? 'chat-turn--user' : 'chat-turn--assistant'}`;
 
@@ -720,12 +725,12 @@ export function wrapChatTurns(contentEl) {
         iconSpan.textContent = isUser ? '\u{1F64B}' : '\u{1F916}';
         const labelSpan = document.createElement('span');
         labelSpan.className = 'turn-role-label';
-        labelSpan.textContent = first.textContent.trim();
+        labelSpan.textContent = h3Node.textContent.trim();
         roleDiv.append(iconSpan, labelSpan);
 
         const bodyDiv = document.createElement('div');
         bodyDiv.className = 'chat-turn__body';
-        for (const n of nodes.slice(1)) bodyDiv.appendChild(n);
+        for (const n of nodes.slice(h3Idx + 1)) bodyDiv.appendChild(n);
 
         turn.appendChild(roleDiv);
         turn.appendChild(bodyDiv);
@@ -2069,6 +2074,9 @@ export function _findEntityBlock(anchorEl, hint) {
   if (!hint) return null;
   const hintLc = hint.toLowerCase().trim();
 
+  // Sentinel: flash the anchor element itself (used for prompt, toolCall, artifact, etc.)
+  if (hintLc === 'turn:self') return anchorEl;
+
   // Audio cards use an index-based hint ("audio:N") — return the Nth .audio-card in the turn.
   const audioHintMatch = hintLc.match(/^audio:(\d+)$/);
   if (audioHintMatch) {
@@ -2104,6 +2112,25 @@ export function _findEntityBlock(anchorEl, hint) {
       const nameEl = chip.querySelector('.file-attachment-chip__name');
       if (nameEl && nameEl.textContent.toLowerCase().trim() === hintLc) {
         candidates.push({ el: chip, score: 2 });
+      }
+    });
+    // Inline images → img.chat-image (hint = altText)
+    el.querySelectorAll('img.chat-image').forEach(img => {
+      const alt = (img.alt ?? '').toLowerCase().trim();
+      if (alt && alt === hintLc)           candidates.push({ el: img, score: 2 });
+      else if (alt && alt.includes(hintLc)) candidates.push({ el: img, score: 1 });
+    });
+    // GFM pipe tables → .table-wrapper (hint = first raw markdown row, e.g. "| col1 | col2 |")
+    el.querySelectorAll('.table-wrapper').forEach(wrapper => {
+      const headerCells = [...wrapper.querySelectorAll('thead th')]
+        .map(th => th.textContent.trim().toLowerCase());
+      if (headerCells.length === 0) return;
+      // Normalise hint: strip leading/trailing pipes, split on |, trim each cell
+      const hintCells = hintLc.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+      if (hintCells.length === headerCells.length && hintCells.every((c, i) => c === headerCells[i])) {
+        candidates.push({ el: wrapper, score: 2 });
+      } else if (hintCells.some(c => c && headerCells.some(h => h.includes(c)))) {
+        candidates.push({ el: wrapper, score: 1 });
       }
     });
     // Anchor links (citation hint = url or title)

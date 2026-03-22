@@ -17,9 +17,12 @@
  * @param {Object[]}      chats         — flat chats array
  * @param {Function}      sortFn        — `(topics: Object[]) => Object[]`
  *                                        e.g. `topics => sortTopics(topics, mode)`
+ * @param {Function}      [chatSortFn]  — `(chats: Object[]) => Object[]`
+ *                                        optional; defaults to identity (no sort)
  * @returns {FlatNode[]}
  */
-export function flattenVisible(tree, expandedNodes, chats, sortFn) {
+export function flattenVisible(tree, expandedNodes, chats, sortFn, chatSortFn) {
+  const _sortChats = typeof chatSortFn === 'function' ? chatSortFn : c => c;
   const result = [];
 
   const walk = (topics, depth) => {
@@ -28,7 +31,8 @@ export function flattenVisible(tree, expandedNodes, chats, sortFn) {
       result.push({ type: 'topic', id: topic.id, depth, data: topic });
       if (expandedNodes.has(topic.id)) {
         // Chats belonging directly to this topic
-        for (const chat of chats.filter(c => c.topicId === topic.id)) {
+        const topicChats = _sortChats(chats.filter(c => c.topicId === topic.id));
+        for (const chat of topicChats) {
           result.push({ type: 'chat', id: chat.id, depth: depth + 1, data: chat });
         }
         // Child topics (recurse)

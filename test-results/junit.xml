@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="78" failures="0" errors="0" time="0.1350336">
+    <testsuite name="tests/search-controller.test.js" timestamp="2026-03-22T15:58:34.614Z" hostname="Kahana-PC" tests="78" failures="0" errors="0" skipped="0" time="0.1350336">
+        <testcase classname="tests/search-controller.test.js" name="handleSearch() — context routing &gt; switching to entities calls runEntitySearch (spy) not storage.searchChats" time="0.0087105">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="handleSearch() — context routing &gt; switching back to chats does not call entity search" time="0.0013579">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupSearchContextToggle() — visibility &gt; entity-type chips section is shown when context switches to entities" time="0.0063131">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupSearchContextToggle() — visibility &gt; entity-type chips section is hidden when context switches back to chats" time="0.0017925">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupSearchContextToggle() — visibility &gt; chat filter groups are hidden when context switches to entities" time="0.0013174">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupSearchContextToggle() — visibility &gt; chat filter groups are restored when switching back to chats" time="0.0015723">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupSearchContextToggle() — visibility &gt; state.searchContext is updated on toggle" time="0.0013522">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="entity-type chips (A.8) — population &gt; setupSearchContextToggle creates one chip per ENTITY_TYPES value" time="0.0010654">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="entity-type chips (A.8) — population &gt; each chip carries the correct data-entity-type" time="0.001944">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="entity-type chips (A.8) — population &gt; activating a chip adds the type to state.filters.entityTypes" time="0.0012715">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="entity-type chips (A.8) — population &gt; activating the same chip again removes the type" time="0.0013414">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="entity-type chips (A.8) — population &gt; active chip gets is-active class, inactive loses it" time="0.001755">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="runEntitySearch() — entityTypes passthrough (A.8) &gt; passes active entityTypes Set to the handler" time="0.0075">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="runEntitySearch() — entityTypes passthrough (A.8) &gt; passes empty Set when no chips are active" time="0.0161064">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="debounce() &gt; delays the function until the timeout expires" time="0.0052595">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="debounce() &gt; resets the timer when called repeatedly" time="0.0011496">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="debounce() &gt; .cancel() prevents the pending invocation" time="0.0006795">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="hideSearchResults() &gt; hides the search results container" time="0.000831">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="hideSearchResults() &gt; clears the results list innerHTML" time="0.0031204">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="hideSearchResults() &gt; does not throw when elements are absent" time="0.0015853">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="clearSearch() &gt; clears the search input value" time="0.0020927">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="clearSearch() &gt; hides the clearSearchBtn" time="0.0008378">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="clearSearch() &gt; clears searchQuery on state" time="0.0006359">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="clearSearch() &gt; calls renderer.clearHighlight() when no active filters" time="0.0005853">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="clearSearch() &gt; runs search when active filters exist" time="0.0090481">
+            <system-err>
+[bAInder] [ERROR] Search failed: TypeError: Cannot set properties of null (setting &apos;textContent&apos;)
+    at renderSearchResults (C:/Repos/Personal/bAInder/src/sidepanel/controllers/search-controller.js:175:36)
+    at C:/Repos/Personal/bAInder/src/sidepanel/controllers/search-controller.js:104:7
+
+            </system-err>
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="rerunSearch() &gt; hides results when no query and no active filters" time="0.0008144">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="rerunSearch() &gt; triggers a deferred search when query is non-empty" time="0.0062378">
+            <system-err>
+[bAInder] [ERROR] Search failed: TypeError: Cannot set properties of null (setting &apos;textContent&apos;)
+    at renderSearchResults (C:/Repos/Personal/bAInder/src/sidepanel/controllers/search-controller.js:175:36)
+    at C:/Repos/Personal/bAInder/src/sidepanel/controllers/search-controller.js:104:7
+
+            </system-err>
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="rerunSearch() &gt; triggers search when there are active filters but no query" time="0.0014381">
+            <system-err>
+[bAInder] [ERROR] Search failed: TypeError: Cannot set properties of null (setting &apos;textContent&apos;)
+    at renderSearchResults (C:/Repos/Personal/bAInder/src/sidepanel/controllers/search-controller.js:175:36)
+    at C:/Repos/Personal/bAInder/src/sidepanel/controllers/search-controller.js:104:7
+
+            </system-err>
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="renderSearchResults() &gt; shows the search results container" time="0.0024711">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="renderSearchResults() &gt; shows &quot;0 results&quot; for empty results" time="0.0012047">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="renderSearchResults() &gt; shows &quot;1 result&quot; for a single result" time="0.0013985">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="renderSearchResults() &gt; renders a result card for each result" time="0.0009677">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="renderSearchResults() &gt; renders empty-state HTML when results are empty" time="0.0039291">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="buildResultCard() &gt; returns an article element HTML string" time="0.000747">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="buildResultCard() &gt; includes the chat title" time="0.0002298">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="buildResultCard() &gt; uses &quot;Untitled Chat&quot; when title is missing" time="0.0001484">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="buildResultCard() &gt; renders a badge for known sources" time="0.0001231">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="buildResultCard() &gt; renders badge--unknown for unrecognised sources" time="0.000122">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="buildResultCard() &gt; renders rating stars when chat.rating is set" time="0.0001737">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="buildResultCard() &gt; renders tag chips when tags are present" time="0.0002281">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="buildResultCard() &gt; highlights matching query terms in the title" time="0.000204">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="populateTopicScopeSelect() &gt; does nothing when element is absent" time="0.0003335">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="populateTopicScopeSelect() &gt; does nothing when state.tree is absent" time="0.0005503">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="populateTopicScopeSelect() &gt; populates one option per root topic plus &quot;All topics&quot;" time="0.0016322">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="populateTopicScopeSelect() &gt; pre-selects the current filter topicId" time="0.0008162">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="updateFilterIndicator() &gt; does nothing when filterToggleBtn is absent" time="0.000362">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="updateFilterIndicator() &gt; adds has-active-filters class when a source filter is set" time="0.0002195">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="updateFilterIndicator() &gt; removes has-active-filters class when no filters are active" time="0.0001871">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="updateFilterIndicator() &gt; adds has-active-filters when dateFrom is set" time="0.0001525">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="updateFilterIndicator() &gt; adds has-active-filters when minRating is set" time="0.0001448">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="populateTagFilterPills() &gt; does nothing when filterTagPills container is absent" time="0.0003739">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="populateTagFilterPills() &gt; shows &quot;No tags saved yet&quot; when no chats have tags" time="0.0003674">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="populateTagFilterPills() &gt; renders one pill per unique tag" time="0.0006929">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="populateTagFilterPills() &gt; marks already-active tags with is-active class" time="0.0003694">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="populateTagFilterPills() &gt; clicking an inactive pill activates it and adds to state.filters.tags" time="0.0007116">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — filterToggleBtn &gt; toggles the filter bar open on button click" time="0.0015608">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — filterToggleBtn &gt; closes the filter bar on second click" time="0.0010389">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — source pills &gt; adds source to filters when a pill is clicked" time="0.0010137">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — source pills &gt; removes source from filters when active pill is clicked again" time="0.0015567">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — date range &gt; sets dateFrom on change" time="0.0023953">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — date range &gt; sets dateFrom to null when cleared" time="0.0010196">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — date range &gt; sets dateTo on change" time="0.0008815">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — topic scope &gt; updates topicId when select changes" time="0.0012024">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — rating pills &gt; sets minRating when rating pill is clicked" time="0.0010714">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — rating pills &gt; clears minRating when the same rating pill is clicked again" time="0.0009472">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — clear button &gt; resets all filters on clear" time="0.0010596">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupFilterBar() — clear button &gt; removes is-active class from source and rating pills on clear" time="0.0008613">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setSearchContext() &gt; sets searchContext to entities" time="0.0007653">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setSearchContext() &gt; sets searchContext back to chats" time="0.0007467">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setSearchContext() &gt; activates the entities button when switching to entities" time="0.0005812">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setSearchContext() &gt; activates the chats button when switching to chats" time="0.0007508">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setSearchContext() &gt; shows entityTypes group when switching to entities" time="0.0005847">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setSearchContext() &gt; hides entityTypes group when switching to chats" time="0.0006262">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="refreshEntityTypeChipVisibility() &gt; does nothing when filterEntityTypePills container is absent" time="0.0004138">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setSearchContext() — re-runs search when searchQuery is active &gt; calls entity search handler when switching to entities with an active query" time="0.0010649">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setSearchContext() — re-runs search when searchQuery is active &gt; calls rerunSearch (chatRepo.searchChats) when switching to chats with active query" time="0.0021023">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupSearchContextToggle() — re-runs entity search when query is active &gt; clicking entities button calls entity search handler when query is active" time="0.0020088">
+        </testcase>
+        <testcase classname="tests/search-controller.test.js" name="setupSearchContextToggle() — re-runs entity search when query is active &gt; clicking chats button re-runs chat search when query is active" time="0.0011294">
+        </testcase>
+    </testsuite>
+</testsuites>

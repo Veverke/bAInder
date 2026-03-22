@@ -46,30 +46,10 @@ export function buildExportMarkdown(chat, topicPath) {
 
   const lines = [...fm];
 
-  // ── Title heading ──────────────────────────────────────────────────────────
-  if (!isExcerpt) {
-    lines.push(`# ${title}`);
-    lines.push('');
-  }
-
-  // ── Metadata block ─────────────────────────────────────────────────────────
-  const srcLabel = sourceLabel(source);
-  if (!isExcerpt) {
-    lines.push(`**Source:** ${srcLabel}  `);
-    if (dateStr) lines.push(`**Date:** ${formatDateHuman(chat.timestamp)}  `);
-    lines.push(`**Topic:** ${topicPath}  `);
-    if (tags) lines.push(`**Tags:** ${tags}  `);
-    lines.push('');
-    lines.push('---');
-    lines.push('');
-  }
-
   // ── Conversation ───────────────────────────────────────────────────────────
   const messages = Array.isArray(chat.messages) ? chat.messages : [];
 
   if (messages.length > 0) {
-    lines.push('## Conversation');
-    lines.push('');
     messages.forEach((msg, idx) => {
       const role = msg.role === 'user' ? 'User'
         : msg.role === 'assistant' ? 'Assistant'
@@ -179,16 +159,8 @@ export function buildDigestMarkdown(chats, topicsMap, options = {}) {
         messageCount: messages.length,
         url: chat.url || '',
       });
-      // Strip YAML frontmatter and the duplicate # Title heading (the ## section
-      // heading above already provides the title).
-      const bodyRaw = stripFrontmatter(raw);
-      const bodyLines = bodyRaw.split('\n');
-      const titleIdx = bodyLines.findIndex(l => l.startsWith('# '));
-      if (titleIdx !== -1) {
-        const extra = bodyLines[titleIdx + 1]?.trim() === '' ? 2 : 1;
-        bodyLines.splice(titleIdx, extra);
-      }
-      lines.push(bodyLines.join('\n').trim());
+      // Strip YAML frontmatter; the ## section heading above provides the title.
+      lines.push(stripFrontmatter(raw).trim());
       lines.push('');
     } else if (messages.length > 0) {
       // Export format: explicit ### Role headings readable in external Markdown editors.

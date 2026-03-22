@@ -136,8 +136,9 @@ export function initTreeRenderer(callbacks = {}) {
     _state.renderer.onSelectionChange = callbacks.onSelectionChange;
   }
 
-  // C.9 — apply saved sort mode
-  _state.renderer.sortMode = _state.sortMode;
+  // C.9 — apply saved sort modes
+  _state.renderer.sortMode     = _state.sortMode;
+  _state.renderer.chatSortMode = _state.chatSortMode || 'date-desc';
 
   // Restore expanded state
   const savedExpanded = localStorage.getItem('expandedNodes');

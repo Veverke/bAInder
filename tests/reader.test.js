@@ -1262,6 +1262,127 @@ describe('_findEntityBlock — attachment chips', () => {
   });
 });
 
+// ─── _findEntityBlock — table matching ───────────────────────────────────────
+
+describe('_findEntityBlock — tables', () => {
+  function makeAnchorWithTable(headerCells, bodyRows = []) {
+    const anchor = document.createElement('div');
+    anchor.id = 'r1';
+    const thHtml = headerCells.map(c => `<th>${c}</th>`).join('');
+    const tbodyHtml = bodyRows.map(row =>
+      `<tr>${row.map(c => `<td>${c}</td>`).join('')}</tr>`
+    ).join('');
+    anchor.innerHTML =
+      `<div class="table-wrapper">` +
+        `<table>` +
+          `<thead><tr>${thHtml}</tr></thead>` +
+          `<tbody>${tbodyHtml}</tbody>` +
+        `</table>` +
+      `</div>`;
+    document.body.appendChild(anchor);
+    return anchor;
+  }
+
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('finds a table by exact header hint (score 2)', () => {
+    const anchor = makeAnchorWithTable(['Name', 'Age', 'City']);
+    const result = _findEntityBlock(anchor, '| Name | Age | City |');
+    expect(result).not.toBeNull();
+    expect(result.classList.contains('table-wrapper')).toBe(true);
+  });
+
+  it('matching is case-insensitive', () => {
+    const anchor = makeAnchorWithTable(['Name', 'Age']);
+    const result = _findEntityBlock(anchor, '| name | age |');
+    expect(result).not.toBeNull();
+  });
+
+  it('falls back to partial header match (score 1) when not all cells match', () => {
+    const anchor = makeAnchorWithTable(['Product', 'Price', 'Stock']);
+    const result = _findEntityBlock(anchor, '| Product | Price |');
+    expect(result).not.toBeNull();
+  });
+
+  it('returns null when no header cells match hint', () => {
+    const anchor = makeAnchorWithTable(['Country', 'Capital']);
+    const result = _findEntityBlock(anchor, '| Name | Age |');
+    expect(result).toBeNull();
+  });
+
+  it('returns null when table has no thead', () => {
+    const anchor = document.createElement('div');
+    anchor.id = 'r1';
+    anchor.innerHTML =
+      `<div class="table-wrapper"><table><tbody><tr><td>data</td></tr></tbody></table></div>`;
+    document.body.appendChild(anchor);
+    expect(_findEntityBlock(anchor, '| data |')).toBeNull();
+  });
+});
+
+// ─── _findEntityBlock — turn:self sentinel ────────────────────────────────────
+
+describe('_findEntityBlock — turn:self', () => {
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('returns the anchorEl itself for hint "turn:self"', () => {
+    const anchor = document.createElement('div');
+    anchor.id = 'p1';
+    anchor.className = 'chat-turn chat-turn--user';
+    anchor.innerHTML = '<p>Hello world</p>';
+    document.body.appendChild(anchor);
+    expect(_findEntityBlock(anchor, 'turn:self')).toBe(anchor);
+  });
+
+  it('is case-insensitive for the sentinel', () => {
+    const anchor = document.createElement('div');
+    anchor.id = 'r1';
+    document.body.appendChild(anchor);
+    expect(_findEntityBlock(anchor, 'TURN:SELF')).toBe(anchor);
+  });
+});
+
+// ─── _findEntityBlock — image matching ───────────────────────────────────────
+
+describe('_findEntityBlock — images', () => {
+  function makeAnchorWithImage(alt = '', src = 'https://example.com/img.png') {
+    const anchor = document.createElement('div');
+    anchor.id = 'r1';
+    anchor.innerHTML = `<img class="chat-image" src="${src}" alt="${alt}">`;
+    document.body.appendChild(anchor);
+    return anchor;
+  }
+
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('finds img.chat-image by exact alt text (score 2)', () => {
+    const anchor = makeAnchorWithImage('A bar chart');
+    const result = _findEntityBlock(anchor, 'A bar chart');
+    expect(result).not.toBeNull();
+    expect(result.tagName).toBe('IMG');
+  });
+
+  it('matching is case-insensitive', () => {
+    const anchor = makeAnchorWithImage('A Bar Chart');
+    expect(_findEntityBlock(anchor, 'a bar chart')).not.toBeNull();
+  });
+
+  it('partial alt text match scores lower but still matches', () => {
+    const anchor = makeAnchorWithImage('A bar chart showing revenue');
+    expect(_findEntityBlock(anchor, 'bar chart')).not.toBeNull();
+  });
+
+  it('returns null when alt text does not match hint', () => {
+    const anchor = makeAnchorWithImage('A pie chart');
+    expect(_findEntityBlock(anchor, 'bar chart')).toBeNull();
+  });
+
+  it('returns null when image has no alt text and hint is non-empty', () => {
+    const anchor = makeAnchorWithImage('');
+    expect(_findEntityBlock(anchor, 'some text')).toBeNull();
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // countWords()
 // ─────────────────────────────────────────────────────────────────────────────

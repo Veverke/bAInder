@@ -2,7 +2,7 @@
  * Tests for src/lib/renderer/tree-sort.js
  */
 
-import { sortTopics } from '../src/lib/renderer/tree-sort.js';
+import { sortTopics, sortChats } from '../src/lib/renderer/tree-sort.js';
 
 const makeTopics = (overrides = []) => overrides;
 
@@ -215,5 +215,117 @@ describe('sortTopics count — empty chatIds arrays', () => {
     expect(result[0].name).toBe('Two');
     // Zero and Missing both map to 0 — just verify both appear after Two
     expect(result.map(t => t.name).indexOf('Two')).toBe(0);
+  });
+});
+
+// ── sortChats ─────────────────────────────────────────────────────────────────
+
+describe('sortChats', () => {
+  const makeChats = (overrides) => overrides;
+
+  describe('date-desc (default — newest first)', () => {
+    it('sorts by timestamp descending', () => {
+      const chats = makeChats([
+        { id: '1', title: 'Old',    timestamp: 1000 },
+        { id: '2', title: 'Newest', timestamp: 3000 },
+        { id: '3', title: 'Mid',    timestamp: 2000 },
+      ]);
+      const result = sortChats(chats, 'date-desc');
+      expect(result.map(c => c.title)).toEqual(['Newest', 'Mid', 'Old']);
+    });
+
+    it('uses date-desc when mode is unrecognized', () => {
+      const chats = makeChats([
+        { id: '1', title: 'A', timestamp: 100 },
+        { id: '2', title: 'B', timestamp: 200 },
+      ]);
+      const result = sortChats(chats, 'unknown-mode');
+      expect(result[0].title).toBe('B');
+    });
+
+    it('handles missing timestamp (treats as 0)', () => {
+      const chats = makeChats([
+        { id: '1', title: 'HasDate', timestamp: 5000 },
+        { id: '2', title: 'NoDate' },
+      ]);
+      const result = sortChats(chats, 'date-desc');
+      expect(result[0].title).toBe('HasDate');
+    });
+  });
+
+  describe('date-asc (oldest first)', () => {
+    it('sorts by timestamp ascending', () => {
+      const chats = makeChats([
+        { id: '1', title: 'Newest', timestamp: 3000 },
+        { id: '2', title: 'Old',    timestamp: 1000 },
+        { id: '3', title: 'Mid',    timestamp: 2000 },
+      ]);
+      const result = sortChats(chats, 'date-asc');
+      expect(result.map(c => c.title)).toEqual(['Old', 'Mid', 'Newest']);
+    });
+  });
+
+  describe('alpha-asc', () => {
+    it('sorts chats A→Z by title', () => {
+      const chats = makeChats([
+        { id: '1', title: 'Zebra',  timestamp: 1000 },
+        { id: '2', title: 'Apple',  timestamp: 2000 },
+        { id: '3', title: 'Mango',  timestamp: 3000 },
+      ]);
+      const result = sortChats(chats, 'alpha-asc');
+      expect(result.map(c => c.title)).toEqual(['Apple', 'Mango', 'Zebra']);
+    });
+
+    it('is case-insensitive', () => {
+      const chats = makeChats([
+        { id: '1', title: 'banana', timestamp: 1 },
+        { id: '2', title: 'Apple',  timestamp: 2 },
+      ]);
+      expect(sortChats(chats, 'alpha-asc')[0].title).toBe('Apple');
+    });
+
+    it('handles missing title (treats as empty string)', () => {
+      const chats = makeChats([
+        { id: '1', title: 'Z', timestamp: 1 },
+        { id: '2',             timestamp: 2 },
+      ]);
+      const result = sortChats(chats, 'alpha-asc');
+      expect(result[0].title).toBeUndefined(); // '' sorts before 'Z'
+    });
+  });
+
+  describe('alpha-desc', () => {
+    it('sorts chats Z→A by title', () => {
+      const chats = makeChats([
+        { id: '1', title: 'Apple',  timestamp: 1000 },
+        { id: '2', title: 'Zebra',  timestamp: 2000 },
+        { id: '3', title: 'Mango',  timestamp: 3000 },
+      ]);
+      const result = sortChats(chats, 'alpha-desc');
+      expect(result.map(c => c.title)).toEqual(['Zebra', 'Mango', 'Apple']);
+    });
+  });
+
+  describe('immutability', () => {
+    it('does not mutate the original array', () => {
+      const chats = [
+        { id: '2', title: 'B', timestamp: 2000 },
+        { id: '1', title: 'A', timestamp: 1000 },
+      ];
+      const originalOrder = chats.map(c => c.title);
+      sortChats(chats, 'alpha-asc');
+      expect(chats.map(c => c.title)).toEqual(originalOrder);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('returns empty array for empty input', () => {
+      expect(sortChats([], 'date-desc')).toEqual([]);
+    });
+
+    it('returns single-element array unchanged', () => {
+      const chats = [{ id: '1', title: 'Solo', timestamp: 1 }];
+      expect(sortChats(chats, 'date-desc')).toHaveLength(1);
+    });
   });
 });
