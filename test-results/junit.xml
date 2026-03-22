@@ -1,543 +1,657 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="193" failures="0" errors="0" time="0.2850923">
-    <testsuite name="tests/reader.test.js" timestamp="2026-03-22T17:18:25.796Z" hostname="Kahana-PC" tests="193" failures="0" errors="0" skipped="0" time="0.2850923">
-        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns empty string for null / undefined / empty" time="0.0012006">
+<testsuites name="vitest tests" tests="240" failures="0" errors="0" time="0.4490487">
+    <testsuite name="tests/reader.test.js" timestamp="2026-03-22T22:05:10.705Z" hostname="Kahana-PC" tests="240" failures="0" errors="0" skipped="0" time="0.4490487">
+        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns empty string for null / undefined / empty" time="0.0027592">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns a non-empty string for a valid ISO date" time="0.0133883">
+        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns a non-empty string for a valid ISO date" time="0.0307244">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns the original string for an invalid date" time="0.0002363">
+        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns the original string for an invalid date" time="0.0004791">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; returns empty string for null / undefined" time="0.0002312">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; returns empty string for null / undefined" time="0.000497">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; escapes &amp; &lt; &gt; &quot;" time="0.0001458">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; escapes &amp; &lt; &gt; &quot;" time="0.000382">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; escapes ampersand" time="0.0001021">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; escapes ampersand" time="0.0002964">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; leaves safe text unchanged" time="0.0000787">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; leaves safe text unchanged" time="0.0001907">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps chatgpt" time="0.0001063">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps chatgpt" time="0.0002933">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps claude" time="0.0000796">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps claude" time="0.0002831">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps gemini" time="0.0000957">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps gemini" time="0.000229">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps copilot" time="0.0000542">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps copilot" time="0.000136">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns source string for unknown" time="0.0000538">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns source string for unknown" time="0.0000986">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns Unknown for empty / null" time="0.0000662">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns Unknown for empty / null" time="0.0001221">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns Excerpt when isExcerpt is true" time="0.0000554">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns Excerpt when isExcerpt is true" time="0.0001196">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--chatgpt for chatgpt" time="0.0001427">
+        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--chatgpt for chatgpt" time="0.0003182">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--unknown for unknown source" time="0.0001033">
+        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--unknown for unknown source" time="0.0002473">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--excerpt when isExcerpt is true regardless of source" time="0.0000748">
+        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--excerpt when isExcerpt is true regardless of source" time="0.0001656">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts **bold** to &lt;strong&gt;" time="0.0003285">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts **bold** to &lt;strong&gt;" time="0.0007324">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts *italic* to &lt;em&gt;" time="0.0000966">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts *italic* to &lt;em&gt;" time="0.0001773">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts `code` to &lt;code&gt;" time="0.0000769">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts `code` to &lt;code&gt;" time="0.0001819">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; does not double-process bold inside code" time="0.0001878">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; does not double-process bold inside code" time="0.0004124">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; returns unchanged text when no formatting present" time="0.0000579">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; returns unchanged text when no formatting present" time="0.0001292">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; handles empty string" time="0.0000485">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; handles empty string" time="0.0000944">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts ![alt](https://url) to &lt;img&gt;" time="0.000132">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts ![alt](https://url) to &lt;img&gt;" time="0.0004012">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts data: image URL to &lt;img&gt;" time="0.0000721">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts data: image URL to &lt;img&gt;" time="0.0001976">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; keeps &amp;amp; encoded in image src URL (valid HTML attribute)" time="0.0000551">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; keeps &amp;amp; encoded in image src URL (valid HTML attribute)" time="0.0001191">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts [text](url) to an anchor tag" time="0.0001922">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts [text](url) to an anchor tag" time="0.0004326">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; keeps &amp;amp; encoded in link href (valid HTML attribute)" time="0.0001158">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; keeps &amp;amp; encoded in link href (valid HTML attribute)" time="0.0002538">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="applyInline &gt; handles links alongside bold text" time="0.0000777">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; handles links alongside bold text" time="0.0001527">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; returns empty string for null / undefined / empty" time="0.000565">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; returns empty string for null / undefined / empty" time="0.0011874">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; strips YAML frontmatter" time="0.0004684">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; strips YAML frontmatter" time="0.0010919">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders # heading as &lt;h1&gt;" time="0.0000849">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders # heading as &lt;h1&gt;" time="0.0002493">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders ## heading as &lt;h2&gt;" time="0.0000608">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders ## heading as &lt;h2&gt;" time="0.0001309">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders ### heading as &lt;h3&gt;" time="0.0000754">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders ### heading as &lt;h3&gt;" time="0.0001584">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders --- as &lt;hr&gt;" time="0.0000738">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders --- as &lt;hr&gt;" time="0.0001397">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders fenced code block as a code-block widget with header and copy button" time="0.0001661">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders fenced code block as a code-block widget with header and copy button" time="0.0003178">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not double-escape HTML inside code blocks" time="0.0000675">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not double-escape HTML inside code blocks" time="0.0001294">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders blockquote &gt; as &lt;blockquote&gt;" time="0.0000728">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders blockquote &gt; as &lt;blockquote&gt;" time="0.0001458">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders standalone ![alt](url) as an &lt;img&gt;" time="0.000079">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders standalone ![alt](url) as an &lt;img&gt;" time="0.0001533">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders [text](url) link inside paragraph" time="0.0004125">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders [text](url) link inside paragraph" time="0.0009768">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links a bare https URL" time="0.0003364">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links a bare https URL" time="0.0007254">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links a bare http URL" time="0.0001236">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links a bare http URL" time="0.0002926">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not double-link an explicit markdown link whose href is a URL" time="0.0001019">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not double-link an explicit markdown link whose href is a URL" time="0.000224">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; trims trailing period from auto-linked URL and keeps the period as text" time="0.0000945">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; trims trailing period from auto-linked URL and keeps the period as text" time="0.0001912">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; trims trailing ) from auto-linked URL" time="0.0000738">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; trims trailing ) from auto-linked URL" time="0.0001526">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links URL with path and query string" time="0.0000727">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links URL with path and query string" time="0.0001732">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not link text that starts with http inside a word (e.g. no-op for plain text)" time="0.0000607">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not link text that starts with http inside a word (e.g. no-op for plain text)" time="0.0001108">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders Microsoft Designer as a card (not iframe)" time="0.0001285">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders Microsoft Designer as a card (not iframe)" time="0.0002131">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; Designer card does not clobber surrounding text" time="0.0001172">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; Designer card does not clobber surrounding text" time="0.0001996">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with data: src renders &lt;audio controls&gt; player" time="0.0001847">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with data: src renders &lt;audio controls&gt; player" time="0.0003436">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with https: src renders &lt;audio controls&gt; player" time="0.0001247">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with https: src renders &lt;audio controls&gt; player" time="0.0003195">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with blob: src renders unavailable notice" time="0.0001339">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with blob: src renders unavailable notice" time="0.0002753">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker without URL (not captured) renders unavailable notice" time="0.0001006">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker without URL (not captured) renders unavailable notice" time="0.0001691">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio card does not clobber surrounding text" time="0.0004669">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio card does not clobber surrounding text" time="0.0007873">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio src URL is HTML-escaped in the output" time="0.0000949">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio src URL is HTML-escaped in the output" time="0.000205">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; standalone PDF filename renders as file-attachment-chip" time="0.0001699">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; standalone PDF filename renders as file-attachment-chip" time="0.0003078">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; chip includes session note text" time="0.0000845">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; chip includes session note text" time="0.0001487">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; without sourceUrl chip renders as &lt;div&gt;" time="0.0000817">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; without sourceUrl chip renders as &lt;div&gt;" time="0.0001303">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; with sourceUrl chip renders as &lt;a&gt; linking to the source" time="0.00009">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; with sourceUrl chip renders as &lt;a&gt; linking to the source" time="0.0001985">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; emoji-prefixed filename (from messagesToMarkdown) renders chip" time="0.0001622">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; emoji-prefixed filename (from messagesToMarkdown) renders chip" time="0.00036">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; emoji-prefixed filename in full serialised content renders chip inside assistant turn" time="0.0001643">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; emoji-prefixed filename in full serialised content renders chip inside assistant turn" time="0.0005407">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; sourceUrl is passed through to emoji-prefixed chip" time="0.000094">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; sourceUrl is passed through to emoji-prefixed chip" time="0.0002016">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename + blank line + type label renders chip, drops bare type label" time="0.0000866">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename + blank line + type label renders chip, drops bare type label" time="0.000143">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; DOCX file renders chip with correct ext badge" time="0.0000652">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; DOCX file renders chip with correct ext badge" time="0.00012">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; CSV file renders chip with correct ext badge" time="0.0000948">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; CSV file renders chip with correct ext badge" time="0.0001221">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; Python file renders chip" time="0.0000762">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; Python file renders chip" time="0.0001209">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename embedded in prose is NOT rendered as chip" time="0.0001211">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename embedded in prose is NOT rendered as chip" time="0.0002624">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename inside code block is NOT rendered as chip" time="0.0000764">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename inside code block is NOT rendered as chip" time="0.0001753">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; chip does not clobber surrounding text" time="0.0001195">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; chip does not clobber surrounding text" time="0.0002382">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; multiple attachment lines each render as separate chips" time="0.0000891">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; multiple attachment lines each render as separate chips" time="0.0002067">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders - list items as &lt;ul&gt;" time="0.0001191">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders - list items as &lt;ul&gt;" time="0.000196">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders numbered list items as &lt;ol&gt;" time="0.0000912">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders numbered list items as &lt;ol&gt;" time="0.0001313">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; wraps plain text lines in &lt;p&gt;" time="0.0000601">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; wraps plain text lines in &lt;p&gt;" time="0.0001191">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; escapes HTML entities in plain text" time="0.0000687">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; escapes HTML entities in plain text" time="0.0000932">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; applies inline formatting inside paragraphs" time="0.0000638">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; applies inline formatting inside paragraphs" time="0.0000748">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders full messagesToMarkdown output correctly" time="0.0005221">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders full messagesToMarkdown output correctly" time="0.0008515">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="processSources &gt; returns early for null input" time="0.0006141">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; returns early for null input" time="0.0009695">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="processSources &gt; replaces a Sources &lt;p&gt;+&lt;ul&gt; pair with a .sources-trigger button" time="0.007196">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; replaces a Sources &lt;p&gt;+&lt;ul&gt; pair with a .sources-trigger button" time="0.0110899">
             <system-out>
 [bAInder] processSources: creating chip with [33m1[39m link(s)
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="processSources &gt; stores link data in data-sources attribute as JSON" time="0.0023928">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; stores link data in data-sources attribute as JSON" time="0.0040059">
             <system-out>
 [bAInder] processSources: creating chip with [33m2[39m link(s)
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="processSources &gt; chip label uses singular &quot;source&quot; for one link" time="0.0010758">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; chip label uses singular &quot;source&quot; for one link" time="0.0017279">
             <system-out>
 [bAInder] processSources: creating chip with [33m1[39m link(s)
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="processSources &gt; chip label uses plural &quot;sources&quot; for multiple links" time="0.001012">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; chip label uses plural &quot;sources&quot; for multiple links" time="0.001443">
             <system-out>
 [bAInder] processSources: creating chip with [33m2[39m link(s)
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing when the &lt;p&gt; is not empty. and has no following &lt;ul&gt;" time="0.0005044">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing when the &lt;p&gt; is not empty. and has no following &lt;ul&gt;" time="0.0007547">
             <system-out>
 [bAInder] processSources: found Sources p but nextElementSibling is P  skipping
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing to &lt;p&gt; elements that are not &quot;Sources:&quot;" time="0.0004328">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing to &lt;p&gt; elements that are not &quot;Sources:&quot;" time="0.0007525">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing when the &lt;ul&gt; has no links" time="0.0003935">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing when the &lt;ul&gt; has no links" time="0.0005975">
             <system-out>
 [bAInder] processSources: Sources ul has no valid links
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; injects #sources-panel and #sources-overlay into the DOM" time="0.0012969">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; injects #sources-panel and #sources-overlay into the DOM" time="0.0020521">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; is idempotent — calling twice does not create a second panel" time="0.0009292">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; is idempotent — calling twice does not create a second panel" time="0.0019791">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; panel starts with aria-hidden=&quot;true&quot;" time="0.0006685">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; panel starts with aria-hidden=&quot;true&quot;" time="0.0011406">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; clicking a .sources-trigger opens the panel and populates the list" time="0.0064566">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; clicking a .sources-trigger opens the panel and populates the list" time="0.0062827">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; close button hides the panel" time="0.0012804">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; close button hides the panel" time="0.0021544">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; Escape key closes an open panel" time="0.0010193">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; Escape key closes an open panel" time="0.0017292">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; links in the panel open in a new tab" time="0.0026879">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; links in the panel open in a new tab" time="0.0046022">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="showError &gt; shows the error state" time="0.0008708">
+        <testcase classname="tests/reader.test.js" name="showError &gt; shows the error state" time="0.0020321">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="showError &gt; sets the error message text" time="0.0004994">
+        <testcase classname="tests/reader.test.js" name="showError &gt; sets the error message text" time="0.0009139">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows the reader header" time="0.0054235">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows the reader header" time="0.0078032">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows the reader content" time="0.0048759">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows the reader content" time="0.0089046">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets the page title" time="0.0033969">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets the page title" time="0.0051227">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders title in header" time="0.0029037">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders title in header" time="0.0044539">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets source badge class to badge--claude" time="0.0029183">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets source badge class to badge--claude" time="0.0051284">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders markdown content as HTML for markdown-v1 format" time="0.0033998">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders markdown content as HTML for markdown-v1 format" time="0.0057786">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; keeps entire assistant response in one .chat-turn--assistant when response contains internal --- rules" time="0.0091465">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; keeps entire assistant response in one .chat-turn--assistant when response contains internal --- rules" time="0.0060713">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m224[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;HR Test\&quot;\nsource: chatgpt\ncontentFormat: markdown-v1\n---\n\n# HR Test\n\n🙋 User question\n\n---\n\n🤖 First paragraph of response\n\n---\n\nSecond paragraph of response\n\n---\n\n🙋 Second user question\n\n---\n\n🤖 Second response\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets excerpt badge class when isExcerpt is true in metadata" time="0.0016262">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets excerpt badge class when isExcerpt is true in metadata" time="0.0028441">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m103[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Excerpt\&quot;\nsource: chatgpt\nexcerpt: true\ncontentFormat: markdown-v1\n---\n\n# Excerpt\n\nSome text&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows meta-responses when there are assistant turns" time="0.0023116">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows meta-responses when there are assistant turns" time="0.0044901">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders responses trigger with correct count text" time="0.0024369">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders responses trigger with correct count text" time="0.0102942">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders responses trigger as plural for multiple responses" time="0.0042542">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders responses trigger as plural for multiple responses" time="0.0054348">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders a responses-overlay with one item per assistant turn" time="0.0024553">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders a responses-overlay with one item per assistant turn" time="0.0034598">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; responses overlay items link to #rN anchors" time="0.0030005">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; responses overlay items link to #rN anchors" time="0.0042485">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; responses overlay items contain the assistant text snippet" time="0.0022813">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; responses overlay items contain the assistant text snippet" time="0.0033348">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="renderChat &gt; hides meta-responses when there are no assistant turns" time="0.0013876">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; hides meta-responses when there are no assistant turns" time="0.0024355">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m102[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\nSome plain text with no role emoji\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="init &gt; shows error when no chatId in URL" time="0.0008428">
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when no chatId in URL" time="0.001778">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="init &gt; shows error when chatId not found in storage" time="0.0005803">
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when chatId not found in storage" time="0.0010929">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="init &gt; renders the chat when chatId is found" time="0.0041915">
+        <testcase classname="tests/reader.test.js" name="init &gt; renders the chat when chatId is found" time="0.0046866">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m111[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Found Chat Array\&quot;\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Found Chat Array\n\nSome content\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="init &gt; header and content are shown, error is hidden, after successful render" time="0.0021805">
+        <testcase classname="tests/reader.test.js" name="init &gt; header and content are shown, error is hidden, after successful render" time="0.0024571">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m87[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Render Test\&quot;\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Render Test\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="init &gt; error state is shown and header remains hidden when chat not found" time="0.0005252">
+        <testcase classname="tests/reader.test.js" name="init &gt; error state is shown and header remains hidden when chat not found" time="0.0007273">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="init &gt; shows error when chatId not in array" time="0.0005247">
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when chatId not in array" time="0.0006541">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="init &gt; shows error when storage throws" time="0.0005145">
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when storage throws" time="0.0006917">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupRating &gt; renders 5 star buttons" time="0.0006888">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; renders 5 star buttons" time="0.0009717">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupRating &gt; marks stars up to currentRating as is-set" time="0.0005837">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; marks stars up to currentRating as is-set" time="0.0007614">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupRating &gt; shows no stars filled when rating is 0/null" time="0.0004362">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; shows no stars filled when rating is 0/null" time="0.0006207">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupRating &gt; makes the container visible" time="0.0003804">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; makes the container visible" time="0.0005783">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupRating &gt; clicking a star saves the new rating to storage" time="0.0015175">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; clicking a star saves the new rating to storage" time="0.0032709">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupRating &gt; clicking the same star twice clears the rating" time="0.0047384">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; clicking the same star twice clears the rating" time="0.0032949">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupRating &gt; is a no-op when #reader-rating element is absent" time="0.0002867">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; is a no-op when #reader-rating element is absent" time="0.0012927">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns empty object when nothing stored" time="0.000172">
+        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns empty object when nothing stored" time="0.0006899">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns stored positions" time="0.0001287">
+        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns stored positions" time="0.0006131">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns empty object when localStorage contains invalid JSON" time="0.0001704">
+        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns empty object when localStorage contains invalid JSON" time="0.0005143">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; persists a new position" time="0.0001738">
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; persists a new position" time="0.0007326">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; updates an existing position" time="0.000086">
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; updates an existing position" time="0.000412">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; is a no-op when chatId is falsy" time="0.0000602">
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; is a no-op when chatId is falsy" time="0.0003875">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; evicts the oldest entry when cap is exceeded" time="0.0004073">
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; evicts the oldest entry when cap is exceeded" time="0.0015041">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; re-inserting an existing id moves it to the end (no eviction size change)" time="0.000261">
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; re-inserting an existing id moves it to the end (no eviction size change)" time="0.001211">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; calls window.scrollTo with the stored Y value" time="0.000215">
+        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; calls window.scrollTo with the stored Y value" time="0.0005713">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; does not call window.scrollTo when no position stored" time="0.0001404">
+        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; does not call window.scrollTo when no position stored" time="0.0064221">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; is a no-op when chatId is falsy" time="0.0000808">
+        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; is a no-op when chatId is falsy" time="0.0002273">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; returns gracefully when button is absent" time="0.0008214">
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; returns gracefully when button is absent" time="0.0012735">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; success path: shows ✓ Copied feedback after click" time="0.0124758">
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; success path: shows ✓ Copied feedback after click" time="0.0020491">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; tooLarge path: skips clipboard write and shows error feedback" time="0.0160743">
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; tooLarge path: skips clipboard write and shows error feedback" time="0.0067876">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; fallback path: shows &quot;Select all + paste&quot; feedback" time="0.0020079">
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; fallback path: shows &quot;Select all + paste&quot; feedback" time="0.0151915">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; finds a .file-attachment-chip by filename hint" time="0.0013152">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; finds a .file-attachment-chip by filename hint" time="0.0021356">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; matching is case-insensitive" time="0.0007586">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; matching is case-insensitive" time="0.0009254">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; returns null when filename does not match" time="0.0012127">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; returns null when filename does not match" time="0.0006908">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; returns null when hint is null" time="0.0010813">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; returns null when hint is null" time="0.0006925">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; finds a table by exact header hint (score 2)" time="0.0027436">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; finds a table by exact header hint (score 2)" time="0.0026333">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; matching is case-insensitive" time="0.0007104">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; matching is case-insensitive" time="0.0009852">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; falls back to partial header match (score 1) when not all cells match" time="0.0007528">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; falls back to partial header match (score 1) when not all cells match" time="0.0011201">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; returns null when no header cells match hint" time="0.0005848">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; returns null when no header cells match hint" time="0.0009955">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; returns null when table has no thead" time="0.0005024">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; returns null when table has no thead" time="0.000977">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — turn:self &gt; returns the anchorEl itself for hint &quot;turn:self&quot;" time="0.0002953">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — turn:self &gt; returns the anchorEl itself for hint &quot;turn:self&quot;" time="0.0006405">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — turn:self &gt; is case-insensitive for the sentinel" time="0.0001357">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — turn:self &gt; is case-insensitive for the sentinel" time="0.000278">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; finds img.chat-image by exact alt text (score 2)" time="0.000505">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; finds img.chat-image by exact alt text (score 2)" time="0.0012029">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; matching is case-insensitive" time="0.0003628">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; matching is case-insensitive" time="0.0006657">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; partial alt text match scores lower but still matches" time="0.0003011">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; partial alt text match scores lower but still matches" time="0.0006373">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; returns null when alt text does not match hint" time="0.0002551">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; returns null when alt text does not match hint" time="0.0006195">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; returns null when image has no alt text and hint is non-empty" time="0.0002691">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; returns null when image has no alt text and hint is non-empty" time="0.0005957">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="countWords() &gt; returns 0 for empty string" time="0.0001366">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; returns 0 for empty string" time="0.0004317">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="countWords() &gt; returns 0 for null / undefined" time="0.0000711">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; returns 0 for null / undefined" time="0.0003327">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="countWords() &gt; counts plain words correctly" time="0.0002439">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; counts plain words correctly" time="0.0007747">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips YAML frontmatter before counting" time="0.0000845">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips YAML frontmatter before counting" time="0.0002902">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips fenced code blocks before counting" time="0.0000778">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips fenced code blocks before counting" time="0.0001518">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips inline code before counting" time="0.0000628">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips inline code before counting" time="0.0001357">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips markdown images before counting" time="0.0000485">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips markdown images before counting" time="0.0001184">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips markdown links before counting" time="0.0000522">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips markdown links before counting" time="0.0001159">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="countWords() &gt; handles whitespace-only text" time="0.0000554">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; handles whitespace-only text" time="0.0002366">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="countWords() &gt; handles multi-line text without markdown" time="0.0000517">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; handles multi-line text without markdown" time="0.000483">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for 0 words (minimum)" time="0.0000868">
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for 0 words (minimum)" time="0.0004117">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for fewer than 200 words" time="0.0001856">
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for fewer than 200 words" time="0.0006435">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for exactly 200 words" time="0.0000524">
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for exactly 200 words" time="0.0003065">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; rounds to nearest minute" time="0.0000555">
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; rounds to nearest minute" time="0.0004793">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns correct value for large word counts" time="0.0000529">
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns correct value for large word counts" time="0.0002834">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns null for a chat with no messages array" time="0.0002036">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns null for a chat with no messages array" time="0.000612">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns null when messages is not an array" time="0.000079">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns null when messages is not an array" time="0.000222">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns an unchanged copy when turnIndices is empty" time="0.0003468">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns an unchanged copy when turnIndices is empty" time="0.0009128">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes the specified turn by index" time="0.0004037">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes the specified turn by index" time="0.0009446">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes multiple turns (user + assistant)" time="0.0003172">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes multiple turns (user + assistant)" time="0.0007803">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; updates messageCount to match the remaining messages" time="0.0001883">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; updates messageCount to match the remaining messages" time="0.0005464">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; rebuilds content markdown reflecting the deleted turns" time="0.0002027">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; rebuilds content markdown reflecting the deleted turns" time="0.000489">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; updated content contains correct messageCount in frontmatter" time="0.0001377">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; updated content contains correct messageCount in frontmatter" time="0.0004785">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; preserves title, source and url in the rebuilt content" time="0.0001164">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; preserves title, source and url in the rebuilt content" time="0.0003884">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; can delete all turns, producing empty messages and frontmatter-only content" time="0.0002006">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; can delete all turns, producing empty messages and frontmatter-only content" time="0.0004012">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; does not mutate the original chat object" time="0.0001629">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; does not mutate the original chat object" time="0.0003264">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes entities whose messageIndex is in the deleted set" time="0.0002469">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes entities whose messageIndex is in the deleted set" time="0.0006445">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; remaps messageIndex for surviving entities after deletion" time="0.0002381">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; remaps messageIndex for surviving entities after deletion" time="0.0009832">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes entity type key entirely when all entities of that type are in deleted turns" time="0.0001191">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes entity type key entirely when all entities of that type are in deleted turns" time="0.0003714">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; handles multiple entity types simultaneously" time="0.0002389">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; handles multiple entity types simultaneously" time="0.0007477">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; does not add entity type keys that were not present on the original chat" time="0.0002009">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; does not add entity type keys that were not present on the original chat" time="0.0005843">
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; adds a Select button to .reader-actions" time="0.0064092">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; adds a Select button to .reader-actions" time="0.0094947">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; does not add Select button when chat has no messages" time="0.0016224">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; does not add Select button when chat has no messages" time="0.0032415">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 0\ncontentFormat: markdown-v1\n---\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; Delete button is hidden initially" time="0.0029196">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; Delete button is hidden initially" time="0.0054687">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; clicking Select adds checkboxes to each .chat-turn" time="0.0044642">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; clicking Select adds checkboxes to each .chat-turn" time="0.0094476">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; clicking Select a second time cancels and removes checkboxes" time="0.005661">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; clicking Select a second time cancels and removes checkboxes" time="0.0091753">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; checking a turn checkbox shows Delete button with count" time="0.011431">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; checking a turn checkbox shows Delete button with count" time="0.0084194">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; unchecking the last turn hides Delete button" time="0.0052812">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; unchecking the last turn hides Delete button" time="0.0064142">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; each .chat-turn gets a data-msg-index attribute after renderChat" time="0.0028239">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; each .chat-turn gets a data-msg-index attribute after renderChat" time="0.0049182">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
 
             </system-out>
         </testcase>
-        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; delete handler persists updated chat and clears annotations" time="0.0668886">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; delete handler persists updated chat and clears annotations" time="0.0660457">
             <system-out>
 [bAInder] [INFO] [reader] renderMarkdown: content length [33m152[39m | audio markers: [33m0[39m | lines with file extensions: []
 [bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 4\ncontentFormat: markdown-v1\n---\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; CODE: returns true when code is still present" time="0.0004199">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; CODE: returns false when code has been deleted" time="0.0002234">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; CODE: returns true when entity has no code field" time="0.0001567">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; CITATION: returns true when URL is still present" time="0.0001851">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; CITATION: returns false when URL has been deleted" time="0.0001431">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; TABLE: returns true when first header is still present" time="0.0001444">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; TABLE: returns false when first header has been deleted" time="0.0001238">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; TABLE: returns true when headers array is empty" time="0.0001507">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; DIAGRAM: returns true when source prefix is present" time="0.0001875">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; DIAGRAM: returns false when source prefix has been deleted" time="0.0001345">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; ARTIFACT: always returns true (conservative)" time="0.0001361">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; IMAGE: always returns true (conservative)" time="0.0001228">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; returns exact range for plain text match" time="0.0008295">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; returns null when text is not present" time="0.0009324">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; finds a single unordered list item (user selects just the text)" time="0.0004393">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; finds multiple contiguous list items selected together" time="0.0007417">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; finds a heading line (user selects heading text without #)" time="0.0003393">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; finds an ordered list item" time="0.000269">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; finds a blockquote line (user selects quote text without &gt;)" time="0.0002257">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; removing matched range leaves the rest of the content intact" time="0.0002288">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; prefers exact match over line-based for plain prose" time="0.0001828">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; matches a line containing bold markers (**text**)" time="0.0001706">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; matches a line with inline code (`code`)" time="0.0002109">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; matches a GFM table header row with bold cells" time="0.0003887">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; matches a complete table (header + data rows) skipping the separator" time="0.0003394">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; removing a bold heading leaves surrounding content intact" time="0.00024">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; returns null when messages array is absent" time="0.0004922">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; returns null when msgIndex is out of range" time="0.0003613">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; returns null when selectedText is empty" time="0.000237">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; returns null when selectedText is not found in the message" time="0.0001862">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; removes the selected text from the target message" time="0.0002894">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; leaves other messages unchanged" time="0.0002179">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; does not change messageCount (turn still exists)" time="0.0002287">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; rebuilds chat.content reflecting the removed text" time="0.0003396">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; does not mutate the original chat object" time="0.000364">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; removes only the first occurrence when text appears multiple times" time="0.0002397">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; removes code entity whose code block was deleted" time="0.00039">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; keeps code entity when its code block was not deleted" time="0.0005714">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; updates prompt entity text and wordCount when user message is edited" time="0.0005898">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; removes prompt entity when edited message becomes empty" time="0.0003876">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; does not touch entities from other turns" time="0.0006113">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; removes citation entity when its URL was deleted" time="0.0004406">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; does not add phantom entity keys not present on original chat" time="0.0006348">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupAnnotations delete-text button &gt; Delete button is hidden when chat has no messages" time="0.0065728">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 0\ncontentFormat: markdown-v1\n---\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupAnnotations delete-text button &gt; Delete button is visible when chat has messages" time="0.0062117">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m143[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello world\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupAnnotations delete-text button &gt; Delete button is hidden when chat parameter is not provided" time="0.0080549">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m143[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello world\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupAnnotations delete-text button &gt; delete handler persists updated chat and clears annotations" time="0.0120568">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m156[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello world how are you\n\n---\n\n🤖 I am fine\n&quot;
 
             </system-out>
         </testcase>

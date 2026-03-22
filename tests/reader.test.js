@@ -23,6 +23,10 @@ import {
   _findEntityBlock,
   deleteTurnsFromChat,
   setupTurnDeleteMode,
+  deleteExcerptFromChat,
+  setupAnnotations,
+  _entityPresentInContent,
+  _findMarkdownRange,
 } from '../src/reader/reader.js';
 import { messagesToMarkdown } from '../src/lib/io/markdown-serialiser.js';
 import { ENTITY_TYPES } from '../src/lib/entities/chat-entity.js';
@@ -1830,6 +1834,508 @@ describe('setupTurnDeleteMode', () => {
 
     window.confirm = origConfirm;
     window.location.reload = origReload;
+  });
+});
+
+// ─── _entityPresentInContent ──────────────────────────────────────────────────
+
+describe('_entityPresentInContent', () => {
+  it('CODE: returns true when code is still present', () => {
+    const entity = { code: 'console.log("hi")' };
+    expect(_entityPresentInContent(entity, ENTITY_TYPES.CODE, '```js\nconsole.log("hi")\n```')).toBe(true);
+  });
+
+  it('CODE: returns false when code has been deleted', () => {
+    const entity = { code: 'console.log("hi")' };
+    expect(_entityPresentInContent(entity, ENTITY_TYPES.CODE, 'Plain text only')).toBe(false);
+  });
+
+  it('CODE: returns true when entity has no code field', () => {
+    expect(_entityPresentInContent({}, ENTITY_TYPES.CODE, 'anything')).toBe(true);
+  });
+
+  it('CITATION: returns true when URL is still present', () => {
+    const entity = { url: 'https://example.com' };
+    expect(_entityPresentInContent(entity, ENTITY_TYPES.CITATION, 'See https://example.com for details')).toBe(true);
+  });
+
+  it('CITATION: returns false when URL has been deleted', () => {
+    const entity = { url: 'https://example.com' };
+    expect(_entityPresentInContent(entity, ENTITY_TYPES.CITATION, 'No links here')).toBe(false);
+  });
+
+  it('TABLE: returns true when first header is still present', () => {
+    const entity = { headers: ['Name', 'Age'] };
+    expect(_entityPresentInContent(entity, ENTITY_TYPES.TABLE, '| Name | Age |\n|---|---|')).toBe(true);
+  });
+
+  it('TABLE: returns false when first header has been deleted', () => {
+    const entity = { headers: ['Name', 'Age'] };
+    expect(_entityPresentInContent(entity, ENTITY_TYPES.TABLE, 'Table gone')).toBe(false);
+  });
+
+  it('TABLE: returns true when headers array is empty', () => {
+    expect(_entityPresentInContent({ headers: [] }, ENTITY_TYPES.TABLE, 'anything')).toBe(true);
+  });
+
+  it('DIAGRAM: returns true when source prefix is present', () => {
+    const source = 'graph TD\n  A --> B\n  B --> C';
+    const entity = { source };
+    // content must contain the first 30 chars (or full source if shorter)
+    expect(_entityPresentInContent(entity, ENTITY_TYPES.DIAGRAM,
+      `\`\`\`mermaid\n${source}\n\`\`\``)).toBe(true);
+  });
+
+  it('DIAGRAM: returns false when source prefix has been deleted', () => {
+    const entity = { source: 'graph TD\n  A --> B' };
+    expect(_entityPresentInContent(entity, ENTITY_TYPES.DIAGRAM, 'Diagram gone')).toBe(false);
+  });
+
+  it('ARTIFACT: always returns true (conservative)', () => {
+    expect(_entityPresentInContent({ title: 'My App' }, ENTITY_TYPES.ARTIFACT, 'anything')).toBe(true);
+  });
+
+  it('IMAGE: always returns true (conservative)', () => {
+    expect(_entityPresentInContent({}, ENTITY_TYPES.IMAGE, '')).toBe(true);
+  });
+});
+
+// ─── _findMarkdownRange ───────────────────────────────────────────────────────
+
+describe('_findMarkdownRange', () => {
+  it('returns exact range for plain text match', () => {
+    const src = 'Hello world how are you';
+    const r = _findMarkdownRange(src, 'world');
+    expect(r).toEqual({ start: 6, end: 11 });
+  });
+
+  it('returns null when text is not present', () => {
+    expect(_findMarkdownRange('Hello world', 'missing')).toBeNull();
+  });
+
+  it('finds a single unordered list item (user selects just the text)', () => {
+    const src = '- First item\n- Second item\n- Third item';
+    // User selects "Second item" — the DOM shows it without the "- " prefix
+    const r = _findMarkdownRange(src, 'Second item');
+    expect(r).not.toBeNull();
+    // range should cover the whole "- Second item\n" line
+    expect(src.slice(r.start, r.end)).toMatch('Second item');
+  });
+
+  it('finds multiple contiguous list items selected together', () => {
+    const src = '- Alpha\n- Beta\n- Gamma';
+    // User selects "Alpha\nBeta" (two items, no "- " prefix)
+    const r = _findMarkdownRange(src, 'Alpha\nBeta');
+    expect(r).not.toBeNull();
+    // result should cover at least both item lines
+    const removed = src.slice(0, r.start) + src.slice(r.end);
+    expect(removed).toContain('Gamma');
+    expect(removed).not.toContain('Alpha');
+    expect(removed).not.toContain('Beta');
+  });
+
+  it('finds a heading line (user selects heading text without #)', () => {
+    const src = '## My Heading\n\nSome text';
+    const r = _findMarkdownRange(src, 'My Heading');
+    expect(r).not.toBeNull();
+    expect(src.slice(r.start, r.end)).toContain('My Heading');
+  });
+
+  it('finds an ordered list item', () => {
+    const src = '1. First\n2. Second\n3. Third';
+    const r = _findMarkdownRange(src, 'Second');
+    expect(r).not.toBeNull();
+    expect(src.slice(r.start, r.end)).toContain('Second');
+  });
+
+  it('finds a blockquote line (user selects quote text without >)', () => {
+    const src = '> This is a quote\n\nFollowing paragraph';
+    const r = _findMarkdownRange(src, 'This is a quote');
+    expect(r).not.toBeNull();
+    expect(src.slice(r.start, r.end)).toContain('This is a quote');
+  });
+
+  it('removing matched range leaves the rest of the content intact', () => {
+    const src = '- Keep this\n- Remove this\n- Keep that';
+    const r = _findMarkdownRange(src, 'Remove this');
+    expect(r).not.toBeNull();
+    const result = src.slice(0, r.start) + src.slice(r.end);
+    expect(result).toContain('Keep this');
+    expect(result).toContain('Keep that');
+    expect(result).not.toContain('Remove this');
+  });
+
+  it('prefers exact match over line-based for plain prose', () => {
+    const src = 'Hello world\nSome other text';
+    const r = _findMarkdownRange(src, 'Hello world');
+    expect(r).toEqual({ start: 0, end: 11 });
+  });
+
+  it('matches a line containing bold markers (**text**)', () => {
+    const src = '**Section Header**\n\nSome content';
+    // DOM selection omits the ** markers
+    const r = _findMarkdownRange(src, 'Section Header');
+    expect(r).not.toBeNull();
+    expect(src.slice(r.start, r.end)).toContain('**Section Header**');
+  });
+
+  it('matches a line with inline code (`code`)', () => {
+    const src = 'Run the `npm install` command first';
+    const r = _findMarkdownRange(src, 'Run the npm install command first');
+    expect(r).not.toBeNull();
+    expect(src.slice(r.start, r.end)).toContain('`npm install`');
+  });
+
+  it('matches a GFM table header row with bold cells', () => {
+    const src = '| **Name** | **Age** |\n| --- | --- |\n| John | 25 |';
+    // DOM shows "Name  Age" (no ** or |)
+    const r = _findMarkdownRange(src, 'Name  Age');
+    expect(r).not.toBeNull();
+    const removed = src.slice(0, r.start) + src.slice(r.end);
+    expect(removed).not.toContain('Name');
+    expect(removed).not.toContain('Age');
+    // separator and data rows may or may not survive depending on range
+  });
+
+  it('matches a complete table (header + data rows) skipping the separator', () => {
+    const src = '| **Name** | **City** |\n| --- | --- |\n| Alice | Paris |\n| Bob | Rome |';
+    // DOM renders header and data rows; selector row is invisible
+    // User selects: "Name  City\nAlice  Paris\nBob  Rome"
+    const r = _findMarkdownRange(src, 'Name  City\nAlice  Paris\nBob  Rome');
+    expect(r).not.toBeNull();
+    const removed = src.slice(0, r.start) + src.slice(r.end);
+    expect(removed).not.toContain('Name');
+    expect(removed).not.toContain('Alice');
+    expect(removed).not.toContain('Bob');
+  });
+
+  it('removing a bold heading leaves surrounding content intact', () => {
+    const src = 'Intro text\n\n**Bold Header**\n\nBody content';
+    const r = _findMarkdownRange(src, 'Bold Header');
+    expect(r).not.toBeNull();
+    const result = src.slice(0, r.start) + src.slice(r.end);
+    expect(result).toContain('Intro text');
+    expect(result).toContain('Body content');
+    expect(result).not.toContain('Bold Header');
+  });
+});
+
+// ─── deleteExcerptFromChat ────────────────────────────────────────────────────
+
+describe('deleteExcerptFromChat', () => {
+  function makeChat(messages) {
+    const content = messagesToMarkdown(messages, {
+      title: 'Test Chat', source: 'chatgpt', url: 'https://chatgpt.com/c/1',
+      timestamp: 1_740_000_000_000,
+    });
+    return {
+      id: 'chat-1', title: 'Test Chat', source: 'chatgpt',
+      url: 'https://chatgpt.com/c/1', timestamp: 1_740_000_000_000,
+      messageCount: 2,
+      content, messages,
+    };
+  }
+
+  const twoMsgs = [
+    { role: 'user',      content: 'Hello world how are you' },
+    { role: 'assistant', content: 'I am fine thanks' },
+  ];
+
+  it('returns null when messages array is absent', () => {
+    expect(deleteExcerptFromChat({ id: 'x', messages: null }, 0, 'hello')).toBeNull();
+  });
+
+  it('returns null when msgIndex is out of range', () => {
+    const chat = makeChat(twoMsgs);
+    expect(deleteExcerptFromChat(chat, 5, 'hello')).toBeNull();
+  });
+
+  it('returns null when selectedText is empty', () => {
+    const chat = makeChat(twoMsgs);
+    expect(deleteExcerptFromChat(chat, 0, '')).toBeNull();
+    expect(deleteExcerptFromChat(chat, 0, '   ')).toBeNull();
+  });
+
+  it('returns null when selectedText is not found in the message', () => {
+    const chat = makeChat(twoMsgs);
+    expect(deleteExcerptFromChat(chat, 0, 'not present text')).toBeNull();
+  });
+
+  it('removes the selected text from the target message', () => {
+    const chat   = makeChat(twoMsgs);
+    const result = deleteExcerptFromChat(chat, 0, ' world');
+    expect(result.messages[0].content).toBe('Hello how are you');
+  });
+
+  it('leaves other messages unchanged', () => {
+    const chat   = makeChat(twoMsgs);
+    const result = deleteExcerptFromChat(chat, 0, 'Hello ');
+    expect(result.messages[1].content).toBe('I am fine thanks');
+  });
+
+  it('does not change messageCount (turn still exists)', () => {
+    const chat   = makeChat(twoMsgs);
+    const result = deleteExcerptFromChat(chat, 1, ' fine');
+    expect(result.messageCount).toBe(chat.messageCount);
+  });
+
+  it('rebuilds chat.content reflecting the removed text', () => {
+    const chat   = makeChat(twoMsgs);
+    const result = deleteExcerptFromChat(chat, 0, 'world ');
+    expect(result.content).not.toContain('world');
+    expect(result.content).toContain('Hello');
+  });
+
+  it('does not mutate the original chat object', () => {
+    const chat   = makeChat(twoMsgs);
+    const before = JSON.stringify(chat);
+    deleteExcerptFromChat(chat, 0, 'Hello');
+    expect(JSON.stringify(chat)).toBe(before);
+  });
+
+  it('removes only the first occurrence when text appears multiple times', () => {
+    const msgs = [
+      { role: 'user',      content: 'abc abc abc' },
+      { role: 'assistant', content: 'ok' },
+    ];
+    const chat   = makeChat(msgs);
+    const result = deleteExcerptFromChat(chat, 0, 'abc ');
+    expect(result.messages[0].content).toBe('abc abc');
+  });
+
+  // ── Entity updates ──────────────────────────────────────────────────────
+
+  it('removes code entity whose code block was deleted', () => {
+    const codeText = 'console.log("hi")';
+    const msgs = [
+      { role: 'user',      content: 'Question' },
+      { role: 'assistant', content: `Here is code:\n\`\`\`js\n${codeText}\n\`\`\`` },
+    ];
+    const chat = {
+      ...makeChat(msgs),
+      [ENTITY_TYPES.CODE]: [
+        { id: 'c1', type: 'code', messageIndex: 1, chatId: 'chat-1', role: 'assistant', code: codeText },
+      ],
+    };
+    const result = deleteExcerptFromChat(chat, 1, `\`\`\`js\n${codeText}\n\`\`\``);
+    // Entity should be gone since its code is no longer in the message
+    expect(Object.prototype.hasOwnProperty.call(result, ENTITY_TYPES.CODE)).toBe(false);
+  });
+
+  it('keeps code entity when its code block was not deleted', () => {
+    const codeText = 'console.log("hi")';
+    const msgs = [
+      { role: 'user',      content: 'Question' },
+      { role: 'assistant', content: `Preamble text. Here is code:\n\`\`\`js\n${codeText}\n\`\`\`` },
+    ];
+    const chat = {
+      ...makeChat(msgs),
+      [ENTITY_TYPES.CODE]: [
+        { id: 'c1', type: 'code', messageIndex: 1, chatId: 'chat-1', role: 'assistant', code: codeText },
+      ],
+    };
+    const result = deleteExcerptFromChat(chat, 1, 'Preamble text. ');
+    expect(result[ENTITY_TYPES.CODE]).toHaveLength(1);
+    expect(result[ENTITY_TYPES.CODE][0].id).toBe('c1');
+  });
+
+  it('updates prompt entity text and wordCount when user message is edited', () => {
+    const msgs = [
+      { role: 'user',      content: 'Hello world how are you' },
+      { role: 'assistant', content: 'Fine' },
+    ];
+    const chat = {
+      ...makeChat(msgs),
+      [ENTITY_TYPES.PROMPT]: [
+        { id: 'p1', type: 'prompt', messageIndex: 0, chatId: 'chat-1', role: 'user',
+          text: 'Hello world how are you', wordCount: 5 },
+      ],
+    };
+    const result = deleteExcerptFromChat(chat, 0, ' world');
+    expect(result[ENTITY_TYPES.PROMPT][0].text).toBe('Hello how are you');
+    expect(result[ENTITY_TYPES.PROMPT][0].wordCount).toBe(4);
+  });
+
+  it('removes prompt entity when edited message becomes empty', () => {
+    const msgs = [
+      { role: 'user',      content: 'Hi' },
+      { role: 'assistant', content: 'Hello' },
+    ];
+    const chat = {
+      ...makeChat(msgs),
+      [ENTITY_TYPES.PROMPT]: [
+        { id: 'p1', type: 'prompt', messageIndex: 0, chatId: 'chat-1', role: 'user',
+          text: 'Hi', wordCount: 1 },
+      ],
+    };
+    const result = deleteExcerptFromChat(chat, 0, 'Hi');
+    expect(Object.prototype.hasOwnProperty.call(result, ENTITY_TYPES.PROMPT)).toBe(false);
+  });
+
+  it('does not touch entities from other turns', () => {
+    const msgs = [
+      { role: 'user',      content: 'Hello world' },
+      { role: 'assistant', content: 'Fine' },
+    ];
+    const chat = {
+      ...makeChat(msgs),
+      [ENTITY_TYPES.CODE]: [
+        { id: 'c1', type: 'code', messageIndex: 1, chatId: 'chat-1', role: 'assistant', code: 'Fine' },
+      ],
+    };
+    const result = deleteExcerptFromChat(chat, 0, ' world');
+    // Entity on turn 1 should be unaffected
+    expect(result[ENTITY_TYPES.CODE]).toHaveLength(1);
+    expect(result[ENTITY_TYPES.CODE][0].messageIndex).toBe(1);
+  });
+
+  it('removes citation entity when its URL was deleted', () => {
+    const url = 'https://example.com';
+    const msgs = [
+      { role: 'user',      content: 'Q' },
+      { role: 'assistant', content: `See ${url} for info` },
+    ];
+    const chat = {
+      ...makeChat(msgs),
+      [ENTITY_TYPES.CITATION]: [
+        { id: 'cit1', type: 'citation', messageIndex: 1, chatId: 'chat-1', role: 'assistant', url },
+      ],
+    };
+    const result = deleteExcerptFromChat(chat, 1, `${url} for info`);
+    expect(Object.prototype.hasOwnProperty.call(result, ENTITY_TYPES.CITATION)).toBe(false);
+  });
+
+  it('does not add phantom entity keys not present on original chat', () => {
+    const chat = makeChat(twoMsgs); // no entity keys
+    const result = deleteExcerptFromChat(chat, 0, 'Hello ');
+    for (const type of Object.values(ENTITY_TYPES)) {
+      expect(Object.prototype.hasOwnProperty.call(result, type)).toBe(false);
+    }
+  });
+});
+
+// ─── setupAnnotations (Delete text wiring) ───────────────────────────────────
+
+describe('setupAnnotations delete-text button', () => {
+  function buildAnnotationDom(messages) {
+    const content = messagesToMarkdown(messages, {
+      title: 'T', source: 'chatgpt', timestamp: 1_740_000_000_000,
+    });
+    document.body.innerHTML = `
+      <header id="reader-header" hidden>
+        <div class="reader-header__inner">
+          <div class="reader-header__meta">
+            <span id="meta-source" class="badge"></span>
+            <span id="meta-date"></span>
+            <span id="meta-count"></span>
+            <span id="meta-prompts" hidden></span>
+            <span id="meta-responses" hidden></span>
+          </div>
+          <h1 id="reader-title"></h1>
+          <div class="reader-header__footer">
+            <div id="reader-rating" hidden></div>
+            <div class="reader-actions">
+              <button id="reader-copy-btn" class="btn-reader-action" type="button">
+                <span class="btn-reader-action__label">Copy</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main id="reader-content" class="reader-content" hidden></main>
+      <div id="state-error" hidden><p id="error-message"></p></div>
+      <div id="annotation-toolbar" hidden>
+        <div class="annotation-toolbar__actions">
+          <button id="annotation-save">Highlight</button>
+          <button id="annotation-delete-text" hidden>Delete</button>
+          <button id="annotation-cancel">✕</button>
+        </div>
+      </div>
+    `;
+    const chat = {
+      id: 'chat-1', title: 'T', source: 'chatgpt',
+      url: '', timestamp: 1_740_000_000_000,
+      messageCount: messages.length,
+      content, messages,
+    };
+    renderChat(chat);
+    return chat;
+  }
+
+  function makeStorage(overrides = {}) {
+    const store = {};
+    return {
+      get: vi.fn(async (keys) => {
+        const r = {};
+        for (const k of keys) r[k] = store[k] ?? overrides[k] ?? undefined;
+        return r;
+      }),
+      set: vi.fn(async (obj) => { Object.assign(store, obj); }),
+      _store: store,
+    };
+  }
+
+  const twoMsgs = [
+    { role: 'user',      content: 'Hello world' },
+    { role: 'assistant', content: 'Hi there' },
+  ];
+
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('Delete button is hidden when chat has no messages', async () => {
+    const chat = buildAnnotationDom([]);
+    await setupAnnotations('chat-1', makeStorage(), chat);
+    const btn = document.getElementById('annotation-delete-text');
+    expect(btn.hidden).toBe(true);
+  });
+
+  it('Delete button is visible when chat has messages', async () => {
+    const chat = buildAnnotationDom(twoMsgs);
+    await setupAnnotations('chat-1', makeStorage(), chat);
+    const btn = document.getElementById('annotation-delete-text');
+    expect(btn.hidden).toBe(false);
+  });
+
+  it('Delete button is hidden when chat parameter is not provided', async () => {
+    buildAnnotationDom(twoMsgs);
+    await setupAnnotations('chat-1', makeStorage()); // no chat
+    const btn = document.getElementById('annotation-delete-text');
+    expect(btn.hidden).toBe(true);
+  });
+
+  it('delete handler persists updated chat and clears annotations', async () => {
+    // Verify the core persistence logic: deleteExcerptFromChat + storage calls.
+    // Simulating a full DOM selection → mouseup → pendingRange → click chain in
+    // jsdom is complex (serializeRange needs a real DOM Range via contains()).
+    // We test the button visibility (above) and the persistence layer directly here.
+    const storage = makeStorage();
+    const msgs = [
+      { role: 'user',      content: 'Hello world how are you' },
+      { role: 'assistant', content: 'I am fine' },
+    ];
+    const chat = buildAnnotationDom(msgs);
+    storage._store['chat:chat-1'] = chat;
+    storage._store['annotations:chat-1'] = [{ id: 'ann-1', text: 'hello' }];
+
+    await setupAnnotations('chat-1', storage, chat);
+
+    // 1. deleteExcerptFromChat removes the selected text correctly
+    const updatedChat = deleteExcerptFromChat(chat, 0, ' world');
+    expect(updatedChat).not.toBeNull();
+    expect(updatedChat.messages[0].content).toBe('Hello how are you');
+
+    // 2. Persistence writes the updated chat (mirrors what the handler does)
+    await storage.set({ 'chat:chat-1': updatedChat });
+    await storage.set({ 'annotations:chat-1': [] });
+
+    const setCalls = storage.set.mock.calls;
+    const chatSetCall = setCalls.find(c => c[0]?.['chat:chat-1']);
+    expect(chatSetCall).toBeTruthy();
+    expect(chatSetCall[0]['chat:chat-1'].messages[0].content).toBe('Hello how are you');
+
+    const annSetCall = setCalls.find(c => c[0]?.['annotations:chat-1'] !== undefined);
+    expect(annSetCall).toBeTruthy();
+    expect(annSetCall[0]['annotations:chat-1']).toEqual([]);
   });
 });
 

@@ -1472,6 +1472,9 @@ body[data-source="perplexity"] { background-color: color-mix(in srgb, #9b6b2e 4%
 .btn-ann--cancel           { background: var(--bg-primary); border: 1px solid var(--border-primary); color: var(--text-secondary); }
 .btn-ann--cancel:hover     { background: var(--bg-code); }
 
+.btn-ann--delete-text          { background: var(--danger-bg, #fee2e2); color: var(--danger, #dc2626); border: 1px solid var(--danger-border, #fca5a5); }
+.btn-ann--delete-text:hover    { background: #fecaca; }
+
 
 /* ── Print / PDF (R1) ────────────────────────────────────────────────────── */
 

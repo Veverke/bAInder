@@ -1096,10 +1096,13 @@ export function setupSourcesPanel() {
 /**
  * Set up the text-selection annotation toolbar (R2).
  * Safe no-op when annotation elements are absent (e.g. unit tests).
- * @param {string} chatId
- * @param {object} storage  \u2014 browser.storage.local-like API
+ * @param {string}      chatId
+ * @param {object}      storage  \u2014 browser.storage.local-like API
+ * @param {Object|null} [chat]   Full chat object; when provided enables the
+ *                               "Delete" button that removes selected text
+ *                               from the stored message content.
  */
-export async function setupAnnotations(chatId, storage) {
+export async function setupAnnotations(chatId, storage, chat = null) {
   if (!chatId || !storage) return;
   const toolbar   = document.getElementById('annotation-toolbar');
   const contentEl = document.getElementById('reader-content');
@@ -1319,6 +1322,83 @@ export async function setupAnnotations(chatId, storage) {
       window.getSelection()?.removeAllRanges();
       if (noteInput) noteInput.value = '';
       renderAnnSummary();
+    });
+  }
+
+  // ── Delete selected text from stored chat ────────────────────────────────
+  const deleteTextBtn = document.getElementById('annotation-delete-text');
+  if (deleteTextBtn && chat && Array.isArray(chat.messages) && chat.messages.length > 0) {
+    deleteTextBtn.hidden = false;
+    deleteTextBtn.addEventListener('click', async () => {
+      if (!pendingRange) return;
+
+      // Selection is still alive (toolbar mousedown used preventDefault)
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+
+      // Capture selected text before clearing the selection
+      const textToDelete = range.toString();
+
+      // Resolve the .chat-turn containing each edge of the selection
+      function _turnFor(node) {
+        const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+        return el?.closest?.('.chat-turn') ?? null;
+      }
+      const startTurn = _turnFor(range.startContainer);
+      const endTurn   = _turnFor(range.endContainer);
+
+      toolbar.hidden = true;
+      pendingRange   = null;
+      window.getSelection()?.removeAllRanges();
+
+      if (!startTurn || startTurn !== endTurn) {
+        // Cross-turn selections are not supported
+        return;
+      }
+
+      const msgIndex = parseInt(startTurn.dataset.msgIndex ?? '-1', 10);
+      if (msgIndex < 0) return;
+
+      if (!textToDelete.trim()) return;
+
+      /* c8 ignore next 4 */
+      if (!window.confirm(
+        `Delete the selected text from this saved chat? This cannot be undone.\n\n` +
+        `Note: any text highlights in this chat will also be cleared.`
+      )) return;
+
+      const updatedChat = deleteExcerptFromChat(chat, msgIndex, textToDelete);
+      if (!updatedChat) {
+        // Exact text not found in stored markdown (selection may include
+        // HTML-rendered characters that differ from the raw markdown source).
+        /* c8 ignore next 3 */
+        window.alert(
+          'Could not locate the selected text in the stored markdown.\n' +
+          'Try selecting plain text without special formatting.'
+        );
+        return;
+      }
+
+      try {
+        const r = await storage.get([`chat:${chatId}`, 'chats', 'chatIndex']);
+
+        if (r[`chat:${chatId}`]) {
+          await storage.set({ [`chat:${chatId}`]: updatedChat });
+        } else {
+          const chats   = Array.isArray(r.chats) ? r.chats : [];
+          const updated = chats.map(c => c.id === chatId ? updatedChat : c);
+          await storage.set({ chats: updated });
+        }
+
+        // Clear annotations — character offsets are invalid after content removal
+        await storage.set({ [`annotations:${chatId}`]: [] });
+
+        /* c8 ignore next */
+        window.location.reload();
+      } catch (err) {
+        logger.error('[reader] deleteExcerpt: failed to persist:', err);
+      }
     });
   }
 
@@ -2019,7 +2099,7 @@ export async function init(storage) {
     setupRating(chatId, chat.rating, storage);
     setupStaleBanner(chatId, chat, storage);
     setupScrollFeatures(chatId);          // C.22 — pass chatId for persistence
-    setupAnnotations(chatId, storage);
+    setupAnnotations(chatId, storage, chat);
     setupStickyNotes(chatId, storage, renderMarkdown);
     setupTurnDeleteMode(chatId, chat, storage);
     // C.8 — render backlinks: chats that reference this one in annotation notes
@@ -2169,6 +2249,287 @@ const FLASH_DURATION_MS = 2400;
 export function _flashEntityTarget(el) {
   el.classList.add(FLASH_CLASS);
   setTimeout(() => el.classList.remove(FLASH_CLASS), FLASH_DURATION_MS);
+}
+
+// ─── Excerpt Deletion ─────────────────────────────────────────────────────────
+
+/**
+ * Returns true when an entity's characteristic text content still appears in
+ * the given (updated) message markdown.  Used by deleteExcerptFromChat to
+ * prune entities whose defining text was removed.
+ *
+ * @param {Object} entity      Entity object
+ * @param {string} entityType  One of ENTITY_TYPES values
+ * @param {string} content     Updated message markdown
+ * @returns {boolean}
+ */
+export function _entityPresentInContent(entity, entityType, content) {
+  switch (entityType) {
+    case ENTITY_TYPES.CODE:
+      return !entity.code || content.includes(entity.code);
+    case ENTITY_TYPES.CITATION:
+      return !entity.url || content.includes(entity.url);
+    case ENTITY_TYPES.TABLE:
+      return !Array.isArray(entity.headers) || entity.headers.length === 0
+        || content.includes(entity.headers[0]);
+    case ENTITY_TYPES.DIAGRAM:
+      if (!entity.source) return true;
+      return content.includes(entity.source.slice(0, Math.min(30, entity.source.length)));
+    default:
+      // artifact, image, audio, attachment, toolCall: keep conservatively
+      return true;
+  }
+}
+
+/**
+ * Delete a text excerpt from a specific message in the chat.
+ *
+ * Searches for `selectedText` in `chat.messages[msgIndex].content` (first
+ * occurrence) and removes it.  Rebuilds `chat.content` via messagesToMarkdown,
+ * prunes entity arrays for the affected message (removing entities whose
+ * characteristic text is no longer present), and returns a new chat object
+ * without mutating the original.
+ *
+ * Returns null when:
+ * - The chat has no messages array, or msgIndex is out of range
+ * - selectedText is empty or not found in the message markdown
+ *
+ * Note: messageCount is intentionally unchanged — the turn still exists, it
+ * just has less content.
+ *
+ * @param {Object} chat          Full chat object with .messages and .content
+ * @param {number} msgIndex      0-based index of the message to edit
+ * @param {string} selectedText  Exact text excerpt to remove
+ * @returns {Object|null}        Updated chat object, or null on failure
+ */
+
+/**
+ * Strip any markdown prefix that the renderer removes before displaying a line
+ * to the user (list markers, heading hashes, blockquote >, horizontal-rule ---,
+ * and the leading role emoji added by messagesToMarkdown).
+ *
+ * @param {string} line
+ * @returns {string}
+ */
+function _stripMarkdownPrefix(line) {
+  return line
+    .replace(/^#{1,6}\s+/, '')          // ## heading
+    .replace(/^[-*]\s+/, '')            // - or * list item
+    .replace(/^\d+\.\s+/, '')           // 1. ordered list
+    .replace(/^>\s?/, '')               // > blockquote
+    // Role emoji added by messagesToMarkdown (🙋 or 🤖) + space
+    .replace(/^[\u{1F300}-\u{1FFFF}\u{2600}-\u{27BF}]\s+/u, '');
+}
+
+/**
+ * Strip inline markdown formatting so that the visible text can be compared
+ * against DOM-selected text (which never contains the markers).
+ * Handles: **bold**, *italic*, _italic_, `code`, ~~strike~~, [text](url),
+ * ![alt](url), and table-pipe `|` characters.
+ */
+function _stripMarkdownInline(text) {
+  return text
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')   // ![alt](url) → alt
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')     // [text](url) → text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')            // **bold**
+    .replace(/\*([^*]+)\*/g, '$1')                // *italic*
+    .replace(/(?<!\w)_([^_]+)_(?!\w)/g, '$1')    // _italic_
+    .replace(/`([^`]+)`/g, '$1')                  // `code`
+    .replace(/~~([^~]+)~~/g, '$1')                // ~~strikethrough~~
+    .replace(/\|/g, ' ')                           // table pipes → space
+    .replace(/\s+/g, ' ')                          // normalise whitespace
+    .trim();
+}
+
+/** Matches GFM table separator rows: | --- | :---: | ---: | */
+const _TABLE_SEP_RE = /^\|(\s*:?-+:?\s*\|)+\s*$/
+
+/**
+ * After an exact substring match, expand the range to cover any immediately
+ * surrounding inline-formatting markers so that removing the visible text of
+ * "**bold**" also removes the "**" delimiters.
+ * Checks longest markers first (** before *) to avoid partial expansion.
+ */
+function _expandInlineRange(src, start, end) {
+  const PAIRS = [['**', '**'], ['~~', '~~'], ['*', '*'], ['`', '`']];
+  for (const [open, close] of PAIRS) {
+    if (
+      start >= open.length &&
+      src.slice(start - open.length, start) === open &&
+      src.slice(end, end + close.length) === close
+    ) {
+      return { start: start - open.length, end: end + close.length };
+    }
+  }
+  return { start, end };
+}
+
+/**
+ * Given text as the user selected it from the rendered DOM, find the
+ * corresponding byte range [start, end) in the stored `markdownSrc`.
+ *
+ * Strategy:
+ *  1. First try a plain indexOf (works for prose / already-matching text).
+ *  2. If that fails, split the selection into non-empty lines, strip each
+ *     line's markdown prefix, then look for a contiguous sequence of
+ *     markdown source lines whose stripped form matches.  The returned range
+ *     covers the whole block of markdown lines (including prefixes and the
+ *     trailing newline of the last matched line).
+ *
+ * Returns { start, end } or null when no match is found.
+ *
+ * @param {string} markdownSrc
+ * @param {string} selectedText
+ * @returns {{ start: number, end: number }|null}
+ */
+export function _findMarkdownRange(markdownSrc, selectedText) {
+  // ── 1. Exact match ───────────────────────────────────────────────────────
+  const exactIdx = markdownSrc.indexOf(selectedText);
+  if (exactIdx !== -1) {
+    // Expand to cover surrounding inline markers (**bold**, `code`, ~~strike~~)
+    // so that deleting a word rendered from "**word**" also removes the "**".
+    return _expandInlineRange(markdownSrc, exactIdx, exactIdx + selectedText.length);
+  }
+
+  // ── 2. Line-by-line matching ─────────────────────────────────────────────
+  // Build a list of non-empty lines from the selection (as the user sees them).
+  // Apply inline stripping so that tab/space-separated table cell text matches
+  // normalised source lines regardless of bold/italic markers or pipe chars.
+  const selLines = selectedText
+    .split('\n')
+    .map(l => _stripMarkdownInline(l))
+    .filter(l => l.length > 0);
+
+  if (selLines.length === 0) return null;
+
+  // Index all markdown source lines with their byte offsets.
+  const srcLines = [];
+  let pos = 0;
+  for (const l of markdownSrc.split('\n')) {
+    srcLines.push({ text: l, start: pos, end: pos + l.length });
+    pos += l.length + 1; // +1 for '\n'
+  }
+
+  // For each source line, compute the fully "visible" text: strip line prefix
+  // (##, -, >, …) then inline markers (**bold**, `code`, |pipes|, …).
+  const stripped = srcLines.map(({ text }) =>
+    _stripMarkdownInline(_stripMarkdownPrefix(text))
+  );
+
+  // Returns true for source lines that produce no visible selectable text.
+  const isInvisibleLine = (raw) =>
+    /^```/.test(raw) ||
+    /^-{3,}\s*$/.test(raw) ||
+    _TABLE_SEP_RE.test(raw);
+
+  // Try to find, starting at each source line, a contiguous run whose stripped
+  // forms equal (or contain) the selLines sequence.
+  outer: for (let si = 0; si < srcLines.length; si++) {
+    // Skip source lines that produce no visible text the user can select.
+    if (!stripped[si] || isInvisibleLine(srcLines[si].text)) continue;
+
+    let li = 0; // index into selLines
+
+    // Walk through selLines trying to match src lines.
+    let sj = si;
+    while (li < selLines.length && sj < srcLines.length) {
+      const strippedLine = stripped[sj];
+      // Skip invisible source lines that produce no visible text
+      if (!strippedLine || isInvisibleLine(srcLines[sj].text)) {
+        sj++;
+        continue;
+      }
+      // The normalised src line must contain the sel line (or vice-versa for
+      // partial-line selections)
+      if (!strippedLine.includes(selLines[li]) && !selLines[li].includes(strippedLine)) {
+        continue outer; // mismatch — try next starting position
+      }
+      li++;
+      sj++;
+    }
+
+    if (li < selLines.length) continue; // didn't match all selection lines
+
+    // Found a match: range covers srcLines[si..sj-1]
+    // Find the actual last matched line (sj-1 might have been incremented past blanks)
+    const firstLine = srcLines[si];
+    const lastLine  = srcLines[sj - 1];
+    // Include the trailing newline so the blank that was between paragraphs is
+    // preserved — but avoid eating the newline if sj is the last line.
+    const end = sj < srcLines.length ? lastLine.end + 1 : lastLine.end;
+    return { start: firstLine.start, end };
+  }
+
+  return null; // no match
+}
+
+export function deleteExcerptFromChat(chat, msgIndex, selectedText) {
+  if (!Array.isArray(chat.messages) || msgIndex < 0 || msgIndex >= chat.messages.length) return null;
+  if (!selectedText || !selectedText.trim()) return null;
+
+  const originalContent = chat.messages[msgIndex].content || '';
+  const range = _findMarkdownRange(originalContent, selectedText);
+  if (!range) return null; // text not found in stored markdown
+
+  const updatedMsgContent =
+    originalContent.slice(0, range.start) + originalContent.slice(range.end);
+
+  const updatedMessages = chat.messages.map((m, i) =>
+    i === msgIndex ? { ...m, content: updatedMsgContent } : m
+  );
+
+  // Update entity arrays for the affected message
+  const entityUpdates = {};
+  for (const entityType of Object.values(ENTITY_TYPES)) {
+    if (!Array.isArray(chat[entityType])) continue;
+    const updated = chat[entityType]
+      .filter(e => {
+        if (e.messageIndex !== msgIndex) return true; // other turns: unchanged
+        if (entityType === ENTITY_TYPES.PROMPT) {
+          // Prompt entity stays as long as the edited message is non-empty
+          return updatedMsgContent.trim().length > 0;
+        }
+        return _entityPresentInContent(e, entityType, updatedMsgContent);
+      })
+      .map(e => {
+        // For prompt entities in the edited turn: refresh cached text + word count
+        if (e.messageIndex === msgIndex && entityType === ENTITY_TYPES.PROMPT) {
+          return {
+            ...e,
+            text:      updatedMsgContent,
+            wordCount: updatedMsgContent.trim().split(/\s+/).filter(Boolean).length,
+          };
+        }
+        return e;
+      });
+    entityUpdates[entityType] = updated.length > 0 ? updated : undefined;
+  }
+
+  const fm = parseFrontmatter(chat.content || '');
+  const updatedContent = messagesToMarkdown(updatedMessages, {
+    title:        fm.title     || chat.title  || 'Untitled Chat',
+    source:       fm.source    || chat.source || 'unknown',
+    url:          fm.url       || chat.url    || '',
+    timestamp:    chat.timestamp,
+    messageCount: chat.messages.length, // turn count unchanged
+  });
+
+  const updatedChat = {
+    ...chat,
+    messages: updatedMessages,
+    content:  updatedContent,
+    // messageCount unchanged — the turn still exists, just edited
+  };
+
+  for (const [key, val] of Object.entries(entityUpdates)) {
+    if (val === undefined) {
+      delete updatedChat[key];
+    } else {
+      updatedChat[key] = val;
+    }
+  }
+
+  return updatedChat;
 }
 
 // ─── Turn Deletion ────────────────────────────────────────────────────────────
