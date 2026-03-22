@@ -5,7 +5,8 @@
  * Pure functions are exported so they can be unit tested independently.
  */
 
-import { parseFrontmatter } from '../lib/io/markdown-serialiser.js';
+import { parseFrontmatter, messagesToMarkdown } from '../lib/io/markdown-serialiser.js';
+import { ENTITY_TYPES } from '../lib/entities/chat-entity.js';
 import {
   loadAnnotations, saveAnnotation, deleteAnnotation,
   serializeRange,  applyAnnotations, parseBacklinks,
@@ -1579,6 +1580,12 @@ export function renderChat(chat) {
 
   contentEl.innerHTML = renderMarkdown(content, { sourceUrl: chat.url || '' });
   wrapChatTurns(contentEl);
+
+  // Assign 0-based message index to each turn — used by setupTurnDeleteMode
+  contentEl.querySelectorAll('.chat-turn').forEach((turn, i) => {
+    turn.dataset.msgIndex = i;
+  });
+
   processSources(contentEl);
   setupSourcesPanel();
 
@@ -2014,6 +2021,7 @@ export async function init(storage) {
     setupScrollFeatures(chatId);          // C.22 — pass chatId for persistence
     setupAnnotations(chatId, storage);
     setupStickyNotes(chatId, storage, renderMarkdown);
+    setupTurnDeleteMode(chatId, chat, storage);
     // C.8 — render backlinks: chats that reference this one in annotation notes
     await renderBacklinksSection(chatId, chat.title, chats, storage);
 
@@ -2163,8 +2171,270 @@ export function _flashEntityTarget(el) {
   setTimeout(() => el.classList.remove(FLASH_CLASS), FLASH_DURATION_MS);
 }
 
+// ─── Turn Deletion ────────────────────────────────────────────────────────────
+
+/**
+ * Remove specific turns from a chat by 0-based index, rebuilding the content
+ * markdown from the updated messages array.
+ *
+ * Returns a copy of the chat with an empty messages array when turnIndices is
+ * empty (no-op copy).  Returns null when the chat has no stored messages
+ * (e.g. pure excerpts without a messages array).
+ *
+ * @param {Object}   chat         Full chat object with .messages and .content
+ * @param {number[]} turnIndices  0-based indices of turns to delete
+ * @returns {Object|null}  Updated chat object, or null when not applicable
+ */
+export function deleteTurnsFromChat(chat, turnIndices) {
+  if (!Array.isArray(chat.messages) || chat.messages.length === 0) return null;
+  if (!Array.isArray(turnIndices) || turnIndices.length === 0) return { ...chat };
+  const indexSet        = new Set(turnIndices);
+  const updatedMessages = chat.messages.filter((_, i) => !indexSet.has(i));
+
+  // Build old-index → new-index remapping for entity messageIndex updates
+  const indexMap = new Map();
+  let newIdx = 0;
+  for (let oldIdx = 0; oldIdx < chat.messages.length; oldIdx++) {
+    if (!indexSet.has(oldIdx)) indexMap.set(oldIdx, newIdx++);
+  }
+
+  // Filter and remap every entity type stored on the chat object
+  const entityUpdates = {};
+  for (const entityType of Object.values(ENTITY_TYPES)) {
+    if (!Array.isArray(chat[entityType])) continue;
+    const updated = chat[entityType]
+      .filter(e => !indexSet.has(e.messageIndex))
+      .map(e => ({ ...e, messageIndex: indexMap.get(e.messageIndex) ?? e.messageIndex }));
+    // Always write the key so deleted-all cases clear the array
+    entityUpdates[entityType] = updated.length > 0 ? updated : undefined;
+  }
+
+  const fm = parseFrontmatter(chat.content || '');
+  const updatedContent = messagesToMarkdown(updatedMessages, {
+    title:        fm.title     || chat.title  || 'Untitled Chat',
+    source:       fm.source    || chat.source || 'unknown',
+    url:          fm.url       || chat.url    || '',
+    timestamp:    chat.timestamp,
+    messageCount: updatedMessages.length,
+  });
+
+  const updatedChat = {
+    ...chat,
+    messages:     updatedMessages,
+    content:      updatedContent,
+    messageCount: updatedMessages.length,
+  };
+
+  // Apply entity updates: set present arrays, delete empty ones
+  for (const [key, val] of Object.entries(entityUpdates)) {
+    if (val === undefined) {
+      delete updatedChat[key];
+    } else {
+      updatedChat[key] = val;
+    }
+  }
+
+  return updatedChat;
+}
+
+/**
+ * Wire up the turn-deletion feature in the reader.
+ *
+ * Adds a "Select" toggle button to .reader-actions that attaches checkboxes
+ * to each .chat-turn.  When at least one turn is checked, a "Delete" button
+ * becomes visible.  On confirmation the selected turns are removed from the
+ * stored chat, annotations are cleared (since character offsets shift), and
+ * the page reloads to reflect the change.
+ *
+ * No-op when the chat has no messages array (excerpts) or when the required
+ * DOM elements are absent.
+ *
+ * @param {string} chatId
+ * @param {Object} chat     Full chat object (needs .messages)
+ * @param {Object} storage  browser.storage.local-like API
+ */
+export function setupTurnDeleteMode(chatId, chat, storage) {
+  const contentEl = document.getElementById('reader-content');
+  if (!contentEl || !chatId || !storage) return;
+  if (!Array.isArray(chat.messages) || chat.messages.length === 0) return;
+  const actionsEl = document.querySelector('.reader-actions');
+  if (!actionsEl) return;
+
+  let selectMode = false;
+  const selectedIndices = new Set();
+
+  // ── Select toggle button ─────────────────────────────────────────────────
+  const selectBtn = document.createElement('button');
+  selectBtn.id        = 'reader-select-btn';
+  selectBtn.className = 'btn-reader-action';
+  selectBtn.type      = 'button';
+  selectBtn.title     = 'Select turns to delete';
+  selectBtn.setAttribute('aria-label', 'Select turns to delete');
+  selectBtn.innerHTML =
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+    `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+      `<rect x="3" y="3" width="18" height="18" rx="2"/>` +
+      `<polyline points="9 11 12 14 22 4"/>` +
+    `</svg>` +
+    `<span class="btn-reader-action__label">Select</span>`;
+
+  // ── Delete button ────────────────────────────────────────────────────────
+  const deleteBtn = document.createElement('button');
+  deleteBtn.id        = 'reader-delete-turns-btn';
+  deleteBtn.className = 'btn-reader-action btn-reader-action--danger';
+  deleteBtn.type      = 'button';
+  deleteBtn.title     = 'Delete selected turns';
+  deleteBtn.setAttribute('aria-label', 'Delete selected turns');
+  deleteBtn.hidden    = true;
+  deleteBtn.innerHTML =
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+    `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+      `<polyline points="3 6 5 6 21 6"/>` +
+      `<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>` +
+      `<path d="M10 11v6M14 11v6"/>` +
+      `<path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>` +
+    `</svg>` +
+    `<span class="btn-reader-action__label">Delete ` +
+      `<span id="reader-delete-count"></span>` +
+    `</span>`;
+
+  actionsEl.appendChild(selectBtn);
+  actionsEl.appendChild(deleteBtn);
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function updateDeleteBtn() {
+    const count = selectedIndices.size;
+    deleteBtn.hidden = count === 0;
+    const countEl = document.getElementById('reader-delete-count');
+    if (countEl) countEl.textContent = count > 0 ? `(${count})` : '';
+  }
+
+  function addCheckboxes() {
+    contentEl.querySelectorAll('.chat-turn').forEach(turn => {
+      const idx = parseInt(turn.dataset.msgIndex ?? '-1', 10);
+      if (idx < 0) return;
+      const cb = document.createElement('input');
+      cb.type      = 'checkbox';
+      cb.className = 'turn-select-cb';
+      cb.setAttribute('aria-label',
+        `Select this ${turn.classList.contains('chat-turn--user') ? 'prompt' : 'response'}`);
+      cb.dataset.msgIndex = idx;
+      cb.checked = selectedIndices.has(idx);
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          selectedIndices.add(idx);
+          turn.classList.add('turn-selected');
+        } else {
+          selectedIndices.delete(idx);
+          turn.classList.remove('turn-selected');
+        }
+        updateDeleteBtn();
+      });
+      // Insert checkbox before the role icon/label
+      const roleEl = turn.querySelector('.chat-turn__role');
+      if (roleEl) roleEl.prepend(cb);
+      else turn.prepend(cb);
+    });
+  }
+
+  function removeCheckboxes() {
+    contentEl.querySelectorAll('.turn-select-cb').forEach(cb => cb.remove());
+    contentEl.querySelectorAll('.turn-selected').forEach(el => el.classList.remove('turn-selected'));
+    selectedIndices.clear();
+    updateDeleteBtn();
+  }
+
+  // Clicking a turn body (not on interactive child elements) toggles checkbox
+  contentEl.addEventListener('click', (e) => {
+    if (!selectMode) return;
+    const turn = e.target.closest('.chat-turn');
+    if (!turn) return;
+    if (e.target.closest(
+      '.turn-select-cb, .turn-copy-btn, .code-block__copy, .sources-trigger, a[href], button'
+    )) return;
+    const cb = turn.querySelector('.turn-select-cb');
+    if (!cb) return;
+    cb.checked = !cb.checked;
+    cb.dispatchEvent(new Event('change'));
+  });
+
+  // ── Select toggle ────────────────────────────────────────────────────────
+  selectBtn.addEventListener('click', () => {
+    selectMode = !selectMode;
+    document.body.classList.toggle('turn-select-mode', selectMode);
+    selectBtn.classList.toggle('btn-reader-action--active', selectMode);
+    const label = selectBtn.querySelector('.btn-reader-action__label');
+    if (label) label.textContent = selectMode ? 'Cancel' : 'Select';
+    if (selectMode) {
+      addCheckboxes();
+    } else {
+      removeCheckboxes();
+      deleteBtn.hidden = true;
+    }
+  });
+
+  // ── Delete handler ───────────────────────────────────────────────────────
+  deleteBtn.addEventListener('click', async () => {
+    const indices = Array.from(selectedIndices);
+    if (indices.length === 0) return;
+
+    const noun = indices.length === 1 ? 'turn' : 'turns';
+    /* c8 ignore next 3 */
+    if (!window.confirm(
+      `Delete ${indices.length} selected ${noun}? This cannot be undone.\n\n` +
+      `Note: any text highlights in this chat will also be cleared.`
+    )) return;
+
+    const labelEl = deleteBtn.querySelector('.btn-reader-action__label');
+    if (labelEl) labelEl.textContent = 'Deleting\u2026';
+    deleteBtn.disabled = true;
+
+    const updatedChat = deleteTurnsFromChat(chat, indices);
+    if (!updatedChat) {
+      /* c8 ignore next 4 */
+      if (labelEl) labelEl.textContent = 'Error';
+      deleteBtn.disabled = false;
+      setTimeout(() => { if (labelEl) labelEl.textContent = `Delete (${indices.length})`; }, 2000);
+      return;
+    }
+
+    try {
+      const r = await storage.get([`chat:${chatId}`, 'chats', 'chatIndex']);
+
+      // Persist updated chat (per-key format first, legacy array fallback)
+      if (r[`chat:${chatId}`]) {
+        await storage.set({ [`chat:${chatId}`]: updatedChat });
+      } else {
+        const chats   = Array.isArray(r.chats) ? r.chats : [];
+        const updated = chats.map(c => c.id === chatId ? updatedChat : c);
+        await storage.set({ chats: updated });
+      }
+
+      // Keep chatIndex metadata in sync (messageCount only)
+      if (Array.isArray(r.chatIndex)) {
+        const updatedIndex = r.chatIndex.map(c =>
+          c.id === chatId ? { ...c, messageCount: updatedChat.messageCount } : c
+        );
+        await storage.set({ chatIndex: updatedIndex });
+      }
+
+      // Clear annotations — character offsets are invalid after turn removal
+      await storage.set({ [`annotations:${chatId}`]: [] });
+
+      // Reload to re-render content and update all header metadata
+      /* c8 ignore next */
+      window.location.reload();
+    } catch (err) {
+      logger.error('[reader] deleteTurns: failed to persist:', err);
+      /* c8 ignore next 4 */
+      if (labelEl) labelEl.textContent = 'Error';
+      deleteBtn.disabled = false;
+      setTimeout(() => { if (labelEl) labelEl.textContent = `Delete (${indices.length})`; }, 2000);
+    }
+  });
+}
+
 // ── Auto-run when loaded as a browser extension page ──────────────────────────
-// Only run when the actual reader DOM (reader-content element) is present.
 // This guard prevents accidental execution when reader.js is imported in tests.
 /* c8 ignore next 4 */
 if (typeof browser !== 'undefined' && browser.storage && document.getElementById('reader-content')) {

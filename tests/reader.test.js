@@ -21,8 +21,11 @@ import {
   restoreScrollPosition,
   setupReaderCopyButton,
   _findEntityBlock,
+  deleteTurnsFromChat,
+  setupTurnDeleteMode,
 } from '../src/reader/reader.js';
 import { messagesToMarkdown } from '../src/lib/io/markdown-serialiser.js';
+import { ENTITY_TYPES } from '../src/lib/entities/chat-entity.js';
 
 // ─── Mock clipboard-serialiser so reader.test.js has no real module dependency ─
 vi.mock('../src/lib/export/clipboard-serialiser.js', () => ({
@@ -1467,3 +1470,366 @@ describe('estimateReadTime()', () => {
     expect(estimateReadTime(1000)).toBe(5);
   });
 });
+
+// ─── deleteTurnsFromChat ──────────────────────────────────────────────────────
+
+describe('deleteTurnsFromChat', () => {
+  function makeChat(messages) {
+    const content = messagesToMarkdown(messages, {
+      title: 'Test Chat', source: 'chatgpt', url: 'https://chatgpt.com/c/1',
+      timestamp: 1_740_000_000_000,
+    });
+    return {
+      id: 'chat-1', title: 'Test Chat', source: 'chatgpt',
+      url: 'https://chatgpt.com/c/1', timestamp: 1_740_000_000_000,
+      messageCount: messages.length,
+      content, messages,
+    };
+  }
+
+  const msgs = [
+    { role: 'user',      content: 'Hello' },
+    { role: 'assistant', content: 'Hi there' },
+    { role: 'user',      content: 'How are you?' },
+    { role: 'assistant', content: 'Fine thanks' },
+  ];
+
+  it('returns null for a chat with no messages array', () => {
+    const chat = { id: 'x', title: 'T', content: '', messages: [] };
+    expect(deleteTurnsFromChat(chat, [0])).toBeNull();
+  });
+
+  it('returns null when messages is not an array', () => {
+    const chat = { id: 'x', title: 'T', content: '', messages: null };
+    expect(deleteTurnsFromChat(chat, [0])).toBeNull();
+  });
+
+  it('returns an unchanged copy when turnIndices is empty', () => {
+    const chat = makeChat(msgs);
+    const result = deleteTurnsFromChat(chat, []);
+    expect(result).not.toBe(chat);
+    expect(result.messages).toEqual(msgs);
+    expect(result.messageCount).toBe(4);
+  });
+
+  it('removes the specified turn by index', () => {
+    const chat   = makeChat(msgs);
+    const result = deleteTurnsFromChat(chat, [0]); // remove first user turn
+    expect(result.messages).toHaveLength(3);
+    expect(result.messages[0]).toEqual({ role: 'assistant', content: 'Hi there' });
+    expect(result.messageCount).toBe(3);
+  });
+
+  it('removes multiple turns (user + assistant)', () => {
+    const chat   = makeChat(msgs);
+    const result = deleteTurnsFromChat(chat, [0, 1]); // remove first pair
+    expect(result.messages).toHaveLength(2);
+    expect(result.messages[0]).toEqual({ role: 'user',      content: 'How are you?' });
+    expect(result.messages[1]).toEqual({ role: 'assistant', content: 'Fine thanks' });
+  });
+
+  it('updates messageCount to match the remaining messages', () => {
+    const chat   = makeChat(msgs);
+    const result = deleteTurnsFromChat(chat, [1, 3]); // remove both assistant turns
+    expect(result.messageCount).toBe(2);
+    expect(result.messages.every(m => m.role === 'user')).toBe(true);
+  });
+
+  it('rebuilds content markdown reflecting the deleted turns', () => {
+    const chat   = makeChat(msgs);
+    const result = deleteTurnsFromChat(chat, [2, 3]); // remove second pair
+    expect(result.content).toContain('Hello');
+    expect(result.content).toContain('Hi there');
+    expect(result.content).not.toContain('How are you?');
+    expect(result.content).not.toContain('Fine thanks');
+  });
+
+  it('updated content contains correct messageCount in frontmatter', () => {
+    const chat   = makeChat(msgs);
+    const result = deleteTurnsFromChat(chat, [0]);
+    expect(result.content).toContain('messageCount: 3');
+    expect(result.content).not.toContain('messageCount: 4');
+  });
+
+  it('preserves title, source and url in the rebuilt content', () => {
+    const chat   = makeChat(msgs);
+    const result = deleteTurnsFromChat(chat, [0]);
+    expect(result.content).toContain('title: "Test Chat"');
+    expect(result.content).toContain('source: chatgpt');
+    expect(result.content).toContain('url: https://chatgpt.com/c/1');
+  });
+
+  it('can delete all turns, producing empty messages and frontmatter-only content', () => {
+    const chat   = makeChat(msgs);
+    const result = deleteTurnsFromChat(chat, [0, 1, 2, 3]);
+    expect(result.messages).toHaveLength(0);
+    expect(result.messageCount).toBe(0);
+    expect(result.content).toContain('messageCount: 0');
+  });
+
+  it('does not mutate the original chat object', () => {
+    const chat = makeChat(msgs);
+    deleteTurnsFromChat(chat, [0]);
+    expect(chat.messages).toHaveLength(4);
+    expect(chat.messageCount).toBe(4);
+  });
+
+  // ── Entity filtering and remapping ────────────────────────────────────────
+
+  it('removes entities whose messageIndex is in the deleted set', () => {
+    const chat = {
+      ...makeChat(msgs),
+      [ENTITY_TYPES.CODE]: [
+        { id: 'e1', type: 'code', messageIndex: 0, chatId: 'chat-1', role: 'user',      lang: 'js' },
+        { id: 'e2', type: 'code', messageIndex: 1, chatId: 'chat-1', role: 'assistant', lang: 'py' },
+        { id: 'e3', type: 'code', messageIndex: 2, chatId: 'chat-1', role: 'user',      lang: 'ts' },
+      ],
+    };
+    const result = deleteTurnsFromChat(chat, [0]); // delete turn 0 (user "Hello")
+    const codes = result[ENTITY_TYPES.CODE];
+    expect(codes).toHaveLength(2);
+    expect(codes.every(e => e.id !== 'e1')).toBe(true);
+  });
+
+  it('remaps messageIndex for surviving entities after deletion', () => {
+    // 4 messages: indices 0,1,2,3 — delete index 1
+    // Remaining: 0→0, 2→1, 3→2
+    const chat = {
+      ...makeChat(msgs),
+      [ENTITY_TYPES.CITATION]: [
+        { id: 'c1', type: 'citation', messageIndex: 0, chatId: 'chat-1', role: 'user',      url: 'https://a.com' },
+        { id: 'c2', type: 'citation', messageIndex: 2, chatId: 'chat-1', role: 'user',      url: 'https://b.com' },
+        { id: 'c3', type: 'citation', messageIndex: 3, chatId: 'chat-1', role: 'assistant', url: 'https://c.com' },
+      ],
+    };
+    const result = deleteTurnsFromChat(chat, [1]); // delete assistant "Hi there" at index 1
+    const citations = result[ENTITY_TYPES.CITATION];
+    expect(citations).toHaveLength(3);
+    expect(citations.find(e => e.id === 'c1').messageIndex).toBe(0); // unchanged
+    expect(citations.find(e => e.id === 'c2').messageIndex).toBe(1); // was 2, shifted by 1
+    expect(citations.find(e => e.id === 'c3').messageIndex).toBe(2); // was 3, shifted by 1
+  });
+
+  it('removes entity type key entirely when all entities of that type are in deleted turns', () => {
+    const chat = {
+      ...makeChat(msgs),
+      [ENTITY_TYPES.TABLE]: [
+        { id: 't1', type: 'table', messageIndex: 0, chatId: 'chat-1', role: 'user' },
+      ],
+    };
+    const result = deleteTurnsFromChat(chat, [0]);
+    // Key should be absent (not present as empty array)
+    expect(Object.prototype.hasOwnProperty.call(result, ENTITY_TYPES.TABLE)).toBe(false);
+  });
+
+  it('handles multiple entity types simultaneously', () => {
+    const chat = {
+      ...makeChat(msgs),
+      [ENTITY_TYPES.CODE]: [
+        { id: 'code1', type: 'code', messageIndex: 1, chatId: 'chat-1', role: 'assistant', lang: 'js' },
+        { id: 'code2', type: 'code', messageIndex: 3, chatId: 'chat-1', role: 'assistant', lang: 'py' },
+      ],
+      [ENTITY_TYPES.PROMPT]: [
+        { id: 'p1', type: 'prompt', messageIndex: 0, chatId: 'chat-1', role: 'user', text: 'Hello' },
+        { id: 'p2', type: 'prompt', messageIndex: 2, chatId: 'chat-1', role: 'user', text: 'How are you?' },
+      ],
+    };
+    // Delete turns 0 and 1 (first user-assistant pair)
+    const result = deleteTurnsFromChat(chat, [0, 1]);
+    // code1 (messageIndex 1) deleted, code2 (messageIndex 3 → 1) survives
+    expect(result[ENTITY_TYPES.CODE]).toHaveLength(1);
+    expect(result[ENTITY_TYPES.CODE][0].id).toBe('code2');
+    expect(result[ENTITY_TYPES.CODE][0].messageIndex).toBe(1); // was 3, shifted by 2
+    // p1 (messageIndex 0) deleted, p2 (messageIndex 2 → 0) survives
+    expect(result[ENTITY_TYPES.PROMPT]).toHaveLength(1);
+    expect(result[ENTITY_TYPES.PROMPT][0].id).toBe('p2');
+    expect(result[ENTITY_TYPES.PROMPT][0].messageIndex).toBe(0); // was 2, shifted by 2
+  });
+
+  it('does not add entity type keys that were not present on the original chat', () => {
+    const chat = makeChat(msgs); // no entity keys
+    const result = deleteTurnsFromChat(chat, [0]);
+    for (const type of Object.values(ENTITY_TYPES)) {
+      expect(Object.prototype.hasOwnProperty.call(result, type)).toBe(false);
+    }
+  });
+});
+
+// ─── setupTurnDeleteMode ──────────────────────────────────────────────────────
+
+describe('setupTurnDeleteMode', () => {
+  function buildDom(messages) {
+    const content = messagesToMarkdown(messages, {
+      title: 'T', source: 'chatgpt', timestamp: 1_740_000_000_000,
+    });
+    document.body.innerHTML = `
+      <header id="reader-header" hidden>
+        <div class="reader-header__inner">
+          <div class="reader-header__meta">
+            <span id="meta-source" class="badge"></span>
+            <span id="meta-date"></span>
+            <span id="meta-count"></span>
+            <span id="meta-prompts" hidden></span>
+            <span id="meta-responses" hidden></span>
+          </div>
+          <h1 id="reader-title"></h1>
+          <div class="reader-header__footer">
+            <div id="reader-rating" hidden></div>
+            <div class="reader-actions">
+              <button id="reader-copy-btn" class="btn-reader-action" type="button">
+                <span class="btn-reader-action__label">Copy</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main id="reader-content" class="reader-content" hidden></main>
+      <div id="state-error" hidden><p id="error-message"></p></div>
+    `;
+    const chat = {
+      id: 'chat-1', title: 'T', source: 'chatgpt',
+      url: '', timestamp: 1_740_000_000_000,
+      messageCount: messages.length,
+      content, messages,
+    };
+    renderChat(chat);
+    return chat;
+  }
+
+  function makeStorage(overrides = {}) {
+    const store = {};
+    return {
+      get: vi.fn(async (keys) => {
+        const r = {};
+        for (const k of keys) r[k] = store[k] ?? overrides[k] ?? undefined;
+        return r;
+      }),
+      set: vi.fn(async (obj) => { Object.assign(store, obj); }),
+      _store: store,
+    };
+  }
+
+  const twoMsgs = [
+    { role: 'user',      content: 'Hello' },
+    { role: 'assistant', content: 'Hi there' },
+  ];
+
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('adds a Select button to .reader-actions', () => {
+    const chat = buildDom(twoMsgs);
+    setupTurnDeleteMode('chat-1', chat, makeStorage());
+    expect(document.getElementById('reader-select-btn')).not.toBeNull();
+  });
+
+  it('does not add Select button when chat has no messages', () => {
+    const chat = buildDom([]);
+    const orphan = { ...chat, messages: [] };
+    setupTurnDeleteMode('chat-1', orphan, makeStorage());
+    expect(document.getElementById('reader-select-btn')).toBeNull();
+  });
+
+  it('Delete button is hidden initially', () => {
+    const chat = buildDom(twoMsgs);
+    setupTurnDeleteMode('chat-1', chat, makeStorage());
+    expect(document.getElementById('reader-delete-turns-btn').hidden).toBe(true);
+  });
+
+  it('clicking Select adds checkboxes to each .chat-turn', () => {
+    const chat = buildDom(twoMsgs);
+    setupTurnDeleteMode('chat-1', chat, makeStorage());
+    document.getElementById('reader-select-btn').click();
+    const cbs = document.querySelectorAll('.turn-select-cb');
+    expect(cbs.length).toBe(2);
+  });
+
+  it('clicking Select a second time cancels and removes checkboxes', () => {
+    const chat = buildDom(twoMsgs);
+    setupTurnDeleteMode('chat-1', chat, makeStorage());
+    document.getElementById('reader-select-btn').click();
+    document.getElementById('reader-select-btn').click();
+    expect(document.querySelectorAll('.turn-select-cb').length).toBe(0);
+  });
+
+  it('checking a turn checkbox shows Delete button with count', () => {
+    const chat = buildDom(twoMsgs);
+    setupTurnDeleteMode('chat-1', chat, makeStorage());
+    document.getElementById('reader-select-btn').click();
+    const cb = document.querySelector('.turn-select-cb');
+    cb.checked = true;
+    cb.dispatchEvent(new Event('change'));
+    expect(document.getElementById('reader-delete-turns-btn').hidden).toBe(false);
+    expect(document.getElementById('reader-delete-count').textContent).toBe('(1)');
+  });
+
+  it('unchecking the last turn hides Delete button', () => {
+    const chat = buildDom(twoMsgs);
+    setupTurnDeleteMode('chat-1', chat, makeStorage());
+    document.getElementById('reader-select-btn').click();
+    const cb = document.querySelector('.turn-select-cb');
+    cb.checked = true;
+    cb.dispatchEvent(new Event('change'));
+    cb.checked = false;
+    cb.dispatchEvent(new Event('change'));
+    expect(document.getElementById('reader-delete-turns-btn').hidden).toBe(true);
+  });
+
+  it('each .chat-turn gets a data-msg-index attribute after renderChat', () => {
+    const chat = buildDom(twoMsgs);
+    const turns = document.querySelectorAll('.chat-turn');
+    expect(turns[0].dataset.msgIndex).toBe('0');
+    expect(turns[1].dataset.msgIndex).toBe('1');
+    // setupTurnDeleteMode not needed — renderChat sets it
+    void chat;
+  });
+
+  it('delete handler persists updated chat and clears annotations', async () => {
+    const storage = makeStorage();
+    const msgs4 = [
+      { role: 'user',      content: 'Q1' },
+      { role: 'assistant', content: 'A1' },
+      { role: 'user',      content: 'Q2' },
+      { role: 'assistant', content: 'A2' },
+    ];
+    const chat = buildDom(msgs4);
+    storage._store['chat:chat-1'] = chat;
+    storage._store['annotations:chat-1'] = [{ id: 'ann-1', text: 'hi' }];
+
+    // Stub window.confirm to return true
+    const origConfirm = window.confirm;
+    window.confirm = () => true;
+    // Stub location.reload
+    const origReload = window.location.reload;
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, reload: vi.fn() },
+      writable: true,
+    });
+
+    setupTurnDeleteMode('chat-1', chat, storage);
+    document.getElementById('reader-select-btn').click();
+    // Check turn 0 (first user prompt)
+    const cb = document.querySelector('.turn-select-cb');
+    cb.checked = true;
+    cb.dispatchEvent(new Event('change'));
+
+    await document.getElementById('reader-delete-turns-btn').dispatchEvent(new MouseEvent('click'));
+
+    // Give the async handler time to run
+    await new Promise(r => setTimeout(r, 50));
+
+    // storage.set should have been called with the updated chat
+    const setCalls = storage.set.mock.calls;
+    const chatSetCall = setCalls.find(c => c[0]['chat:chat-1']);
+    expect(chatSetCall).toBeTruthy();
+    expect(chatSetCall[0]['chat:chat-1'].messages).toHaveLength(3);
+
+    // Annotations cleared
+    const annSetCall = setCalls.find(c => c[0]['annotations:chat-1'] !== undefined);
+    expect(annSetCall).toBeTruthy();
+    expect(annSetCall[0]['annotations:chat-1']).toEqual([]);
+
+    window.confirm = origConfirm;
+    window.location.reload = origReload;
+  });
+});
+

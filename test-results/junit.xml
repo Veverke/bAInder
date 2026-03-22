@@ -1,549 +1,545 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="271" failures="0" errors="0" time="5.5181155">
-    <testsuite name="tests/export-import-integration.test.js" timestamp="2026-03-22T16:27:18.705Z" hostname="Kahana-PC" tests="119" failures="0" errors="0" skipped="0" time="5.4237935">
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — constructor &gt; stores dialogManager reference" time="0.0078857">
+<testsuites name="vitest tests" tests="193" failures="0" errors="0" time="0.2850923">
+    <testsuite name="tests/reader.test.js" timestamp="2026-03-22T17:18:25.796Z" hostname="Kahana-PC" tests="193" failures="0" errors="0" skipped="0" time="0.2850923">
+        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns empty string for null / undefined / empty" time="0.0012006">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — constructor &gt; showExportTopic is a function" time="0.0014378">
+        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns a non-empty string for a valid ISO date" time="0.0133883">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — constructor &gt; showExportChat is a function" time="0.0009405">
+        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns the original string for an invalid date" time="0.0002363">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; null topic → calls dialog.alert and returns early" time="0.007294">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; returns empty string for null / undefined" time="0.0002312">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; null chats array → calls dialog.alert and returns early" time="0.001298">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; escapes &amp; &lt; &gt; &quot;" time="0.0001458">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; shows modal with class modal-content" time="0.0386997">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; escapes ampersand" time="0.0001021">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains markdown format radio button" time="0.025141">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; leaves safe text unchanged" time="0.0000787">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains html format radio button" time="0.0299414">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps chatgpt" time="0.0001063">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains pdf format radio button" time="0.0151964">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps claude" time="0.0000796">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains zip format radio button" time="0.0154203">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps gemini" time="0.0000957">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains scope radio buttons" time="0.0123405">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps copilot" time="0.0000542">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains style radio buttons" time="0.0190178">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns source string for unknown" time="0.0000538">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains Export button" time="0.0135522">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns Unknown for empty / null" time="0.0000662">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains Cancel button" time="0.0155871">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns Excerpt when isExcerpt is true" time="0.0000554">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; selecting PDF format hides style section" time="0.0151422">
+        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--chatgpt for chatgpt" time="0.0001427">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; selecting ZIP format hides style section" time="0.0120556">
+        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--unknown for unknown source" time="0.0001033">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; selecting Markdown format shows style section" time="0.0252239">
+        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--excerpt when isExcerpt is true regardless of source" time="0.0000748">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; selecting HTML format shows style section" time="0.0103597">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts **bold** to &lt;strong&gt;" time="0.0003285">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; ZIP format makes zip-note visible" time="0.0079994">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts *italic* to &lt;em&gt;" time="0.0000966">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; Markdown format hides zip-note" time="0.0205199">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts `code` to &lt;code&gt;" time="0.0000769">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — export actions &gt; Markdown + this-topic: clicking Export calls buildExportMarkdown" time="0.0141079">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; does not double-process bold inside code" time="0.0001878">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — export actions &gt; Markdown + this-topic: clicking Export calls triggerDownload" time="0.0331412">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; returns unchanged text when no formatting present" time="0.0000579">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — export actions &gt; ZIP + entire-tree: clicking Export calls buildZipPayload" time="0.0322085">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; handles empty string" time="0.0000485">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — export actions &gt; ZIP + entire-tree: clicking Export calls triggerDownload with a Blob" time="0.0461823">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts ![alt](https://url) to &lt;img&gt;" time="0.000132">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — export actions &gt; Cancel button closes dialog (container no longer visible)" time="0.0310382">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts data: image URL to &lt;img&gt;" time="0.0000721">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — dialog rendering &gt; null chat → calls dialog.alert and returns early" time="0.0020876">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; keeps &amp;amp; encoded in image src URL (valid HTML attribute)" time="0.0000551">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — dialog rendering &gt; shows modal with format radio buttons (markdown, html, pdf)" time="0.0128074">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts [text](url) to an anchor tag" time="0.0001922">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — dialog rendering &gt; does NOT include zip format radio in chat mode" time="0.0162813">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; keeps &amp;amp; encoded in link href (valid HTML attribute)" time="0.0001158">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — dialog rendering &gt; does NOT show scope section in chat mode" time="0.0171724">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; handles links alongside bold text" time="0.0000777">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — dialog rendering &gt; shows style section in chat mode" time="0.0143713">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; returns empty string for null / undefined / empty" time="0.000565">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — export actions &gt; Markdown: clicking Export calls buildExportMarkdown" time="0.01588">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; strips YAML frontmatter" time="0.0004684">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — export actions &gt; Markdown: clicking Export calls triggerDownload" time="0.0136027">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders # heading as &lt;h1&gt;" time="0.0000849">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — export actions &gt; HTML: clicking Export calls buildExportHtml" time="0.0141842">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders ## heading as &lt;h2&gt;" time="0.0000608">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — export actions &gt; HTML: clicking Export calls triggerDownload with .html filename" time="0.0096091">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders ### heading as &lt;h3&gt;" time="0.0000754">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — export actions &gt; Cancel button closes dialog" time="0.0243304">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders --- as &lt;hr&gt;" time="0.0000738">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — constructor &gt; stores dialogManager reference" time="0.0010983">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders fenced code block as a code-block widget with header and copy button" time="0.0001661">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — constructor &gt; showImportDialog is a function" time="0.000453">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not double-escape HTML inside code blocks" time="0.0000675">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; shows a drop zone" time="0.0144271">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders blockquote &gt; as &lt;blockquote&gt;" time="0.0000728">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; shows merge strategy radio" time="0.008182">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders standalone ![alt](url) as an &lt;img&gt;" time="0.000079">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; shows replace strategy radio" time="0.0073685">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders [text](url) link inside paragraph" time="0.0004125">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; shows new-root strategy radio" time="0.0172043">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links a bare https URL" time="0.0003364">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; Import button is initially disabled" time="0.0146985">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links a bare http URL" time="0.0001236">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; Phase 1 is initially active" time="0.0073529">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not double-link an explicit markdown link whose href is a URL" time="0.0001019">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; Cancel button calls dialog.close" time="0.0230813">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; trims trailing period from auto-linked URL and keeps the period as text" time="0.0000945">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; after valid file selected, Import button becomes enabled" time="0.0321781">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; trims trailing ) from auto-linked URL" time="0.0000738">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; validateZipFile is called with the chosen file" time="0.0322446">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links URL with path and query string" time="0.0000727">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; file chip shows the file name after selection" time="0.0163444">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not link text that starts with http inside a word (e.g. no-op for plain text)" time="0.0000607">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; drop zone gains file-selected CSS class" time="0.0305749">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders Microsoft Designer as a card (not iframe)" time="0.0001285">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; invalid file — dialog.alert is called with error detail" time="0.0299386">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; Designer card does not clobber surrounding text" time="0.0001172">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; invalid file — Import button stays disabled" time="0.0311608">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with data: src renders &lt;audio controls&gt; player" time="0.0001847">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; clicking Import transitions to Phase 2 (active class)" time="0.0307374">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with https: src renders &lt;audio controls&gt; player" time="0.0001247">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; Phase 2 shows correct topics-to-create count" time="0.0610859">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with blob: src renders unavailable notice" time="0.0001339">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; Phase 2 shows correct chats-to-import count" time="0.0484093">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker without URL (not captured) renders unavailable notice" time="0.0001006">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; Phase 2 shows correct conflict count" time="0.030042">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio card does not clobber surrounding text" time="0.0004669">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; Back button returns to Phase 1" time="0.0631477">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio src URL is HTML-escaped in the output" time="0.0000949">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; parseZipEntries is called during preparation" time="0.029515">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; standalone PDF filename renders as file-attachment-chip" time="0.0001699">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; buildImportPlan is called during preparation" time="0.0465974">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; chip includes session note text" time="0.0000845">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; clicking Import Now calls executeImport" time="0.0629498">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; without sourceUrl chip renders as &lt;div&gt;" time="0.0000817">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; onComplete is called with correct shape" time="0.064659">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; with sourceUrl chip renders as &lt;a&gt; linking to the source" time="0.00009">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; Phase 3 becomes active after import" time="0.0465997">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; emoji-prefixed filename (from messagesToMarkdown) renders chip" time="0.0001622">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; done content becomes visible" time="0.107425">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; emoji-prefixed filename in full serialised content renders chip inside assistant turn" time="0.0001643">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; done header says Import Complete" time="0.0674199">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; sourceUrl is passed through to emoji-prefixed chip" time="0.000094">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; Done button calls dialog.close" time="0.0722707">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename + blank line + type label renders chip, drops bare type label" time="0.0000866">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; Replace strategy: no secondary confirm dialog is shown" time="0.0794034">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; DOCX file renders chip with correct ext badge" time="0.0000652">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; Replace strategy: executeImport IS called immediately on Import Now click" time="0.0639184">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; CSV file renders chip with correct ext badge" time="0.0000948">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; JSZip.loadAsync rejects → inline error is shown" time="0.0475694">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; Python file renders chip" time="0.0000762">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; JSZip.loadAsync rejects → stays on Phase 1" time="0.076314">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename embedded in prose is NOT rendered as chip" time="0.0001211">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; JSZip.loadAsync rejects → Import button is re-enabled" time="0.063114">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename inside code block is NOT rendered as chip" time="0.0000764">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; executeImport throws → dialog.alert is called with error message" time="0.0950487">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; chip does not clobber surrounding text" time="0.0001195">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; onComplete throws → dialog.alert is called" time="0.0902458">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; multiple attachment lines each render as separate chips" time="0.0000891">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; onComplete throws → does not crash silently" time="0.0485455">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders - list items as &lt;ul&gt;" time="0.0001191">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; full pipeline: validateZipFile is called" time="0.0636676">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders numbered list items as &lt;ol&gt;" time="0.0000912">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; full pipeline: parseZipEntries is called" time="0.0589581">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; wraps plain text lines in &lt;p&gt;" time="0.0000601">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; full pipeline: buildImportPlan is called" time="0.0948088">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; escapes HTML entities in plain text" time="0.0000687">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; full pipeline: executeImport is called" time="0.0785561">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; applies inline formatting inside paragraphs" time="0.0000638">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; onComplete receives updatedTopics as a non-null object" time="0.0757088">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders full messagesToMarkdown output correctly" time="0.0005221">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; onComplete receives updatedRootTopics as an array" time="0.0639625">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; returns early for null input" time="0.0006141">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; onComplete receives updatedChats as an array" time="0.0781764">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; replaces a Sources &lt;p&gt;+&lt;ul&gt; pair with a .sources-trigger button" time="0.007196">
+            <system-out>
+[bAInder] processSources: creating chip with [33m1[39m link(s)
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; onComplete receives summary with required properties" time="0.0485244">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; stores link data in data-sources attribute as JSON" time="0.0023928">
+            <system-out>
+[bAInder] processSources: creating chip with [33m2[39m link(s)
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; imported chat has correct title" time="0.0921311">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; chip label uses singular &quot;source&quot; for one link" time="0.0010758">
+            <system-out>
+[bAInder] processSources: creating chip with [33m1[39m link(s)
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; imported chat has correct source" time="0.0777814">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; chip label uses plural &quot;sources&quot; for multiple links" time="0.001012">
+            <system-out>
+[bAInder] processSources: creating chip with [33m2[39m link(s)
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; done screen displays correct topics-created count" time="0.0783104">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing when the &lt;p&gt; is not empty. and has no following &lt;ul&gt;" time="0.0005044">
+            <system-out>
+[bAInder] processSources: found Sources p but nextElementSibling is P  skipping
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; done screen displays correct chats-imported count" time="0.0779765">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing to &lt;p&gt; elements that are not &quot;Sources:&quot;" time="0.0004328">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; DOM is available immediately after showImportDialog() call" time="0.025749">
+        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing when the &lt;ul&gt; has no links" time="0.0003935">
+            <system-out>
+[bAInder] processSources: Sources ul has no valid links
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; Import button is disabled before file selection" time="0.0583874">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; injects #sources-panel and #sources-overlay into the DOM" time="0.0012969">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; file selection enables Import button" time="0.0408833">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; is idempotent — calling twice does not create a second panel" time="0.0009292">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; clicking Import ▶ transitions to Phase 2" time="0.0473397">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; panel starts with aria-hidden=&quot;true&quot;" time="0.0006685">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; clicking Import Now ▶ calls executeImport" time="0.0694371">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; clicking a .sources-trigger opens the panel and populates the list" time="0.0064566">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; onComplete is invoked after Import Now ▶" time="0.0883242">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; close button hides the panel" time="0.0012804">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; Phase 3 done screen is shown after successful import" time="0.0785765">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; Escape key closes an open panel" time="0.0010193">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — strategy forwarding to buildImportPlan &gt; merge strategy: buildImportPlan is called with &quot;merge&quot;" time="0.0491916">
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; links in the panel open in a new tab" time="0.0026879">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — strategy forwarding to buildImportPlan &gt; replace strategy: buildImportPlan is called with &quot;replace&quot;" time="0.0923343">
+        <testcase classname="tests/reader.test.js" name="showError &gt; shows the error state" time="0.0008708">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — strategy forwarding to buildImportPlan &gt; new-root strategy: buildImportPlan is called with &quot;new-root&quot;" time="0.032277">
+        <testcase classname="tests/reader.test.js" name="showError &gt; sets the error message text" time="0.0004994">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — strategy forwarding to buildImportPlan &gt; default strategy (no explicit selection) is &quot;merge&quot;" time="0.0457062">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows the reader header" time="0.0054235">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: no confirmation dialog is shown" time="0.0682432">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows the reader content" time="0.0048759">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: executeImport is called" time="0.0766654">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets the page title" time="0.0033969">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: onComplete is invoked" time="0.0596105">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders title in header" time="0.0029037">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: Phase 3 becomes active" time="0.0951245">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets source badge class to badge--claude" time="0.0029183">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: done content is visible" time="0.0776505">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders markdown content as HTML for markdown-v1 format" time="0.0033998">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: done screen shows correct topics-created count" time="0.0444076">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; keeps entire assistant response in one .chat-turn--assistant when response contains internal --- rules" time="0.0091465">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m224[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;HR Test\&quot;\nsource: chatgpt\ncontentFormat: markdown-v1\n---\n\n# HR Test\n\n🙋 User question\n\n---\n\n🤖 First paragraph of response\n\n---\n\nSecond paragraph of response\n\n---\n\n🙋 Second user question\n\n---\n\n🤖 Second response\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: done screen shows correct chats-imported count" time="0.0782806">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets excerpt badge class when isExcerpt is true in metadata" time="0.0016262">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m103[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Excerpt\&quot;\nsource: chatgpt\nexcerpt: true\ncontentFormat: markdown-v1\n---\n\n# Excerpt\n\nSome text&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: inProgress indicator is hidden after completion" time="0.0622581">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows meta-responses when there are assistant turns" time="0.0023116">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: Done ✓ button is visible" time="0.0643686">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders responses trigger with correct count text" time="0.0024369">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: no confirm dialog is shown — Import Now proceeds immediately" time="0.0750671">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders responses trigger as plural for multiple responses" time="0.0042542">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace confirmed: executeImport is called" time="0.0961381">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders a responses-overlay with one item per assistant turn" time="0.0024553">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: executeImport is called with null tree and empty chats" time="0.0797286">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; responses overlay items link to #rN anchors" time="0.0030005">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: onComplete is invoked" time="0.0737144">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; responses overlay items contain the assistant text snippet" time="0.0022813">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: Phase 3 becomes active" time="0.0774682">
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; hides meta-responses when there are no assistant turns" time="0.0013876">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m102[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\nSome plain text with no role emoji\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: done screen is visible" time="0.080498">
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when no chatId in URL" time="0.0008428">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: inline replace warning banner is shown in Phase 2" time="0.0457217">
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when chatId not found in storage" time="0.0005803">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: inline replace warning banner is hidden for merge strategy" time="0.0614767">
+        <testcase classname="tests/reader.test.js" name="init &gt; renders the chat when chatId is found" time="0.0041915">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m111[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Found Chat Array\&quot;\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Found Chat Array\n\nSome content\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: no confirmation dialog is shown" time="0.0639404">
+        <testcase classname="tests/reader.test.js" name="init &gt; header and content are shown, error is hidden, after successful render" time="0.0021805">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m87[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Render Test\&quot;\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Render Test\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: buildImportPlan is called with &quot;new-root&quot;" time="0.0774481">
+        <testcase classname="tests/reader.test.js" name="init &gt; error state is shown and header remains hidden when chat not found" time="0.0005252">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: executeImport is called" time="0.0757489">
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when chatId not in array" time="0.0005247">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: onComplete is invoked" time="0.0627515">
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when storage throws" time="0.0005145">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: Phase 3 becomes active" time="0.0490818">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; renders 5 star buttons" time="0.0006888">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: done content is visible" time="0.0591356">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; marks stars up to currentRating as is-set" time="0.0005837">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: done screen shows correct topics-created count" time="0.0489796">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; shows no stars filled when rating is 0/null" time="0.0004362">
         </testcase>
-        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: done screen shows correct chats-imported count" time="0.0896517">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; makes the container visible" time="0.0003804">
         </testcase>
-    </testsuite>
-    <testsuite name="tests/import-parser.test.js" timestamp="2026-03-22T16:27:18.861Z" hostname="Kahana-PC" tests="152" failures="0" errors="0" skipped="0" time="0.094322">
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid when called with null" time="0.0037441">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; clicking a star saves the new rating to storage" time="0.0015175">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid when called with undefined" time="0.0006128">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; clicking the same star twice clears the rating" time="0.0047384">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid for an empty object with no name or size" time="0.000572">
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; is a no-op when #reader-rating element is absent" time="0.0002867">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns valid for a .zip file with size &gt; 0 and application/zip MIME type" time="0.0005041">
+        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns empty object when nothing stored" time="0.000172">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid for a .txt extension regardless of size" time="0.0004162">
+        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns stored positions" time="0.0001287">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; accepts application/zip MIME type" time="0.000313">
+        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns empty object when localStorage contains invalid JSON" time="0.0001704">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; accepts application/x-zip-compressed MIME type" time="0.0002409">
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; persists a new position" time="0.0001738">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid when size is 0" time="0.0004488">
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; updates an existing position" time="0.000086">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid when size exceeds 500 MB" time="0.0003316">
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; is a no-op when chatId is falsy" time="0.0000602">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns valid for a 499 MB file" time="0.000291">
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; evicts the oldest entry when cap is exceeded" time="0.0004073">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; accepts a file with .zip extension even when MIME type is unknown" time="0.0001927">
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; re-inserting an existing id moves it to the end (no eviction size change)" time="0.000261">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; returns empty structure for null input" time="0.0026313">
+        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; calls window.scrollTo with the stored Y value" time="0.000215">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; returns empty structure for an empty array" time="0.0005494">
+        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; does not call window.scrollTo when no position stored" time="0.0001404">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; returns a warnings array for null/empty input" time="0.0001957">
+        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; is a no-op when chatId is falsy" time="0.0000808">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; detects the _metadata.json from well-formed entries" time="0.0010242">
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; returns gracefully when button is absent" time="0.0008214">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; parses exactly 2 chatFiles from well-formed entries, excluding _topic.json, README.md and _metadata.json" time="0.0011431">
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; success path: shows ✓ Copied feedback after click" time="0.0124758">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; strips the common root folder prefix from paths" time="0.0011713">
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; tooLarge path: skips clipboard write and shows error feedback" time="0.0160743">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; sets topicPath to &quot;Work/Projects&quot; for a file inside Work/Projects/" time="0.0006685">
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; fallback path: shows &quot;Select all + paste&quot; feedback" time="0.0020079">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; builds topicFolders Map with an entry for each unique folder" time="0.0004039">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; finds a .file-attachment-chip by filename hint" time="0.0013152">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; returns metadata: null when no _metadata.json is present" time="0.0002445">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; matching is case-insensitive" time="0.0007586">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; does not push a warning for the mere absence of metadata" time="0.0003871">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; returns null when filename does not match" time="0.0012127">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; sets metadata to null and adds a warning when _metadata.json is corrupt JSON" time="0.0005634">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; returns null when hint is null" time="0.0010813">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; does not stop parsing when _metadata.json is corrupt — still returns chatFiles" time="0.0005522">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; finds a table by exact header hint (score 2)" time="0.0027436">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; assigns an empty topicPath to .md files effectively at the root level" time="0.0003868">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; matching is case-insensitive" time="0.0007104">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; includes chatFiles from subdirectories" time="0.000371">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; falls back to partial header match (score 1) when not all cells match" time="0.0007528">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; parses flat single-entry correctly (strips solo-segment root)" time="0.0003943">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; returns null when no header cells match hint" time="0.0005848">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; records a warning for unrecognised non-standard file extensions" time="0.0003501">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; returns null when table has no thead" time="0.0005024">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; wires parentPath on child topic folder entries" time="0.0003189">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — turn:self &gt; returns the anchorEl itself for hint &quot;turn:self&quot;" time="0.0002953">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; lists Work/Projects as a child of Work" time="0.0009638">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — turn:self &gt; is case-insensitive for the sentinel" time="0.0001357">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; restores original topic name case from _topic.json (e.g. &quot;ai&quot; folder → &quot;AI&quot; name)" time="0.0005089">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; finds img.chat-image by exact alt text (score 2)" time="0.000505">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; falls back to folder name when _topic.json has no name field" time="0.0003726">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; matching is case-insensitive" time="0.0003628">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; extracts title from YAML frontmatter" time="0.0017593">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; partial alt text match scores lower but still matches" time="0.0003011">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; extracts source from YAML frontmatter" time="0.0006051">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; returns null when alt text does not match hint" time="0.0002551">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; extracts url from YAML frontmatter" time="0.0004138">
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; returns null when image has no alt text and hint is non-empty" time="0.0002691">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses the date field to a millisecond timestamp" time="0.0002873">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; returns 0 for empty string" time="0.0001366">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; always generates an id that starts with &quot;imported_&quot;" time="0.0003384">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; returns 0 for null / undefined" time="0.0000711">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; generates a unique id on every call" time="0.0015572">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; counts plain words correctly" time="0.0002439">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; falls back to the filename (without .md) as title when frontmatter has no title" time="0.000408">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips YAML frontmatter before counting" time="0.0000845">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; defaults source to &quot;imported&quot; when frontmatter omits source" time="0.0002925">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips fenced code blocks before counting" time="0.0000778">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; defaults url to an empty string when frontmatter omits url" time="0.0002525">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips inline code before counting" time="0.0000628">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; defaults timestamp to approximately Date.now() when date is absent" time="0.0004524">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips markdown images before counting" time="0.0000485">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets metadata.isExcerpt to false" time="0.000272">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips markdown links before counting" time="0.0000522">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets metadata.importedAt to approximately now" time="0.0002352">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; handles whitespace-only text" time="0.0000554">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets metadata.originalChatId from the chat_id frontmatter field" time="0.0002086">
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; handles multi-line text without markdown" time="0.0000517">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets metadata.originalChatId to null when chat_id is absent" time="0.0002416">
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for 0 words (minimum)" time="0.0000868">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets messageCount from the frontmatter field when present" time="0.0002126">
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for fewer than 200 words" time="0.0001856">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets messageCount to 0 when frontmatter omits it" time="0.0004434">
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for exactly 200 words" time="0.0000524">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses messages from ### User / ### Assistant headings in the export markdown" time="0.0021598">
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; rounds to nearest minute" time="0.0000555">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; returns empty messages array when content has no role headings" time="0.0006623">
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns correct value for large word counts" time="0.0000529">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; always returns topicId as null" time="0.0002971">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns null for a chat with no messages array" time="0.0002036">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; always returns tags as an empty array" time="0.0003552">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns null when messages is not an array" time="0.000079">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; handles content with no frontmatter — uses filename as title" time="0.0003614">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns an unchanged copy when turnIndices is empty" time="0.0003468">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; uses &quot;Untitled&quot; when filename is falsy (|| &quot;Untitled&quot; fallback on line 348)" time="0.0001641">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes the specified turn by index" time="0.0004037">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses the exported frontmatter field without throwing" time="0.000239">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes multiple turns (user + assistant)" time="0.0003172">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses the contentFormat frontmatter field without throwing" time="0.000195">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; updates messageCount to match the remaining messages" time="0.0001883">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses excerpt:true in frontmatter without throwing" time="0.000192">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; rebuilds content markdown reflecting the deleted turns" time="0.0002027">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses excerpt:false in frontmatter without throwing" time="0.0001777">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; updated content contains correct messageCount in frontmatter" time="0.0001377">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; handles null content gracefully — returns a valid chat object" time="0.000798">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; preserves title, source and url in the rebuilt content" time="0.0001164">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; accepts an empty topicPathStr without throwing" time="0.0017141">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; can delete all turns, producing empty messages and frontmatter-only content" time="0.0002006">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; stores the full markdown content in the content field" time="0.0003286">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; does not mutate the original chat object" time="0.0001629">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseMessagesFromExportMarkdown() &gt; parses user and assistant turns correctly" time="0.0006556">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes entities whose messageIndex is in the deleted set" time="0.0002469">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseMessagesFromExportMarkdown() &gt; handles multi-turn conversations" time="0.0006572">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; remaps messageIndex for surviving entities after deletion" time="0.0002381">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseMessagesFromExportMarkdown() &gt; returns empty array when no role headings present" time="0.000274">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes entity type key entirely when all entities of that type are in deleted turns" time="0.0001191">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseMessagesFromExportMarkdown() &gt; returns empty array for null/empty input" time="0.0002053">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; handles multiple entity types simultaneously" time="0.0002389">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="parseMessagesFromExportMarkdown() &gt; preserves markdown content inside message turns" time="0.0004238">
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; does not add entity type keys that were not present on the original chat" time="0.0002009">
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — null / edge cases &gt; returns an empty plan without throwing when zipEntries is null" time="0.0013827">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; adds a Select button to .reader-actions" time="0.0064092">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — null / edge cases &gt; defaults to merge strategy when strategy is undefined (strategy || &quot;merge&quot; fallback)" time="0.0008536">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; does not add Select button when chat has no messages" time="0.0016224">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 0\ncontentFormat: markdown-v1\n---\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — null / edge cases &gt; uses default Map when zipEntries has no topicFolders (= new Map() fallback)" time="0.0003977">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; Delete button is hidden initially" time="0.0029196">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — null / edge cases &gt; uses default [] when zipEntries has no chatFiles (= [] fallback)" time="0.0002357">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; clicking Select adds checkboxes to each .chat-turn" time="0.0044642">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; returns an object with the required plan keys" time="0.0009067">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; clicking Select a second time cancels and removes checkboxes" time="0.005661">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; sends all topics to topicsToCreate when existingTree is null" time="0.0006471">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; checking a turn checkbox shows Delete button with count" time="0.011431">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; puts &quot;Work&quot; and &quot;Work/Projects&quot; into topicsToMerge when they exist in tree" time="0.0007848">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; unchecking the last turn hides Delete button" time="0.0052812">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; puts &quot;Personal&quot; into topicsToCreate since it has no match in existingTree" time="0.0005534">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; each .chat-turn gets a data-msg-index attribute after renderChat" time="0.0028239">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
         </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; summary.chats equals the number of chatFiles imported" time="0.0008681">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; summary.topics equals topicsToCreate.length + topicsToMerge.length" time="0.0006437">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; summary.conflicts is a non-negative number" time="0.0006543">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; detects duplicate chats within the same import (same title, source, ~same time)" time="0.0029179">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; chatsToImport arrays use objects with chatEntry and targetTopicPath" time="0.0011228">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — replace strategy &gt; puts all topics into topicsToCreate even when they exist in existingTree" time="0.0005171">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — replace strategy &gt; leaves topicsToMerge empty for replace strategy" time="0.000398">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; does not create an artificial wrapper topic" time="0.0003935">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; creates all imported folders as root or nested topics — no wrapper" time="0.0002687">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; top-level imported folders have parentName null (become root topics)" time="0.000277">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; does not merge anything — topicsToMerge is empty" time="0.0002275">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; chat targetTopicPath uses the original ZIP folder path (no wrapper prefix)" time="0.0003198">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; treats &quot;new-root&quot; as an alias for create_root strategy" time="0.0004978">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; returns a valid empty result when plan is null" time="0.0008089">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; generates topic ids that start with &quot;topic_imported_&quot;" time="0.0005261">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; creates the correct number of new topics" time="0.0004694">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; imports the correct number of chats" time="0.000343">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; links each imported chat to its topic via the chatIds array" time="0.0003979">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; updates firstChatDate on the target topic" time="0.0003725">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; updates lastChatDate on the target topic" time="0.0002635">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; summary.topicsCreated equals the number of new topics created" time="0.0001978">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; summary.topicsMerged equals the number of merge entries in the plan" time="0.0003099">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; summary.chatsImported equals the number of chats added" time="0.0002502">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; summary.errors is an array (empty when no errors occur)" time="0.0003344">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; does NOT mutate the original tree object" time="0.000348">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; does NOT mutate the original chats array" time="0.0002011">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; updatedChats contains the original chats plus newly imported ones" time="0.0003016">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; updatedTopics contains original topics plus all new topic entries" time="0.000657">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; preserves original root topics alongside any new top-level topics" time="0.0010437">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; merges chats into the correct existing topic when using merge strategy" time="0.0009075">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; handles existingTree with rootTopicIds missing (|| [] fallback on line 439)" time="0.0009138">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; handles topics without children property in walkTopic (|| [] fallback on line 444)" time="0.0008126">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; handles orphaned child ID in walkTopic (early return when topic not found, line 439)" time="0.0007778">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; produces the correct number of topics in updatedTopics" time="0.0008917">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; produces the correct number of chats in updatedChats" time="0.000813">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; creates a topic named &quot;Work&quot; in updatedTopics" time="0.0007232">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; creates a topic named &quot;Projects&quot; in updatedTopics" time="0.000406">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; creates a topic named &quot;Personal&quot; in updatedTopics" time="0.0002176">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; sets &quot;Projects&quot; as a child of &quot;Work&quot;" time="0.0002827">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; has &quot;Work&quot; and &quot;Personal&quot; as root topics" time="0.0004305">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; preserves the full markdown content in updatedChats[*].content" time="0.0002701">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; assigns each chat to a non-null topicId after executeImport" time="0.0002341">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; all topic ids in updatedRootTopics exist as keys in updatedTopics" time="0.0002526">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; all chatIds stored on topics reference actual chats in updatedChats" time="0.0002575">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; creates TWO root topics (Work and Personal) — no wrapper" time="0.0003471">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; root topic names are the ZIP top-level folder names, not a wrapper" time="0.0003519">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; no topic named &quot;Imported YYYY-MM-DD&quot; exists" time="0.0006039">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; all chats have a non-null topicId (none are unlinked)" time="0.0008013">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; each linked chat appears in its topic chatIds" time="0.0009015">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; imports the same number of chats as the merge strategy" time="0.0069298">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; handles tree with topics but no rootTopicIds array" time="0.0011837">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; deep-clones topics that lack children/chatIds (|| [] fallback on lines 613-614)" time="0.0006384">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; handles tree where rootTopicIds is not an array" time="0.0003536">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; records an error when parent folder path cannot be resolved for a nested topic" time="0.000948">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; catches errors thrown during individual chat import and records them in summary.errors" time="0.0006461">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; updatedChats defaults to [] when chats arg is not an array" time="0.0002086">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; sets topicId to null when chat targetTopicPath is not in folderToId map" time="0.0002338">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; skips duplicate chatId push when chatId already in topic.chatIds" time="0.0004829">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; does not update lastChatDate when an earlier-timestamp chat is added to an existing range" time="0.0003503">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; does not update firstChatDate or lastChatDate when chat timestamp is not a number" time="0.0002677">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; creates a topic without folderPath (item.folderPath falsy) and attaches it to root" time="0.0002671">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; handles parentTopic missing from updatedTopics when parentId resolves via merge" time="0.0001761">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() – MIME vs extension combinations &gt; returns valid when MIME is application/zip but extension is NOT .zip" time="0.0001269">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() – MIME vs extension combinations &gt; returns invalid when file.size is a non-number" time="0.0001193">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() – MIME vs extension combinations &gt; returns invalid when file name is an empty string" time="0.0000744">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="validateZipFile() – MIME vs extension combinations &gt; returns invalid when file name is not a string" time="0.0000718">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; sets firstChatDate and lastChatDate from a single chat with timestamp" time="0.0004737">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; updates firstChatDate when a newer import has an earlier timestamp" time="0.0003044">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; updates lastChatDate when a newer import has a later timestamp" time="0.0002519">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; does NOT update dates for chats where ts is not a number" time="0.0001967">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; does NOT set dates when topicId is null (chat without a topic)" time="0.0001305">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; does not add duplicate chatIds when the same chat is imported twice" time="0.0002811">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; sort puts shallow topic before deeper topic (sort comparator deep &lt; shallow = negative)" time="0.0002219">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; does not push duplicate root topic when executeImport called twice with same plan" time="0.0001693">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; sort comparator handles item with no folderPath (depth=0 fallback branch)" time="0.0002068">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; records error when parent folder path is not resolvable (line 692)" time="0.0001627">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; handles plan with topicsToMerge=undefined (|| [] fallback on line 637)" time="0.0001203">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; handles plan with topicsToCreate=undefined (|| [] fallback on line 661)" time="0.000103">
-        </testcase>
-        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; handles plan with chatsToImport=undefined (|| [] fallback on line 702)" time="0.0001051">
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; delete handler persists updated chat and clears annotations" time="0.0668886">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m152[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 4\ncontentFormat: markdown-v1\n---\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n&quot;
+
+            </system-out>
         </testcase>
     </testsuite>
 </testsuites>
