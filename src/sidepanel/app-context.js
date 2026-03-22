@@ -39,6 +39,7 @@ export const elements = {
   saveBannerMsg:        document.getElementById('saveBannerMsg'),
   // C.9 — sort selector
   topicSortSelect:      document.getElementById('topicSortSelect'),
+  chatSortSelect:       document.getElementById('chatSortSelect'),
   // C.3 — search filter bar
   filterToggleBtn:      document.getElementById('filterToggleBtn'),
   searchFilterBar:      document.getElementById('searchFilterBar'),
@@ -118,6 +119,9 @@ export const state = {
 
   // C.9 — topic sort mode (persisted to localStorage)
   sortMode: localStorage.getItem('topicSortMode') || 'alpha-asc',
+
+  // C.9 — chat sort mode (persisted to localStorage)
+  chatSortMode: localStorage.getItem('chatSortMode') || 'alpha-asc',
 
   // C.13 — active tab: 'sessions' | 'entities'
   activeTab: 'sessions',

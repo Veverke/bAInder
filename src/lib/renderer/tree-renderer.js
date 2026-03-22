@@ -18,7 +18,7 @@
  */
 
 import { getTagColor as _getTagColor }    from './tag-color.js';
-import { sortTopics }                      from './tree-sort.js';
+import { sortTopics, sortChats }            from './tree-sort.js';
 import { buildSparklineEl }                from './sparkline.js';
 import { highlightSearch as _hl,
          clearHighlight  as _clr }        from './search-highlight.js';
@@ -63,6 +63,9 @@ export class TreeRenderer {
     // C.9 topic sort mode
     this.sortMode = 'alpha-asc';
 
+    // C.9 chat sort mode
+    this.chatSortMode = 'date-desc';
+
     // C.17 multi-select mode
     this.multiSelectMode   = false;
     this.selectedChatIds   = new Set();
@@ -81,6 +84,11 @@ export class TreeRenderer {
 
   setSortMode(mode) {
     this.sortMode = mode;
+    this.render();
+  }
+
+  setChatSortMode(mode) {
+    this.chatSortMode = mode;
     this.render();
   }
 
@@ -341,13 +349,18 @@ export class TreeRenderer {
     return sortTopics(topics, this.sortMode);
   }
 
+  _sortChats(chats) {
+    return sortChats(chats, this.chatSortMode);
+  }
+
   _flattenVisible() {
     if (!this.tree) return [];
     return flattenVisible(
       this.tree,
       this.expandedNodes,
       this.chats,
-      topics => this._sortTopics(topics)
+      topics => this._sortTopics(topics),
+      chats  => this._sortChats(chats)
     );
   }
 
@@ -384,6 +397,7 @@ export class TreeRenderer {
       onChatClick:         (c)       => this.onChatClick?.(c),
       onChatContextMenu:   (c, e)    => this.onChatContextMenu?.(c, e),
       onSelectionChange:   (...a)    => this.onSelectionChange?.(...a),
+      sortChats:           (c)  => this._sortChats(c),
       toggleNode:          (id) => this.toggleNode(id),
       selectNode:          (id) => this.selectNode(id),
       toggleChatSelection: (id) => this.toggleChatSelection(id),

@@ -3,6 +3,7 @@ import {
   validateZipFile,
   parseZipEntries,
   parseChatFromMarkdown,
+  parseMessagesFromExportMarkdown,
   buildImportPlan,
   executeImport,
 } from '../src/lib/io/import-parser.js';
@@ -322,6 +323,41 @@ describe('parseZipEntries()', () => {
     const work = result.topicFolders.get('Work');
     expect(work.children).toContain('Work/Projects');
   });
+
+  it('restores original topic name case from _topic.json (e.g. "ai" folder → "AI" name)', () => {
+    // Simulate a ZIP where sanitizeFilename lowercased "AI" to "ai" as the folder name
+    const entries = [
+      {
+        path: 'bAInder-export/ai/_topic.json',
+        content: JSON.stringify({ name: 'AI', chatCount: 1 }),
+      },
+      {
+        path: 'bAInder-export/ai/some-chat.md',
+        content: '---\ntitle: "Some Chat"\nsource: chatgpt\n---\n',
+      },
+    ];
+    const result = parseZipEntries(entries);
+    const topic = result.topicFolders.get('ai');
+    expect(topic).toBeDefined();
+    expect(topic.name).toBe('AI');
+  });
+
+  it('falls back to folder name when _topic.json has no name field', () => {
+    const entries = [
+      {
+        path: 'bAInder-export/mywork/_topic.json',
+        content: JSON.stringify({ chatCount: 2 }), // no name
+      },
+      {
+        path: 'bAInder-export/mywork/chat.md',
+        content: '---\ntitle: "T"\nsource: x\n---\n',
+      },
+    ];
+    const result = parseZipEntries(entries);
+    const topic = result.topicFolders.get('mywork');
+    expect(topic).toBeDefined();
+    expect(topic.name).toBe('mywork');
+  });
 });
 
 // ─── parseChatFromMarkdown ────────────────────────────────────────────────────
@@ -429,8 +465,17 @@ describe('parseChatFromMarkdown()', () => {
     expect(chat.messageCount).toBe(0);
   });
 
-  it('always returns messages as an empty array', () => {
+  it('parses messages from ### User / ### Assistant headings in the export markdown', () => {
     const chat = parseChatFromMarkdown(ALPHA_MD, 'file.md');
+    expect(Array.isArray(chat.messages)).toBe(true);
+    expect(chat.messages.length).toBe(2);
+    expect(chat.messages[0]).toMatchObject({ role: 'user',      content: 'First message'   });
+    expect(chat.messages[1]).toMatchObject({ role: 'assistant', content: 'First response'  });
+  });
+
+  it('returns empty messages array when content has no role headings', () => {
+    const noHeadings = WELL_FORMED_ENTRIES.find(e => e.path.includes('budget-analysis')).content;
+    const chat = parseChatFromMarkdown(noHeadings, 'file.md');
     expect(chat.messages).toEqual([]);
   });
 
@@ -525,6 +570,76 @@ describe('parseChatFromMarkdown()', () => {
   it('stores the full markdown content in the content field', () => {
     const chat = parseChatFromMarkdown(ALPHA_MD, 'file.md');
     expect(chat.content).toBe(ALPHA_MD);
+  });
+});
+
+// ─── parseMessagesFromExportMarkdown ─────────────────────────────────────────
+
+describe('parseMessagesFromExportMarkdown()', () => {
+  const EXPORT_MD = [
+    '---',
+    'title: "Chat"',
+    'source: chatgpt',
+    '---',
+    '',
+    '### User',
+    '',
+    'Hello there',
+    '',
+    '---',
+    '',
+    '### Assistant',
+    '',
+    'Hi!',
+    '',
+    '---',
+    '',
+    '*Exported from bAInder on March 22, 2026*',
+  ].join('\n');
+
+  it('parses user and assistant turns correctly', () => {
+    const msgs = parseMessagesFromExportMarkdown(EXPORT_MD);
+    expect(msgs).toHaveLength(2);
+    expect(msgs[0]).toMatchObject({ role: 'user',      content: 'Hello there' });
+    expect(msgs[1]).toMatchObject({ role: 'assistant', content: 'Hi!' });
+  });
+
+  it('handles multi-turn conversations', () => {
+    const md = [
+      '---', 'title: "T"', 'source: s', '---',
+      '', '### User', '', 'Q1', '', '---', '', '### Assistant', '', 'A1',
+      '', '---', '', '### User', '', 'Q2', '', '---', '', '### Assistant', '', 'A2',
+      '', '---', '', '*Exported from bAInder on today*',
+    ].join('\n');
+    const msgs = parseMessagesFromExportMarkdown(md);
+    expect(msgs).toHaveLength(4);
+    expect(msgs[0]).toMatchObject({ role: 'user',      content: 'Q1' });
+    expect(msgs[1]).toMatchObject({ role: 'assistant', content: 'A1' });
+    expect(msgs[2]).toMatchObject({ role: 'user',      content: 'Q2' });
+    expect(msgs[3]).toMatchObject({ role: 'assistant', content: 'A2' });
+  });
+
+  it('returns empty array when no role headings present', () => {
+    const md = '---\ntitle: "T"\nsource: s\n---\n\nJust some text\n';
+    expect(parseMessagesFromExportMarkdown(md)).toEqual([]);
+  });
+
+  it('returns empty array for null/empty input', () => {
+    expect(parseMessagesFromExportMarkdown(null)).toEqual([]);
+    expect(parseMessagesFromExportMarkdown('')).toEqual([]);
+  });
+
+  it('preserves markdown content inside message turns', () => {
+    const md = [
+      '---', 'title: "T"', 'source: s', '---',
+      '', '### Assistant', '',
+      '```js', 'const x = 1;', '```',
+      '', '---', '', '*Exported from bAInder on today*',
+    ].join('\n');
+    const msgs = parseMessagesFromExportMarkdown(md);
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].content).toContain('```js');
+    expect(msgs[0].content).toContain('const x = 1;');
   });
 });
 
@@ -673,36 +788,39 @@ describe('buildImportPlan() — create_root strategy', () => {
     plan = buildImportPlan(parsedEntries, cloneTree(EXISTING_TREE), 'create_root');
   });
 
-  it('includes a root wrapper topic named "Imported {YYYY-MM-DD}"', () => {
+  it('does not create an artificial wrapper topic', () => {
     const today = new Date().toISOString().slice(0, 10);
-    const rootTopic = plan.topicsToCreate.find(t => t.name === `Imported ${today}`);
-    expect(rootTopic).toBeDefined();
-    expect(rootTopic.parentName).toBeNull();
+    const wrapperTopic = plan.topicsToCreate.find(t => t.name === `Imported ${today}`);
+    expect(wrapperTopic).toBeUndefined();
   });
 
-  it('creates the wrapper root plus all imported folders', () => {
-    // wrapper + Work + Work/Projects + Personal = 4
-    expect(plan.topicsToCreate).toHaveLength(4);
+  it('creates all imported folders as root or nested topics — no wrapper', () => {
+    // Work + Work/Projects + Personal = 3 (no extra wrapper topic)
+    expect(plan.topicsToCreate).toHaveLength(3);
+  });
+
+  it('top-level imported folders have parentName null (become root topics)', () => {
+    const workTopic = plan.topicsToCreate.find(t => t.name === 'Work');
+    const personalTopic = plan.topicsToCreate.find(t => t.name === 'Personal');
+    expect(workTopic?.parentName).toBeNull();
+    expect(personalTopic?.parentName).toBeNull();
   });
 
   it('does not merge anything — topicsToMerge is empty', () => {
     expect(plan.topicsToMerge).toHaveLength(0);
   });
 
-  it('prefixes chat targetTopicPath with the wrapper root name', () => {
-    const today = new Date().toISOString().slice(0, 10);
-    const rootName = `Imported ${today}`;
+  it('chat targetTopicPath uses the original ZIP folder path (no wrapper prefix)', () => {
     for (const item of plan.chatsToImport) {
-      expect(item.targetTopicPath).toMatch(new RegExp(`^${rootName}`));
+      expect(item.targetTopicPath).not.toMatch(/^Imported /);
     }
   });
 
-  it('treats "new-root" as an alias for create_root strategy (line 421 branch)', () => {
-    // strategy === 'new-root' triggers the ternary TRUE branch
+  it('treats "new-root" as an alias for create_root strategy', () => {
     const plan2 = buildImportPlan(parsedEntries, cloneTree(EXISTING_TREE), 'new-root');
-    const today = new Date().toISOString().slice(0, 10);
-    const rootTopic = plan2.topicsToCreate.find(t => t.name === `Imported ${today}`);
-    expect(rootTopic).toBeDefined();
+    // Same count as create_root — no wrapper topic added
+    expect(plan2.topicsToCreate).toHaveLength(3);
+    expect(plan2.topicsToMerge).toHaveLength(0);
   });
 });
 
@@ -958,6 +1076,55 @@ describe('Round-trip: parseZipEntries → buildImportPlan → executeImport', ()
         expect(chatIdSet.has(chatId)).toBe(true);
       }
     }
+  });
+});
+
+// ─── Round-trip: new-root strategy ───────────────────────────────────────────
+
+describe('Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root)', () => {
+  let result;
+
+  beforeEach(() => {
+    const parsed = parseZipEntries(WELL_FORMED_ENTRIES);
+    const plan = buildImportPlan(parsed, null, 'new-root');
+    result = executeImport(plan, null, []);
+  });
+
+  it('creates TWO root topics (Work and Personal) — no wrapper', () => {
+    expect(result.updatedRootTopics).toHaveLength(2);
+  });
+
+  it('root topic names are the ZIP top-level folder names, not a wrapper', () => {
+    const rootNames = result.updatedRootTopics.map(id => result.updatedTopics[id].name);
+    expect(rootNames).toContain('Work');
+    expect(rootNames).toContain('Personal');
+  });
+
+  it('no topic named "Imported YYYY-MM-DD" exists', () => {
+    const wrapperName = `Imported ${new Date().toISOString().slice(0, 10)}`;
+    const allNames = Object.values(result.updatedTopics).map(t => t.name);
+    expect(allNames).not.toContain(wrapperName);
+  });
+
+  it('all chats have a non-null topicId (none are unlinked)', () => {
+    for (const chat of result.updatedChats) {
+      expect(chat.topicId).not.toBeNull();
+    }
+  });
+
+  it('each linked chat appears in its topic chatIds', () => {
+    for (const chat of result.updatedChats) {
+      const topic = result.updatedTopics[chat.topicId];
+      expect(topic).toBeDefined();
+      expect(topic.chatIds).toContain(chat.id);
+    }
+  });
+
+  it('imports the same number of chats as the merge strategy', () => {
+    const parsedForMerge = parseZipEntries(WELL_FORMED_ENTRIES);
+    const mergePlan = buildImportPlan(parsedForMerge, null, 'merge');
+    const mergeResult = executeImport(mergePlan, null, []);
+    expect(result.updatedChats).toHaveLength(mergeResult.updatedChats.length);
   });
 });
 

@@ -115,14 +115,6 @@ export function messagesToMarkdown(messages, meta = {}) {
   lines.push('---');
   lines.push('');
 
-  // ── Title heading ────────────────────────────────────────────────────────
-  // Omit the # heading for excerpts — the body already starts with the excerpt
-  // text so adding the title as a heading would just duplicate the first line.
-  if (!isExcerpt) {
-    lines.push(`# ${title}`);
-    lines.push('');
-  }
-
   // ── Conversation body ────────────────────────────────────────────────────
   if (!Array.isArray(messages) || messages.length === 0) {
     // Excerpt or empty — render body text if provided, then stop

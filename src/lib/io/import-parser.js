@@ -173,6 +173,66 @@ function parseDateToMs(dateStr) {
 // ─── Exported functions ───────────────────────────────────────────────────────
 
 /**
+ * Parse a Markdown document produced by buildExportMarkdown back into a
+ * structured messages array.  Used during ZIP import so entity extractors can
+ * re-run on the conversation content.
+ *
+ * The export format uses `### User` / `### Assistant` headings as role markers
+ * and `---` separators between turns.  Excerpt-only files (no headings) return
+ * an empty array.
+ *
+ * @param {string} content  Full markdown content including frontmatter.
+ * @returns {Array<{role: string, content: string}>}
+ */
+export function parseMessagesFromExportMarkdown(content) {
+  if (!content || typeof content !== 'string') return [];
+
+  // Strip frontmatter (---…--- block at start)
+  let body = content;
+  if (body.startsWith('---')) {
+    const fmEnd = body.indexOf('\n---', 3);
+    if (fmEnd !== -1) body = body.slice(fmEnd + 4);
+  }
+
+  // Find every ### User / ### Assistant heading
+  const HEADING_RE = /^###\s+(User|Assistant)\s*$/gim;
+  const headings = [];
+  let m;
+  HEADING_RE.lastIndex = 0;
+  while ((m = HEADING_RE.exec(body)) !== null) {
+    const eol = body.indexOf('\n', m.index);
+    headings.push({
+      role:         m[1].toLowerCase() === 'user' ? 'user' : 'assistant',
+      headingStart: m.index,
+      contentStart: eol === -1 ? body.length : eol + 1,
+    });
+  }
+
+  if (headings.length === 0) return [];
+
+  const messages = [];
+  for (let i = 0; i < headings.length; i++) {
+    const from = headings[i].contentStart;
+    // Content ends immediately before the next heading (or at body end)
+    const to   = i + 1 < headings.length ? headings[i + 1].headingStart : body.length;
+    let text   = body.slice(from, to);
+
+    // Strip the export footer (*Exported from bAInder…*) which follows the
+    // final `---` separator in the last section.
+    text = text.replace(/\n---\n\s*\*Exported from bAInder[\s\S]*$/, '');
+
+    // Strip the trailing turn separator (`---`) that precedes each heading.
+    // A real horizontal rule inside message content would not be at the very
+    // end of the section, so this is safe to strip last.
+    text = text.replace(/\n---\s*$/, '').trim();
+
+    if (text) messages.push({ role: headings[i].role, content: text });
+  }
+
+  return messages;
+}
+
+/**
  * Parse the flat list of ZIP entries produced by JSZip (or equivalent)
  * into structured data ready for `buildImportPlan`.
  *
@@ -203,6 +263,9 @@ export function parseZipEntries(entries) {
 
   const rootFolder = detectRootFolder(fileEntries);
 
+  // Map of folderPath -> original topic name read from _topic.json
+  const topicNameOverrides = new Map();
+
   for (const entry of fileEntries) {
     const normPath = normalisePath(entry.path);
     const stripped = stripRoot(normPath, rootFolder);
@@ -227,7 +290,15 @@ export function parseZipEntries(entries) {
     }
 
     if (name === '_topic.json') {
-      // Mark the folder as a known topic folder (handled below)
+      // Read the original topic name to restore case on import
+      try {
+        const topicMeta = JSON.parse(entry.content);
+        if (topicMeta && typeof topicMeta.name === 'string' && topicMeta.name.trim()) {
+          topicNameOverrides.set(folderPath, topicMeta.name.trim());
+        }
+      } catch {
+        // Non-fatal; fall back to folder name
+      }
       continue;
     }
 
@@ -275,7 +346,7 @@ export function parseZipEntries(entries) {
 
     if (!topicFolders.has(folderPath)) {
       topicFolders.set(folderPath, {
-        name: folderName,
+        name: topicNameOverrides.get(folderPath) || folderName,
         path: folderPath,
         parentPath: parentPath || null,
         children: [],
@@ -356,6 +427,8 @@ export function parseChatFromMarkdown(markdownContent, filename, topicPathStr = 
     : 0;
   const originalChatId = fm.chat_id || null;
 
+  const messages = parseMessagesFromExportMarkdown(markdownContent);
+
   return {
     id,
     title,
@@ -364,7 +437,7 @@ export function parseChatFromMarkdown(markdownContent, filename, topicPathStr = 
     url,
     timestamp,
     topicId: null,
-    messages: [],
+    messages,
     messageCount,
     metadata: {
       isExcerpt: false,
@@ -456,26 +529,7 @@ export function buildImportPlan(zipEntries, existingTree, strategy) {
     return (folderPath || '').split('/').filter(Boolean).join(' > ');
   }
 
-  // For 'create_root', choose a wrapper name
-  const importDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const rootWrapperName = `Imported ${importDate}`;
-
-  // Determine the effective folder path prefix for 'create_root'
-  const rootWrapperFolder = safeStrategy === 'create_root' ? rootWrapperName : '';
-
   // ── Resolve topics ──────────────────────────────────────────────────────────
-  const resolvedFolderPaths = safeStrategy === 'create_root'
-    ? [...topicFolders.keys()].map(p => `${rootWrapperName}/${p}`)
-    : [...topicFolders.keys()];
-
-  // For create_root, add the wrapper itself
-  if (safeStrategy === 'create_root') {
-    topicsToCreate.push({
-      name: rootWrapperName,
-      parentName: null,
-      folderPath: rootWrapperName,
-    });
-  }
 
   // Sort folders so parents come before children (shortest path first)
   const sortedFolders = [...topicFolders.keys()].sort((a, b) => {
@@ -486,9 +540,7 @@ export function buildImportPlan(zipEntries, existingTree, strategy) {
 
   for (const folderPath of sortedFolders) {
     const folder = topicFolders.get(folderPath);
-    const effectivePath = safeStrategy === 'create_root'
-      ? `${rootWrapperName}/${folderPath}`
-      : folderPath;
+    const effectivePath = folderPath;
     const namePath = folderToNamePath(effectivePath);
 
     if (safeStrategy === 'merge') {
@@ -509,7 +561,7 @@ export function buildImportPlan(zipEntries, existingTree, strategy) {
     topicsToCreate.push({
       name: folder.name,
       parentName,
-      folderPath,
+      folderPath: effectivePath,
     });
   }
 
@@ -528,9 +580,7 @@ export function buildImportPlan(zipEntries, existingTree, strategy) {
         : '',
     );
 
-    const effectiveTopicPath = safeStrategy === 'create_root' && chatFile.topicPath
-      ? `${rootWrapperName}/${chatFile.topicPath}`
-      : chatFile.topicPath;
+    const effectiveTopicPath = chatFile.topicPath;
 
     // Intra-import duplicate detection: title + source + timestamp bucket (1 h)
     const timeBucket = Math.floor(chatEntry.timestamp / 3_600_000);

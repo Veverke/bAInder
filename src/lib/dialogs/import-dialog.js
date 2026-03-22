@@ -5,6 +5,7 @@ import {
   buildImportPlan,
   executeImport,
 } from '../io/import-parser.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Handles the import-from-ZIP dialog workflow for bAInder.
@@ -111,7 +112,7 @@ export class ImportDialog {
           <span class="dim-str-icon" aria-hidden="true">📂</span>
           <span class="dim-str-body">
             <span class="dim-str-name">New Root</span>
-            <span class="dim-str-desc">Import under a brand-new parent topic</span>
+            <span class="dim-str-desc">Import as new root topics alongside existing data</span>
           </span>
           <svg class="dim-str-check" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -152,6 +153,10 @@ export class ImportDialog {
     </div>
 
     <ul class="dim-notice dim-notice--warning" id="importWarningsList" style="display:none"></ul>
+
+    <div class="dim-notice dim-notice--error" id="importReplaceWarning" style="display:none">
+      ⚠️ <strong>Replace</strong> will permanently delete <em>all</em> existing topics and chats before importing. This cannot be undone.
+    </div>
 
     <div class="dim-btn-row">
       <button id="importBackBtn" class="btn-secondary">← Back</button>
@@ -223,7 +228,7 @@ export class ImportDialog {
 
     // ----- Element references -----
     const root        = document.getElementById('importDialogRoot');
-    if (!root) return;
+    if (!root) { logger.error('[ImportDialog] _initDialog: importDialogRoot not found — aborting'); return; }
 
     const phase1      = document.getElementById('importPhase1');
     const phase2      = document.getElementById('importPhase2');
@@ -243,6 +248,8 @@ export class ImportDialog {
     const backBtn     = document.getElementById('importBackBtn');
     const importNowBtn= document.getElementById('importNowBtn');
     const doneBtn     = document.getElementById('importDoneBtn');
+
+    if (!importNowBtn) { logger.error('[ImportDialog] _initDialog: importNowBtn not found — import will not work'); return; }
 
     const sumCreate   = document.getElementById('sumTopicsCreate');
     const sumMerge    = document.getElementById('sumTopicsMerge');
@@ -349,7 +356,8 @@ export class ImportDialog {
         importPlan = plan;
         this._populatePreview(
           plan, parsed.warnings ?? [],
-          { sumCreate, sumMerge, sumChats, sumConflicts, warningsList }
+          { sumCreate, sumMerge, sumChats, sumConflicts, warningsList },
+          getStrategy()
         );
         showPhase(2);
       } catch (err) {
@@ -371,18 +379,17 @@ export class ImportDialog {
 
       const strategy = getStrategy();
 
-      if (strategy === 'replace') {
-        const confirmed = await this._confirmReplace();
-        if (!confirmed) return;
-      }
-
       showPhase(3);
       doneContent.style.display  = 'none';
       inProgress.style.display   = 'block';
       doneBtnRow.style.display   = 'none';
 
       try {
-        const result = executeImport(importPlan, tree, chats);
+        const result = executeImport(
+          importPlan,
+          strategy === 'replace' ? null : tree,
+          strategy === 'replace' ? [] : chats
+        );
         await onComplete(
           result.updatedTopics,
           result.updatedRootTopics,
@@ -465,8 +472,7 @@ export class ImportDialog {
     const entries = await Promise.all(entryPromises);
 
     const parsed = parseZipEntries(entries);
-    const plan   = buildImportPlan(parsed, tree, strategy);
-
+    const plan = buildImportPlan(parsed, tree, strategy);
     return { parsed, plan };
   }
 
@@ -480,8 +486,9 @@ export class ImportDialog {
    * @param {Object} plan
    * @param {Array}  warnings
    * @param {Object} els — references to DOM elements
+   * @param {string} strategy
    */
-  _populatePreview(plan, warnings, els) {
+  _populatePreview(plan, warnings, els, strategy) {
     const s = plan.summary ?? {};
     els.sumCreate.textContent    = String(s.topicsToCreate   ?? (plan.topicsToCreate?.length  ?? 0));
     els.sumMerge.textContent     = String(s.topicsToMerge    ?? (plan.topicsToMerge?.length   ?? 0));
@@ -495,6 +502,12 @@ export class ImportDialog {
       els.warningsList.style.display = 'block';
     } else {
       els.warningsList.style.display = 'none';
+    }
+
+    // Show inline replace warning banner only for replace strategy
+    const replaceWarning = document.getElementById('importReplaceWarning');
+    if (replaceWarning) {
+      replaceWarning.style.display = strategy === 'replace' ? 'block' : 'none';
     }
   }
 
@@ -532,18 +545,4 @@ export class ImportDialog {
   // Private — confirmation helper
   // ---------------------------------------------------------------------------
 
-  /**
-   * Ask the user to confirm the Replace strategy.
-   * Falls back to a plain browser confirm if `dialog.confirm` is not available.
-   *
-   * @returns {Promise<boolean>}
-   */
-  async _confirmReplace() {
-    const message = 'This will replace ALL existing topics and chats. Are you sure?';
-    if (typeof this.dialog.confirm === 'function') {
-      return this.dialog.confirm(message, 'Confirm Replace');
-    }
-    // Fallback
-    return Promise.resolve(window.confirm(message));
-  }
 }

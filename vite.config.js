@@ -92,6 +92,7 @@ export default defineConfig(({ mode }) => {
 
   return {
   build: {
+      sourcemap: true,
       rollupOptions: {
         input: {
           background:           resolve(__dirname, 'src/background/background.js'),

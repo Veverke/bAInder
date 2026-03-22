@@ -204,7 +204,9 @@ export function buildTopicNode(topic, level, ctx) {
   li.appendChild(nodeContent);
 
   // ── Children (rendered only when expanded) ────────────────────────────────
-  const topicChats = ctx.chats.filter(c => c.topicId === topic.id);
+  const topicChats = (ctx.sortChats
+    ? ctx.sortChats(ctx.chats.filter(c => c.topicId === topic.id))
+    : ctx.chats.filter(c => c.topicId === topic.id));
   if (hasChildren && isExpanded) {
     const childrenUl = document.createElement('ul');
     childrenUl.className = 'tree-children';

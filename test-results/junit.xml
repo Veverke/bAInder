@@ -1,0 +1,549 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="271" failures="0" errors="0" time="5.5181155">
+    <testsuite name="tests/export-import-integration.test.js" timestamp="2026-03-22T16:27:18.705Z" hostname="Kahana-PC" tests="119" failures="0" errors="0" skipped="0" time="5.4237935">
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — constructor &gt; stores dialogManager reference" time="0.0078857">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — constructor &gt; showExportTopic is a function" time="0.0014378">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — constructor &gt; showExportChat is a function" time="0.0009405">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; null topic → calls dialog.alert and returns early" time="0.007294">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; null chats array → calls dialog.alert and returns early" time="0.001298">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; shows modal with class modal-content" time="0.0386997">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains markdown format radio button" time="0.025141">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains html format radio button" time="0.0299414">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains pdf format radio button" time="0.0151964">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains zip format radio button" time="0.0154203">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains scope radio buttons" time="0.0123405">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains style radio buttons" time="0.0190178">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains Export button" time="0.0135522">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — dialog rendering &gt; dialog contains Cancel button" time="0.0155871">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; selecting PDF format hides style section" time="0.0151422">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; selecting ZIP format hides style section" time="0.0120556">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; selecting Markdown format shows style section" time="0.0252239">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; selecting HTML format shows style section" time="0.0103597">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; ZIP format makes zip-note visible" time="0.0079994">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — format visibility &gt; Markdown format hides zip-note" time="0.0205199">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — export actions &gt; Markdown + this-topic: clicking Export calls buildExportMarkdown" time="0.0141079">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — export actions &gt; Markdown + this-topic: clicking Export calls triggerDownload" time="0.0331412">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — export actions &gt; ZIP + entire-tree: clicking Export calls buildZipPayload" time="0.0322085">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — export actions &gt; ZIP + entire-tree: clicking Export calls triggerDownload with a Blob" time="0.0461823">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportTopic() — export actions &gt; Cancel button closes dialog (container no longer visible)" time="0.0310382">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — dialog rendering &gt; null chat → calls dialog.alert and returns early" time="0.0020876">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — dialog rendering &gt; shows modal with format radio buttons (markdown, html, pdf)" time="0.0128074">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — dialog rendering &gt; does NOT include zip format radio in chat mode" time="0.0162813">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — dialog rendering &gt; does NOT show scope section in chat mode" time="0.0171724">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — dialog rendering &gt; shows style section in chat mode" time="0.0143713">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — export actions &gt; Markdown: clicking Export calls buildExportMarkdown" time="0.01588">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — export actions &gt; Markdown: clicking Export calls triggerDownload" time="0.0136027">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — export actions &gt; HTML: clicking Export calls buildExportHtml" time="0.0141842">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — export actions &gt; HTML: clicking Export calls triggerDownload with .html filename" time="0.0096091">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ExportDialog — showExportChat() — export actions &gt; Cancel button closes dialog" time="0.0243304">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — constructor &gt; stores dialogManager reference" time="0.0010983">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — constructor &gt; showImportDialog is a function" time="0.000453">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; shows a drop zone" time="0.0144271">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; shows merge strategy radio" time="0.008182">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; shows replace strategy radio" time="0.0073685">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; shows new-root strategy radio" time="0.0172043">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; Import button is initially disabled" time="0.0146985">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; Phase 1 is initially active" time="0.0073529">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 1 rendering &gt; Cancel button calls dialog.close" time="0.0230813">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; after valid file selected, Import button becomes enabled" time="0.0321781">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; validateZipFile is called with the chosen file" time="0.0322446">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; file chip shows the file name after selection" time="0.0163444">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; drop zone gains file-selected CSS class" time="0.0305749">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; invalid file — dialog.alert is called with error detail" time="0.0299386">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — file selection &gt; invalid file — Import button stays disabled" time="0.0311608">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; clicking Import transitions to Phase 2 (active class)" time="0.0307374">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; Phase 2 shows correct topics-to-create count" time="0.0610859">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; Phase 2 shows correct chats-to-import count" time="0.0484093">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; Phase 2 shows correct conflict count" time="0.030042">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; Back button returns to Phase 1" time="0.0631477">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; parseZipEntries is called during preparation" time="0.029515">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 2 (Preview) &gt; buildImportPlan is called during preparation" time="0.0465974">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; clicking Import Now calls executeImport" time="0.0629498">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; onComplete is called with correct shape" time="0.064659">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; Phase 3 becomes active after import" time="0.0465997">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; done content becomes visible" time="0.107425">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; done header says Import Complete" time="0.0674199">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; Done button calls dialog.close" time="0.0722707">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; Replace strategy: no secondary confirm dialog is shown" time="0.0794034">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — Phase 3 (Import) &gt; Replace strategy: executeImport IS called immediately on Import Now click" time="0.0639184">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; JSZip.loadAsync rejects → inline error is shown" time="0.0475694">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; JSZip.loadAsync rejects → stays on Phase 1" time="0.076314">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; JSZip.loadAsync rejects → Import button is re-enabled" time="0.063114">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; executeImport throws → dialog.alert is called with error message" time="0.0950487">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; onComplete throws → dialog.alert is called" time="0.0902458">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() — error handling &gt; onComplete throws → does not crash silently" time="0.0485455">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; full pipeline: validateZipFile is called" time="0.0636676">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; full pipeline: parseZipEntries is called" time="0.0589581">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; full pipeline: buildImportPlan is called" time="0.0948088">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; full pipeline: executeImport is called" time="0.0785561">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; onComplete receives updatedTopics as a non-null object" time="0.0757088">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; onComplete receives updatedRootTopics as an array" time="0.0639625">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; onComplete receives updatedChats as an array" time="0.0781764">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; onComplete receives summary with required properties" time="0.0485244">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; imported chat has correct title" time="0.0921311">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; imported chat has correct source" time="0.0777814">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; done screen displays correct topics-created count" time="0.0783104">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="Round-trip flow — mocked engine → ImportDialog → onComplete &gt; done screen displays correct chats-imported count" time="0.0779765">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; DOM is available immediately after showImportDialog() call" time="0.025749">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; Import button is disabled before file selection" time="0.0583874">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; file selection enables Import button" time="0.0408833">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; clicking Import ▶ transitions to Phase 2" time="0.0473397">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; clicking Import Now ▶ calls executeImport" time="0.0694371">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; onComplete is invoked after Import Now ▶" time="0.0883242">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — showImportDialog() public API wiring &gt; Phase 3 done screen is shown after successful import" time="0.0785765">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — strategy forwarding to buildImportPlan &gt; merge strategy: buildImportPlan is called with &quot;merge&quot;" time="0.0491916">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — strategy forwarding to buildImportPlan &gt; replace strategy: buildImportPlan is called with &quot;replace&quot;" time="0.0923343">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — strategy forwarding to buildImportPlan &gt; new-root strategy: buildImportPlan is called with &quot;new-root&quot;" time="0.032277">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — strategy forwarding to buildImportPlan &gt; default strategy (no explicit selection) is &quot;merge&quot;" time="0.0457062">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: no confirmation dialog is shown" time="0.0682432">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: executeImport is called" time="0.0766654">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: onComplete is invoked" time="0.0596105">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: Phase 3 becomes active" time="0.0951245">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: done content is visible" time="0.0776505">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: done screen shows correct topics-created count" time="0.0444076">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: done screen shows correct chats-imported count" time="0.0782806">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: inProgress indicator is hidden after completion" time="0.0622581">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Merge strategy end-to-end &gt; merge: Done ✓ button is visible" time="0.0643686">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: no confirm dialog is shown — Import Now proceeds immediately" time="0.0750671">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace confirmed: executeImport is called" time="0.0961381">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: executeImport is called with null tree and empty chats" time="0.0797286">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: onComplete is invoked" time="0.0737144">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: Phase 3 becomes active" time="0.0774682">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: done screen is visible" time="0.080498">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: inline replace warning banner is shown in Phase 2" time="0.0457217">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — Replace strategy end-to-end &gt; replace: inline replace warning banner is hidden for merge strategy" time="0.0614767">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: no confirmation dialog is shown" time="0.0639404">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: buildImportPlan is called with &quot;new-root&quot;" time="0.0774481">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: executeImport is called" time="0.0757489">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: onComplete is invoked" time="0.0627515">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: Phase 3 becomes active" time="0.0490818">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: done content is visible" time="0.0591356">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: done screen shows correct topics-created count" time="0.0489796">
+        </testcase>
+        <testcase classname="tests/export-import-integration.test.js" name="ImportDialog — New-Root strategy end-to-end &gt; new-root: done screen shows correct chats-imported count" time="0.0896517">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/import-parser.test.js" timestamp="2026-03-22T16:27:18.861Z" hostname="Kahana-PC" tests="152" failures="0" errors="0" skipped="0" time="0.094322">
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid when called with null" time="0.0037441">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid when called with undefined" time="0.0006128">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid for an empty object with no name or size" time="0.000572">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns valid for a .zip file with size &gt; 0 and application/zip MIME type" time="0.0005041">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid for a .txt extension regardless of size" time="0.0004162">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; accepts application/zip MIME type" time="0.000313">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; accepts application/x-zip-compressed MIME type" time="0.0002409">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid when size is 0" time="0.0004488">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns invalid when size exceeds 500 MB" time="0.0003316">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; returns valid for a 499 MB file" time="0.000291">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() &gt; accepts a file with .zip extension even when MIME type is unknown" time="0.0001927">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; returns empty structure for null input" time="0.0026313">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; returns empty structure for an empty array" time="0.0005494">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; returns a warnings array for null/empty input" time="0.0001957">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; detects the _metadata.json from well-formed entries" time="0.0010242">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; parses exactly 2 chatFiles from well-formed entries, excluding _topic.json, README.md and _metadata.json" time="0.0011431">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; strips the common root folder prefix from paths" time="0.0011713">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; sets topicPath to &quot;Work/Projects&quot; for a file inside Work/Projects/" time="0.0006685">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; builds topicFolders Map with an entry for each unique folder" time="0.0004039">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; returns metadata: null when no _metadata.json is present" time="0.0002445">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; does not push a warning for the mere absence of metadata" time="0.0003871">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; sets metadata to null and adds a warning when _metadata.json is corrupt JSON" time="0.0005634">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; does not stop parsing when _metadata.json is corrupt — still returns chatFiles" time="0.0005522">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; assigns an empty topicPath to .md files effectively at the root level" time="0.0003868">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; includes chatFiles from subdirectories" time="0.000371">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; parses flat single-entry correctly (strips solo-segment root)" time="0.0003943">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; records a warning for unrecognised non-standard file extensions" time="0.0003501">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; wires parentPath on child topic folder entries" time="0.0003189">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; lists Work/Projects as a child of Work" time="0.0009638">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; restores original topic name case from _topic.json (e.g. &quot;ai&quot; folder → &quot;AI&quot; name)" time="0.0005089">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseZipEntries() &gt; falls back to folder name when _topic.json has no name field" time="0.0003726">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; extracts title from YAML frontmatter" time="0.0017593">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; extracts source from YAML frontmatter" time="0.0006051">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; extracts url from YAML frontmatter" time="0.0004138">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses the date field to a millisecond timestamp" time="0.0002873">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; always generates an id that starts with &quot;imported_&quot;" time="0.0003384">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; generates a unique id on every call" time="0.0015572">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; falls back to the filename (without .md) as title when frontmatter has no title" time="0.000408">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; defaults source to &quot;imported&quot; when frontmatter omits source" time="0.0002925">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; defaults url to an empty string when frontmatter omits url" time="0.0002525">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; defaults timestamp to approximately Date.now() when date is absent" time="0.0004524">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets metadata.isExcerpt to false" time="0.000272">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets metadata.importedAt to approximately now" time="0.0002352">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets metadata.originalChatId from the chat_id frontmatter field" time="0.0002086">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets metadata.originalChatId to null when chat_id is absent" time="0.0002416">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets messageCount from the frontmatter field when present" time="0.0002126">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; sets messageCount to 0 when frontmatter omits it" time="0.0004434">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses messages from ### User / ### Assistant headings in the export markdown" time="0.0021598">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; returns empty messages array when content has no role headings" time="0.0006623">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; always returns topicId as null" time="0.0002971">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; always returns tags as an empty array" time="0.0003552">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; handles content with no frontmatter — uses filename as title" time="0.0003614">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; uses &quot;Untitled&quot; when filename is falsy (|| &quot;Untitled&quot; fallback on line 348)" time="0.0001641">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses the exported frontmatter field without throwing" time="0.000239">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses the contentFormat frontmatter field without throwing" time="0.000195">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses excerpt:true in frontmatter without throwing" time="0.000192">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; parses excerpt:false in frontmatter without throwing" time="0.0001777">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; handles null content gracefully — returns a valid chat object" time="0.000798">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; accepts an empty topicPathStr without throwing" time="0.0017141">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseChatFromMarkdown() &gt; stores the full markdown content in the content field" time="0.0003286">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseMessagesFromExportMarkdown() &gt; parses user and assistant turns correctly" time="0.0006556">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseMessagesFromExportMarkdown() &gt; handles multi-turn conversations" time="0.0006572">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseMessagesFromExportMarkdown() &gt; returns empty array when no role headings present" time="0.000274">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseMessagesFromExportMarkdown() &gt; returns empty array for null/empty input" time="0.0002053">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="parseMessagesFromExportMarkdown() &gt; preserves markdown content inside message turns" time="0.0004238">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — null / edge cases &gt; returns an empty plan without throwing when zipEntries is null" time="0.0013827">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — null / edge cases &gt; defaults to merge strategy when strategy is undefined (strategy || &quot;merge&quot; fallback)" time="0.0008536">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — null / edge cases &gt; uses default Map when zipEntries has no topicFolders (= new Map() fallback)" time="0.0003977">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — null / edge cases &gt; uses default [] when zipEntries has no chatFiles (= [] fallback)" time="0.0002357">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; returns an object with the required plan keys" time="0.0009067">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; sends all topics to topicsToCreate when existingTree is null" time="0.0006471">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; puts &quot;Work&quot; and &quot;Work/Projects&quot; into topicsToMerge when they exist in tree" time="0.0007848">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; puts &quot;Personal&quot; into topicsToCreate since it has no match in existingTree" time="0.0005534">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; summary.chats equals the number of chatFiles imported" time="0.0008681">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; summary.topics equals topicsToCreate.length + topicsToMerge.length" time="0.0006437">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; summary.conflicts is a non-negative number" time="0.0006543">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; detects duplicate chats within the same import (same title, source, ~same time)" time="0.0029179">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — merge strategy &gt; chatsToImport arrays use objects with chatEntry and targetTopicPath" time="0.0011228">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — replace strategy &gt; puts all topics into topicsToCreate even when they exist in existingTree" time="0.0005171">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — replace strategy &gt; leaves topicsToMerge empty for replace strategy" time="0.000398">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; does not create an artificial wrapper topic" time="0.0003935">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; creates all imported folders as root or nested topics — no wrapper" time="0.0002687">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; top-level imported folders have parentName null (become root topics)" time="0.000277">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; does not merge anything — topicsToMerge is empty" time="0.0002275">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; chat targetTopicPath uses the original ZIP folder path (no wrapper prefix)" time="0.0003198">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="buildImportPlan() — create_root strategy &gt; treats &quot;new-root&quot; as an alias for create_root strategy" time="0.0004978">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; returns a valid empty result when plan is null" time="0.0008089">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; generates topic ids that start with &quot;topic_imported_&quot;" time="0.0005261">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; creates the correct number of new topics" time="0.0004694">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; imports the correct number of chats" time="0.000343">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; links each imported chat to its topic via the chatIds array" time="0.0003979">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; updates firstChatDate on the target topic" time="0.0003725">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; updates lastChatDate on the target topic" time="0.0002635">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; summary.topicsCreated equals the number of new topics created" time="0.0001978">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; summary.topicsMerged equals the number of merge entries in the plan" time="0.0003099">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; summary.chatsImported equals the number of chats added" time="0.0002502">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; summary.errors is an array (empty when no errors occur)" time="0.0003344">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; does NOT mutate the original tree object" time="0.000348">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; does NOT mutate the original chats array" time="0.0002011">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; updatedChats contains the original chats plus newly imported ones" time="0.0003016">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; updatedTopics contains original topics plus all new topic entries" time="0.000657">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; preserves original root topics alongside any new top-level topics" time="0.0010437">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; merges chats into the correct existing topic when using merge strategy" time="0.0009075">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; handles existingTree with rootTopicIds missing (|| [] fallback on line 439)" time="0.0009138">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; handles topics without children property in walkTopic (|| [] fallback on line 444)" time="0.0008126">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() &gt; handles orphaned child ID in walkTopic (early return when topic not found, line 439)" time="0.0007778">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; produces the correct number of topics in updatedTopics" time="0.0008917">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; produces the correct number of chats in updatedChats" time="0.000813">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; creates a topic named &quot;Work&quot; in updatedTopics" time="0.0007232">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; creates a topic named &quot;Projects&quot; in updatedTopics" time="0.000406">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; creates a topic named &quot;Personal&quot; in updatedTopics" time="0.0002176">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; sets &quot;Projects&quot; as a child of &quot;Work&quot;" time="0.0002827">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; has &quot;Work&quot; and &quot;Personal&quot; as root topics" time="0.0004305">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; preserves the full markdown content in updatedChats[*].content" time="0.0002701">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; assigns each chat to a non-null topicId after executeImport" time="0.0002341">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; all topic ids in updatedRootTopics exist as keys in updatedTopics" time="0.0002526">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport &gt; all chatIds stored on topics reference actual chats in updatedChats" time="0.0002575">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; creates TWO root topics (Work and Personal) — no wrapper" time="0.0003471">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; root topic names are the ZIP top-level folder names, not a wrapper" time="0.0003519">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; no topic named &quot;Imported YYYY-MM-DD&quot; exists" time="0.0006039">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; all chats have a non-null topicId (none are unlinked)" time="0.0008013">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; each linked chat appears in its topic chatIds" time="0.0009015">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root) &gt; imports the same number of chats as the merge strategy" time="0.0069298">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; handles tree with topics but no rootTopicIds array" time="0.0011837">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; deep-clones topics that lack children/chatIds (|| [] fallback on lines 613-614)" time="0.0006384">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; handles tree where rootTopicIds is not an array" time="0.0003536">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; records an error when parent folder path cannot be resolved for a nested topic" time="0.000948">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; catches errors thrown during individual chat import and records them in summary.errors" time="0.0006461">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; updatedChats defaults to [] when chats arg is not an array" time="0.0002086">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; sets topicId to null when chat targetTopicPath is not in folderToId map" time="0.0002338">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; skips duplicate chatId push when chatId already in topic.chatIds" time="0.0004829">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; does not update lastChatDate when an earlier-timestamp chat is added to an existing range" time="0.0003503">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; does not update firstChatDate or lastChatDate when chat timestamp is not a number" time="0.0002677">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; creates a topic without folderPath (item.folderPath falsy) and attaches it to root" time="0.0002671">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – branch edge cases &gt; handles parentTopic missing from updatedTopics when parentId resolves via merge" time="0.0001761">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() – MIME vs extension combinations &gt; returns valid when MIME is application/zip but extension is NOT .zip" time="0.0001269">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() – MIME vs extension combinations &gt; returns invalid when file.size is a non-number" time="0.0001193">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() – MIME vs extension combinations &gt; returns invalid when file name is an empty string" time="0.0000744">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="validateZipFile() – MIME vs extension combinations &gt; returns invalid when file name is not a string" time="0.0000718">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; sets firstChatDate and lastChatDate from a single chat with timestamp" time="0.0004737">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; updates firstChatDate when a newer import has an earlier timestamp" time="0.0003044">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; updates lastChatDate when a newer import has a later timestamp" time="0.0002519">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; does NOT update dates for chats where ts is not a number" time="0.0001967">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; does NOT set dates when topicId is null (chat without a topic)" time="0.0001305">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; does not add duplicate chatIds when the same chat is imported twice" time="0.0002811">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; sort puts shallow topic before deeper topic (sort comparator deep &lt; shallow = negative)" time="0.0002219">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; does not push duplicate root topic when executeImport called twice with same plan" time="0.0001693">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; sort comparator handles item with no folderPath (depth=0 fallback branch)" time="0.0002068">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; records error when parent folder path is not resolvable (line 692)" time="0.0001627">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; handles plan with topicsToMerge=undefined (|| [] fallback on line 637)" time="0.0001203">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; handles plan with topicsToCreate=undefined (|| [] fallback on line 661)" time="0.000103">
+        </testcase>
+        <testcase classname="tests/import-parser.test.js" name="executeImport() – timestamp update logic &gt; handles plan with chatsToImport=undefined (|| [] fallback on line 702)" time="0.0001051">
+        </testcase>
+    </testsuite>
+</testsuites>

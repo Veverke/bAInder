@@ -134,7 +134,7 @@ function _refreshTagSuggestions() {
 // ---------------------------------------------------------------------------
 
 async function init() {
-  logger.log('Initializing bAInderâ€¦');
+  logger.log('Initializing bAInder...');
 
   // Services
   state.storage  = StorageService.getInstance('chrome');
@@ -154,8 +154,9 @@ async function init() {
   // Seed tag autocomplete from loaded chats
   _refreshTagSuggestions();
 
-  // C.9 â€” sync sort selector
+  // C.9 — sync sort selectors
   if (elements.topicSortSelect) elements.topicSortSelect.value = state.sortMode;
+  if (elements.chatSortSelect)  elements.chatSortSelect.value  = state.chatSortMode;
 
   // Wire all DOM event listeners
   setupEventListeners();
@@ -221,7 +222,12 @@ function setupEventListeners() {
     localStorage.setItem('topicSortMode', state.sortMode);
     if (state.renderer) state.renderer.setSortMode(state.sortMode);
   });
-
+  // C.9 — chat sort
+  elements.chatSortSelect?.addEventListener('change', () => {
+    state.chatSortMode = elements.chatSortSelect.value;
+    localStorage.setItem('chatSortMode', state.chatSortMode);
+    if (state.renderer) state.renderer.setChatSortMode(state.chatSortMode);
+  });
   // Toolbar: add topic, expand/collapse all
   elements.addTopicBtn.addEventListener('click', handleAddTopic);
   elements.expandAllBtn.addEventListener('click', () => {
@@ -333,7 +339,7 @@ function setupEventListeners() {
         if (tab?.id) await browser.tabs.reload(tab.id);
       } catch (_) { /* ignore */ }
       setSaveBtnState('default');
-      if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = 'Reloadingâ€¦';
+      if (elements.saveBannerMsg) elements.saveBannerMsg.textContent = 'Reloading...';
     } else {
       handlePanelSave();
     }

@@ -155,9 +155,10 @@ describe('messagesToMarkdown', () => {
     expect(md).toContain('excerpt: true');
   });
 
-  it('includes a level-1 title heading', () => {
+  it('does not include a level-1 title heading', () => {
     const md = messagesToMarkdown(twoMessages, minimalMeta);
-    expect(md).toContain('\n# Test Chat\n');
+    expect(md).not.toContain('\n# Test Chat\n');
+    expect(md).not.toMatch(/^# /m);
   });
 
   it('prepends 🙋 emoji to first non-empty line of user message', () => {
@@ -237,7 +238,8 @@ describe('messagesToMarkdown', () => {
 
   it('handles empty messages array gracefully', () => {
     const md = messagesToMarkdown([], minimalMeta);
-    expect(md).toContain('# Test Chat');
+    expect(md).toContain('title: "Test Chat"');
+    expect(md).not.toContain('# Test Chat');
     // No role labels or emoji prefixes
     expect(md).not.toContain('**User**');
     expect(md).not.toContain('🙋');
@@ -246,13 +248,13 @@ describe('messagesToMarkdown', () => {
 
   it('handles null messages gracefully', () => {
     const md = messagesToMarkdown(null, minimalMeta);
-    expect(md).toContain('# Test Chat');
+    expect(md).toContain('title: "Test Chat"');
   });
 
   it('uses "Untitled Chat" when title is missing', () => {
     const md = messagesToMarkdown([], {});
     expect(md).toContain('title: "Untitled Chat"');
-    expect(md).toContain('# Untitled Chat');
+    expect(md).not.toContain('# Untitled Chat');
   });
 
   it('uses "unknown" source when source is missing', () => {
@@ -284,7 +286,8 @@ describe('messagesToMarkdown', () => {
     // Empty content has no non-empty first line so no emoji prefix is added,
     // but the function should not throw and the output is still valid markdown.
     const md = messagesToMarkdown([{ role: 'user', content: '' }], minimalMeta);
-    expect(md).toContain('# Test Chat');
+    expect(md).toContain('title: "Test Chat"');
+    expect(md).not.toContain('# Test Chat');
     expect(md).not.toContain('**User**');
     // No emoji since there is no non-empty line to prepend to
     expect(md).not.toContain('🙋');

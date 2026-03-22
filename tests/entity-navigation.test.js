@@ -68,11 +68,11 @@ describe('openChatAtMessage()', () => {
     expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: 'const x = 1;' }));
   });
 
-  it('passes null snippetHint for prompt entities (no content match)', () => {
+  it('passes turn:self snippetHint for prompt entities', () => {
     const onChatClick = vi.fn();
-    const promptEntity = { role: 'user', roleOrdinal: 1, type: 'prompt' };
+    const promptEntity = { role: 'user', roleOrdinal: 1, type: 'prompt', text: 'hello world' };
     openChatAtMessage('c', promptEntity, { onChatClick });
-    expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: null }));
+    expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: 'turn:self' }));
   });
 
   it('passes snippetHint url for citation entities', () => {
@@ -111,5 +111,54 @@ describe('openChatAtMessage()', () => {
     const attachmentEntity = { role: 'assistant', roleOrdinal: 1, type: 'attachment' };
     openChatAtMessage('c', attachmentEntity, { onChatClick });
     expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: null }));
+  });
+
+  it('passes pipe-delimited header row as snippetHint for table entities', () => {
+    const onChatClick = vi.fn();
+    const tableEntity = {
+      role: 'assistant', roleOrdinal: 1, type: 'table',
+      headers: ['Possible next token', 'Probability'],
+      rows: [['mat', '0.72'], ['floor', '0.10']],
+      rowCount: 2,
+    };
+    openChatAtMessage('c', tableEntity, { onChatClick });
+    expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({
+      snippetHint: '| Possible next token | Probability |',
+    }));
+  });
+
+  it('passes null snippetHint for table entity with no headers', () => {
+    const onChatClick = vi.fn();
+    const tableEntity = { role: 'assistant', roleOrdinal: 1, type: 'table', headers: [] };
+    openChatAtMessage('c', tableEntity, { onChatClick });
+    expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: null }));
+  });
+
+  it('passes altText as snippetHint for image entities with alt text', () => {
+    const onChatClick = vi.fn();
+    const imageEntity = { role: 'assistant', roleOrdinal: 1, type: 'image', altText: 'A bar chart', src: 'https://example.com/img.png' };
+    openChatAtMessage('c', imageEntity, { onChatClick });
+    expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: 'A bar chart' }));
+  });
+
+  it('passes turn:self as snippetHint for image entities without alt text', () => {
+    const onChatClick = vi.fn();
+    const imageEntity = { role: 'assistant', roleOrdinal: 1, type: 'image', src: 'https://example.com/img.png' };
+    openChatAtMessage('c', imageEntity, { onChatClick });
+    expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: 'turn:self' }));
+  });
+
+  it('passes turn:self as snippetHint for toolCall entities', () => {
+    const onChatClick = vi.fn();
+    const toolCallEntity = { role: 'assistant', roleOrdinal: 1, type: 'toolCall', tool: 'web_search' };
+    openChatAtMessage('c', toolCallEntity, { onChatClick });
+    expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: 'turn:self' }));
+  });
+
+  it('passes turn:self as snippetHint for artifact entities', () => {
+    const onChatClick = vi.fn();
+    const artifactEntity = { role: 'assistant', roleOrdinal: 1, type: 'artifact', title: 'My Component' };
+    openChatAtMessage('c', artifactEntity, { onChatClick });
+    expect(onChatClick).toHaveBeenCalledWith('c', expect.objectContaining({ snippetHint: 'turn:self' }));
   });
 });
