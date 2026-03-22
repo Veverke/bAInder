@@ -509,7 +509,7 @@ export function buildImportPlan(zipEntries, existingTree, strategy) {
     topicsToCreate.push({
       name: folder.name,
       parentName,
-      folderPath,
+      folderPath: effectivePath,
     });
   }
 

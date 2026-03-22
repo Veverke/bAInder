@@ -906,7 +906,7 @@ describe('ImportDialog — showImportDialog() — Phase 3 (Import)', () => {
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('Replace strategy: confirm dialog is shown before import', async () => {
+  it('Replace strategy: no secondary confirm dialog is shown', async () => {
     await openImportDialog(importDialog, dialog, container, {
       onComplete: vi.fn().mockResolvedValue(undefined),
     });
@@ -917,11 +917,10 @@ describe('ImportDialog — showImportDialog() — Phase 3 (Import)', () => {
     await flush();
     await click(document.getElementById('importNowBtn'));
     await flush();
-    expect(dialog.confirm).toHaveBeenCalled();
+    expect(dialog.confirm).not.toHaveBeenCalled();
   });
 
-  it('Replace strategy + confirmation cancelled: executeImport NOT called', async () => {
-    dialog.confirm.mockResolvedValue(false);
+  it('Replace strategy: executeImport IS called immediately on Import Now click', async () => {
     await openImportDialog(importDialog, dialog, container, {
       onComplete: vi.fn().mockResolvedValue(undefined),
     });
@@ -932,7 +931,7 @@ describe('ImportDialog — showImportDialog() — Phase 3 (Import)', () => {
     await flush();
     await click(document.getElementById('importNowBtn'));
     await flush();
-    expect(executeImport).not.toHaveBeenCalled();
+    expect(executeImport).toHaveBeenCalled();
   });
 });
 
@@ -1401,13 +1400,14 @@ describe('ImportDialog — Replace strategy end-to-end', () => {
   afterEach(() => {
     document.body.innerHTML = '';
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
-  it('replace: confirm dialog is shown when Import Now ▶ is clicked', async () => {
+  it('replace: no confirm dialog is shown — Import Now proceeds immediately', async () => {
     await setupToPhase2();
     await click(document.getElementById('importNowBtn'));
     await flush();
-    expect(dialog.confirm).toHaveBeenCalled();
+    expect(dialog.confirm).not.toHaveBeenCalled();
   });
 
   it('replace confirmed: executeImport is called', async () => {
@@ -1417,7 +1417,18 @@ describe('ImportDialog — Replace strategy end-to-end', () => {
     expect(executeImport).toHaveBeenCalled();
   });
 
-  it('replace confirmed: onComplete is invoked', async () => {
+  it('replace: executeImport is called with null tree and empty chats', async () => {
+    await setupToPhase2();
+    await click(document.getElementById('importNowBtn'));
+    await flush();
+    expect(executeImport).toHaveBeenCalledWith(
+      expect.anything(), // plan
+      null,              // tree cleared for replace
+      []                 // chats cleared for replace
+    );
+  });
+
+  it('replace: onComplete is invoked', async () => {
     const onComplete = vi.fn().mockResolvedValue(undefined);
     await openImportDialog(importDialog, dialog, container, { onComplete });
     selectRadio(container, 'importStrategy', 'replace');
@@ -1430,48 +1441,40 @@ describe('ImportDialog — Replace strategy end-to-end', () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it('replace confirmed: Phase 3 becomes active', async () => {
+  it('replace: Phase 3 becomes active', async () => {
     await setupToPhase2();
     await click(document.getElementById('importNowBtn'));
     await flush();
     expect(document.getElementById('importPhase3').classList.contains('active')).toBe(true);
   });
 
-  it('replace confirmed: done screen is visible', async () => {
+  it('replace: done screen is visible', async () => {
     await setupToPhase2();
     await click(document.getElementById('importNowBtn'));
     await flush();
     expect(document.getElementById('importDoneContent').style.display).toBe('block');
   });
 
-  it('replace cancelled: executeImport is NOT called', async () => {
-    dialog.confirm.mockResolvedValueOnce(false);
+  it('replace: inline replace warning banner is shown in Phase 2', async () => {
     await setupToPhase2();
-    await click(document.getElementById('importNowBtn'));
-    await flush();
-    expect(executeImport).not.toHaveBeenCalled();
+    const banner = document.getElementById('importReplaceWarning');
+    expect(banner).not.toBeNull();
+    expect(banner.style.display).not.toBe('none');
   });
 
-  it('replace cancelled: stays on Phase 2', async () => {
-    dialog.confirm.mockResolvedValueOnce(false);
-    await setupToPhase2();
-    await click(document.getElementById('importNowBtn'));
-    await flush();
-    expect(document.getElementById('importPhase2').classList.contains('active')).toBe(true);
-  });
-
-  it('replace cancelled: onComplete is NOT called', async () => {
-    dialog.confirm.mockResolvedValueOnce(false);
-    const onComplete = vi.fn().mockResolvedValue(undefined);
-    await openImportDialog(importDialog, dialog, container, { onComplete });
-    selectRadio(container, 'importStrategy', 'replace');
+  it('replace: inline replace warning banner is hidden for merge strategy', async () => {
+    // Use merge strategy instead
+    await openImportDialog(importDialog, dialog, container, {
+      onComplete: vi.fn().mockResolvedValue(undefined),
+    });
+    selectRadio(container, 'importStrategy', 'merge');
     simulateFileInput(container, fakeZip());
     await flush();
     await click(document.getElementById('importStartBtn'));
     await flush();
-    await click(document.getElementById('importNowBtn'));
-    await flush();
-    expect(onComplete).not.toHaveBeenCalled();
+    const banner = document.getElementById('importReplaceWarning');
+    expect(banner).not.toBeNull();
+    expect(banner.style.display).toBe('none');
   });
 });
 

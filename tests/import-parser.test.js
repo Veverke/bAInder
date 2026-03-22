@@ -961,6 +961,57 @@ describe('Round-trip: parseZipEntries → buildImportPlan → executeImport', ()
   });
 });
 
+// ─── Round-trip: new-root strategy ───────────────────────────────────────────
+
+describe('Round-trip: parseZipEntries → buildImportPlan → executeImport (new-root)', () => {
+  let result;
+  let wrapperName;
+
+  beforeEach(() => {
+    wrapperName = `Imported ${new Date().toISOString().slice(0, 10)}`;
+    const parsed = parseZipEntries(WELL_FORMED_ENTRIES);
+    const plan = buildImportPlan(parsed, null, 'new-root');
+    result = executeImport(plan, null, []);
+  });
+
+  it('creates only ONE root topic (the wrapper)', () => {
+    expect(result.updatedRootTopics).toHaveLength(1);
+  });
+
+  it('wrapper root topic name is "Imported YYYY-MM-DD"', () => {
+    const rootTopic = result.updatedTopics[result.updatedRootTopics[0]];
+    expect(rootTopic.name).toBe(wrapperName);
+  });
+
+  it('imported topics are children of the wrapper, NOT additional roots', () => {
+    const rootTopic = result.updatedTopics[result.updatedRootTopics[0]];
+    const childNames = rootTopic.children.map(id => result.updatedTopics[id].name);
+    expect(childNames).toContain('Work');
+    expect(childNames).toContain('Personal');
+  });
+
+  it('all chats have a non-null topicId (none are unlinked)', () => {
+    for (const chat of result.updatedChats) {
+      expect(chat.topicId).not.toBeNull();
+    }
+  });
+
+  it('each linked chat appears in its topic chatIds', () => {
+    for (const chat of result.updatedChats) {
+      const topic = result.updatedTopics[chat.topicId];
+      expect(topic).toBeDefined();
+      expect(topic.chatIds).toContain(chat.id);
+    }
+  });
+
+  it('imports the same number of chats as the merge strategy', () => {
+    const parsedForMerge = parseZipEntries(WELL_FORMED_ENTRIES);
+    const mergePlan = buildImportPlan(parsedForMerge, null, 'merge');
+    const mergeResult = executeImport(mergePlan, null, []);
+    expect(result.updatedChats).toHaveLength(mergeResult.updatedChats.length);
+  });
+});
+
 // ─── executeImport – additional branch coverage ───────────────────────────────
 
 describe('executeImport() – branch edge cases', () => {

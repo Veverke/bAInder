@@ -46,9 +46,17 @@ export async function handleImport() {
       _state.tree,
       _state.chats,
       async (updatedTopics, updatedRootTopics, updatedChats, summary) => {
+        console.warn('[bAInder] [DBG] onComplete — updatedTopicKeys:', Object.keys(updatedTopics ?? {}).length,
+          'updatedRootTopics:', JSON.stringify(updatedRootTopics),
+          'updatedChats.length:', (updatedChats ?? []).length,
+          'summary:', JSON.stringify(summary));
+
         // Rebuild tree from imported data
         _state.tree  = TopicTree.fromObject({ topics: updatedTopics, rootTopicIds: updatedRootTopics });
         _state.chats = updatedChats;
+
+        console.warn('[bAInder] [DBG] tree after fromObject — rootTopicIds:', JSON.stringify(_state.tree.rootTopicIds), 'topics:', Object.keys(_state.tree.topics ?? {}).length);
+        console.warn('[bAInder] [DBG] chats before replaceAll:', _state.chats.length);
 
         // Keep dialog instances' tree reference in sync
         _state.topicDialogs.tree = _state.tree;
@@ -57,6 +65,7 @@ export async function handleImport() {
         // Persist
         await saveTree();
         _state.chats = await _state.chatRepo.replaceAll(_state.chats);
+        console.warn('[bAInder] [DBG] replaceAll done — stored chats (meta).length:', _state.chats.length);
 
         // Refresh UI
         _state.renderer.setTree(_state.tree);
