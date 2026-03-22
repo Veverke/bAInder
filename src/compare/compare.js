@@ -139,9 +139,11 @@ export async function init() {
 
 export async function loadChat(id) {
   try {
-    const result = await browser.storage.local.get('chats');
-    const chats = Array.isArray(result.chats) ? result.chats : [];
-    return chats.find(c => c.id === id) ?? null;
+    const result = await browser.storage.local.get([`chat:${id}`, 'chats']);
+    // Support both new per-chat-key format and legacy 'chats' array.
+    return result[`chat:${id}`]
+      || (Array.isArray(result.chats) ? result.chats.find(c => c.id === id) : null)
+      || null;
   } catch (_) {
     return null;
   }
