@@ -783,6 +783,53 @@ body.ordinals-hidden .msg-ordinal {
   .turn-copy-btn { opacity: 1; }
 }
 
+/* ── Turn selection mode ──────────────────────────────────────────────────── */
+.btn-reader-action--danger {
+  color: var(--danger, #ef4444);
+}
+.btn-reader-action--danger:hover {
+  color: var(--danger, #ef4444);
+  background: var(--danger-bg, #fee2e2);
+  border-color: var(--danger, #ef4444);
+}
+.btn-reader-action--active {
+  background: var(--primary-light, #e0e7ff);
+  color: var(--primary, #6366f1);
+  border-color: var(--primary, #6366f1);
+}
+
+/* Checkbox inside each turn role row */
+.turn-select-cb {
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-right: 6px;
+  accent-color: var(--primary, #6366f1);
+}
+
+/* In select mode the turn body itself is also clickable */
+body.turn-select-mode .chat-turn {
+  cursor: pointer;
+}
+
+/* Checked / selected state */
+.chat-turn.turn-selected {
+  outline: 2px solid var(--primary, #6366f1);
+  outline-offset: 3px;
+  border-radius: var(--radius-md, 10px);
+}
+.chat-turn.turn-selected .chat-turn__body {
+  background: var(--primary-light, #e0e7ff);
+}
+
+/* Space between reader action buttons */
+.reader-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* ── C.8 Chat backlinks / "Referenced by" section ────────────────────────── */
 .backlinks-section {
   margin-top: 40px;
@@ -1424,6 +1471,9 @@ body[data-source="perplexity"] { background-color: color-mix(in srgb, #9b6b2e 4%
 
 .btn-ann--cancel           { background: var(--bg-primary); border: 1px solid var(--border-primary); color: var(--text-secondary); }
 .btn-ann--cancel:hover     { background: var(--bg-code); }
+
+.btn-ann--delete-text          { background: var(--danger-bg, #fee2e2); color: var(--danger, #dc2626); border: 1px solid var(--danger-border, #fca5a5); }
+.btn-ann--delete-text:hover    { background: #fecaca; }
 
 
 /* ── Print / PDF (R1) ────────────────────────────────────────────────────── */
