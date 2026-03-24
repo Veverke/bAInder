@@ -462,4 +462,14 @@ describe('openSettingsPanel() — auto-export controls', () => {
     );
     expect(autoExportSetCalls).toHaveLength(1);
   });
+
+  it('silently ignores getAutoExportDirHandle rejection', async () => {
+    const { getAutoExportDirHandle } = await import('../src/lib/export/auto-export.js');
+    getAutoExportDirHandle.mockRejectedValueOnce(new Error('IDB unavailable'));
+    // Should not throw; panel opens normally
+    expect(() => openSettingsPanel()).not.toThrow();
+    // Flush the rejected promise so the unhandled-rejection doesn't leak
+    await Promise.resolve();
+    await Promise.resolve();
+  });
 });
