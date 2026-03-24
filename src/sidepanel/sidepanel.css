@@ -3624,6 +3624,11 @@ ul.tree-root.drop-target {
   overflow: hidden;
 }
 
+/* Ensure the hidden attribute works despite the explicit display:flex above */
+#sessionPanel[hidden] {
+  display: none;
+}
+
 #entityPanel {
   flex: 1;
   overflow-y: auto;
