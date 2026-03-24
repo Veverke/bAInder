@@ -28,6 +28,7 @@ import {
 import { setSaveBtnState } from '../features/save-banner.js';
 import { updateRecentRail } from '../features/recent-rail.js';
 import { copyChatsToClipboard } from '../../lib/export/clipboard-serialiser.js';
+import { triggerAutoExport }   from '../../lib/export/auto-export.js';
 let _state = state;
 // ---------------------------------------------------------------------------
 // Test injection hook - lets unit tests provide a mock app context instead of
@@ -201,6 +202,24 @@ export async function handleChatSaved(chatEntry) {
   if (result.title && result.title !== chatEntry.title) updatedChat.title = result.title;
   if (result.tags  !== undefined)                       updatedChat.tags  = result.tags;
 
+  // Feature d — duplicate-title overwrite confirmation
+  const newTitle = (updatedChat.title || '').trim().toLowerCase();
+  const duplicate = _state.chats.find(
+    c => c.id !== chatEntry.id && (c.title || '').trim().toLowerCase() === newTitle
+  );
+  if (duplicate) {
+    const confirmed = await _state.dialog.confirm(
+      `A chat named "${updatedChat.title}" already exists.\nDo you want to overwrite it?`,
+      'Overwrite Existing Chat?'
+    );
+    if (!confirmed) {
+      setSaveBtnState('default');
+      return;
+    }
+    await _state.chatRepo.removeChat(duplicate.id);
+    _state.chats = _state.chats.filter(c => c.id !== duplicate.id);
+  }
+
   // 4. Persist
   _state.chats = await _state.chatRepo.updateChat(chatEntry.id, updatedChat);
 
@@ -231,6 +250,25 @@ export async function handleChatSaved(chatEntry) {
 
   // 8. Refresh recent rail
   updateRecentRail(handleChatClick);
+
+  // Feature c — auto-export check
+  try {
+    const stored = await browser.storage.local.get(
+      ['autoExportEnabled', 'autoExportThreshold', 'chatsSinceLastAutoExport', 'autoExportTopics']
+    );
+    if (stored.autoExportEnabled) {
+      const threshold = Number(stored.autoExportThreshold) || 10;
+      const newCount  = (Number(stored.chatsSinceLastAutoExport) || 0) + 1;
+      if (newCount >= threshold) {
+        await browser.storage.local.set({ chatsSinceLastAutoExport: 0 });
+        triggerAutoExport(_state.tree, _state.chats, stored.autoExportTopics || '');
+      } else {
+        await browser.storage.local.set({ chatsSinceLastAutoExport: newCount });
+      }
+    }
+  } catch (err) {
+    logger.warn('Auto-export check failed:', err);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -368,3 +406,5 @@ export async function handleCopyChatAction() {
   }
   showNotification('Copied to clipboard', 'success');
 }
+
+

@@ -74,12 +74,13 @@ export async function handleTopicContextMenu(topic, event) {
 
 export function setupContextMenuActions() {
   const actions = {
-    rename:     handleRenameTopic,
-    move:       handleMoveTopic,
-    merge:      handleMergeTopic,
-    export:     handleExportTopic,
-    delete:     handleDeleteTopic,
-    'copy-all': handleCopyAllTopicChats,
+    rename:              handleRenameTopic,
+    move:                handleMoveTopic,
+    merge:               handleMergeTopic,
+    export:              handleExportTopic,
+    delete:              handleDeleteTopic,
+    'copy-all':          handleCopyAllTopicChats,
+    'add-child-topic':   handleAddChildTopic,
   };
 
   elements.contextMenu.querySelectorAll('[data-action]').forEach(item => {
@@ -118,6 +119,22 @@ export async function handleAddTopic() {
   saveExpandedState();
 
   // Make the Save button suggest saving to this freshly-created topic
+  _state.lastCreatedTopicId = result.topicId;
+  setSaveBtnState('default');
+}
+
+export async function handleAddChildTopic() {
+  if (!_state.contextMenuTopic) return;
+  const result = await _state.topicDialogs.showAddTopic(_state.contextMenuTopic.id);
+  if (!result) return;
+
+  await saveTree();
+  renderTreeView();
+
+  _state.renderer.expandToTopic(result.topicId);
+  _state.renderer.selectNode(result.topicId);
+  saveExpandedState();
+
   _state.lastCreatedTopicId = result.topicId;
   setSaveBtnState('default');
 }

@@ -202,6 +202,11 @@ export function buildChatItem(chat, level, ctx) {
   const labelText = document.createElement('span');
   labelText.className   = 'tree-label-text';
   labelText.textContent = chat.title || 'Untitled Chat';
+  labelText.addEventListener('mouseenter', () => {
+    labelText.title = labelText.scrollWidth > labelText.clientWidth
+      ? (chat.title || 'Untitled Chat')
+      : '';
+  });
   label.appendChild(labelText);
 
   // Date badge

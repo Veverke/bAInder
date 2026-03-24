@@ -582,6 +582,7 @@ export class ExportDialog {
     try {
       const topicsMap = tree?.topics || {};
       const date      = new Date().toISOString().slice(0, 10);
+      const zipName   = this._buildZipFilename(tree, allChats);
       const safeName  = sanitizeFilename(topic?.name || 'export');
 
       // ── ZIP format: delegate entirely to buildZipPayload ──────────────────
@@ -592,7 +593,7 @@ export class ExportDialog {
         const zip = new JSZip();
         files.forEach(({ path, content }) => zip.file(path, content));
         const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-        triggerDownload(`bAInder-export-${date}.zip`, blob, 'application/zip');
+        triggerDownload(`${zipName}.zip`, blob, 'application/zip');
         this.dialog.close(null);
         return;
       }
@@ -639,7 +640,7 @@ export class ExportDialog {
             );
           }
           const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-          triggerDownload(`bAInder-export-${date}.zip`, blob, 'application/zip');
+          triggerDownload(`${zipName}.zip`, blob, 'application/zip');
           this.dialog.close(null);
           return;
         }
@@ -672,7 +673,7 @@ export class ExportDialog {
           }
         }
         const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-        triggerDownload(`bAInder-export-${date}.zip`, blob, 'application/zip');
+        triggerDownload(`${zipName}.zip`, blob, 'application/zip');
       }
 
       this.dialog.close(null);
@@ -696,6 +697,33 @@ export class ExportDialog {
     if (scope === 'this-topic')      return { scope: 'topic',          topicId: topic.id };
     if (scope === 'topic-recursive') return { scope: 'topic-recursive', topicId: topic.id };
     return { scope: 'all' };
+  }
+
+  /**
+   * Build the base filename (without .zip) for a ZIP export.
+   * Format: bAInder-N-topics-M-chats-[auto-]export-YYYY-MM-DD-HH-mm-ss
+   *
+   * @private
+   * @param {Object}  tree    — TopicTree instance (may be null)
+   * @param {Array}   chats   — full chat list (may be null)
+   * @param {boolean} [isAuto=false] — true for auto-exports
+   * @returns {string}
+   */
+  _buildZipFilename(tree, chats, isAuto = false) {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const datetime = [
+      now.getFullYear(),
+      pad(now.getMonth() + 1),
+      pad(now.getDate()),
+      pad(now.getHours()),
+      pad(now.getMinutes()),
+      pad(now.getSeconds()),
+    ].join('-');
+    const nTopics = tree ? Object.keys(tree.topics || {}).length : 0;
+    const mChats  = Array.isArray(chats) ? chats.length : 0;
+    const kind    = isAuto ? 'auto-export' : 'export';
+    return `bAInder-${nTopics}-topics-${mChats}-chats-${kind}-${datetime}`;
   }
 
   /**
