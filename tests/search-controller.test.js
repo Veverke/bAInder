@@ -1227,3 +1227,120 @@ describe('setupSearchContextToggle() — re-runs entity search when query is act
     expect(st.searchContext).toBe('chats');
   });
 });
+
+// ─── TOC auto-collapse / expand ──────────────────────────────────────────────
+
+describe('handleSearch() — TOC auto-collapse', () => {
+  let tocSection;
+  let tocBtn;
+
+  beforeEach(() => {
+    const els = makeElements();
+    const st  = makeState();
+    _setContext({ elements: els, state: st, ...st });
+    Object.assign(appElements, {
+      searchResults: null, searchResultsList: null, resultCount: null,
+    });
+
+    tocSection = document.createElement('div');
+    tocSection.className = 'toc-section';
+    tocBtn = document.createElement('button');
+    tocBtn.id = 'tocCollapseBtn';
+    tocBtn.setAttribute('aria-expanded', 'true');
+    document.body.append(tocSection, tocBtn);
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    Object.assign(appElements, {
+      searchResults: undefined, searchResultsList: undefined, resultCount: undefined,
+    });
+    _setContext({ elements: {}, state: { searchContext: 'chats', searchQuery: '', filters: { sources: new Set() }, renderer: null, storage: { searchChats: vi.fn() } } });
+  });
+
+  it('collapses .toc-section when query is entered', () => {
+    handleSearch({ target: { value: 'hello' } });
+    expect(tocSection.classList.contains('section--collapsed')).toBe(true);
+    expect(tocBtn.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('does not re-collapse when already collapsed', () => {
+    tocSection.classList.add('section--collapsed');
+    tocBtn.setAttribute('aria-expanded', 'false');
+    handleSearch({ target: { value: 'hello' } });
+    expect(tocSection.classList.contains('section--collapsed')).toBe(true);
+  });
+
+  it('does not collapse when query is empty', () => {
+    handleSearch({ target: { value: '' } });
+    expect(tocSection.classList.contains('section--collapsed')).toBe(false);
+  });
+});
+
+describe('clearSearch() — TOC expand', () => {
+  let tocSection;
+  let tocBtn;
+
+  beforeEach(() => {
+    const { searchInput, clearSearchBtn, searchResults, searchResultsList } = makeSearchElements();
+
+    tocSection = document.createElement('div');
+    tocSection.className = 'toc-section section--collapsed';
+    tocBtn = document.createElement('button');
+    tocBtn.id = 'tocCollapseBtn';
+    tocBtn.setAttribute('aria-expanded', 'false');
+    document.body.append(tocSection, tocBtn);
+
+    const st = {
+      searchQuery: 'test',
+      filters: { sources: new Set(), dateFrom: null, dateTo: null, topicId: '', minRating: null, tags: new Set() },
+      renderer: { clearHighlight: vi.fn() },
+      storage: { searchChats: vi.fn().mockResolvedValue([]) },
+    };
+    _setContext(st);
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    appElements.searchInput = appElements.clearSearchBtn = appElements.searchResults = appElements.searchResultsList = undefined;
+    _setContext({ searchQuery: '', filters: { sources: new Set(), dateFrom: null, dateTo: null, topicId: '', minRating: null, tags: new Set() }, renderer: null, storage: { searchChats: vi.fn() } });
+  });
+
+  it('expands the collapsed toc-section', () => {
+    clearSearch();
+    expect(tocSection.classList.contains('section--collapsed')).toBe(false);
+    expect(tocBtn.getAttribute('aria-expanded')).toBe('true');
+  });
+});
+
+describe('rerunSearch() — TOC expand', () => {
+  let tocSection;
+
+  beforeEach(() => {
+    makeSearchElements();
+
+    tocSection = document.createElement('div');
+    tocSection.className = 'toc-section section--collapsed';
+    document.body.append(tocSection);
+
+    const st = {
+      searchQuery: '',
+      filters: { sources: new Set(), dateFrom: null, dateTo: null, topicId: '', minRating: null, tags: new Set() },
+      renderer: { clearHighlight: vi.fn() },
+      storage: { searchChats: vi.fn().mockResolvedValue([]) },
+    };
+    _setContext(st);
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    appElements.searchInput = appElements.clearSearchBtn = appElements.searchResults = appElements.searchResultsList = undefined;
+    _setContext({ searchQuery: '', filters: { sources: new Set(), dateFrom: null, dateTo: null, topicId: '', minRating: null, tags: new Set() }, renderer: null, storage: { searchChats: vi.fn() } });
+  });
+
+  it('expands the collapsed toc-section when no query and no filters', () => {
+    rerunSearch();
+    expect(tocSection.classList.contains('section--collapsed')).toBe(false);
+  });
+});
+
