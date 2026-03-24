@@ -873,7 +873,161 @@ body.create-mode .chat-turn.turn-swap-active {
   transition: background 0.1s, border-color 0.1s;
 }
 
-/* ── C.8 Chat backlinks / "Referenced by" section ────────────────────────── */
+/* ── C.8 Topic Picker Modal (Create mode save flow) ──────────────────────── */
+.topic-picker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.topic-picker-modal {
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border-primary, #e2e8f0);
+  border-radius: var(--radius-md, 10px);
+  box-shadow: var(--shadow-md);
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topic-picker-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border-primary, #e2e8f0);
+}
+
+.topic-picker-modal__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.topic-picker-modal__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 2px 4px;
+  border-radius: var(--radius-sm, 6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.topic-picker-modal__close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover, #f1f5f9);
+}
+
+.topic-picker-modal__options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px 10px;
+}
+
+.topic-picker-modal__radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+.topic-picker-modal__radio-label--disabled {
+  color: var(--text-tertiary, #94a3b8);
+  cursor: not-allowed;
+}
+
+.topic-picker-modal__radio {
+  accent-color: var(--primary, #6366f1);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.topic-picker-modal__body {
+  padding: 4px 16px 12px;
+  min-height: 44px;
+}
+
+.topic-picker-modal__section {
+  padding-top: 4px;
+}
+
+.topic-picker-modal__select,
+.topic-picker-modal__input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-primary, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+.topic-picker-modal__select:focus,
+.topic-picker-modal__input:focus {
+  border-color: var(--primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.topic-picker-modal__input--error {
+  border-color: var(--danger, #ef4444);
+}
+.topic-picker-modal__input--error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.topic-picker-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border-primary, #e2e8f0);
+}
+
+.topic-picker-modal__btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+.topic-picker-modal__btn--secondary {
+  background: var(--bg-elevated, #ffffff);
+  border-color: var(--border-primary, #e2e8f0);
+  color: var(--text-secondary);
+}
+.topic-picker-modal__btn--secondary:hover {
+  background: var(--bg-hover, #f1f5f9);
+  color: var(--text-primary);
+}
+.topic-picker-modal__btn--primary {
+  background: var(--primary, #6366f1);
+  color: var(--text-inverse, #ffffff);
+}
+.topic-picker-modal__btn--primary:hover {
+  background: var(--primary-hover, #4f46e5);
+}
+
+/* ── C.9 Chat backlinks / "Referenced by" section ────────────────────────── */
 .backlinks-section {
   margin-top: 40px;
   padding-top: 20px;

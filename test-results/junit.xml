@@ -1,161 +1,707 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="61" failures="0" errors="0" time="0.0796029">
-    <testsuite name="tests/chat-actions.test.js" timestamp="2026-03-24T22:19:20.774Z" hostname="Kahana-PC" tests="61" failures="0" errors="0" skipped="0" time="0.0796029">
-        <testcase classname="tests/chat-actions.test.js" name="showChatContextMenu() &gt; does nothing gracefully when elements.chatContextMenu is null" time="0.0033602">
+<testsuites name="vitest tests" tests="249" failures="0" errors="0" time="0.3226576">
+    <testsuite name="tests/reader.test.js" timestamp="2026-03-24T22:27:05.748Z" hostname="Kahana-PC" tests="249" failures="0" errors="0" skipped="0" time="0.3226576">
+        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns empty string for null / undefined / empty" time="0.001123">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="showChatContextMenu() &gt; sets style.left and style.top and makes the menu visible" time="0.0036712">
+        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns a non-empty string for a valid ISO date" time="0.0133794">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="showChatContextMenu() &gt; adjusts position if menu overflows the right edge of the viewport" time="0.0013088">
+        <testcase classname="tests/reader.test.js" name="formatDate &gt; returns the original string for an invalid date" time="0.0002546">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="hideChatContextMenu() &gt; does nothing gracefully when elements.chatContextMenu is null" time="0.0004274">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; returns empty string for null / undefined" time="0.0002509">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="hideChatContextMenu() &gt; sets display to none" time="0.0005566">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; escapes &amp; &lt; &gt; &quot;" time="0.0001925">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatClick() &gt; does nothing when chat is falsy" time="0.0005235">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; escapes ampersand" time="0.0001301">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatClick() &gt; does nothing when chat.id is absent" time="0.0003408">
+        <testcase classname="tests/reader.test.js" name="escapeHtml &gt; leaves safe text unchanged" time="0.0001055">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatClick() &gt; calls browser.tabs.create with the reader URL for a valid chat" time="0.0017319">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps chatgpt" time="0.0001324">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatContextMenu() &gt; calls event.preventDefault()" time="0.0009961">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps claude" time="0.0001032">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatContextMenu() &gt; sets contextMenuChat on state to the given chat" time="0.0009833">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps gemini" time="0.0001012">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatContextMenu() &gt; renders review date &quot;Set review date&quot; when chat has no reviewDate and is not stale" time="0.0012996">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; maps copilot" time="0.000068">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatContextMenu() &gt; renders review date label when chat has a reviewDate" time="0.00094">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns source string for unknown" time="0.0000494">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatContextMenu() &gt; renders stale warning when chat.flaggedAsStale with no reviewDate" time="0.0007896">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns Unknown for empty / null" time="0.0000701">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatContextMenu() &gt; renders stale warning with reviewDate when flaggedAsStale" time="0.0006486">
+        <testcase classname="tests/reader.test.js" name="sourceLabel &gt; returns Excerpt when isExcerpt is true" time="0.00009">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="updateChatRatingWidget() &gt; does nothing when no #chatRatingWidget element exists" time="0.0003724">
+        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--chatgpt for chatgpt" time="0.0001505">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="updateChatRatingWidget() &gt; marks stars up to the rating as active" time="0.0027168">
+        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--unknown for unknown source" time="0.0001032">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="updateChatRatingWidget() &gt; sets aria-pressed correctly on each star button" time="0.0008805">
+        <testcase classname="tests/reader.test.js" name="badgeClass &gt; returns badge--excerpt when isExcerpt is true regardless of source" time="0.0000714">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="updateChatRatingWidget() &gt; clears all active stars when rating is 0" time="0.0007386">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts **bold** to &lt;strong&gt;" time="0.0005313">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="setupChatContextMenuActions() &gt; does nothing when elements.chatContextMenu is null" time="0.0004143">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts *italic* to &lt;em&gt;" time="0.0001172">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="setupChatContextMenuActions() &gt; wires click handlers to [data-chat-action] items" time="0.0017629">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts `code` to &lt;code&gt;" time="0.0001022">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="setupChatContextMenuActions() &gt; logs a warning when no chat is selected for an action" time="0.0026396">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; does not double-process bold inside code" time="0.0002083">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleRateChatAction() &gt; does nothing when contextMenuChat is null" time="0.0010374">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; returns unchanged text when no formatting present" time="0.0000748">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleRateChatAction() &gt; sets rating when chat does not already have that rating" time="0.0010485">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; handles empty string" time="0.0000569">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleRateChatAction() &gt; clears rating (sets to null) when the same value is clicked again" time="0.0012599">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts ![alt](https://url) to &lt;img&gt;" time="0.0001538">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleRateChatAction() &gt; calls renderer.setChatData with the returned chats" time="0.0007522">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts data: image URL to &lt;img&gt;" time="0.0000807">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() &gt; resets save button to default when user cancels from the assign dialog" time="0.0008648">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; keeps &amp;amp; encoded in image src URL (valid HTML attribute)" time="0.0000549">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() &gt; adds the chat to state.chats before showing dialog" time="0.0004151">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; converts [text](url) to an anchor tag" time="0.0002074">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() &gt; updates the chat and saves tree when dialog returns a result" time="0.000616">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; keeps &amp;amp; encoded in link href (valid HTML attribute)" time="0.0001197">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() &gt; replaces stale duplicate chat in state.chats" time="0.0004356">
+        <testcase classname="tests/reader.test.js" name="applyInline &gt; handles links alongside bold text" time="0.0000834">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; rename: calls showRenameChat for the context chat" time="0.0010682">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; returns empty string for null / undefined / empty" time="0.0005956">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; rename: updates chat when dialog returns a result" time="0.0009021">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; strips YAML frontmatter" time="0.0005003">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; edit-tags: calls showEditTags" time="0.0009763">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders # heading as &lt;h1&gt;" time="0.0001298">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; edit-tags: updates tags when dialog returns result" time="0.0009929">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders ## heading as &lt;h2&gt;" time="0.0000714">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; move: calls showMoveChat" time="0.0010281">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders ### heading as &lt;h3&gt;" time="0.0000834">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; move: moves chat and calls saveTree when dialog returns result" time="0.0009713">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders --- as &lt;hr&gt;" time="0.000084">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; set-review-date: calls showSetReviewDate" time="0.0008186">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders fenced code block as a code-block widget with header and copy button" time="0.0001741">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; set-review-date: updates reviewDate when dialog returns result" time="0.0008388">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not double-escape HTML inside code blocks" time="0.0000701">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; export: calls showExportChat" time="0.0009704">
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders blockquote &gt; as &lt;blockquote&gt;" time="0.0000913">
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; export: calls dialog.alert when showExportChat throws" time="0.0097128">
-            <system-err>
-[bAInder] [ERROR] Export chat failed: Error: Boom
-    at C:/Repos/Personal/bAInder/tests/chat-actions.test.js:632:67
-    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
-    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:915:26
-    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
-    at new Promise (&lt;anonymous&gt;)
-    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
-    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
-    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
-    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
-    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:12[90m)[39m
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders standalone ![alt](url) as an &lt;img&gt;" time="0.0000829">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders [text](url) link inside paragraph" time="0.0004692">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links a bare https URL" time="0.0003184">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links a bare http URL" time="0.0001208">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not double-link an explicit markdown link whose href is a URL" time="0.0000966">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; trims trailing period from auto-linked URL and keeps the period as text" time="0.000106">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; trims trailing ) from auto-linked URL" time="0.0000866">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; auto-links URL with path and query string" time="0.0000888">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; does not link text that starts with http inside a word (e.g. no-op for plain text)" time="0.0000636">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders Microsoft Designer as a card (not iframe)" time="0.0001334">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; Designer card does not clobber surrounding text" time="0.000135">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with data: src renders &lt;audio controls&gt; player" time="0.0002153">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with https: src renders &lt;audio controls&gt; player" time="0.0001495">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker with blob: src renders unavailable notice" time="0.0001308">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio marker without URL (not captured) renders unavailable notice" time="0.0000911">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio card does not clobber surrounding text" time="0.0004344">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; audio src URL is HTML-escaped in the output" time="0.0001554">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; standalone PDF filename renders as file-attachment-chip" time="0.0002135">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; chip includes session note text" time="0.0000868">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; without sourceUrl chip renders as &lt;div&gt;" time="0.0001135">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; with sourceUrl chip renders as &lt;a&gt; linking to the source" time="0.0001256">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; emoji-prefixed filename (from messagesToMarkdown) renders chip" time="0.0001723">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; emoji-prefixed filename in full serialised content renders chip inside assistant turn" time="0.0003902">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; sourceUrl is passed through to emoji-prefixed chip" time="0.0001259">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename + blank line + type label renders chip, drops bare type label" time="0.0001114">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; DOCX file renders chip with correct ext badge" time="0.0000865">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; CSV file renders chip with correct ext badge" time="0.0001348">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; Python file renders chip" time="0.0000972">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename embedded in prose is NOT rendered as chip" time="0.0002562">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; filename inside code block is NOT rendered as chip" time="0.0000759">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; chip does not clobber surrounding text" time="0.0001168">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; multiple attachment lines each render as separate chips" time="0.0000959">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders - list items as &lt;ul&gt;" time="0.0001455">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders numbered list items as &lt;ol&gt;" time="0.0001024">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; wraps plain text lines in &lt;p&gt;" time="0.000065">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; escapes HTML entities in plain text" time="0.0000631">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; applies inline formatting inside paragraphs" time="0.0000699">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders full messagesToMarkdown output correctly" time="0.0006653">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders === line as &lt;hr&gt; in a non-digest document" time="0.0002403">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; renders === line as chat-section-divider when isDigest option is true" time="0.0001399">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderMarkdown &gt; detects digest mode from contentFormat frontmatter and renders section divider" time="0.0001031">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="processSources &gt; returns early for null input" time="0.0006204">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="processSources &gt; replaces a Sources &lt;p&gt;+&lt;ul&gt; pair with a .sources-trigger button" time="0.0073975">
+            <system-out>
+[bAInder] processSources: creating chip with [33m1[39m link(s)
 
-            </system-err>
+            </system-out>
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; delete: removes chat from state immediately (optimistic UI)" time="0.00182">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; delete: calls saveTree and removeChat after deferred timer when chat has a topicId" time="0.0012286">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; delete: undo button restores the chat to state (no topic)" time="0.0019082">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; delete: undo button restores a chat that belonged to a topic (covers topic.chatIds.push)" time="0.0023387">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; copy: copies chat to clipboard successfully" time="0.0053676">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; copy: shows error notification when clipboard result is not ok" time="0.0014056">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; copy: shows tooLarge notification when result.tooLarge is true" time="0.0010215">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; copy: shows error when chatRepo.loadFullByIds returns empty" time="0.0007788">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; copy: shows error when chatRepo.loadFullByIds rejects" time="0.0011518">
-            <system-err>
-[bAInder] [WARN] Copy: failed to load chat content Error: load fail
-    at C:/Repos/Personal/bAInder/tests/chat-actions.test.js:763:59
-    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
-    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:915:26
-    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
-    at new Promise (&lt;anonymous&gt;)
-    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
-    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
-    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
-    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
-    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:12[90m)[39m
+        <testcase classname="tests/reader.test.js" name="processSources &gt; stores link data in data-sources attribute as JSON" time="0.0025564">
+            <system-out>
+[bAInder] processSources: creating chip with [33m2[39m link(s)
 
-            </system-err>
+            </system-out>
         </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="private chat-action handlers via setupChatContextMenuActions &gt; unknown action: does not throw and logs a warning" time="0.0007117">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature d: duplicate title overwrite &gt; shows confirm dialog when a different chat shares the same title" time="0.0006228">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature d: duplicate title overwrite &gt; resets save button to default when overwrite is declined" time="0.0006031">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature d: duplicate title overwrite &gt; removes duplicate and saves tree when overwrite is confirmed" time="0.0005239">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature d: duplicate title overwrite &gt; matches title case-insensitively" time="0.0003667">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature d: duplicate title overwrite &gt; does not show confirm dialog when chatEntry.id matches the found title" time="0.0003787">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature d: duplicate title overwrite &gt; places overwritten chat in the duplicate&apos;s original topic (nested topic fix)" time="0.0005616">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature d: duplicate title overwrite &gt; does not call moveChatToTopic when duplicate has no topicId" time="0.0005192">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature c: auto-export &gt; does not call triggerAutoExport when autoExportEnabled is false" time="0.0004863">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature c: auto-export &gt; increments chatsSinceLastAutoExport when threshold not reached" time="0.0007677">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature c: auto-export &gt; calls triggerAutoExport and resets counter when threshold is reached" time="0.0011619">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature c: auto-export &gt; uses default threshold of 10 when autoExportThreshold is absent" time="0.0006193">
-        </testcase>
-        <testcase classname="tests/chat-actions.test.js" name="handleChatSaved() — Feature c: auto-export &gt; does not throw when browser.storage.local.get rejects" time="0.0010723">
-            <system-err>
-[bAInder] [WARN] Auto-export check failed: Error: storage error
-    at C:/Repos/Personal/bAInder/tests/chat-actions.test.js:952:64
-    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:915:20
+        <testcase classname="tests/reader.test.js" name="processSources &gt; chip label uses singular &quot;source&quot; for one link" time="0.0014401">
+            <system-out>
+[bAInder] processSources: creating chip with [33m1[39m link(s)
 
-            </system-err>
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="processSources &gt; chip label uses plural &quot;sources&quot; for multiple links" time="0.0010399">
+            <system-out>
+[bAInder] processSources: creating chip with [33m2[39m link(s)
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing when the &lt;p&gt; is not empty. and has no following &lt;ul&gt;" time="0.0005664">
+            <system-out>
+[bAInder] processSources: found Sources p but nextElementSibling is P  skipping
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing to &lt;p&gt; elements that are not &quot;Sources:&quot;" time="0.0004505">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="processSources &gt; does nothing when the &lt;ul&gt; has no links" time="0.0004354">
+            <system-out>
+[bAInder] processSources: Sources ul has no valid links
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; injects #sources-panel and #sources-overlay into the DOM" time="0.0014753">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; is idempotent — calling twice does not create a second panel" time="0.0038518">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; panel starts with aria-hidden=&quot;true&quot;" time="0.0007279">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; clicking a .sources-trigger opens the panel and populates the list" time="0.0036589">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; close button hides the panel" time="0.0011597">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; Escape key closes an open panel" time="0.0009721">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupSourcesPanel &gt; links in the panel open in a new tab" time="0.0027842">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="showError &gt; shows the error state" time="0.0010541">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="showError &gt; sets the error message text" time="0.0005678">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows the reader header" time="0.0057968">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows the reader content" time="0.0036572">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets the page title" time="0.0033709">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders title in header" time="0.0031092">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets source badge class to badge--claude" time="0.0037953">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders markdown content as HTML for markdown-v1 format" time="0.0037509">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; keeps entire assistant response in one .chat-turn--assistant when response contains internal --- rules" time="0.0084837">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m224[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;HR Test\&quot;\nsource: chatgpt\ncontentFormat: markdown-v1\n---\n\n# HR Test\n\n🙋 User question\n\n---\n\n🤖 First paragraph of response\n\n---\n\nSecond paragraph of response\n\n---\n\n🙋 Second user question\n\n---\n\n🤖 Second response\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; sets excerpt badge class when isExcerpt is true in metadata" time="0.001686">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m103[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Excerpt\&quot;\nsource: chatgpt\nexcerpt: true\ncontentFormat: markdown-v1\n---\n\n# Excerpt\n\nSome text&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; shows meta-responses when there are assistant turns" time="0.0034089">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders responses trigger with correct count text" time="0.0029293">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders responses trigger as plural for multiple responses" time="0.0031838">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; renders a responses-overlay with one item per assistant turn" time="0.0025849">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; responses overlay items link to #rN anchors" time="0.0030196">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; responses overlay items contain the assistant text snippet" time="0.0033979">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Test Chat\&quot;\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n🙋 Hello\n\n---\n\n🤖 Hi there!\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; hides meta-responses when there are no assistant turns" time="0.0016371">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m102[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\nSome plain text with no role emoji\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; meta-joined badge &gt; hides meta-joined when isJoined is false" time="0.0017418">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m132[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Joined\&quot;\nsource: claude\ncontentFormat: digest-markdown-v1\n---\n\n## Section One\n\nContent A\n\n===\n\n## Section Two\n\nContent B\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; meta-joined badge &gt; shows trigger and overlay with links when isJoined is true with h2 sections" time="0.0021707">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m132[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Joined\&quot;\nsource: claude\ncontentFormat: digest-markdown-v1\n---\n\n## Section One\n\nContent A\n\n===\n\n## Section Two\n\nContent B\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; meta-joined badge &gt; trigger text shows plural count" time="0.0017115">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m132[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Joined\&quot;\nsource: claude\ncontentFormat: digest-markdown-v1\n---\n\n## Section One\n\nContent A\n\n===\n\n## Section Two\n\nContent B\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; meta-joined badge &gt; trigger text shows singular for one section" time="0.0015282">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m99[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Joined\&quot;\nsource: claude\ncontentFormat: digest-markdown-v1\n---\n\n## Only Section\n\nContent\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; meta-joined badge &gt; hides meta-joined when isJoined but no h2 sections found" time="0.0013049">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m112[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;No Sections\&quot;\nsource: claude\ncontentFormat: digest-markdown-v1\n---\n\nJust a paragraph, no h2 headings\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="renderChat &gt; meta-joined badge &gt; overlay links use joined-section-N anchors" time="0.0016299">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m132[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Joined\&quot;\nsource: claude\ncontentFormat: digest-markdown-v1\n---\n\n## Section One\n\nContent A\n\n===\n\n## Section Two\n\nContent B\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when no chatId in URL" time="0.0008578">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when chatId not found in storage" time="0.0008246">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="init &gt; renders the chat when chatId is found" time="0.0054588">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m111[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Found Chat Array\&quot;\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Found Chat Array\n\nSome content\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="init &gt; header and content are shown, error is hidden, after successful render" time="0.0019478">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m87[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;Render Test\&quot;\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Render Test\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="init &gt; error state is shown and header remains hidden when chat not found" time="0.000647">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when chatId not in array" time="0.0005733">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="init &gt; shows error when storage throws" time="0.0006604">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; renders 5 star buttons" time="0.0007449">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; marks stars up to currentRating as is-set" time="0.0006031">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; shows no stars filled when rating is 0/null" time="0.0004099">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; makes the container visible" time="0.000346">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; clicking a star saves the new rating to storage" time="0.0049555">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; clicking the same star twice clears the rating" time="0.0156765">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupRating &gt; is a no-op when #reader-rating element is absent" time="0.0007857">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns empty object when nothing stored" time="0.0003685">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns stored positions" time="0.0003102">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="getScrollPositions &gt; returns empty object when localStorage contains invalid JSON" time="0.0002726">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; persists a new position" time="0.0002072">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; updates an existing position" time="0.0001103">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; is a no-op when chatId is falsy" time="0.0000971">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; evicts the oldest entry when cap is exceeded" time="0.0005292">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="saveScrollPosition &gt; re-inserting an existing id moves it to the end (no eviction size change)" time="0.0003199">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; calls window.scrollTo with the stored Y value" time="0.0002581">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; does not call window.scrollTo when no position stored" time="0.0001736">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="restoreScrollPosition &gt; is a no-op when chatId is falsy" time="0.0000809">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; returns gracefully when button is absent" time="0.0008273">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; success path: shows ✓ Copied feedback after click" time="0.0071636">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; tooLarge path: skips clipboard write and shows error feedback" time="0.0014239">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupReaderCopyButton &gt; fallback path: shows &quot;Select all + paste&quot; feedback" time="0.0021561">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; finds a .file-attachment-chip by filename hint" time="0.0017752">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; matching is case-insensitive" time="0.0009875">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; returns null when filename does not match" time="0.001882">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — attachment chips &gt; returns null when hint is null" time="0.0006755">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; finds a table by exact header hint (score 2)" time="0.0020941">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; matching is case-insensitive" time="0.0013804">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; falls back to partial header match (score 1) when not all cells match" time="0.0006453">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; returns null when no header cells match hint" time="0.000419">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — tables &gt; returns null when table has no thead" time="0.0003433">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — turn:self &gt; returns the anchorEl itself for hint &quot;turn:self&quot;" time="0.0002294">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — turn:self &gt; is case-insensitive for the sentinel" time="0.0001147">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; finds img.chat-image by exact alt text (score 2)" time="0.0004307">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; matching is case-insensitive" time="0.0006989">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; partial alt text match scores lower but still matches" time="0.000372">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; returns null when alt text does not match hint" time="0.0002589">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findEntityBlock — images &gt; returns null when image has no alt text and hint is non-empty" time="0.0004283">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; returns 0 for empty string" time="0.0001369">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; returns 0 for null / undefined" time="0.000066">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; counts plain words correctly" time="0.0002049">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips YAML frontmatter before counting" time="0.0000821">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips fenced code blocks before counting" time="0.0000544">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips inline code before counting" time="0.000074">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips markdown images before counting" time="0.0002359">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; strips markdown links before counting" time="0.0000504">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; handles whitespace-only text" time="0.0000454">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="countWords() &gt; handles multi-line text without markdown" time="0.0000485">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for 0 words (minimum)" time="0.0000745">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for fewer than 200 words" time="0.0000725">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns 1 for exactly 200 words" time="0.0000496">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; rounds to nearest minute" time="0.0000575">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="estimateReadTime() &gt; returns correct value for large word counts" time="0.0000577">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns null for a chat with no messages array" time="0.0002135">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns null when messages is not an array" time="0.0000624">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; returns an unchanged copy when turnIndices is empty" time="0.0003351">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes the specified turn by index" time="0.0005166">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes multiple turns (user + assistant)" time="0.0004414">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; updates messageCount to match the remaining messages" time="0.0003609">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; rebuilds content markdown reflecting the deleted turns" time="0.0002323">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; updated content contains correct messageCount in frontmatter" time="0.0002497">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; preserves title, source and url in the rebuilt content" time="0.0002024">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; can delete all turns, producing empty messages and frontmatter-only content" time="0.0002714">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; does not mutate the original chat object" time="0.0001876">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes entities whose messageIndex is in the deleted set" time="0.0002225">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; remaps messageIndex for surviving entities after deletion" time="0.0002285">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; removes entity type key entirely when all entities of that type are in deleted turns" time="0.0001196">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; handles multiple entity types simultaneously" time="0.0002181">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteTurnsFromChat &gt; does not add entity type keys that were not present on the original chat" time="0.0002821">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; adds a Select button to .reader-actions" time="0.006316">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; does not add Select button when chat has no messages" time="0.0019702">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 0\ncontentFormat: markdown-v1\n---\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; Delete button is hidden initially" time="0.0049404">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; clicking Select adds checkboxes to each .chat-turn" time="0.0068315">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; clicking Select a second time cancels and removes checkboxes" time="0.0058928">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; checking a turn checkbox shows Delete button with count" time="0.0047539">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; unchecking the last turn hides Delete button" time="0.0052656">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; each .chat-turn gets a data-msg-index attribute after renderChat" time="0.0044763">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupTurnDeleteMode &gt; delete handler persists updated chat and clears annotations" time="0.0632595">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m152[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 4\ncontentFormat: markdown-v1\n---\n\n🙋 Q1\n\n---\n\n🤖 A1\n\n---\n\n🙋 Q2\n\n---\n\n🤖 A2\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; CODE: returns true when code is still present" time="0.0004434">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; CODE: returns false when code has been deleted" time="0.0001655">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; CODE: returns true when entity has no code field" time="0.0001621">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; CITATION: returns true when URL is still present" time="0.0002842">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; CITATION: returns false when URL has been deleted" time="0.0002007">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; TABLE: returns true when first header is still present" time="0.0002161">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; TABLE: returns false when first header has been deleted" time="0.0002158">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; TABLE: returns true when headers array is empty" time="0.0001586">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; DIAGRAM: returns true when source prefix is present" time="0.0003207">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; DIAGRAM: returns false when source prefix has been deleted" time="0.0001589">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; ARTIFACT: always returns true (conservative)" time="0.0001256">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_entityPresentInContent &gt; IMAGE: always returns true (conservative)" time="0.0001708">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; returns exact range for plain text match" time="0.0007622">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; returns null when text is not present" time="0.0006095">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; finds a single unordered list item (user selects just the text)" time="0.0002359">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; finds multiple contiguous list items selected together" time="0.0003122">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; finds a heading line (user selects heading text without #)" time="0.0001521">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; finds an ordered list item" time="0.0001114">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; finds a blockquote line (user selects quote text without &gt;)" time="0.0001019">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; removing matched range leaves the rest of the content intact" time="0.0001398">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; prefers exact match over line-based for plain prose" time="0.0001346">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; matches a line containing bold markers (**text**)" time="0.0001492">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; matches a line with inline code (`code`)" time="0.0001871">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; matches a GFM table header row with bold cells" time="0.0002996">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; matches a complete table (header + data rows) skipping the separator" time="0.0002745">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="_findMarkdownRange &gt; removing a bold heading leaves surrounding content intact" time="0.0002365">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; returns null when messages array is absent" time="0.0003879">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; returns null when msgIndex is out of range" time="0.0002398">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; returns null when selectedText is empty" time="0.0001697">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; returns null when selectedText is not found in the message" time="0.0001571">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; removes the selected text from the target message" time="0.000238">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; leaves other messages unchanged" time="0.0001873">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; does not change messageCount (turn still exists)" time="0.0001658">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; rebuilds chat.content reflecting the removed text" time="0.0002429">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; does not mutate the original chat object" time="0.0001548">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; removes only the first occurrence when text appears multiple times" time="0.0001333">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; removes code entity whose code block was deleted" time="0.0002484">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; keeps code entity when its code block was not deleted" time="0.0002911">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; updates prompt entity text and wordCount when user message is edited" time="0.0002393">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; removes prompt entity when edited message becomes empty" time="0.0002226">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; does not touch entities from other turns" time="0.0002012">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; removes citation entity when its URL was deleted" time="0.0001798">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="deleteExcerptFromChat &gt; does not add phantom entity keys not present on original chat" time="0.0002722">
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupAnnotations delete-text button &gt; Delete button is hidden when chat has no messages" time="0.0033853">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 0\ncontentFormat: markdown-v1\n---\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupAnnotations delete-text button &gt; Delete button is visible when chat has messages" time="0.0034821">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m143[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello world\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupAnnotations delete-text button &gt; Delete button is hidden when chat parameter is not provided" time="0.0027408">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m143[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello world\n\n---\n\n🤖 Hi there\n&quot;
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/reader.test.js" name="setupAnnotations delete-text button &gt; delete handler persists updated chat and clears annotations" time="0.0056095">
+            <system-out>
+[bAInder] [INFO] [reader] renderMarkdown: content length [33m156[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: &quot;---\ntitle: \&quot;T\&quot;\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n🙋 Hello world how are you\n\n---\n\n🤖 I am fine\n&quot;
+
+            </system-out>
         </testcase>
     </testsuite>
 </testsuites>

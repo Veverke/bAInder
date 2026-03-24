@@ -148,6 +148,7 @@ export function handleSearch(event) {
     if (_hasActiveFilters()) {
       _handleSearchDeferred('');
     } else {
+      _expandTocSection();
       _state.renderer?.clearHighlight();
       hideSearchResults();
     }
