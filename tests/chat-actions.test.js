@@ -847,6 +847,41 @@ describe('handleChatSaved() — Feature d: duplicate title overwrite', () => {
     await handleChatSaved({ id: 'self-id', title: 'My Title', messages: [] });
     expect(st.dialog.confirm).not.toHaveBeenCalled();
   });
+
+  it('places overwritten chat in the duplicate\'s original topic (nested topic fix)', async () => {
+    const { moveChatToTopic } = await import('../src/lib/chat/chat-manager.js');
+    const st = makeState();
+    // Duplicate lives in a nested topic 't-nested'; user chose a different topic 't-chosen'
+    const existing = { id: 'dup-id', title: 'Nested Chat', topicId: 't-nested' };
+    st.chats = [existing];
+    st.dialog.confirm.mockResolvedValueOnce(true);
+    st.chatDialogs.showAssignChat.mockResolvedValueOnce({ topicId: 't-chosen', title: 'Nested Chat', tags: [] });
+    st.chatRepo.updateChat.mockResolvedValueOnce([]);
+    _setContext(st);
+
+    await handleChatSaved({ id: 'new-id', title: 'Nested Chat', messages: [] });
+
+    expect(vi.mocked(moveChatToTopic)).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'new-id' }),
+      't-nested',
+      st.tree
+    );
+  });
+
+  it('does not call moveChatToTopic when duplicate has no topicId', async () => {
+    const { moveChatToTopic } = await import('../src/lib/chat/chat-manager.js');
+    vi.mocked(moveChatToTopic).mockClear();
+    const st = makeState();
+    const existing = { id: 'dup-null', title: 'Floating Chat', topicId: null };
+    st.chats = [existing];
+    st.dialog.confirm.mockResolvedValueOnce(true);
+    st.chatDialogs.showAssignChat.mockResolvedValueOnce({ topicId: 't-chosen', title: 'Floating Chat', tags: [] });
+    st.chatRepo.updateChat.mockResolvedValueOnce([]);
+    _setContext(st);
+
+    await handleChatSaved({ id: 'new-floating', title: 'Floating Chat', messages: [] });
+    expect(vi.mocked(moveChatToTopic)).not.toHaveBeenCalled();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

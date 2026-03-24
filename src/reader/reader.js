@@ -2116,6 +2116,7 @@ export async function init(storage) {
     setupAnnotations(chatId, storage, chat);
     setupStickyNotes(chatId, storage, renderMarkdown);
     setupTurnDeleteMode(chatId, chat, storage);
+    setupCreateMode(chatId, chat, storage);
     // C.8 — render backlinks: chats that reference this one in annotation notes
     await renderBacklinksSection(chatId, chat.title, chats, storage);
 
@@ -2805,6 +2806,647 @@ export function setupTurnDeleteMode(chatId, chat, storage) {
       if (labelEl) labelEl.textContent = 'Error';
       deleteBtn.disabled = false;
       setTimeout(() => { if (labelEl) labelEl.textContent = `Delete (${indices.length})`; }, 2000);
+    }
+  });
+}
+
+// ── Create-mode helpers ──────────────────────────────────────────────────────
+
+/**
+ * Flatten a topicTree plain-storage-object into a depth-ordered list suitable
+ * for rendering a hierarchical <select> or similar UI.  Each entry carries:
+ *   { id: string, name: string, depth: number }
+ * @param {{ topics?: Object, rootTopicIds?: string[] }} treeObj
+ * @returns {{ id: string, name: string, depth: number }[]}
+ */
+export function _buildTopicList(treeObj) {
+  const result = [];
+  const topics = treeObj?.topics || {};
+  function visit(id, depth) {
+    const t = topics[id];
+    if (!t) return;
+    result.push({ id: t.id, name: t.name, depth });
+    for (const childId of (t.children || [])) visit(childId, depth + 1);
+  }
+  for (const rootId of (treeObj?.rootTopicIds || [])) visit(rootId, 0);
+  return result;
+}
+
+/**
+ * Show a topic-picker modal and return a Promise that resolves to one of:
+ *   { mode: 'existing', topicId: string }
+ *   { mode: 'new',      topicName: string }
+ *   { mode: 'skip' }
+ *   null  — user dismissed / cancelled
+ *
+ * @param {{ topics?: Object, rootTopicIds?: string[] }} treeObj
+ * @returns {Promise<{mode:string, topicId?:string, topicName?:string}|null>}
+ */
+export function _showTopicPickerModal(treeObj) {
+  const topicList = _buildTopicList(treeObj);
+  const hasTopics = topicList.length > 0;
+
+  return new Promise(resolve => {
+    // ── Overlay ──────────────────────────────────────────────────────────────
+    const overlay = document.createElement('div');
+    overlay.className = 'topic-picker-overlay';
+
+    // ── Modal card ───────────────────────────────────────────────────────────
+    const modal = document.createElement('div');
+    modal.className = 'topic-picker-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Save to topic');
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'topic-picker-modal__header';
+    header.innerHTML =
+      '<span class="topic-picker-modal__title">Save to topic</span>' +
+      '<button class="topic-picker-modal__close" type="button" aria-label="Cancel">' +
+        '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+          '<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708' +
+          'L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708' +
+          'L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708Z"/>' +
+        '</svg>' +
+      '</button>';
+
+    // Options group
+    const optGroup = document.createElement('div');
+    optGroup.className = 'topic-picker-modal__options';
+
+    // Default selection: existing (if any topics), else new
+    const defaults = hasTopics ? 'existing' : 'new';
+    const radios = [
+      { value: 'existing', label: 'Add to existing topic', disabled: !hasTopics },
+      { value: 'new',      label: 'Create new topic',       disabled: false },
+      { value: 'skip',     label: 'No topic',               disabled: false },
+    ];
+
+    for (const r of radios) {
+      const lbl = document.createElement('label');
+      lbl.className = 'topic-picker-modal__radio-label' + (r.disabled ? ' topic-picker-modal__radio-label--disabled' : '');
+      const inp = document.createElement('input');
+      inp.type     = 'radio';
+      inp.name     = 'tp-mode';
+      inp.value    = r.value;
+      inp.disabled = r.disabled;
+      inp.checked  = r.value === defaults;
+      inp.className = 'topic-picker-modal__radio';
+      lbl.appendChild(inp);
+      lbl.appendChild(document.createTextNode(' ' + r.label));
+      optGroup.appendChild(lbl);
+    }
+
+    // Dynamic body (changes with radio)
+    const body = document.createElement('div');
+    body.className = 'topic-picker-modal__body';
+
+    // "Existing" section: a <select>
+    const existingSection = document.createElement('div');
+    existingSection.className = 'topic-picker-modal__section';
+    const sel = document.createElement('select');
+    sel.id        = 'tp-existing-select';
+    sel.className = 'topic-picker-modal__select';
+    sel.setAttribute('aria-label', 'Select topic');
+    for (const t of topicList) {
+      const opt = document.createElement('option');
+      opt.value       = t.id;
+      opt.textContent = '\u00A0\u00A0'.repeat(t.depth) + (t.depth > 0 ? '╰ ' : '') + t.name;
+      sel.appendChild(opt);
+    }
+    existingSection.appendChild(sel);
+
+    // "New" section: a text input
+    const newSection = document.createElement('div');
+    newSection.className = 'topic-picker-modal__section';
+    const nameInput = document.createElement('input');
+    nameInput.type        = 'text';
+    nameInput.id          = 'tp-new-name';
+    nameInput.className   = 'topic-picker-modal__input';
+    nameInput.placeholder = 'Topic name…';
+    nameInput.maxLength   = 120;
+    newSection.appendChild(nameInput);
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'topic-picker-modal__footer';
+    const cancelBtn2 = document.createElement('button');
+    cancelBtn2.type      = 'button';
+    cancelBtn2.className = 'topic-picker-modal__btn topic-picker-modal__btn--secondary';
+    cancelBtn2.textContent = 'Cancel';
+    const confirmBtn2 = document.createElement('button');
+    confirmBtn2.type      = 'button';
+    confirmBtn2.className = 'topic-picker-modal__btn topic-picker-modal__btn--primary';
+    confirmBtn2.textContent = 'Confirm';
+    footer.appendChild(cancelBtn2);
+    footer.appendChild(confirmBtn2);
+
+    modal.appendChild(header);
+    modal.appendChild(optGroup);
+    modal.appendChild(body);
+    modal.appendChild(footer);
+    overlay.appendChild(modal);
+
+    // ── Render the dynamic section ───────────────────────────────────────────
+    function renderSection() {
+      body.innerHTML = '';
+      const mode = optGroup.querySelector('input[name="tp-mode"]:checked')?.value ?? defaults;
+      if (mode === 'existing') body.appendChild(existingSection);
+      else if (mode === 'new') body.appendChild(newSection);
+      // 'skip' → empty body
+    }
+    renderSection();
+
+    optGroup.addEventListener('change', renderSection);
+
+    // ── Resolution helpers ───────────────────────────────────────────────────
+    function dismiss(result) {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    }
+
+    function onKey(e) {
+      if (e.key === 'Escape') dismiss(null);
+      if (e.key === 'Enter' && !e.isComposing) confirm();
+    }
+
+    function confirm() {
+      const mode = optGroup.querySelector('input[name="tp-mode"]:checked')?.value ?? defaults;
+      if (mode === 'existing') {
+        const topicId = sel.value;
+        if (!topicId) return;
+        dismiss({ mode: 'existing', topicId });
+      } else if (mode === 'new') {
+        const topicName = nameInput.value.trim();
+        if (!topicName) { nameInput.focus(); nameInput.classList.add('topic-picker-modal__input--error'); return; }
+        dismiss({ mode: 'new', topicName });
+      } else {
+        dismiss({ mode: 'skip' });
+      }
+    }
+
+    nameInput.addEventListener('input', () => nameInput.classList.remove('topic-picker-modal__input--error'));
+    header.querySelector('.topic-picker-modal__close').addEventListener('click', () => dismiss(null));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) dismiss(null); });
+    cancelBtn2.addEventListener('click', () => dismiss(null));
+    confirmBtn2.addEventListener('click', confirm);
+    document.addEventListener('keydown', onKey);
+
+    document.body.appendChild(overlay);
+    // Focus the first relevant input
+    const firstRadio = optGroup.querySelector('input:not(:disabled)');
+    requestAnimationFrame(() => {
+      if (defaults === 'existing' && sel.options.length) sel.focus();
+      else if (defaults === 'new') nameInput.focus();
+      else firstRadio?.focus();
+    });
+  });
+}
+
+/**
+ * Wire up the Create mode feature in the reader.
+ *
+ * Adds a "Create" toggle button to .reader-actions.  In Create mode:
+ *   – Every .chat-turn gets dashed borders and becomes draggable.
+ *   – Clicking a turn (not on interactive children) selects / deselects it.
+ *   – When turns are selected a "Delete" button removes them from the new-chat
+ *     composition (they are only removed from the DOM, not from stored data).
+ *   – Drag-and-drop reorders turns; ordinals are renumbered after each drop.
+ *   – A "Save" button prompts for a title, picks/creates a topic, and persists
+ *     a brand-new chat to storage, then navigates to it.
+ *
+ * @param {string} chatId
+ * @param {Object} chat     Full chat object (needs .messages)
+ * @param {Object} storage  browser.storage.local-like API
+ */
+export function setupCreateMode(chatId, chat, storage) {
+  const contentEl = document.getElementById('reader-content');
+  if (!contentEl || !chatId || !storage) return;
+  if (!Array.isArray(chat.messages) || chat.messages.length === 0) return;
+  const actionsEl = document.querySelector('.reader-actions');
+  if (!actionsEl) return;
+
+  let createMode = false;
+  let dragSrcEl  = null;
+  const selectedIndices = new Set();
+
+  // ── Edge-scroll state (autoscroll while dragging near viewport edges) ──────
+  const EDGE_ZONE   = 80;   // px from top/bottom that triggers scrolling
+  const MAX_SPEED   = 18;   // max px per frame
+  let _scrollRafId  = null;
+  let _dragClientY  = 0;
+
+  function _startEdgeScroll() {
+    if (_scrollRafId !== null) return;  // already running
+    function _tick() {
+      const vh    = window.innerHeight;
+      const distTop    = _dragClientY;
+      const distBottom = vh - _dragClientY;
+      let delta = 0;
+      if (distTop < EDGE_ZONE) {
+        // Closer to top → scroll up (larger delta the closer we are)
+        delta = -Math.round(MAX_SPEED * (1 - distTop / EDGE_ZONE));
+      } else if (distBottom < EDGE_ZONE) {
+        // Closer to bottom → scroll down
+        delta = Math.round(MAX_SPEED * (1 - distBottom / EDGE_ZONE));
+      }
+      if (delta !== 0) window.scrollBy(0, delta);
+      _scrollRafId = requestAnimationFrame(_tick);
+    }
+    _scrollRafId = requestAnimationFrame(_tick);
+  }
+
+  function _stopEdgeScroll() {
+    if (_scrollRafId !== null) {
+      cancelAnimationFrame(_scrollRafId);
+      _scrollRafId = null;
+    }
+  }
+
+  // ── Live-swap drag state ──────────────────────────────────────────────────
+  // We perform DOM swaps in real-time during dragover so the user sees both
+  // turns highlighted and in their swapped positions while still holding.
+  // The swap function is its own inverse: calling it twice restores original order.
+  let _currentSwapTarget = null;
+  let _dropCommitted     = false;
+
+  /**
+   * Swap two sibling elements in the DOM using a comment placeholder so the
+   * operation is correct even when the elements are adjacent.
+   * Calling this twice with the same arguments restores the original order.
+   */
+  function _swapTurns(a, b) {
+    const ph = document.createComment('sp');
+    a.before(ph);      // plant marker at a's position
+    b.before(a);       // move a to just before b
+    ph.replaceWith(b); // move b to the marker (a's old spot)
+  }
+
+  /** Undo the pending live swap (if any) and clear swap highlight classes. */
+  function _cancelPendingSwap() {
+    if (!_currentSwapTarget || !dragSrcEl) return;
+    _swapTurns(dragSrcEl, _currentSwapTarget); // calling twice = undo
+    _currentSwapTarget.classList.remove('turn-swap-active');
+    dragSrcEl.classList.remove('turn-swap-active');
+    _currentSwapTarget = null;
+  }
+
+  // ── Create toggle button ─────────────────────────────────────────────────
+  const createBtn = document.createElement('button');
+  createBtn.id        = 'reader-create-btn';
+  createBtn.className = 'btn-reader-action';
+  createBtn.type      = 'button';
+  createBtn.title     = 'Create a new chat from this one';
+  createBtn.setAttribute('aria-label', 'Create a new chat from this one');
+  createBtn.innerHTML =
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+    `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+      `<line x1="12" y1="5" x2="12" y2="19"/>` +
+      `<line x1="5" y1="12" x2="19" y2="12"/>` +
+    `</svg>` +
+    `<span class="btn-reader-action__label">Create</span>`;
+
+  // ── Save button (visible only in create mode) ────────────────────────────
+  const saveCreateBtn = document.createElement('button');
+  saveCreateBtn.id        = 'reader-create-save-btn';
+  saveCreateBtn.className = 'btn-reader-action';
+  saveCreateBtn.type      = 'button';
+  saveCreateBtn.title     = 'Save as a new chat';
+  saveCreateBtn.setAttribute('aria-label', 'Save as a new chat');
+  saveCreateBtn.hidden    = true;
+  saveCreateBtn.innerHTML =
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+    `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+      `<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>` +
+      `<polyline points="17 21 17 13 7 13 7 21"/>` +
+      `<polyline points="7 3 7 8 15 8"/>` +
+    `</svg>` +
+    `<span class="btn-reader-action__label">Save</span>`;
+
+  // ── Delete selected button (visible in create mode when turns selected) ──
+  const deleteCreateBtn = document.createElement('button');
+  deleteCreateBtn.id        = 'reader-create-delete-btn';
+  deleteCreateBtn.className = 'btn-reader-action btn-reader-action--danger';
+  deleteCreateBtn.type      = 'button';
+  deleteCreateBtn.title     = 'Remove selected turns from new chat';
+  deleteCreateBtn.setAttribute('aria-label', 'Remove selected turns from new chat');
+  deleteCreateBtn.hidden    = true;
+  deleteCreateBtn.innerHTML =
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+    `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+      `<polyline points="3 6 5 6 21 6"/>` +
+      `<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>` +
+      `<path d="M10 11v6M14 11v6"/>` +
+      `<path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>` +
+    `</svg>` +
+    `<span class="btn-reader-action__label">Delete ` +
+      `<span id="reader-create-delete-count"></span>` +
+    `</span>`;
+
+  actionsEl.appendChild(createBtn);
+  actionsEl.appendChild(saveCreateBtn);
+  actionsEl.appendChild(deleteCreateBtn);
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function updateDeleteBtn() {
+    const count = selectedIndices.size;
+    deleteCreateBtn.hidden = count === 0;
+    const countEl = document.getElementById('reader-create-delete-count');
+    if (countEl) countEl.textContent = count > 0 ? `(${count})` : '';
+  }
+
+  function clearSelection() {
+    selectedIndices.clear();
+    contentEl.querySelectorAll('.turn-create-selected').forEach(el =>
+      el.classList.remove('turn-create-selected')
+    );
+    updateDeleteBtn();
+  }
+
+  function enterCreateMode() {
+    createMode = true;
+    document.body.classList.add('create-mode');
+    createBtn.classList.add('btn-reader-action--active');
+    const label = createBtn.querySelector('.btn-reader-action__label');
+    if (label) label.textContent = 'Cancel';
+    saveCreateBtn.hidden = false;
+    contentEl.querySelectorAll('.chat-turn').forEach(turn => {
+      turn.setAttribute('draggable', 'true');
+    });
+  }
+
+  function exitCreateMode() {
+    createMode = false;
+    document.body.classList.remove('create-mode');
+    createBtn.classList.remove('btn-reader-action--active');
+    const label = createBtn.querySelector('.btn-reader-action__label');
+    if (label) label.textContent = 'Create';
+    saveCreateBtn.hidden = true;
+    deleteCreateBtn.hidden = true;
+    if (dragSrcEl) { _cancelPendingSwap(); }  // restore if mid-drag
+    contentEl.querySelectorAll('.chat-turn').forEach(turn => {
+      turn.removeAttribute('draggable');
+      turn.classList.remove(
+        'turn-create-selected', 'turn-dragging', 'turn-swap-active'
+      );
+    });
+    clearSelection();
+    _currentSwapTarget = null;
+    _dropCommitted     = false;
+    dragSrcEl = null;
+    // Restore ordinals based on current DOM order
+    addOrdinalLabels(contentEl);
+  }
+
+  // ── Create / Cancel toggle ───────────────────────────────────────────────
+  createBtn.addEventListener('click', () => {
+    if (createMode) exitCreateMode();
+    else enterCreateMode();
+  });
+
+  // ── Click to select / deselect turns ────────────────────────────────────
+  contentEl.addEventListener('click', (e) => {
+    if (!createMode) return;
+    const turn = e.target.closest('.chat-turn');
+    if (!turn) return;
+    // Don't interfere with interactive child elements
+    if (e.target.closest(
+      '.turn-copy-btn, .code-block__copy, .sources-trigger, a[href], button, input'
+    )) return;
+    const idx = parseInt(turn.dataset.msgIndex ?? '-1', 10);
+    if (idx < 0) return;
+    if (selectedIndices.has(idx)) {
+      selectedIndices.delete(idx);
+      turn.classList.remove('turn-create-selected');
+    } else {
+      selectedIndices.add(idx);
+      turn.classList.add('turn-create-selected');
+    }
+    updateDeleteBtn();
+  });
+
+  // ── Delete selected turns (removes from DOM — only for the new chat) ────
+  deleteCreateBtn.addEventListener('click', () => {
+    const toDelete = [...selectedIndices];
+    if (toDelete.length === 0) return;
+    toDelete.forEach(idx => {
+      const turn = contentEl.querySelector(`.chat-turn[data-msg-index="${idx}"]`);
+      if (turn) turn.remove();
+    });
+    clearSelection();
+    addOrdinalLabels(contentEl);
+  });
+
+  // ── Drag-and-drop reordering (live-swap model) ───────────────────────────
+  contentEl.addEventListener('dragstart', (e) => {
+    if (!createMode) return;
+    const turn = e.target.closest('.chat-turn');
+    if (!turn) return;
+    dragSrcEl      = turn;
+    _dropCommitted = false;
+    turn.classList.add('turn-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', ''); // required for Firefox
+    _dragClientY = e.clientY;
+    _startEdgeScroll();
+  });
+
+  contentEl.addEventListener('dragover', (e) => {
+    if (!createMode || !dragSrcEl) return;
+    _dragClientY = e.clientY;
+    const turn = e.target.closest('.chat-turn');
+    if (!turn || turn === dragSrcEl) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (turn === _currentSwapTarget) return; // already live-swapped with this turn
+    // Undo previous pending swap so we start from the true original positions,
+    // then immediately perform a fresh swap with the new target.
+    _cancelPendingSwap();
+    _swapTurns(dragSrcEl, turn);
+    dragSrcEl.classList.add('turn-swap-active');
+    turn.classList.add('turn-swap-active');
+    _currentSwapTarget = turn;
+  });
+
+  // Document-level dragover: keeps _dragClientY updated for autoscroll even
+  // when the pointer drifts outside any .chat-turn.
+  document.addEventListener('dragover', (e) => {
+    if (!createMode || !dragSrcEl) return;
+    _dragClientY = e.clientY;
+    e.preventDefault();
+  });
+
+  contentEl.addEventListener('drop', (e) => {
+    _stopEdgeScroll();
+    if (!createMode || !dragSrcEl) return;
+    e.preventDefault();
+    // The DOM is already in the swapped state from live dragover operations.
+    // Just mark the drop as committed so dragend won't undo it.
+    _dropCommitted = true;
+    if (_currentSwapTarget) {
+      _currentSwapTarget.classList.remove('turn-swap-active');
+      _currentSwapTarget = null;
+    }
+    // dragend fires right after and does final cleanup.
+  });
+
+  contentEl.addEventListener('dragend', () => {
+    _stopEdgeScroll();
+    if (!createMode) return;
+    if (!_dropCommitted) {
+      // Drag was cancelled or released outside a valid target — undo live swap.
+      _cancelPendingSwap();
+    }
+    if (dragSrcEl) {
+      dragSrcEl.classList.remove('turn-dragging', 'turn-swap-active');
+      dragSrcEl = null;
+    }
+    if (_currentSwapTarget) {
+      _currentSwapTarget.classList.remove('turn-swap-active');
+      _currentSwapTarget = null;
+    }
+    _dropCommitted = false;
+    addOrdinalLabels(contentEl);
+  });
+
+  // ── Save as new chat ─────────────────────────────────────────────────────
+  saveCreateBtn.addEventListener('click', async () => {
+    const activeTurns = Array.from(contentEl.querySelectorAll('.chat-turn'));
+    /* c8 ignore next 3 */
+    if (activeTurns.length === 0) {
+      window.alert('No turns to save — please keep at least one turn.');
+      return;
+    }
+
+    /* c8 ignore next 4 */
+    const rawTitle = window.prompt(
+      'Enter a title for the new chat:',
+      chat.title ? `${chat.title} (copy)` : 'New Chat'
+    );
+    /* c8 ignore next */
+    if (rawTitle === null) return;  // user cancelled
+    const title = rawTitle.trim() || (chat.title ? `${chat.title} (copy)` : 'New Chat');
+
+    // ── Topic picker ──────────────────────────────────────────────────────
+    /* c8 ignore next 3 */
+    const treeResult = await storage.get(['topicTree']);
+    const treeObj    = treeResult.topicTree ?? { topics: {}, rootTopicIds: [], version: 1 };
+
+    /* c8 ignore next 2 */
+    const topicChoice = await _showTopicPickerModal(treeObj);
+    /* c8 ignore next */
+    if (topicChoice === null) return;  // user cancelled the topic picker
+
+    const labelEl = saveCreateBtn.querySelector('.btn-reader-action__label');
+    if (labelEl) labelEl.textContent = 'Saving\u2026';
+    saveCreateBtn.disabled = true;
+
+    try {
+      const msgIndices = activeTurns.map(t => parseInt(t.dataset.msgIndex ?? '-1', 10));
+      const messages   = msgIndices
+        .filter(i => i >= 0 && i < chat.messages.length)
+        .map(i => chat.messages[i]);
+
+      const newChatId = generateId('chat');
+      const now       = Date.now();
+      const fm        = parseFrontmatter(chat.content || '');
+
+      const newContent = messagesToMarkdown(messages, {
+        title,
+        source:       fm.source || chat.source || 'unknown',
+        url:          '',
+        timestamp:    now,
+        messageCount: messages.length,
+      });
+
+      // ── Resolve topicId and mutate treeObj ──────────────────────────────
+      let topicId = null;
+      /* c8 ignore next 23 */
+      if (topicChoice.mode === 'new') {
+        topicId = generateId('topic');
+        treeObj.topics            = treeObj.topics || {};
+        treeObj.rootTopicIds      = treeObj.rootTopicIds || [];
+        treeObj.topics[topicId]   = {
+          id:            topicId,
+          name:          topicChoice.topicName,
+          parentId:      null,
+          children:      [],
+          chatIds:       [newChatId],
+          createdAt:     now,
+          updatedAt:     now,
+          firstChatDate: now,
+          lastChatDate:  now,
+        };
+        treeObj.rootTopicIds.push(topicId);
+      } else if (topicChoice.mode === 'existing') {
+        topicId = topicChoice.topicId;
+        const t = (treeObj.topics || {})[topicId];
+        if (t) {
+          if (!Array.isArray(t.chatIds)) t.chatIds = [];
+          if (!t.chatIds.includes(newChatId)) t.chatIds.push(newChatId);
+          t.updatedAt = now;
+          if (!t.firstChatDate || now < t.firstChatDate) t.firstChatDate = now;
+          if (!t.lastChatDate  || now > t.lastChatDate)  t.lastChatDate  = now;
+        }
+      }
+      // 'skip' → topicId stays null, treeObj unchanged
+
+      const newChat = {
+        id:           newChatId,
+        title,
+        source:       chat.source || fm.source || 'unknown',
+        timestamp:    now,
+        messageCount: messages.length,
+        content:      newContent,
+        messages,
+        topicId,
+      };
+
+      const r         = await storage.get(['chatIndex', 'chatSearchIndex']);
+      const chatIdx   = Array.isArray(r.chatIndex)       ? r.chatIndex       : [];
+      const searchIdx = Array.isArray(r.chatSearchIndex) ? r.chatSearchIndex : [];
+
+      // Metadata-only entry (strip heavy content + messages arrays)
+      const { content: _c, messages: _m, ...chatMeta } = newChat;
+
+      // Compact search entry (strip base64 data URIs)
+      const searchableText = newContent.replace(/data:[^,]+,[A-Za-z0-9+/=\r\n]+/g, '').trim();
+      const searchEntry = {
+        id:             newChatId,
+        title,
+        tags:           [],
+        timestamp:      now,
+        searchableText,
+      };
+
+      const writes = {
+        [`chat:${newChatId}`]: newChat,
+        chatIndex:             [...chatIdx,   chatMeta],
+        chatSearchIndex:       [...searchIdx, searchEntry],
+      };
+      /* c8 ignore next */
+      if (topicChoice.mode !== 'skip') writes.topicTree = treeObj;
+
+      await storage.set(writes);
+
+      if (labelEl) labelEl.textContent = '\u2713 Saved!';
+      saveCreateBtn.classList.add('btn-reader-action--success');
+      /* c8 ignore next 3 */
+      setTimeout(() => {
+        window.location.href = `reader.html?chatId=${encodeURIComponent(newChatId)}`;
+      }, 700);
+    } catch (err) {
+      logger.error('[reader] createMode: failed to save new chat:', err);
+      /* c8 ignore next 6 */
+      if (labelEl) labelEl.textContent = 'Error';
+      saveCreateBtn.classList.add('btn-reader-action--error');
+      saveCreateBtn.disabled = false;
+      setTimeout(() => {
+        if (labelEl) labelEl.textContent = 'Save';
+        saveCreateBtn.classList.remove('btn-reader-action--error');
+      }, 2000);
     }
   });
 }

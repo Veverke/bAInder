@@ -140,9 +140,11 @@ describe('buildChatItem', () => {
     expect(chip.textContent).toBe('ChatGPT');
   });
 
-  it('does NOT render source chip for excerpt', () => {
-    const li = buildChatItem(makeChat({ metadata: { isExcerpt: true } }), 0, ctx);
-    expect(li.querySelector('.tree-source-chip')).toBeNull();
+  it('renders source chip for excerpt', () => {
+    const li = buildChatItem(makeChat({ source: 'gemini', metadata: { isExcerpt: true } }), 0, ctx);
+    const chip = li.querySelector('.tree-source-chip');
+    expect(chip).not.toBeNull();
+    expect(chip.textContent).toBe('Gemini');
   });
 
   it('does NOT render source chip for joined chat', () => {

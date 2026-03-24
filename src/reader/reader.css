@@ -830,6 +830,49 @@ body.turn-select-mode .chat-turn {
   gap: 6px;
 }
 
+/* ── Create mode ──────────────────────────────────────────────────────────── */
+
+/* Each turn gets a dashed border and becomes a drag target */
+body.create-mode .chat-turn {
+  border: 2px dashed var(--border-primary, #e2e8f0);
+  border-radius: var(--radius-md, 10px);
+  padding: 6px;
+  cursor: grab;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+body.create-mode .chat-turn:hover {
+  border-color: var(--primary, #6366f1);
+}
+
+/* Selected for deletion in create mode */
+body.create-mode .chat-turn.turn-create-selected {
+  border-color: var(--primary, #6366f1);
+  border-style: solid;
+  background: var(--primary-light, #e0e7ff);
+  outline: 2px solid var(--primary, #6366f1);
+  outline-offset: 2px;
+}
+
+/* The element currently being dragged — ghosted in place */
+body.create-mode .chat-turn.turn-dragging {
+  opacity: 0.28;
+  cursor: grabbing;
+}
+
+/* Live-swap highlight — applied to BOTH the dragged turn and its current swap
+   partner at the same time so they share the same warm amber tint, giving the
+   visual cue that the two pieces are being exchanged.                         */
+body.create-mode .chat-turn.turn-swap-active {
+  border: 2px solid #f59e0b;
+  background: rgba(251, 191, 36, 0.13);
+  outline: 2px solid rgba(251, 191, 36, 0.45);
+  outline-offset: 2px;
+  transition: background 0.1s, border-color 0.1s;
+}
+
 /* ── C.8 Chat backlinks / "Referenced by" section ────────────────────────── */
 .backlinks-section {
   margin-top: 40px;

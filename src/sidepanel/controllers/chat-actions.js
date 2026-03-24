@@ -198,7 +198,7 @@ export async function handleChatSaved(chatEntry) {
   }
 
   // 3. Apply mutations
-  const updatedChat = assignChatToTopic(chatEntry, result.topicId, _state.tree);
+  let updatedChat = assignChatToTopic(chatEntry, result.topicId, _state.tree);
   if (result.title && result.title !== chatEntry.title) updatedChat.title = result.title;
   if (result.tags  !== undefined)                       updatedChat.tags  = result.tags;
 
@@ -218,6 +218,10 @@ export async function handleChatSaved(chatEntry) {
     }
     await _state.chatRepo.removeChat(duplicate.id);
     _state.chats = _state.chats.filter(c => c.id !== duplicate.id);
+    // Preserve the original's tree position — move to the duplicate's topic.
+    if (duplicate.topicId && duplicate.topicId !== updatedChat.topicId) {
+      updatedChat = moveChatToTopic(updatedChat, duplicate.topicId, _state.tree);
+    }
   }
 
   // 4. Persist

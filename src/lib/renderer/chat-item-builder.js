@@ -191,8 +191,8 @@ export function buildChatItem(chat, level, ctx) {
   const label = document.createElement('span');
   label.className = 'tree-label';
 
-  // Source badge chip (not shown for excerpts or assembled chats)
-  if (!chat.metadata?.isExcerpt && !chat.metadata?.isJoined) {
+  // Source badge chip (not shown for assembled chats)
+  if (!chat.metadata?.isJoined) {
     const sourceChip = document.createElement('span');
     sourceChip.className   = `tree-source-chip tree-source-chip--${source}`;
     sourceChip.textContent = SOURCE_LABELS[source] || source;
