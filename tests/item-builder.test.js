@@ -410,9 +410,64 @@ describe('buildChatItem', () => {
     expect(labelText.title).toBe('');
     li.remove();
   });
-});
 
-// ─── buildTopicNode ───────────────────────────────────────────────────────────
+  it('overlay shows code language breakdown when code entities are present', () => {
+    const chat = makeChat({
+      tags: [],
+      code: [
+        { language: 'javascript' },
+        { language: 'python' },
+        { language: 'javascript' },
+      ],
+    });
+    const li = buildChatItem(chat, 0, ctx);
+    document.body.appendChild(li);
+    const content = li.querySelector('.tree-node-content');
+    content.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    const overlay = document.querySelector('.tree-chat-hover-overlay');
+    expect(overlay).not.toBeNull();
+    const codeRow = overlay.querySelector('.hover-row--code');
+    expect(codeRow).not.toBeNull();
+    expect(codeRow.textContent).toContain('javascript');
+    li.remove();
+    overlay?.remove();
+  });
+
+  it('overlay code row uses "text" fallback for entities without a language', () => {
+    const chat = makeChat({
+      tags: [],
+      code: [{ language: undefined }, { language: '' }],
+    });
+    const li = buildChatItem(chat, 0, ctx);
+    document.body.appendChild(li);
+    const content = li.querySelector('.tree-node-content');
+    content.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    const overlay = document.querySelector('.tree-chat-hover-overlay');
+    const codeRow = overlay?.querySelector('.hover-row--code');
+    expect(codeRow?.textContent).toContain('text');
+    li.remove();
+    overlay?.remove();
+  });
+
+  it('document mouseover outside content hides the overlay', () => {
+    const chat = makeChat({ tags: ['ai'] });
+    const li = buildChatItem(chat, 0, ctx);
+    document.body.appendChild(li);
+    const content = li.querySelector('.tree-node-content');
+    content.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    expect(document.querySelector('.tree-chat-hover-overlay')).not.toBeNull();
+
+    // Simulate a mouseover on an unrelated element
+    const outside = document.createElement('div');
+    document.body.appendChild(outside);
+    document.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, target: outside }));
+    // The listener checks !content.contains(e.target); for an unrelated element it fires _hideOverlay
+    const overlay = document.querySelector('.tree-chat-hover-overlay');
+    expect(overlay).toBeNull();
+    li.remove();
+    outside.remove();
+  });
+});
 
 describe('buildTopicNode', () => {
   let ctx;
