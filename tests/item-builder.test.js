@@ -384,6 +384,32 @@ describe('buildChatItem', () => {
     expect(overlay).toBeNull();
     li.remove();
   });
+
+  // ── Truncation tooltip ────────────────────────────────────────────────────
+
+  it('sets title attribute on mouseenter when label text is clipped (scrollWidth > clientWidth)', () => {
+    const li = buildChatItem(makeChat({ title: 'Very Long Chat Title' }), 0, ctx);
+    document.body.appendChild(li);
+    const labelText = li.querySelector('.tree-label-text');
+    // Simulate an overflowing element
+    Object.defineProperty(labelText, 'scrollWidth', { value: 200, configurable: true });
+    Object.defineProperty(labelText, 'clientWidth', { value: 80,  configurable: true });
+    labelText.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    expect(labelText.title).toBe('Very Long Chat Title');
+    li.remove();
+  });
+
+  it('clears title attribute on mouseenter when label text is not clipped', () => {
+    const li = buildChatItem(makeChat({ title: 'Short' }), 0, ctx);
+    document.body.appendChild(li);
+    const labelText = li.querySelector('.tree-label-text');
+    labelText.title = 'old value';
+    Object.defineProperty(labelText, 'scrollWidth', { value: 50, configurable: true });
+    Object.defineProperty(labelText, 'clientWidth', { value: 80, configurable: true });
+    labelText.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    expect(labelText.title).toBe('');
+    li.remove();
+  });
 });
 
 // ─── buildTopicNode ───────────────────────────────────────────────────────────

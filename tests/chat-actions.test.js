@@ -21,6 +21,10 @@ vi.mock('../src/lib/vendor/browser.js', () => ({
   default: {
     runtime: { getURL: vi.fn(p => `chrome-extension://test/${p}`) },
     tabs:    { create: vi.fn().mockResolvedValue({}) },
+    storage: { local: {
+      get: vi.fn().mockResolvedValue({}),
+      set: vi.fn().mockResolvedValue(undefined),
+    }},
   },
 }));
 
@@ -43,6 +47,10 @@ vi.mock('../src/lib/chat/chat-manager.js', () => ({
   assignChatToTopic:  vi.fn(chat => ({ ...chat })),
   moveChatToTopic:    vi.fn(),
   removeChatFromTopic: vi.fn(),
+}));
+
+vi.mock('../src/lib/export/auto-export.js', () => ({
+  triggerAutoExport: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../src/lib/export/clipboard-serialiser.js', () => ({
@@ -94,6 +102,10 @@ function makeState(overrides = {}) {
     lastCreatedTopicId: null,
     _toastTimer:        undefined,
     storage: {},
+    dialog: {
+      confirm: vi.fn().mockResolvedValue(false),
+      alert:   vi.fn().mockResolvedValue(undefined),
+    },
   };
 }
 
@@ -763,5 +775,150 @@ describe('private chat-action handlers via setupChatContextMenuActions', () => {
     item.click();
     await vi.runAllTimersAsync();
     warnSpy.mockRestore();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// handleChatSaved — Feature d: duplicate-title overwrite
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('handleChatSaved() — Feature d: duplicate title overwrite', () => {
+  it('shows confirm dialog when a different chat shares the same title', async () => {
+    const st = makeState();
+    const existing = { id: 'other', title: 'Shared Title', topicId: null };
+    st.chats = [existing];
+    st.chatDialogs.showAssignChat.mockResolvedValueOnce({ topicId: null, tags: [] });
+    _setContext(st);
+
+    await handleChatSaved({ id: 'new-chat', title: 'Shared Title', messages: [] });
+    expect(st.dialog.confirm).toHaveBeenCalledWith(
+      expect.stringContaining('Shared Title'),
+      'Overwrite Existing Chat?'
+    );
+  });
+
+  it('resets save button to default when overwrite is declined', async () => {
+    const { setSaveBtnState } = await import('../src/sidepanel/features/save-banner.js');
+    const st = makeState();
+    const existing = { id: 'other', title: 'Same Title', topicId: null };
+    st.chats = [existing];
+    st.dialog.confirm.mockResolvedValueOnce(false);
+    st.chatDialogs.showAssignChat.mockResolvedValueOnce({ topicId: null, tags: [] });
+    _setContext(st);
+
+    await handleChatSaved({ id: 'new-chat', title: 'Same Title', messages: [] });
+    expect(setSaveBtnState).toHaveBeenCalledWith('default');
+    expect(st.chatRepo.removeChat).not.toHaveBeenCalled();
+  });
+
+  it('removes duplicate and saves tree when overwrite is confirmed', async () => {
+    const { saveTree } = await import('../src/sidepanel/controllers/tree-controller.js');
+    const st = makeState();
+    const existing = { id: 'clash-id', title: 'Clashing Name', topicId: null };
+    st.chats = [existing];
+    st.dialog.confirm.mockResolvedValueOnce(true);
+    st.chatDialogs.showAssignChat.mockResolvedValueOnce({ topicId: null, tags: [] });
+    st.chatRepo.updateChat.mockResolvedValueOnce([]);
+    _setContext(st);
+
+    await handleChatSaved({ id: 'brand-new', title: 'Clashing Name', messages: [] });
+    expect(st.chatRepo.removeChat).toHaveBeenCalledWith('clash-id');
+    expect(saveTree).toHaveBeenCalled();
+  });
+
+  it('matches title case-insensitively', async () => {
+    const st = makeState();
+    const existing = { id: 'lower-id', title: 'hello world', topicId: null };
+    st.chats = [existing];
+    st.chatDialogs.showAssignChat.mockResolvedValueOnce({ topicId: null, tags: [] });
+    _setContext(st);
+
+    await handleChatSaved({ id: 'upper-id', title: 'HELLO WORLD', messages: [] });
+    expect(st.dialog.confirm).toHaveBeenCalled();
+  });
+
+  it('does not show confirm dialog when chatEntry.id matches the found title', async () => {
+    const st = makeState();
+    st.chatDialogs.showAssignChat.mockResolvedValueOnce({ topicId: null, tags: [] });
+    st.chatRepo.updateChat.mockResolvedValueOnce([]);
+    _setContext(st);
+
+    // Same id — no other chat to clash with
+    await handleChatSaved({ id: 'self-id', title: 'My Title', messages: [] });
+    expect(st.dialog.confirm).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// handleChatSaved — Feature c: auto-export
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('handleChatSaved() — Feature c: auto-export', () => {
+  async function runSavedWithStorage(storageValues) {
+    const browser = (await import('../src/lib/vendor/browser.js')).default;
+    vi.mocked(browser.storage.local.get).mockResolvedValueOnce(storageValues);
+
+    const st = makeState();
+    st.chatDialogs.showAssignChat.mockResolvedValueOnce({ topicId: null, tags: [] });
+    st.chatRepo.updateChat.mockResolvedValueOnce([]);
+    _setContext(st);
+    await handleChatSaved({ id: 'auto-chat', title: 'Auto Chat', messages: [] });
+    return { browser, st };
+  }
+
+  it('does not call triggerAutoExport when autoExportEnabled is false', async () => {
+    const { triggerAutoExport } = await import('../src/lib/export/auto-export.js');
+    vi.mocked(triggerAutoExport).mockClear();
+    await runSavedWithStorage({ autoExportEnabled: false });
+    expect(triggerAutoExport).not.toHaveBeenCalled();
+  });
+
+  it('increments chatsSinceLastAutoExport when threshold not reached', async () => {
+    const { browser } = await runSavedWithStorage({
+      autoExportEnabled: true,
+      autoExportThreshold: 5,
+      chatsSinceLastAutoExport: 2,
+      autoExportTopics: '',
+    });
+    expect(vi.mocked(browser.storage.local.set)).toHaveBeenCalledWith({ chatsSinceLastAutoExport: 3 });
+  });
+
+  it('calls triggerAutoExport and resets counter when threshold is reached', async () => {
+    const { triggerAutoExport } = await import('../src/lib/export/auto-export.js');
+    vi.mocked(triggerAutoExport).mockClear();
+    const { browser } = await runSavedWithStorage({
+      autoExportEnabled: true,
+      autoExportThreshold: 3,
+      chatsSinceLastAutoExport: 2,   // newCount = 3 >= threshold
+      autoExportTopics: 'Work',
+    });
+    expect(vi.mocked(browser.storage.local.set)).toHaveBeenCalledWith({ chatsSinceLastAutoExport: 0 });
+    expect(triggerAutoExport).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(Array),
+      'Work'
+    );
+  });
+
+  it('uses default threshold of 10 when autoExportThreshold is absent', async () => {
+    const { triggerAutoExport } = await import('../src/lib/export/auto-export.js');
+    vi.mocked(triggerAutoExport).mockClear();
+    // count goes from 9 to 10 which equals default threshold of 10
+    const { browser } = await runSavedWithStorage({
+      autoExportEnabled: true,
+      chatsSinceLastAutoExport: 9,
+    });
+    expect(vi.mocked(browser.storage.local.set)).toHaveBeenCalledWith({ chatsSinceLastAutoExport: 0 });
+    expect(triggerAutoExport).toHaveBeenCalled();
+  });
+
+  it('does not throw when browser.storage.local.get rejects', async () => {
+    const browser = (await import('../src/lib/vendor/browser.js')).default;
+    vi.mocked(browser.storage.local.get).mockRejectedValueOnce(new Error('storage error'));
+    const st = makeState();
+    st.chatDialogs.showAssignChat.mockResolvedValueOnce({ topicId: null, tags: [] });
+    st.chatRepo.updateChat.mockResolvedValueOnce([]);
+    _setContext(st);
+    await expect(handleChatSaved({ id: 'err-chat', title: 'Err', messages: [] })).resolves.not.toThrow();
   });
 });

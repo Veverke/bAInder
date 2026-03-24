@@ -10,6 +10,7 @@ import {
   handleTopicContextMenu,
   setupContextMenuActions,
   handleAddTopic,
+  handleAddChildTopic,
   handleRenameTopic,
   handleMoveTopic,
   handleDeleteTopic,
@@ -583,5 +584,69 @@ describe('handleDeleteTopic()', () => {
     // Chat c1 should be restored
     expect(st.chats.find(c => c.id === 'c1')).toBeDefined();
     expect(renderTreeView).toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// handleAddChildTopic
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('handleAddChildTopic()', () => {
+  it('returns early when contextMenuTopic is null', async () => {
+    const { saveTree } = await import('../src/sidepanel/controllers/tree-controller.js');
+    const st = makeState();
+    st.contextMenuTopic = null;
+    _setContext(st);
+    await handleAddChildTopic();
+    expect(saveTree).not.toHaveBeenCalled();
+  });
+
+  it('returns early when dialog is cancelled', async () => {
+    const { saveTree } = await import('../src/sidepanel/controllers/tree-controller.js');
+    const st = makeState();
+    st.contextMenuTopic = { id: 'parent-t' };
+    st.topicDialogs.showAddTopic.mockResolvedValueOnce(null);
+    _setContext(st);
+    await handleAddChildTopic();
+    expect(saveTree).not.toHaveBeenCalled();
+  });
+
+  it('calls showAddTopic with the contextMenuTopic.id as parentId', async () => {
+    const st = makeState();
+    st.contextMenuTopic = { id: 'parent-t' };
+    st.topicDialogs.showAddTopic.mockResolvedValueOnce({ topicId: 'child-t' });
+    _setContext(st);
+    await handleAddChildTopic();
+    expect(st.topicDialogs.showAddTopic).toHaveBeenCalledWith('parent-t');
+  });
+
+  it('saves tree and re-renders on success', async () => {
+    const { saveTree, renderTreeView } = await import('../src/sidepanel/controllers/tree-controller.js');
+    const st = makeState();
+    st.contextMenuTopic = { id: 'parent-t' };
+    st.topicDialogs.showAddTopic.mockResolvedValueOnce({ topicId: 'child-t' });
+    _setContext(st);
+    await handleAddChildTopic();
+    expect(saveTree).toHaveBeenCalled();
+    expect(renderTreeView).toHaveBeenCalled();
+  });
+
+  it('expands to and selects the new child topic on success', async () => {
+    const st = makeState();
+    st.contextMenuTopic = { id: 'parent-t' };
+    st.topicDialogs.showAddTopic.mockResolvedValueOnce({ topicId: 'child-t' });
+    _setContext(st);
+    await handleAddChildTopic();
+    expect(st.renderer.expandToTopic).toHaveBeenCalledWith('child-t');
+    expect(st.renderer.selectNode).toHaveBeenCalledWith('child-t');
+  });
+
+  it('sets lastCreatedTopicId to the new child topic id', async () => {
+    const st = makeState();
+    st.contextMenuTopic = { id: 'parent-t' };
+    st.topicDialogs.showAddTopic.mockResolvedValueOnce({ topicId: 'new-child' });
+    _setContext(st);
+    await handleAddChildTopic();
+    expect(st.lastCreatedTopicId).toBe('new-child');
   });
 });
