@@ -145,8 +145,8 @@ describe('buildChatItem', () => {
     expect(li.querySelector('.tree-source-chip')).toBeNull();
   });
 
-  it('does NOT render source chip for assembled chat', () => {
-    const li = buildChatItem(makeChat({ metadata: { isAssembled: true } }), 0, ctx);
+  it('does NOT render source chip for joined chat', () => {
+    const li = buildChatItem(makeChat({ metadata: { isJoined: true } }), 0, ctx);
     expect(li.querySelector('.tree-source-chip')).toBeNull();
   });
 
@@ -162,8 +162,8 @@ describe('buildChatItem', () => {
     expect(icon.textContent).toBe('✂️');
   });
 
-  it('renders correct icon for assembled chat (🔗)', () => {
-    const li = buildChatItem(makeChat({ metadata: { isAssembled: true } }), 0, ctx);
+  it('renders correct icon for joined chat (🔗)', () => {
+    const li = buildChatItem(makeChat({ metadata: { isJoined: true } }), 0, ctx);
     const icon = li.querySelector('.tree-icon');
     expect(icon.textContent).toBe('🔗');
   });

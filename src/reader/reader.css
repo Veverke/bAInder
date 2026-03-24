@@ -250,15 +250,15 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Assembled-chats count badge + overlay ───────────────────────────────── */
-.meta-assembled {
+/* ── Joined-chats count badge + overlay ─────────────────────────────────── */
+.meta-joined {
   display: inline-block;
   position: relative;
   font-size: 12px;
   color: var(--text-secondary);
 }
 
-.meta-assembled__trigger {
+.meta-joined__trigger {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -273,12 +273,12 @@ body {
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-.meta-assembled__trigger:hover {
+.meta-joined__trigger:hover {
   background: rgba(99, 102, 241, .13);
   border-color: rgba(99, 102, 241, .50);
 }
 
-.assembled-overlay {
+.joined-overlay {
   display: none;
   position: absolute;
   top: 100%;
@@ -296,7 +296,7 @@ body {
   margin-top: -4px;
 }
 
-.meta-assembled__trigger::after {
+.meta-joined__trigger::after {
   content: '';
   display: block;
   position: absolute;
@@ -306,12 +306,12 @@ body {
   height: 16px;
 }
 
-.meta-assembled:hover .assembled-overlay,
-.meta-assembled:focus-within .assembled-overlay {
+.meta-joined:hover .joined-overlay,
+.meta-joined:focus-within .joined-overlay {
   display: block;
 }
 
-.assembled-overlay__item {
+.joined-overlay__item {
   display: block;
   padding: 6px 10px;
   font-size: 12.5px;
@@ -324,12 +324,12 @@ body {
   transition: background 0.12s;
 }
 
-.assembled-overlay__item:hover {
+.joined-overlay__item:hover {
   background: var(--primary-light);
   color: var(--primary);
 }
 
-.assembled-overlay__num {
+.joined-overlay__num {
   font-weight: 600;
   color: var(--text-secondary);
   margin-right: 3px;
@@ -1533,9 +1533,9 @@ body[data-source="perplexity"] { background-color: color-mix(in srgb, #9b6b2e 4%
 
   /* Typography */
   .reader-title { font-size: 16pt; margin-bottom: 4pt; }
-  .meta-date, .meta-count, .meta-prompts, .meta-assembled, .meta-reading-time { font-size: 9pt; color: #666 !important; background: none !important; border: none !important; padding: 0 !important; margin-left: 0 !important; }
-  .meta-prompts__trigger, .meta-responses__trigger, .meta-assembled__trigger { background: none !important; border: none !important; padding: 0 !important; color: #333 !important; }
-  .prompts-overlay, .assembled-overlay { display: none !important; }
+  .meta-date, .meta-count, .meta-prompts, .meta-joined, .meta-reading-time { font-size: 9pt; color: #666 !important; background: none !important; border: none !important; padding: 0 !important; margin-left: 0 !important; }
+  .meta-prompts__trigger, .meta-responses__trigger, .meta-joined__trigger { background: none !important; border: none !important; padding: 0 !important; color: #333 !important; }
+  .prompts-overlay, .joined-overlay { display: none !important; }
   .meta-reading-time[hidden] { display: inline !important; }
 
   /* Hide sticky-notes layer when printing */

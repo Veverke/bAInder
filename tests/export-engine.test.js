@@ -1218,8 +1218,8 @@ describe('buildDigestMarkdown()', () => {
     expect(md).toMatch(/^={3,}\s*$/m);
   });
 
-  it('forAssembly option uses messagesToMarkdown for messages', () => {
-    const md = buildDigestMarkdown(digestChats, mockTopicsMap, { forAssembly: true });
+  it('forJoin option uses messagesToMarkdown for messages', () => {
+    const md = buildDigestMarkdown(digestChats, mockTopicsMap, { forJoin: true });
     // messagesToMarkdown mock returns content — just verify it doesn't throw
     expect(md).toContain('# bAInder Digest');
   });
@@ -1634,32 +1634,32 @@ describe('buildDigestMarkdown() — single-message and no-timestamp branches', (
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// buildDigestMarkdown() — forAssembly with real messagesToMarkdown
+// buildDigestMarkdown() — forJoin with real messagesToMarkdown
 // ═════════════════════════════════════════════════════════════════════════════
 
-describe('buildDigestMarkdown() — forAssembly with real messagesToMarkdown', () => {
-  it('forAssembly: assembles chat body without duplicate title heading', () => {
+describe('buildDigestMarkdown() — forJoin with real messagesToMarkdown', () => {
+  it('forJoin: joins chat body without duplicate title heading', () => {
     const chats = [{
       id: 'fa1', title: 'Chat Alpha', source: 'chatgpt', topicId: null,
       timestamp: 1700000000000,
       messages: [{ role: 'user', content: 'Hello there' }],
       tags: [], metadata: {}, url: '',
     }];
-    const md = buildDigestMarkdown(chats, {}, { forAssembly: true });
+    const md = buildDigestMarkdown(chats, {}, { forJoin: true });
     // ## section heading drives the TOC; body must not duplicate it as # heading
     expect(md).toContain('## Chat Alpha');
     const bodyPart = md.slice(md.indexOf('## Chat Alpha') + '## Chat Alpha'.length);
     expect(bodyPart).not.toMatch(/^# Chat Alpha/m);
   });
 
-  it('forAssembly: handles chats without crashing', () => {
+  it('forJoin: handles chats without crashing', () => {
     const chats = [{
       id: 'fa2', title: 'B', source: 'chatgpt', topicId: null,
       timestamp: 0,
       messages: [{ role: 'user', content: 'Hi' }],
       tags: [], metadata: {}, url: '',
     }];
-    expect(() => buildDigestMarkdown(chats, {}, { forAssembly: true })).not.toThrow();
+    expect(() => buildDigestMarkdown(chats, {}, { forJoin: true })).not.toThrow();
   });
 });
 
@@ -1781,7 +1781,7 @@ describe('buildDigestMarkdown() — || fallback branch coverage', () => {
     expect(md).toContain('No Content');
   });
 
-  it('forAssembly: chat with no source → source || "unknown" fallback', () => {
+  it('forJoin: chat with no source → source || "unknown" fallback', () => {
     messagesToMarkdown.mockReturnValueOnce('---\ntitle: "X"\n---\n\ncontent');
     const chats = [{
       id: 'fns', title: 'No Source', topicId: null,
@@ -1790,7 +1790,7 @@ describe('buildDigestMarkdown() — || fallback branch coverage', () => {
       // no source → 'unknown' fallback
       tags: [], metadata: {}, url: '',
     }];
-    const md = buildDigestMarkdown(chats, {}, { forAssembly: true });
+    const md = buildDigestMarkdown(chats, {}, { forJoin: true });
     expect(md).toContain('No Source');
   });
 });

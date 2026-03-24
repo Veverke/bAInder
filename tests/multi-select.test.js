@@ -13,7 +13,7 @@ import {
   updateSelectionBar,
   handleCopyAll,
   handleExportDigest,
-  handleAssemble,
+  handleJoin,
 } from '../src/sidepanel/features/multi-select.js';
 import { state, elements } from '../src/sidepanel/app-context.js';
 
@@ -88,7 +88,7 @@ afterEach(() => {
   elements.multiSelectToggleBtn = null;
   elements.selectionBar   = null;
   elements.selectionCount = null;
-  elements.assembleBtn    = null;
+  elements.joinBtn    = null;
   elements.exportDigestBtn = null;
   elements.copyAllBtn     = null;
   elements.compareBtn     = null;
@@ -179,13 +179,13 @@ describe('handleSelectionChange()', () => {
 describe('updateSelectionBar()', () => {
   beforeEach(() => {
     const selectionCount  = document.createElement('span');
-    const assembleBtn     = document.createElement('button');
+    const joinBtn         = document.createElement('button');
     const exportDigestBtn = document.createElement('button');
     const copyAllBtn      = document.createElement('button');
     const compareBtn      = document.createElement('button');
-    document.body.append(selectionCount, assembleBtn, exportDigestBtn, copyAllBtn, compareBtn);
+    document.body.append(selectionCount, joinBtn, exportDigestBtn, copyAllBtn, compareBtn);
     elements.selectionCount  = selectionCount;
-    elements.assembleBtn     = assembleBtn;
+    elements.joinBtn         = joinBtn;
     elements.exportDigestBtn = exportDigestBtn;
     elements.copyAllBtn      = copyAllBtn;
     elements.compareBtn      = compareBtn;
@@ -193,14 +193,14 @@ describe('updateSelectionBar()', () => {
 
   it('disables action buttons when count < 2', () => {
     updateSelectionBar(1);
-    expect(elements.assembleBtn.disabled).toBe(true);
+    expect(elements.joinBtn.disabled).toBe(true);
     expect(elements.copyAllBtn.disabled).toBe(true);
     expect(elements.compareBtn.disabled).toBe(true);
   });
 
   it('enables action buttons when count >= 2', () => {
     updateSelectionBar(3);
-    expect(elements.assembleBtn.disabled).toBe(false);
+    expect(elements.joinBtn.disabled).toBe(false);
     expect(elements.exportDigestBtn.disabled).toBe(false);
     expect(elements.copyAllBtn.disabled).toBe(false);
     expect(elements.compareBtn.disabled).toBe(false);
@@ -213,12 +213,12 @@ describe('updateSelectionBar()', () => {
 
   it('sets accessible titles on action buttons for >= 2 count', () => {
     updateSelectionBar(2);
-    expect(elements.assembleBtn.title).toContain('2');
+    expect(elements.joinBtn.title).toContain('2');
     expect(elements.copyAllBtn.title).toContain('2');
   });
 
   it('does not throw when elements are absent', () => {
-    elements.assembleBtn = null;
+    elements.joinBtn = null;
     elements.exportDigestBtn = null;
     elements.copyAllBtn = null;
     elements.compareBtn = null;
@@ -358,11 +358,11 @@ describe('handleExportDigest()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// handleAssemble()
+// handleJoin()
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('handleAssemble()', () => {
-  function makeAssembleState(overrides = {}) {
+describe('handleJoin()', () => {
+  function makeJoinState(overrides = {}) {
     return {
       renderer: makeRenderer(),
       chatRepo: {
@@ -376,13 +376,13 @@ describe('handleAssemble()', () => {
       },
       tree: {
         getAllTopics:  vi.fn().mockReturnValue([]),
-        addTopic:     vi.fn().mockReturnValue('assemblies-topic-id'),
+        addTopic:     vi.fn().mockReturnValue('joined-topic-id'),
         topics:       {},
         rootTopicIds: [],
       },
       dialog: {
         prompt: vi.fn().mockResolvedValue('My Assembly'),
-        form:   vi.fn().mockResolvedValue({ topicId: '__assemblies__' }),
+        form:   vi.fn().mockResolvedValue({ topicId: '__joined__' }),
         alert:  vi.fn().mockResolvedValue(undefined),
       },
       topicDialogs: {
@@ -423,80 +423,80 @@ describe('handleAssemble()', () => {
 
   it('does nothing when renderer is null', async () => {
     state.renderer = null;
-    await handleAssemble();
+    await handleJoin();
   });
 
   it('shows error when fewer than 2 chats selected', async () => {
-    const st = makeAssembleState();
+    const st = makeJoinState();
     st.renderer.getSelectedChats.mockReturnValueOnce([{ id: 'c1' }]);
     Object.assign(state, st);
-    await handleAssemble();
+    await handleJoin();
     expect(document.getElementById('toast').textContent).toContain('Select at least 2');
   });
 
-  it('shows error when more than 100 chats selected for assembly', async () => {
-    const st = makeAssembleState();
+  it('shows error when more than 100 chats selected for join', async () => {
+    const st = makeJoinState();
     const manyChats = Array.from({ length: 101 }, (_, i) => ({ id: `c${i}` }));
     st.renderer.getSelectedChats.mockReturnValueOnce(manyChats);
     Object.assign(state, st);
-    await handleAssemble();
-    expect(document.getElementById('toast').textContent).toContain('Cannot assemble more than');
+    await handleJoin();
+    expect(document.getElementById('toast').textContent).toContain('Cannot join more than');
     expect(st.chatRepo.loadFullByIds).not.toHaveBeenCalled();
   });
 
   it('returns early when prompt is cancelled', async () => {
-    const st = makeAssembleState();
+    const st = makeJoinState();
     st.renderer.getSelectedChats.mockReturnValueOnce([{ id: 'c1' }, { id: 'c2' }]);
     st.dialog.prompt.mockResolvedValueOnce(null);
     Object.assign(state, st);
-    await handleAssemble();
+    await handleJoin();
     expect(st.chatRepo.addChat).not.toHaveBeenCalled();
   });
 
   it('returns early when folder form is cancelled', async () => {
-    const st = makeAssembleState();
+    const st = makeJoinState();
     st.renderer.getSelectedChats.mockReturnValueOnce([{ id: 'c1' }, { id: 'c2' }]);
     st.dialog.form.mockResolvedValueOnce(null);
     Object.assign(state, st);
-    await handleAssemble();
+    await handleJoin();
     expect(st.chatRepo.addChat).not.toHaveBeenCalled();
   });
 
-  it('shows error when loadFullByIds throws during assembly', async () => {
-    const st = makeAssembleState();
+  it('shows error when loadFullByIds throws during join', async () => {
+    const st = makeJoinState();
     st.renderer.getSelectedChats.mockReturnValueOnce([{ id: 'c1' }, { id: 'c2' }]);
     st.chatRepo.loadFullByIds.mockRejectedValueOnce(new Error('DB fail'));
     Object.assign(state, st);
-    await handleAssemble();
+    await handleJoin();
     expect(document.getElementById('toast').textContent).toContain('Failed');
   });
 
-  it('creates an Assemblies folder when none exists and topicId is __assemblies__', async () => {
-    const st = makeAssembleState();
+  it('creates a Joined folder when none exists and topicId is __joined__', async () => {
+    const st = makeJoinState();
     st.renderer.getSelectedChats.mockReturnValueOnce([{ id: 'c1' }, { id: 'c2' }]);
-    st.tree.getAllTopics.mockReturnValue([]); // no existing Assemblies topic
+    st.tree.getAllTopics.mockReturnValue([]); // no existing Joined topic
     Object.assign(state, st);
-    await handleAssemble();
-    expect(st.tree.addTopic).toHaveBeenCalledWith('Assemblies');
+    await handleJoin();
+    expect(st.tree.addTopic).toHaveBeenCalledWith('Joined');
     expect(st.chatRepo.addChat).toHaveBeenCalled();
   });
 
-  it('reuses existing Assemblies folder when it already exists', async () => {
-    const st = makeAssembleState();
+  it('reuses existing Joined folder when it already exists', async () => {
+    const st = makeJoinState();
     st.renderer.getSelectedChats.mockReturnValueOnce([{ id: 'c1' }, { id: 'c2' }]);
-    st.tree.getAllTopics.mockReturnValue([{ id: 'existing-assemblies', name: 'Assemblies', parentId: null }]);
+    st.tree.getAllTopics.mockReturnValue([{ id: 'existing-joined', name: 'Joined', parentId: null }]);
     Object.assign(state, st);
-    await handleAssemble();
+    await handleJoin();
     expect(st.tree.addTopic).not.toHaveBeenCalled(); // reused
     expect(st.chatRepo.addChat).toHaveBeenCalled();
   });
 
-  it('saves to a specified folder topic when topicId is not __assemblies__', async () => {
-    const st = makeAssembleState();
+  it('saves to a specified folder topic when topicId is not __joined__', async () => {
+    const st = makeJoinState();
     st.renderer.getSelectedChats.mockReturnValueOnce([{ id: 'c1' }, { id: 'c2' }]);
     st.dialog.form.mockResolvedValueOnce({ topicId: 'my-topic-id' });
     Object.assign(state, st);
-    await handleAssemble();
+    await handleJoin();
     expect(st.chatRepo.updateChat).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ topicId: 'my-topic-id' })
@@ -505,29 +505,29 @@ describe('handleAssemble()', () => {
 
   it('calls saveTree, loadAll, and renderTreeView on success', async () => {
     const { saveTree, renderTreeView } = await import('../src/sidepanel/controllers/tree-controller.js');
-    const st = makeAssembleState();
+    const st = makeJoinState();
     st.renderer.getSelectedChats.mockReturnValueOnce([{ id: 'c1' }, { id: 'c2' }]);
     Object.assign(state, st);
-    await handleAssemble();
+    await handleJoin();
     expect(saveTree).toHaveBeenCalled();
     expect(renderTreeView).toHaveBeenCalled();
     expect(st.chatRepo.loadAll).toHaveBeenCalled();
   });
 
-  it('shows success notification after assembly', async () => {
-    const st = makeAssembleState();
+  it('shows success notification after join', async () => {
+    const st = makeJoinState();
     st.renderer.getSelectedChats.mockReturnValueOnce([{ id: 'c1' }, { id: 'c2' }]);
     Object.assign(state, st);
-    await handleAssemble();
+    await handleJoin();
     expect(document.getElementById('toast').textContent).toContain('My Assembly');
   });
 
   it('shows error notification when addChat throws', async () => {
-    const st = makeAssembleState();
+    const st = makeJoinState();
     st.renderer.getSelectedChats.mockReturnValueOnce([{ id: 'c1' }, { id: 'c2' }]);
     st.chatRepo.addChat.mockRejectedValueOnce(new Error('Storage full'));
     Object.assign(state, st);
-    await handleAssemble();
-    expect(document.getElementById('toast').textContent).toContain('Assembly failed');
+    await handleJoin();
+    expect(document.getElementById('toast').textContent).toContain('Join failed');
   });
 });

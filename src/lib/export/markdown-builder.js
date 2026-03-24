@@ -148,7 +148,7 @@ export function buildDigestMarkdown(chats, topicsMap, options = {}) {
     lines.push(`[↗ View in tree](bainder://select-chat?id=${chat.id})`);
     lines.push('');
 
-    if (messages.length > 0 && options.forAssembly) {
+    if (messages.length > 0 && options.forJoin) {
       // For chats stored as assembled nodes, reuse the canonical serialiser so
       // the reader's wrapChatTurns, turn styling, and emoji labels are identical
       // to individually opened chats.

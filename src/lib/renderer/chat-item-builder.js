@@ -175,9 +175,9 @@ export function buildChatItem(chat, level, ctx) {
   // ── Icon: assembled vs excerpt vs full chat ───────────────────────────
   const icon = document.createElement('span');
   icon.className   = 'tree-icon';
-  if (chat.metadata?.isAssembled) {
+  if (chat.metadata?.isJoined) {
     icon.textContent = '🔗';
-    icon.title       = 'Assembled Chat';
+    icon.title       = 'Joined Chat';
   } else if (chat.metadata?.isExcerpt) {
     icon.textContent = '✂️';
     icon.title       = 'Chat Excerpt';
@@ -192,7 +192,7 @@ export function buildChatItem(chat, level, ctx) {
   label.className = 'tree-label';
 
   // Source badge chip (not shown for excerpts or assembled chats)
-  if (!chat.metadata?.isExcerpt && !chat.metadata?.isAssembled) {
+  if (!chat.metadata?.isExcerpt && !chat.metadata?.isJoined) {
     const sourceChip = document.createElement('span');
     sourceChip.className   = `tree-source-chip tree-source-chip--${source}`;
     sourceChip.textContent = SOURCE_LABELS[source] || source;

@@ -2,7 +2,7 @@
  * multi-select.js
  *
  * Responsibility: the C.17 multi-select mode — entering/exiting selection,
- * tracking the selection count, triggering chat assembly (save to tree), and
+ * tracking the selection count, triggering chat join (save to tree), and
  * optionally exporting a digest.
  *
  * NOT responsible for: export dialog (delegates to ExportDialog), or chat
@@ -61,11 +61,11 @@ export function updateSelectionBar(count) {
     elements.selectionCount.textContent =
       count === 1 ? '1 chat selected' : `${count} chats selected`;
   }
-  if (elements.assembleBtn) {
-    elements.assembleBtn.disabled = count < 2;
-    elements.assembleBtn.title = count < 2
-      ? 'Select at least 2 chats to assemble into a new chat'
-      : `Assemble ${count} chats into a new chat`;
+  if (elements.joinBtn) {
+    elements.joinBtn.disabled = count < 2;
+    elements.joinBtn.title = count < 2
+      ? 'Select at least 2 chats to join into a new chat'
+      : `Join ${count} chats into a new chat`;
   }
   if (elements.exportDigestBtn) {
     elements.exportDigestBtn.disabled = count < 2;
@@ -88,14 +88,14 @@ export function updateSelectionBar(count) {
 }
 
 // ---------------------------------------------------------------------------
-// Assembly — create a new chat node in the tree from selected chats
+// Join — create a new chat node in the tree from selected chats
 // ---------------------------------------------------------------------------
 
-export async function handleAssemble() {
+export async function handleJoin() {
   if (!state.renderer) return;
   const metaChats = state.renderer.getSelectedChats();
   if (metaChats.length < 2) {
-    showNotification('Select at least 2 chats to assemble', 'error');
+    showNotification('Select at least 2 chats to join', 'error');
     return;
   }
 
@@ -106,89 +106,89 @@ export async function handleAssemble() {
     .slice(0, 80);
 
   const title = await state.dialog.prompt(
-    `Name this assembled chat (combining ${metaChats.length} chats):`,
+    `Name this joined chat (combining ${metaChats.length} chats):`,
     defaultTitle,
-    'Assemble Chats'
+    'Join Chats'
   );
   if (!title) return; // user cancelled
 
-  // Prompt the user to choose which folder to place the assembled chat in
-  const existingAssemblies = state.tree.getAllTopics()
-    .find(t => t.name === 'Assemblies' && !t.parentId);
-  const topicOptions = state.topicDialogs.buildTopicOptions(existingAssemblies?.id || null);
-  const folderOptions = existingAssemblies
+  // Prompt the user to choose which folder to place the joined chat in
+  const existingJoined = state.tree.getAllTopics()
+    .find(t => t.name === 'Joined' && !t.parentId);
+  const topicOptions = state.topicDialogs.buildTopicOptions(existingJoined?.id || null);
+  const folderOptions = existingJoined
     ? topicOptions
-    : [{ value: '__assemblies__', label: "📁 Create 'Assemblies' folder", selected: true }, ...topicOptions];
+    : [{ value: '__joined__', label: "📁 Create 'Joined' folder", selected: true }, ...topicOptions];
 
   const folderResult = await state.dialog.form([
     {
       name: 'topicId',
-      label: 'Save assembled chat to',
+      label: 'Save joined chat to',
       type: 'select',
       options: folderOptions,
-      hint: 'Choose which folder to place this assembled chat in'
+      hint: 'Choose which folder to place this joined chat in'
     }
-  ], 'Choose Folder', 'Assemble');
+  ], 'Choose Folder', 'Join');
   if (!folderResult) return; // user cancelled
 
   let fullChats;
   try {
     const selectedIds = new Set(metaChats.map(c => c.id));
     if (selectedIds.size > MAX_BULK_EXPORT_CHATS) {
-      showNotification(`Cannot assemble more than ${MAX_BULK_EXPORT_CHATS} chats at once — select fewer`, 'error');
+      showNotification(`Cannot join more than ${MAX_BULK_EXPORT_CHATS} chats at once — select fewer`, 'error');
       return;
     }
     fullChats = await state.chatRepo.loadFullByIds(selectedIds);
   } catch (err) {
-    console.error('Failed to load full chat content for assembly:', err);
-    showNotification('Failed to load chats for assembly', 'error');
+    console.error('Failed to load full chat content for join:', err);
+    showNotification('Failed to load chats for join', 'error');
     return;
   }
 
-  // Build combined markdown content (TOC only for larger assemblies).
-  // forAssembly: true selects the messagesToMarkdown-based per-chat serialisation
+  // Build combined markdown content (TOC only for larger joins).
+  // forJoin: true selects the messagesToMarkdown-based per-chat serialisation
   // that matches the reader's turn styling, instead of the ### Role export format.
   const topicsMap = state.tree?.topics || {};
-  const content   = buildDigestMarkdown(fullChats, topicsMap, { includeToc: fullChats.length > 3, forAssembly: true });
+  const content   = buildDigestMarkdown(fullChats, topicsMap, { includeToc: fullChats.length > 3, forJoin: true });
 
-  const assembledChat = {
-    id:           `assembled_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+  const joinedChat = {
+    id:           `joined_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
     title:        title.trim(),
     content,
     url:          '',
-    source:       'assembled',
+    source:       'joined',
     timestamp:    Date.now(),
     topicId:      null,
     messageCount: fullChats.reduce((n, c) => n + (c.messageCount || 0), 0),
-    messages:     [],
+    messages:     fullChats.flatMap(c => Array.isArray(c.messages) ? c.messages : []),
     metadata: {
-      isAssembled: true,
-      sourceIds:   fullChats.map(c => c.id),
-      assembledAt: new Date().toISOString(),
+      isJoined:  true,
+      sourceIds: fullChats.map(c => c.id),
+      joinedAt:  new Date().toISOString(),
     },
   };
 
   try {
-    // Save the assembled chat to storage
-    await state.chatRepo.addChat(assembledChat);
+    // Save the joined chat to storage
+    await state.chatRepo.addChat(joinedChat);
 
     // Resolve the target folder from the user's selection
     let targetTopicId;
-    if (folderResult.topicId === '__assemblies__') {
-      // Create or reuse the 'Assemblies' root topic
-      let assembliesId = state.tree.getAllTopics()
-        .find(t => t.name === 'Assemblies' && !t.parentId)?.id;
-      if (!assembliesId) {
-        assembliesId = state.tree.addTopic('Assemblies');
+    if (folderResult.topicId === '__joined__') {
+      // Create or reuse the 'Joined' root topic
+      let joinedTopicId = state.tree.getAllTopics()
+        .find(t => t.name === 'Joined' && !t.parentId)?.id;
+      if (!joinedTopicId) {
+        joinedTopicId = state.tree.addTopic('Joined');
       }
-      targetTopicId = assembliesId;
+      targetTopicId = joinedTopicId;
     } else {
       targetTopicId = folderResult.topicId;
     }
 
     // Link the new chat to the topic in-memory and persist
-    assignChatToTopic(assembledChat, targetTopicId, state.tree);
-    await state.chatRepo.updateChat(assembledChat.id, { topicId: targetTopicId });
+    assignChatToTopic(joinedChat, targetTopicId, state.tree);
+    await state.chatRepo.updateChat(joinedChat.id, { topicId: targetTopicId });
     await saveTree();
 
     // Reload chats and re-render tree
@@ -198,10 +198,10 @@ export async function handleAssemble() {
     renderTreeView();
 
     exitMultiSelectMode();
-    showNotification(`🔗 “${title.trim()}” assembled from ${fullChats.length} chats`, 'success');
+    showNotification(`🔗 "${title.trim()}" joined from ${fullChats.length} chats`, 'success');
   } catch (err) {
-    console.error('Assembly failed:', err);
-    showNotification('Assembly failed: ' + (err.message || 'Unknown error'), 'error');
+    console.error('Join failed:', err);
+    showNotification('Join failed: ' + (err.message || 'Unknown error'), 'error');
   }
 }
 

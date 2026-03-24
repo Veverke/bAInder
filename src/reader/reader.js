@@ -197,8 +197,15 @@ export function renderMarkdown(markdown, options = {}) {
   const _sourceUrl = (options.sourceUrl && typeof options.sourceUrl === 'string')
     ? options.sourceUrl.trim() : '';
 
-  // Strip YAML frontmatter
+  // Strip YAML frontmatter and detect content format
   let text = markdown;
+  // Only render === as a "Next Chat" boundary in digest/joined documents.
+  // Regular chats (markdown-v1) should never show "Next Chat" even if a
+  // prompt happens to contain a line of equals signs (setext underline, etc.).
+  const isDigest = options.isDigest === true ||
+    /^contentFormat:\s*digest-markdown-v1\s*$/m.test(
+      text.startsWith('---') ? text.slice(0, (text.indexOf('\n---', 3) + 4) || text.length) : ''
+    );
   if (text.startsWith('---')) {
     const end = text.indexOf('\n---', 3);
     if (end !== -1) {
@@ -464,15 +471,22 @@ export function renderMarkdown(markdown, options = {}) {
 
 
 
-    // Assembled-chat section divider (===) � marks where one chat ends, the next begins
+    // Assembled-chat section divider (===) — marks where one chat ends, the next begins.
+    // Only shown in digest/joined documents (contentFormat: digest-markdown-v1).
+    // In regular chats a line of === may appear in prompts (setext underlines, decorators)
+    // and must NOT be mistaken for a chat boundary — render as <hr> instead.
     if (/^={3,}\s*$/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
-      htmlParts.push(
-        '<div class="chat-section-divider" role="separator" aria-label="Chat boundary">' +
-          '<span class="chat-section-divider__label">next chat</span>' +
-        '</div>'
-      );
+      if (isDigest) {
+        htmlParts.push(
+          '<div class="chat-section-divider" role="separator" aria-label="Chat boundary">' +
+            '<span class="chat-section-divider__label">next chat</span>' +
+          '</div>'
+        );
+      } else {
+        htmlParts.push('<hr>');
+      }
       i++;
       continue;
     }
@@ -1822,13 +1836,13 @@ export function renderChat(chat) {
   // applied by init() based on the readerSettings.showOrdinals setting.
   addOrdinalLabels(contentEl);
 
-  // When the chat was created by assembling multiple source chats, show a
+  // When the chat was created by joining multiple source chats, show a
   // header badge listing each source section with a click-to-scroll link.
-  const assembledEl = document.getElementById('meta-assembled');
-  if (assembledEl) {
-    assembledEl.innerHTML = '';
-    const isAssembled = Boolean(meta.isAssembled);
-    if (isAssembled) {
+  const joinedEl = document.getElementById('meta-joined');
+  if (joinedEl) {
+    joinedEl.innerHTML = '';
+    const isJoined = Boolean(meta.isJoined);
+    if (isJoined) {
       // The digest markdown emits `## <title>` for each source section.
       // We skip the optional "Contents" TOC heading.
       const sectionHeadings = Array.from(contentEl.querySelectorAll('h2')).filter(
@@ -1836,37 +1850,37 @@ export function renderChat(chat) {
       );
 
       if (sectionHeadings.length > 0) {
-        sectionHeadings.forEach((h, i) => { h.id = `assembled-section-${i}`; });
+        sectionHeadings.forEach((h, i) => { h.id = `joined-section-${i}`; });
 
         const n = sectionHeadings.length;
         const trigger = document.createElement('span');
-        trigger.className = 'meta-assembled__trigger';
-        trigger.textContent = `\u{1F517} ${n} chat${n !== 1 ? 's' : ''} assembled`;
+        trigger.className = 'meta-joined__trigger';
+        trigger.textContent = `\u{1F517} ${n} chat${n !== 1 ? 's' : ''} joined`;
 
         const overlay = document.createElement('div');
-        overlay.className = 'assembled-overlay';
+        overlay.className = 'joined-overlay';
         overlay.setAttribute('role', 'list');
 
         sectionHeadings.forEach((h, i) => {
           const title   = h.textContent.trim();
           const snippet = title.length > 68 ? title.slice(0, 65) + '\u2026' : title;
           const a = document.createElement('a');
-          a.href      = `#assembled-section-${i}`;
-          a.className = 'assembled-overlay__item';
+          a.href      = `#joined-section-${i}`;
+          a.className = 'joined-overlay__item';
           a.setAttribute('role', 'listitem');
           a.title     = title;
-          a.innerHTML = `<span class="assembled-overlay__num">${i + 1}.</span> ${escapeHtml(snippet)}`;
+          a.innerHTML = `<span class="joined-overlay__num">${i + 1}.</span> ${escapeHtml(snippet)}`;
           overlay.appendChild(a);
         });
 
-        assembledEl.appendChild(trigger);
-        assembledEl.appendChild(overlay);
-        assembledEl.hidden = false;
+        joinedEl.appendChild(trigger);
+        joinedEl.appendChild(overlay);
+        joinedEl.hidden = false;
       } else {
-        assembledEl.hidden = true;
+        joinedEl.hidden = true;
       }
     } else {
-      assembledEl.hidden = true;
+      joinedEl.hidden = true;
     }
   }
 
