@@ -145,8 +145,8 @@ describe('buildChatItem', () => {
     expect(li.querySelector('.tree-source-chip')).toBeNull();
   });
 
-  it('does NOT render source chip for assembled chat', () => {
-    const li = buildChatItem(makeChat({ metadata: { isAssembled: true } }), 0, ctx);
+  it('does NOT render source chip for joined chat', () => {
+    const li = buildChatItem(makeChat({ metadata: { isJoined: true } }), 0, ctx);
     expect(li.querySelector('.tree-source-chip')).toBeNull();
   });
 
@@ -162,8 +162,8 @@ describe('buildChatItem', () => {
     expect(icon.textContent).toBe('✂️');
   });
 
-  it('renders correct icon for assembled chat (🔗)', () => {
-    const li = buildChatItem(makeChat({ metadata: { isAssembled: true } }), 0, ctx);
+  it('renders correct icon for joined chat (🔗)', () => {
+    const li = buildChatItem(makeChat({ metadata: { isJoined: true } }), 0, ctx);
     const icon = li.querySelector('.tree-icon');
     expect(icon.textContent).toBe('🔗');
   });
@@ -384,9 +384,90 @@ describe('buildChatItem', () => {
     expect(overlay).toBeNull();
     li.remove();
   });
-});
 
-// ─── buildTopicNode ───────────────────────────────────────────────────────────
+  // ── Truncation tooltip ────────────────────────────────────────────────────
+
+  it('sets title attribute on mouseenter when label text is clipped (scrollWidth > clientWidth)', () => {
+    const li = buildChatItem(makeChat({ title: 'Very Long Chat Title' }), 0, ctx);
+    document.body.appendChild(li);
+    const labelText = li.querySelector('.tree-label-text');
+    // Simulate an overflowing element
+    Object.defineProperty(labelText, 'scrollWidth', { value: 200, configurable: true });
+    Object.defineProperty(labelText, 'clientWidth', { value: 80,  configurable: true });
+    labelText.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    expect(labelText.title).toBe('Very Long Chat Title');
+    li.remove();
+  });
+
+  it('clears title attribute on mouseenter when label text is not clipped', () => {
+    const li = buildChatItem(makeChat({ title: 'Short' }), 0, ctx);
+    document.body.appendChild(li);
+    const labelText = li.querySelector('.tree-label-text');
+    labelText.title = 'old value';
+    Object.defineProperty(labelText, 'scrollWidth', { value: 50, configurable: true });
+    Object.defineProperty(labelText, 'clientWidth', { value: 80, configurable: true });
+    labelText.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    expect(labelText.title).toBe('');
+    li.remove();
+  });
+
+  it('overlay shows code language breakdown when code entities are present', () => {
+    const chat = makeChat({
+      tags: [],
+      code: [
+        { language: 'javascript' },
+        { language: 'python' },
+        { language: 'javascript' },
+      ],
+    });
+    const li = buildChatItem(chat, 0, ctx);
+    document.body.appendChild(li);
+    const content = li.querySelector('.tree-node-content');
+    content.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    const overlay = document.querySelector('.tree-chat-hover-overlay');
+    expect(overlay).not.toBeNull();
+    const codeRow = overlay.querySelector('.hover-row--code');
+    expect(codeRow).not.toBeNull();
+    expect(codeRow.textContent).toContain('javascript');
+    li.remove();
+    overlay?.remove();
+  });
+
+  it('overlay code row uses "text" fallback for entities without a language', () => {
+    const chat = makeChat({
+      tags: [],
+      code: [{ language: undefined }, { language: '' }],
+    });
+    const li = buildChatItem(chat, 0, ctx);
+    document.body.appendChild(li);
+    const content = li.querySelector('.tree-node-content');
+    content.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    const overlay = document.querySelector('.tree-chat-hover-overlay');
+    const codeRow = overlay?.querySelector('.hover-row--code');
+    expect(codeRow?.textContent).toContain('text');
+    li.remove();
+    overlay?.remove();
+  });
+
+  it('document mouseover outside content hides the overlay', () => {
+    const chat = makeChat({ tags: ['ai'] });
+    const li = buildChatItem(chat, 0, ctx);
+    document.body.appendChild(li);
+    const content = li.querySelector('.tree-node-content');
+    content.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    expect(document.querySelector('.tree-chat-hover-overlay')).not.toBeNull();
+
+    // Simulate a mouseover on an unrelated element
+    const outside = document.createElement('div');
+    document.body.appendChild(outside);
+    document.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, target: outside }));
+    // The listener checks !content.contains(e.target); for an unrelated element it fires _hideOverlay
+    const overlay = document.querySelector('.tree-chat-hover-overlay');
+    expect(overlay).toBeNull();
+    li.remove();
+    outside.remove();
+  });
+});
 
 describe('buildTopicNode', () => {
   let ctx;

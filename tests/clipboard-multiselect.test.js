@@ -173,7 +173,7 @@ describe('updateSelectionBar — copyAllBtn', () => {
     vi.clearAllMocks();
     // Provide stub DOM-like objects for every element accessed inside updateSelectionBar
     mockElements.selectionCount  = { textContent: '' };
-    mockElements.assembleBtn     = { disabled: true, title: '' };
+    mockElements.joinBtn        = { disabled: true, title: '' };
     mockElements.exportDigestBtn = { disabled: true, title: '' };
     mockElements.copyAllBtn      = { disabled: true, title: '' };
   });

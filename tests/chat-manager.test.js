@@ -429,11 +429,11 @@ describe('removeChatFromTopic – plain-object topic fallback', () => {
   });
 });
 
-// ─── buildChatDisplayTitle – assembled chat prefix ────────────────────────────
+// ─── buildChatDisplayTitle – joined chat prefix ───────────────────────────────────────────────
 
-describe('buildChatDisplayTitle – assembled prefix', () => {
-  it('prefixes 🔗 for assembled chats (metadata.isAssembled = true)', () => {
-    const chat = { title: 'Assembled', metadata: { isAssembled: true } };
+describe('buildChatDisplayTitle – joined prefix', () => {
+  it('prefixes 🔗 for joined chats (metadata.isJoined = true)', () => {
+    const chat = { title: 'Assembled', metadata: { isJoined: true } };
     expect(buildChatDisplayTitle(chat)).toBe('🔗 Assembled');
   });
 });

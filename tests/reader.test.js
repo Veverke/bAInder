@@ -552,6 +552,26 @@ describe('renderMarkdown', () => {
     expect(html).toContain('What is 2+2?');
     expect(html).toContain('It is 4.');
   });
+
+  it('renders === line as <hr> in a non-digest document', () => {
+    const html = renderMarkdown('Before\n\n===\n\nAfter');
+    expect(html).toContain('<hr>');
+    expect(html).not.toContain('chat-section-divider');
+  });
+
+  it('renders === line as chat-section-divider when isDigest option is true', () => {
+    const html = renderMarkdown('Before\n\n===\n\nAfter', { isDigest: true });
+    expect(html).toContain('chat-section-divider');
+    expect(html).toContain('next chat');
+    expect(html).not.toContain('<hr>');
+  });
+
+  it('detects digest mode from contentFormat frontmatter and renders section divider', () => {
+    const md = '---\ncontentFormat: digest-markdown-v1\n---\n\nPart one\n\n===\n\nPart two';
+    const html = renderMarkdown(md);
+    expect(html).toContain('chat-section-divider');
+    expect(html).not.toContain('<hr>');
+  });
 });
 
 // ─── processSources ───────────────────────────────────────────────────────────
@@ -906,6 +926,80 @@ describe('renderChat', () => {
     });
     renderChat(chat);
     expect(document.getElementById('meta-responses').hidden).toBe(true);
+  });
+
+  // ── meta-joined badge ──────────────────────────────────────────────────────
+  describe('meta-joined badge', () => {
+    const JOINED_CONTENT = (sections = ['## Section One\n\nContent A', '## Section Two\n\nContent B']) =>
+      '---\ntitle: "Joined"\nsource: claude\ncontentFormat: digest-markdown-v1\n---\n\n' +
+      sections.join('\n\n===\n\n') + '\n';
+
+    beforeEach(() => {
+      // Add the meta-joined element that reader.html includes (absent from default setupDom)
+      const el = document.createElement('span');
+      el.id = 'meta-joined';
+      el.hidden = true;
+      document.querySelector('.reader-header__meta').appendChild(el);
+    });
+
+    it('hides meta-joined when isJoined is false', () => {
+      renderChat({
+        id: 'j1', title: 'Joined', source: 'claude', url: '', timestamp: 0, messageCount: 2,
+        content: JOINED_CONTENT(),
+        metadata: { contentFormat: 'digest-markdown-v1', isJoined: false },
+      });
+      expect(document.getElementById('meta-joined').hidden).toBe(true);
+    });
+
+    it('shows trigger and overlay with links when isJoined is true with h2 sections', () => {
+      renderChat({
+        id: 'j1', title: 'Joined', source: 'claude', url: '', timestamp: 0, messageCount: 2,
+        content: JOINED_CONTENT(),
+        metadata: { contentFormat: 'digest-markdown-v1', isJoined: true },
+      });
+      const joinedEl = document.getElementById('meta-joined');
+      expect(joinedEl.hidden).toBe(false);
+      expect(joinedEl.querySelector('.meta-joined__trigger')).not.toBeNull();
+      expect(joinedEl.querySelectorAll('.joined-overlay__item').length).toBe(2);
+    });
+
+    it('trigger text shows plural count', () => {
+      renderChat({
+        id: 'j1', title: 'Joined', source: 'claude', url: '', timestamp: 0, messageCount: 2,
+        content: JOINED_CONTENT(),
+        metadata: { contentFormat: 'digest-markdown-v1', isJoined: true },
+      });
+      expect(document.querySelector('.meta-joined__trigger').textContent).toContain('2 chats joined');
+    });
+
+    it('trigger text shows singular for one section', () => {
+      renderChat({
+        id: 'j1', title: 'Joined', source: 'claude', url: '', timestamp: 0, messageCount: 1,
+        content: JOINED_CONTENT(['## Only Section\n\nContent']),
+        metadata: { contentFormat: 'digest-markdown-v1', isJoined: true },
+      });
+      expect(document.querySelector('.meta-joined__trigger').textContent).toContain('1 chat joined');
+    });
+
+    it('hides meta-joined when isJoined but no h2 sections found', () => {
+      renderChat({
+        id: 'j2', title: 'No Sections', source: 'claude', url: '', timestamp: 0, messageCount: 1,
+        content: '---\ntitle: "No Sections"\nsource: claude\ncontentFormat: digest-markdown-v1\n---\n\nJust a paragraph, no h2 headings\n',
+        metadata: { contentFormat: 'digest-markdown-v1', isJoined: true },
+      });
+      expect(document.getElementById('meta-joined').hidden).toBe(true);
+    });
+
+    it('overlay links use joined-section-N anchors', () => {
+      renderChat({
+        id: 'j1', title: 'Joined', source: 'claude', url: '', timestamp: 0, messageCount: 2,
+        content: JOINED_CONTENT(),
+        metadata: { contentFormat: 'digest-markdown-v1', isJoined: true },
+      });
+      const items = document.querySelectorAll('.joined-overlay__item');
+      expect(items[0].getAttribute('href')).toBe('#joined-section-0');
+      expect(items[1].getAttribute('href')).toBe('#joined-section-1');
+    });
   });
 });
 

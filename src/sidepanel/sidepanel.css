@@ -363,6 +363,8 @@ svg {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
   margin-bottom: var(--space-lg);
   padding: 0 var(--space-xs);
 }
@@ -1107,6 +1109,62 @@ mark.search-highlight {
 .settings-select:focus {
   border-color: var(--accent);
   outline: none;
+}
+
+/* Text input used in settings rows (e.g. topics filter) */
+.settings-input {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  min-width: 140px;
+  transition: border-color 0.15s;
+}
+
+.settings-input:hover,
+.settings-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* Folder picker row control group */
+.settings-folder-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.settings-folder-picker__name {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Minor / secondary action buttons used in settings */
+.settings-btn {
+  appearance: none;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.settings-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.settings-btn--minor {
+  color: var(--text-secondary);
 }
 
 
@@ -1976,6 +2034,9 @@ button:focus-visible {
   transition: all var(--transition-fast);
   min-height: 36px;
   position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .tree-node-content:hover {
@@ -2032,7 +2093,7 @@ button:focus-visible {
 .tree-source-chip--copilot   { background: #ede9fe; color: #5b21b6; }
 .tree-source-chip--perplexity { background: #f0e0c8; color: #6b4620; }
 .tree-source-chip--deepseek   { background: #ddd6fe; color: #2e1065; }
-.tree-source-chip--assembled { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.tree-source-chip--joined    { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 .tree-source-chip--unknown   { background: var(--bg-tertiary); color: var(--text-tertiary); }
 
 /* Expand/collapse button */
@@ -2094,6 +2155,7 @@ button:focus-visible {
 
 .tree-label-text {
   flex: 1;
+  min-width: 0;
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--text-primary);
@@ -2313,18 +2375,6 @@ ul.tree-root.drop-target {
     opacity: 1;
     max-height: 1000px;
   }
-}
-
-/* Tree depth indication with subtle border */
-.tree-children::before {
-  content: '';
-  position: absolute;
-  left: 15px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--border-primary);
-  opacity: 0.5;
 }
 
 /* Keyboard focus styles for tree nodes */
@@ -2688,7 +2738,8 @@ ul.tree-root.drop-target {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 /* Small icon button reused for the section collapse toggle */
@@ -3012,6 +3063,8 @@ ul.tree-root.drop-target {
   font-size: 0.75rem;
   font-family: inherit;
   padding: 2px 20px 2px 6px;
+  min-width: 0;
+  max-width: 110px;
   /* custom chevron */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -3562,6 +3615,18 @@ ul.tree-root.drop-target {
   border-bottom-color: var(--primary);
   color: var(--primary);
   font-weight: 600;
+}
+
+#sessionPanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Ensure the hidden attribute works despite the explicit display:flex above */
+#sessionPanel[hidden] {
+  display: none;
 }
 
 #entityPanel {

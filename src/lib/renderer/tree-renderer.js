@@ -334,9 +334,14 @@ export class TreeRenderer {
 
   updateTopicCount() {
     const itemCount = document.getElementById('itemCount');
+    const chatCount = document.getElementById('chatCount');
     if (itemCount && this.tree) {
       const count = this.tree.getAllTopics().length;
       itemCount.textContent = `${count} topic${count !== 1 ? 's' : ''}`;
+    }
+    if (chatCount && Array.isArray(this.chats)) {
+      const count = this.chats.length;
+      chatCount.textContent = `${count} chat${count !== 1 ? 's' : ''}`;
     }
   }
 

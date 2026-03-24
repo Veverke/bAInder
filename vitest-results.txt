@@ -1,0 +1,2418 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Repos/Personal/bAInder[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mregisterExtractor() + extractChatEntities()[2m > [22m[2mcalls each registered extractor with messages, doc, chatId
+[22m[39m[bAInder] extractChatEntities: registry size = [33m1[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mregisterExtractor() + extractChatEntities()[2m > [22m[2mcalls each registered extractor with messages, doc, chatId
+[22m[39m[bAInder] extractChatEntities: result = code(1)
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mregisterExtractor() + extractChatEntities()[2m > [22m[2mreturns results from all registered extractors
+[22m[39m[bAInder] extractChatEntities: registry size = [33m2[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mregisterExtractor() + extractChatEntities()[2m > [22m[2mreturns results from all registered extractors
+[22m[39m[bAInder] extractChatEntities: result = code(1), table(2)
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö error isolation[2m > [22m[2mextractor that throws does not abort the pipeline
+[22m[39m[bAInder] extractChatEntities: registry size = [33m2[39m | messages = [33m0[39m
+
+node.exe : [90mstderr[2m | tests/entity-extractor.test.js[2m > 
+[22m[2mextractChatEntities() ΓÇö error isolation[2m > [22m[2mextractor 
+that throws does not abort the pipeline
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([90mstderr[2m...rt the pipeline 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[22m[39m[bAInder] Entity extractor threw for type code: Error: boom
+    at C:/Repos/Personal/bAInder/tests/entity-extractor.test.js:37:45
+    at extractChatEntities 
+(C:/Repos/Personal/bAInder/src/lib/entities/entity-extractor.js:36:46)
+    at C:/Repos/Personal/bAInder/tests/entity-extractor.test.js:39:45
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö error isolation[2m > [22m[2mextractor that throws does not abort the pipeline
+[22m[39m[bAInder] extractChatEntities: result = table(1)
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö empty results omitted[2m > [22m[2mempty extractor results are omitted from the output
+[22m[39m[bAInder] extractChatEntities: registry size = [33m2[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö empty results omitted[2m > [22m[2mempty extractor results are omitted from the output
+[22m[39m[bAInder] extractChatEntities: result = table(1)
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö empty results omitted[2m > [22m[2mreturns empty object when no extractors registered
+[22m[39m[bAInder] extractChatEntities: registry size = [33m0[39m | messages = [33m0[39m
+[bAInder] extractChatEntities: result = (none)
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö chatId passthrough[2m > [22m[2mchatId is passed through to each extractor call
+[22m[39m[bAInder] extractChatEntities: registry size = [33m2[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö chatId passthrough[2m > [22m[2mchatId is passed through to each extractor call
+[22m[39m[bAInder] extractChatEntities: result = prompt(1), code(1)
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö end-to-end with real extractors (A.4)[2m > [22m[2mextracts prompt entities from real extractPrompts
+[22m[39m[bAInder] extractChatEntities: registry size = [33m1[39m | messages = [33m2[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö end-to-end with real extractors (A.4)[2m > [22m[2mextracts prompt entities from real extractPrompts
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö end-to-end with real extractors (A.4)[2m > [22m[2mextracts table entities from real extractTables
+[22m[39m[bAInder] extractChatEntities: registry size = [33m1[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö end-to-end with real extractors (A.4)[2m > [22m[2mextracts table entities from real extractTables
+[22m[39m[bAInder] extractChatEntities: result = table(1)
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö async extractor support (D.6)[2m > [22m[2mawaits an async extractor (returns a Promise)
+[22m[39m[bAInder] extractChatEntities: registry size = [33m1[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö async extractor support (D.6)[2m > [22m[2mawaits an async extractor (returns a Promise)
+[22m[39m[bAInder] extractChatEntities: result = audio(1)
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö async extractor support (D.6)[2m > [22m[2masync extractor that rejects does not abort the pipeline
+[22m[39m[bAInder] extractChatEntities: registry size = [33m2[39m | messages = [33m0[39m
+
+[90mstderr[2m | tests/entity-extractor.test.js[2m > 
+[22m[2mextractChatEntities() ΓÇö async extractor support (D.6)[2m > 
+[22m[2masync extractor that rejects does not abort the pipeline
+[22m[39m[bAInder] Entity extractor threw for type audio: Error: async boom
+    at C:/Repos/Personal/bAInder/tests/entity-extractor.test.js:121:53
+    at extractChatEntities 
+(C:/Repos/Personal/bAInder/src/lib/entities/entity-extractor.js:36:46)
+    at C:/Repos/Personal/bAInder/tests/entity-extractor.test.js:123:45
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö async extractor support (D.6)[2m > [22m[2masync extractor that rejects does not abort the pipeline
+[22m[39m[bAInder] extractChatEntities: result = image(1)
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö async extractor support (D.6)[2m > [22m[2mmix of sync and async extractors both produce results
+[22m[39m[bAInder] extractChatEntities: registry size = [33m2[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/entity-extractor.test.js[2m > [22m[2mextractChatEntities() ΓÇö async extractor support (D.6)[2m > [22m[2mmix of sync and async extractors both produce results
+[22m[39m[bAInder] extractChatEntities: result = image(1), audio(1)
+
+ [32mΓ£ô[39m tests/entity-extractor.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 139[2mms[22m[39m
+ [32mΓ£ô[39m tests/export-dialog-jsonl.test.js [2m([22m[2m42 tests[22m[2m)[22m[32m 258[2mms[22m[39m
+ [32mΓ£ô[39m tests/sticky-notes-ui.test.js [2m([22m[2m85 tests[22m[2m)[22m[32m 246[2mms[22m[39m
+ [32mΓ£ô[39m tests/sidepanel-ui.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 1478[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should not have onclick attributes (CSP violation) [33m 327[2mms[22m[39m
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mprocessSources[2m > [22m[2mreplaces a Sources <p>+<ul> pair with a .sources-trigger button
+[22m[39m[bAInder] processSources: creating chip with [33m1[39m link(s)
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mprocessSources[2m > [22m[2mstores link data in data-sources attribute as JSON
+[22m[39m[bAInder] processSources: creating chip with [33m2[39m link(s)
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mprocessSources[2m > [22m[2mchip label uses singular "source" for one link
+[22m[39m[bAInder] processSources: creating chip with [33m1[39m link(s)
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mprocessSources[2m > [22m[2mchip label uses plural "sources" for multiple links
+[22m[39m[bAInder] processSources: creating chip with [33m2[39m link(s)
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mprocessSources[2m > [22m[2mdoes nothing when the <p> is not empty. and has no following <ul>
+[22m[39m[bAInder] processSources: found Sources p but nextElementSibling is P ∩┐╜ skipping
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mprocessSources[2m > [22m[2mdoes nothing when the <ul> has no links
+[22m[39m[bAInder] processSources: Sources ul has no valid links
+
+ [32mΓ£ô[39m tests/import-parser.test.js [2m([22m[2m152 tests[22m[2m)[22m[32m 110[2mms[22m[39m
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mshows the reader header
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Test Chat\"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there!\n"
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mshows the reader content
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Test Chat\"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there!\n"
+
+ [32mΓ£ô[39m tests/entity-tree.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2msets the page title
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Test Chat\"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there!\n"
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mrenders title in header
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Test Chat\"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there!\n"
+
+ [32mΓ£ô[39m tests/dialogs.test.js [2m([22m[2m73 tests[22m[2m)[22m[33m 661[2mms[22m[39m
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2msets source badge class to badge--claude
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Test Chat\"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there!\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mhtmlToMarkdown()[2m > [22m[2mskips <svg>, <button>, <script> elements
+[22m[39m[bAInder] [htmlToMarkdown] dropping <button> text: click
+
+ [32mΓ£ô[39m tests/image-resolver.test.js [2m([22m[2m60 tests[22m[2m)[22m[33m 443[2mms[22m[39m
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mrenders markdown content as HTML for markdown-v1 format
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Test Chat\"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there!\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mhtmlToMarkdown()[2m > [22m[2m<table> with <th> header row ΓåÆ GFM table with separator after header
+[22m[39m[bAInder] htmlToMarkdown: <table> hit, tr count: [33m2[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mkeeps entire assistant response in one .chat-turn--assistant when response contains internal --- rules
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m224[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"HR Test\"\nsource: chatgpt\ncontentFormat: markdown-v1\n---\n\n# HR Test\n\n≡ƒÖï User question\n\n---\n\n≡ƒñû First paragraph of response\n\n---\n\nSecond paragraph of response\n\n---\n\n≡ƒÖï Second user question\n\n---\n\n≡ƒñû Second response\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mhtmlToMarkdown()[2m > [22m[2m<table> with only <td> rows ΓåÆ inserts GFM separator after first row
+[22m[39m[bAInder] htmlToMarkdown: <table> hit, tr count: [33m2[39m
+
+ [32mΓ£ô[39m tests/sidepanel-integration.test.js [2m([22m[2m29 tests[22m[2m)[22m[33m 944[2mms[22m[39m
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2msets excerpt badge class when isExcerpt is true in metadata
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m103[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Excerpt\"\nsource: chatgpt\nexcerpt: true\ncontentFormat: markdown-v1\n---\n\n# Excerpt\n\nSome text"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mhtmlToMarkdown()[2m > [22m[2m<table> with pipe character in cell ΓåÆ pipe is escaped
+[22m[39m[bAInder] htmlToMarkdown: <table> hit, tr count: [33m2[39m
+
+ [32mΓ£ô[39m tests/tree-renderer.test.js [2m([22m[2m134 tests[22m[2m)[22m[33m 771[2mms[22m[39m
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mshows meta-responses when there are assistant turns
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Test Chat\"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there!\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mhtmlToMarkdown()[2m > [22m[2mempty <table> ΓåÆ returns empty string
+[22m[39m[bAInder] htmlToMarkdown: <table> hit, tr count: [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mrenders responses trigger with correct count text
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Test Chat\"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there!\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mextractChatGPT: preserves bold, inline code, and list from assistant HTML
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 assistant | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mrenders responses trigger as plural for multiple responses
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n≡ƒÖï Q1\n\n---\n\n≡ƒñû A1\n\n---\n\n≡ƒÖï Q2\n\n---\n\n≡ƒñû A2\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mextractChatGPT: preserves bold, inline code, and list from assistant HTML
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 assistant | markdown len: [33m51[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mextractChatGPT: preserves bold, inline code, and list from assistant HTML
+[22m[39m[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mrenders a responses-overlay with one item per assistant turn
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Test Chat\"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there!\n"
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mresponses overlay items link to #rN anchors
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\n≡ƒÖï Q1\n\n---\n\n≡ƒñû A1\n\n---\n\n≡ƒÖï Q2\n\n---\n\n≡ƒñû A2\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mextractCopilot: preserves heading, code block, and bold from assistant HTML
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m22[39m | preview: "How do I centre a div?"
+
+ [32mΓ£ô[39m tests/context-menu.test.js [2m([22m[2m21 tests[22m[2m)[22m[33m 2198[2mms[22m[39m
+       [33m[2mΓ£ô[22m[39m should handle all actions without errors when contextMenuTopic is set [33m 510[2mms[22m[39m
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mresponses overlay items contain the assistant text snippet
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m190[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Test Chat\"\nsource: claude\nurl: https://claude.ai/chat/abc\ndate: 2026-02-20T00:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# Test Chat\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there!\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mextractCopilot: preserves heading, code block, and bold from assistant HTML
+[22m[39m[bAInder] [copilot] extracted msg [33m1[39m assistant | len: [33m80[39m | preview: "## Answer\n\nUse **flexbox** on the parent.\n\n```css\n.parent { display: flex; }\n```"
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2mrenderChat[2m > [22m[2mhides meta-responses when there are no assistant turns
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m102[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: claude\ncontentFormat: markdown-v1\n---\n\n# T\n\nSome plain text with no role emoji\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mprepareChatForSave: markdown content contains preserved formatting
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m13[39m | preview: "Explain lists"
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2minit[2m > [22m[2mrenders the chat when chatId is found
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m111[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Found Chat Array\"\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Found Chat Array\n\nSome content\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mprepareChatForSave: markdown content contains preserved formatting
+[22m[39m[bAInder] [copilot] extracted msg [33m1[39m assistant | len: [33m37[39m | preview: "- **ul**: unordered\n- **ol**: ordered"
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2minit[2m > [22m[2mheader and content are shown, error is hidden, after successful render
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m87[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Render Test\"\nsource: copilot\ncontentFormat: markdown-v1\n---\n\n# Render Test\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mextractCopilot: ignores user elements outside <main> when <main> is present
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m16[39m | preview: "Real user prompt"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mextractCopilot: ignores user elements outside <main> when <main> is present
+[22m[39m[bAInder] [copilot] extracted msg [33m1[39m assistant | len: [33m21[39m | preview: "Real copilot response"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mextractCopilot: title comes from actual first user message, not sidebar
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m28[39m | preview: "My full original prompt text"
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupTurnDeleteMode[2m > [22m[2madds a Select button to .reader-actions
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractors ΓÇö rich formatting preserved via htmlToMarkdown[2m > [22m[2mextractCopilot: title comes from actual first user message, not sidebar
+[22m[39m[bAInder] [copilot] extracted msg [33m1[39m assistant | len: [33m6[39m | preview: "Answer"
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupTurnDeleteMode[2m > [22m[2mdoes not add Select button when chat has no messages
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 0\ncontentFormat: markdown-v1\n---\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mreturns empty messages for a page with no conversation
+[22m[39m[bAInder] ChatGPT extraction: turns=0
+[bAInder] ChatGPT: primary selector found no turns, trying fallback
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupTurnDeleteMode[2m > [22m[2mDelete button is hidden initially
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mextracts a single user message
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupTurnDeleteMode[2m > [22m[2mclicking Select adds checkboxes to each .chat-turn
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mextracts a single user message
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m13[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupTurnDeleteMode[2m > [22m[2mclicking Select a second time cancels and removes checkboxes
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mextracts a full conversation in order
+[22m[39m[bAInder] ChatGPT extraction: turns=4
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mextracts a full conversation in order
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m12[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT turn conversation-turn-1 assistant | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupTurnDeleteMode[2m > [22m[2mchecking a turn checkbox shows Delete button with count
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mextracts a full conversation in order
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-1 assistant | markdown len: [33m1[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupTurnDeleteMode[2m > [22m[2munchecking the last turn hides Delete button
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mextracts a full conversation in order
+[22m[39m[bAInder] ChatGPT turn conversation-turn-2 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupTurnDeleteMode[2m > [22m[2meach .chat-turn gets a data-msg-index attribute after renderChat
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m137[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Hello\n\n---\n\n≡ƒñû Hi there\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mextracts a full conversation in order
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-2 user | markdown len: [33m7[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT turn conversation-turn-3 assistant | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupTurnDeleteMode[2m > [22m[2mdelete handler persists updated chat and clears annotations
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m152[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 4\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Q1\n\n---\n\n≡ƒñû A1\n\n---\n\n≡ƒÖï Q2\n\n---\n\n≡ƒñû A2\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mextracts a full conversation in order
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-3 assistant | markdown len: [33m16[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mextracts a full conversation in order
+[22m[39m[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupAnnotations delete-text button[2m > [22m[2mDelete button is hidden when chat has no messages
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m109[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 0\ncontentFormat: markdown-v1\n---\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2msets the title from the first user message
+[22m[39m[bAInder] ChatGPT extraction: turns=2
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupAnnotations delete-text button[2m > [22m[2mDelete button is visible when chat has messages
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m143[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Hello world\n\n---\n\n≡ƒñû Hi there\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2msets the title from the first user message
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m26[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT turn conversation-turn-1 assistant | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupAnnotations delete-text button[2m > [22m[2mDelete button is hidden when chat parameter is not provided
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m143[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Hello world\n\n---\n\n≡ƒñû Hi there\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2msets the title from the first user message
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-1 assistant | markdown len: [33m31[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+[90mstdout[2m | tests/reader.test.js[2m > [22m[2msetupAnnotations delete-text button[2m > [22m[2mdelete handler persists updated chat and clears annotations
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m156[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"T\"\nsource: chatgpt\ndate: 2025-02-19T21:20:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n≡ƒÖï Hello world how are you\n\n---\n\n≡ƒñû I am fine\n"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2msets the title from the first user message
+[22m[39m[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2muses the fallback selector when no .markdown exists
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: roleEl | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2muses the fallback selector when no .markdown exists
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m19[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+ [32mΓ£ô[39m tests/reader.test.js [2m([22m[2m240 tests[22m[2m)[22m[33m 1035[2mms[22m[39m
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mskips turns without a role element
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT skip turn conversation-turn-0 | cannot determine role | h6: ""
+[bAInder] ChatGPT: primary selector found no turns, trying fallback
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mmaps unknown role to "assistant"
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 assistant | contentEl: roleEl | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mmaps unknown role to "assistant"
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 assistant | markdown len: [33m10[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mmaps unknown role to "assistant"
+[22m[39m[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2muses the global fallback selector when no articles found
+[22m[39m[bAInder] ChatGPT extraction: turns=0
+[bAInder] ChatGPT: primary selector found no turns, trying fallback
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2muses the global fallback selector when no articles found
+[22m[39m[bAInder] ChatGPT fallback turn: user | markdown len: [33m16[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+ [32mΓ£ô[39m tests/logger.test.js [2m([22m[2m61 tests[22m[2m)[22m[32m 120[2mms[22m[39m
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] ChatGPT extraction: turns=2
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m2[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT turn conversation-turn-1 assistant | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-1 assistant | markdown len: [33m2[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mskips an article turn with no [data-message-author-role] child
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT skip turn conversation-turn-0 | cannot determine role | h6: ""
+[bAInder] ChatGPT: primary selector found no turns, trying fallback
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2muses [class*="prose"] element when .markdown is absent
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: [class*=prose] | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2muses [class*="prose"] element when .markdown is absent
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m10[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2muses || "" fallback for rawRole when attribute value is empty string
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 assistant | contentEl: roleEl | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2muses || "" fallback for rawRole when attribute value is empty string
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 assistant | markdown len: [33m18[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+ [32mΓ£ô[39m tests/export-import-integration.test.js [2m([22m[2m119 tests[22m[2m)[22m[33m 6271[2mms[22m[39m
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2muses || "" fallback for rawRole when attribute value is empty string
+[22m[39m[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mfallback path: maps non-user role to assistant and calls stripSourceContainers
+[22m[39m[bAInder] ChatGPT extraction: turns=0
+[bAInder] ChatGPT: primary selector found no turns, trying fallback
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mfallback path: maps non-user role to assistant and calls stripSourceContainers
+[22m[39m[bAInder] ChatGPT fallback turn: assistant | markdown len: [33m26[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mskips primary turn when htmlToMarkdown returns empty content (if (content) false branch)
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: roleEl | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mskips primary turn when htmlToMarkdown returns empty content (if (content) false branch)
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m0[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT: primary selector found no turns, trying fallback
+
+ [32mΓ£ô[39m tests/entity-cards/artifact-card.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 40[2mms[22m[39m
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mskips primary turn when htmlToMarkdown returns empty content (if (content) false branch)
+[22m[39m[bAInder] ChatGPT fallback turn: user | markdown len: [33m0[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+ [32mΓ£ô[39m tests/artifact-preview.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 119[2mms[22m[39m
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mfallback: skips element when htmlToMarkdown returns empty content (if (content) false branch)
+[22m[39m[bAInder] ChatGPT extraction: turns=0
+[bAInder] ChatGPT: primary selector found no turns, trying fallback
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChatGPT()[2m > [22m[2mfallback: skips element when htmlToMarkdown returns empty content (if (content) false branch)
+[22m[39m[bAInder] ChatGPT fallback turn: user | markdown len: [33m0[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mreturns empty messages for a blank page
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts user queries and model responses
+[22m[39m[bAInder] Gemini extraction: user elements=1 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts user queries and model responses
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts user queries and model responses
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m11[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts user queries and model responses
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts user queries and model responses
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m22[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts using .query-text class fallback
+[22m[39m[bAInder] Gemini extraction: user elements=1 model elements=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts using .query-text class fallback
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts using .query-text class fallback
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m20[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts using .response-text class fallback
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts using .response-text class fallback
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mextracts using .response-text class fallback
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m18[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2msets title from first user message
+[22m[39m[bAInder] Gemini extraction: user elements=1 model elements=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2msets title from first user message
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2msets title from first user message
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m23[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] Gemini extraction: user elements=2 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m1[39m
+
+[90mstderr[2m | tests/save-banner.test.js[2m > 
+[22m[2minitSaveBanner()[2m > [22m[2mhides banner when tabs.query throws
+[22m[39m[bAInder] [WARN] bAInder: initSaveBanner error Error: Permission 
+denied
+    at C:/Repos/Personal/bAInder/tests/save-banner.test.js:233:46
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:104:5)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:20
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m1[39m
+
+[90mstderr[2m | tests/save-banner.test.js[2m > 
+[22m[2mhandlePanelSave()[2m > [22m[2msets "reload" state when content 
+script is unreachable
+[22m[39m[bAInder] [ERROR] bAInder: Panel save failed Error: Could not 
+establish connection. Receiving end does not exist
+    at C:/Repos/Personal/bAInder/tests/save-banner.test.js:292:7
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:104:5)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:20
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: 
+
+[90mstderr[2m | tests/save-banner.test.js[2m > 
+[22m[2mhandlePanelSave()[2m > [22m[2msets "error" state on generic failure
+[22m[39m[bAInder] [ERROR] bAInder: Panel save failed Error: Unknown error
+    at C:/Repos/Personal/bAInder/tests/save-banner.test.js:308:52
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:104:5)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:20
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m1[39m
+
+[90mstderr[2m | tests/save-banner.test.js[2m > 
+[22m[2mhandlePanelSave()[2m > [22m[2msets error when extraction fails 
+(success: false)
+[22m[39m[bAInder] [ERROR] bAInder: Panel save failed Error: Extraction failed
+    at Module.handlePanelSave 
+(C:/Repos/Personal/bAInder/src/sidepanel/features/save-banner.js:133:13)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:104:5)[39m
+    at C:/Repos/Personal/bAInder/tests/save-banner.test.js:327:5
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:20
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mdoes not duplicate user message when outer wrapper also matches [class*="user-query"]
+[22m[39m[bAInder] Gemini extraction: user elements=1 model elements=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mdoes not duplicate user message when outer wrapper also matches [class*="user-query"]
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: div
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mdoes not duplicate user message when outer wrapper also matches [class*="user-query"]
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m25[39m
+
+[90mstderr[2m | tests/save-banner.test.js[2m > 
+[22m[2mhandlePanelSave()[2m > [22m[2mthrows when no active tab found
+[22m[39m[bAInder] [ERROR] bAInder: Panel save failed Error: No active tab
+    at Module.handlePanelSave 
+(C:/Repos/Personal/bAInder/src/sidepanel/features/save-banner.js:129:25)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:104:5)[39m
+    at C:/Repos/Personal/bAInder/tests/save-banner.test.js:338:5
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:20
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mdoes not duplicate assistant message when outer wrapper also matches [class*="model-response"]
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=1
+
+ [32mΓ£ô[39m tests/save-banner.test.js [2m([22m[2m28 tests[22m[2m)[22m[32m 79[2mms[22m[39m
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mdoes not duplicate assistant message when outer wrapper also matches [class*="model-response"]
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: div
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mdoes not duplicate assistant message when outer wrapper also matches [class*="model-response"]
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m21[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mskips a turn whose content is empty (if(content) FALSE branch)
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mskips a turn whose content is empty (if(content) FALSE branch)
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: 
+
+ [32mΓ£ô[39m tests/extractors/audio.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mskips a turn whose content is empty (if(content) FALSE branch)
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m0[39m
+
+ [32mΓ£ô[39m tests/chat-dialogs.test.js [2m([22m[2m43 tests[22m[2m)[22m[32m 272[2mms[22m[39m
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mstrips "Gemini said" heading from assistant content
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mstrips "Gemini said" heading from assistant content
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: h2,p
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mstrips "Gemini said" heading from assistant content
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m17[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mstrips "You stopped this response" text from assistant content
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mstrips "You stopped this response" text from assistant content
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: p
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mstrips "You stopped this response" text from assistant content
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m21[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mskips a model-response element whose next sibling contains "you stopped this response"
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mskips a model-response element when parent next sibling contains the stopped marker
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mskips a model-response element when parent has a sibling child with the stopped marker
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mappends cached audio markers to last assistant message
+[22m[39m[bAInder] Gemini extraction: user elements=1 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mappends cached audio markers to last assistant message
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mappends cached audio markers to last assistant message
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m14[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mappends cached audio markers to last assistant message
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mappends cached audio markers to last assistant message
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m18[39m
+[bAInder] Gemini: interceptor cache hit, blob: blob:fake-url
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mcreates a new assistant message for cached audio when no assistant exists
+[22m[39m[bAInder] Gemini extraction: user elements=1 model elements=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mcreates a new assistant message for cached audio when no assistant exists
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mcreates a new assistant message for cached audio when no assistant exists
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m17[39m
+[bAInder] Gemini: interceptor cache hit, blob: blob:fake-url-2
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mdeduplicates cached audio with the same blob URL
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mdeduplicates cached audio with the same blob URL
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mdeduplicates cached audio with the same blob URL
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m7[39m
+[bAInder] Gemini: interceptor cache hit, blob: blob:same-url
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mlogs table debug info when assistant response contains a <table>
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mlogs table debug info when assistant response contains a <table>
+[22m[39m[bAInder] htmlToMarkdown: <table> hit, tr count: [33m2[39m
+[bAInder] Gemini assistant : found [33m1[39m <table> element(s); markdown pipes: [33m6[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini()[2m > [22m[2mlogs table debug info when assistant response contains a <table>
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m27[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mextracts a single user message via data-testid="user-message"
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m13[39m | preview: "Hello Copilot"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mextracts a single assistant message via data-testid="copilot-message"
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m assistant | len: [33m9[39m | preview: "Hi there!"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mextracts multi-turn conversation in DOM order
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m19[39m | preview: "What is TypeScript?"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mextracts multi-turn conversation in DOM order
+[22m[39m[bAInder] [copilot] extracted msg [33m1[39m assistant | len: [33m45[39m | preview: "TypeScript is a typed superset of JavaScript."
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mextracts multi-turn conversation in DOM order
+[22m[39m[bAInder] [copilot] extracted msg [33m2[39m user | len: [33m19[39m | preview: "Give me an example."
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mextracts multi-turn conversation in DOM order
+[22m[39m[bAInder] [copilot] extracted msg [33m3[39m assistant | len: [33m21[39m | preview: "const x: number = 42;"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2msets title from the first user message
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m19[39m | preview: "Explain async/await"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2muses fallback title when no user message present
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m assistant | len: [33m6[39m | preview: "Hello!"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m2[39m | preview: "Q1"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] [copilot] extracted msg [33m1[39m assistant | len: [33m2[39m | preview: "A1"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mreturns messageCount equal to messages length
+[22m[39m[bAInder] [copilot] extracted msg [33m2[39m user | len: [33m2[39m | preview: "Q2"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mmatches user elements with .UserMessage class fallback
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m18[39m | preview: "Via class fallback"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mmatches assistant elements with data-testid="assistant-message" fallback
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m assistant | len: [33m18[39m | preview: "Fallback assistant"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mstrips "You said:" h5 injected by Copilot from user message content
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m21[39m | preview: "How do closures work?"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mstrips "Copilot said:" h5 from assistant message content
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m assistant | len: [33m41[39m | preview: "A closure captures its surrounding scope."
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mtitle uses the real question, not the Copilot label
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m53[39m | preview: "Can I tell if arguments were passed to a JS function?"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mdoes not create duplicate messages when outer and inner element both match
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m26[39m | preview: "One message not duplicated"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mignores user elements inside <aside> (history sidebar)
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m19[39m | preview: "Current real prompt"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot()[2m > [22m[2mskips a turn whose htmlToMarkdown content is empty after stripRoleLabels (if(content) FALSE branch)
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m0[39m | preview: ""
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mChatGPT: sources in a citation sibling are appended to the assistant message
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-1 assistant | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mChatGPT: sources in a citation sibling are appended to the assistant message
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-1 assistant | markdown len: [33m19[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mChatGPT: sources in a citation sibling are appended to the assistant message
+[22m[39m[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mCopilot: sources inside a <button> are appended to the assistant message
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m assistant | len: [33m102[39m | preview: "Response text\n\n**Sources:**\n\n- [CS1](https://copilot-source1.com)\n- [CS2](https://copilot-source2.com)"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mGemini: sources inside a <button aria-label="Citations"> are appended
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mGemini: sources inside a <button aria-label="Citations"> are appended
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: p
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mGemini: sources inside a <button aria-label="Citations"> are appended
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m13[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mGemini: attribution links inside the response div are moved to the Sources block
+[22m[39m[bAInder] Gemini extraction: user elements=0 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mGemini: attribution links inside the response div are moved to the Sources block
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: p
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mGemini: attribution links inside the response div are moved to the Sources block
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m13[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2muser messages never get a Sources section appended
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2muser messages never get a Sources section appended
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m13[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mCopilot: sources-button-testid container is stripped from main content and links are collected
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m assistant | len: [33m138[39m | preview: "Main response text\n\n**Sources:**\n\n- [Source A](https://source-a.com)\n- [Source B](https://source-b.com)\n- [Source C](https://source-c.com)"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mCopilot: data-test-id (hyphenated) sources container is stripped and links collected
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m assistant | len: [33m117[39m | preview: "Main response text\n\n**Sources:**\n\n- [Hyphen A](https://hyphen-source-a.com)\n- [Hyphen B](https://hyphen-source-b.com)"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mChatGPT: sources-button content (images) excluded from message body
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-1 assistant | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m1[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mChatGPT: sources-button content (images) excluded from message body
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-1 assistant | markdown len: [33m11[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractSourceLinks()[2m > [22m[2mChatGPT: sources-button content (images) excluded from message body
+[22m[39m[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractPerplexity()[2m > [22m[2mreturns empty messages when no elements found
+[22m[39m[bAInder] Perplexity extraction: user=0 answer=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractPerplexity()[2m > [22m[2mextracts a single user message via class "query"
+[22m[39m[bAInder] Perplexity extraction: user=1 answer=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractPerplexity()[2m > [22m[2mextracts a single assistant message via class "prose"
+[22m[39m[bAInder] Perplexity extraction: user=0 answer=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractPerplexity()[2m > [22m[2mextracts a full conversation in correct order
+[22m[39m[bAInder] Perplexity extraction: user=2 answer=2
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractPerplexity()[2m > [22m[2mstrips "Sources" heading from assistant content
+[22m[39m[bAInder] Perplexity extraction: user=0 answer=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractPerplexity()[2m > [22m[2mstrips footnote-only lines like "[1] [2]"
+[22m[39m[bAInder] Perplexity extraction: user=0 answer=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractPerplexity()[2m > [22m[2muses first <h1> as title
+[22m[39m[bAInder] Perplexity extraction: user=1 answer=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractPerplexity()[2m > [22m[2mfalls back to generating title from messages when no h1
+[22m[39m[bAInder] Perplexity extraction: user=1 answer=0
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractPerplexity()[2m > [22m[2mmessageCount matches messages array length
+[22m[39m[bAInder] Perplexity extraction: user=1 answer=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mdispatches to extractChatGPT
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mdispatches to extractChatGPT
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m12[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mdispatches to extractGemini
+[22m[39m[bAInder] Gemini extraction: user elements=1 model elements=0
+
+[90mstdout[2m | tests/tree-controller.test.js[2m > [22m[2mloadTree()[2m > [22m[2mcalls storage.loadTopicTree and assigns tree to state
+[22m[39m[bAInder] [INFO] Loaded tree with 0 topics
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mdispatches to extractGemini
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mdispatches to extractGemini
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m15[39m
+
+ [32mΓ£ô[39m tests/virtual-scroll.test.js [2m([22m[2m34 tests[22m[2m)[22m[32m 84[2mms[22m[39m
+[90mstderr[2m | tests/tree-controller.test.js[2m > [22m[2mloadTree()[2m 
+> [22m[2msets state.tree to an empty TopicTree on storage error
+[22m[39m[bAInder] [ERROR] Error loading tree: Error: Storage error
+    at C:/Repos/Personal/bAInder/tests/tree-controller.test.js:161:52
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mdispatches to extractCopilot
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m16[39m | preview: "Copilot question"
+
+[90mstdout[2m | tests/tree-controller.test.js[2m > [22m[2msaveTree()[2m > [22m[2mcalls storage.saveTopicTree with tree data
+[22m[39m[bAInder] [INFO] Tree saved successfully
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mdispatches to extractPerplexity
+[22m[39m[bAInder] Perplexity extraction: user=1 answer=0
+
+[90mstderr[2m | tests/tree-controller.test.js[2m > [22m[2msaveTree()[2m 
+> [22m[2mshows error notification when save fails
+[22m[39m[bAInder] [ERROR] Error saving tree: Error: Write error
+    at C:/Repos/Personal/bAInder/tests/tree-controller.test.js:183:52
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mincludes extractedAt timestamp
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/tree-controller.test.js[2m > [22m[2mhandleTopicDrop()[2m > [22m[2mmoves the topic and saves tree on valid drop
+[22m[39m[bAInder] [INFO] Tree saved successfully
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mincludes extractedAt timestamp
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m1[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/tree-controller.test.js[2m > [22m[2mhandleChatDrop()[2m > [22m[2mmoves chat, saves, and shows success notification
+[22m[39m[bAInder] [INFO] Tree saved successfully
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mincludes url from document.location.href
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+ [32mΓ£ô[39m tests/settings-panel.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 112[2mms[22m[39m
+ [32mΓ£ô[39m tests/item-builder.test.js [2m([22m[2m80 tests[22m[2m)[22m[32m 182[2mms[22m[39m
+ [32mΓ£ô[39m tests/review-date.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 104[2mms[22m[39m
+[90mstdout[2m | tests/tree-controller.test.js[2m > [22m[2mhandleTopicPin()[2m > [22m[2mpins a topic, saves tree, and shows notification
+[22m[39m[bAInder] [INFO] Tree saved successfully
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2mincludes url from document.location.href
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m1[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/tree-controller.test.js[2m > [22m[2mhandleTopicPin()[2m > [22m[2munpins a topic and shows "unpinned" notification
+[22m[39m[bAInder] [INFO] Tree saved successfully
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2maccepts an explicit URL override
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat()[2m > [22m[2maccepts an explicit URL override
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m1[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mChatGPT: end-to-end extract and prepare
+[22m[39m[bAInder] ChatGPT extraction: turns=4
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+ [32mΓ£ô[39m tests/tree-controller.test.js [2m([22m[2m32 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mChatGPT: end-to-end extract and prepare
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m17[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT turn conversation-turn-1 assistant | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mChatGPT: end-to-end extract and prepare
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-1 assistant | markdown len: [33m42[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mChatGPT: end-to-end extract and prepare
+[22m[39m[bAInder] ChatGPT turn conversation-turn-2 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mChatGPT: end-to-end extract and prepare
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-2 user | markdown len: [33m25[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT turn conversation-turn-3 assistant | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mChatGPT: end-to-end extract and prepare
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-3 assistant | markdown len: [33m46[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mChatGPT: end-to-end extract and prepare
+[22m[39m[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mGemini: end-to-end extract and prepare
+[22m[39m[bAInder] Gemini extraction: user elements=1 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mGemini: end-to-end extract and prepare
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mGemini: end-to-end extract and prepare
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m41[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mGemini: end-to-end extract and prepare
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mGemini: end-to-end extract and prepare
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m62[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mCopilot: end-to-end extract and prepare
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m36[39m | preview: "How do I reverse a string in Python?"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mCopilot: end-to-end extract and prepare
+[22m[39m[bAInder] [copilot] extracted msg [33m1[39m assistant | len: [33m20[39m | preview: "Use slicing: s[::-1]"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mCopilot: end-to-end extract and prepare
+[22m[39m[bAInder] [copilot] extracted msg [33m2[39m user | len: [33m25[39m | preview: "What about in JavaScript?"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mCopilot: end-to-end extract and prepare
+[22m[39m[bAInder] [copilot] extracted msg [33m3[39m assistant | len: [33m32[39m | preview: "str.split('').reverse().join('')"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mFull extraction pipeline[2m > [22m[2mhandles an empty conversation gracefully end-to-end
+[22m[39m[bAInder] ChatGPT extraction: turns=0
+[bAInder] ChatGPT: primary selector found no turns, trying fallback
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini() ΓÇô sort returns 1 when model element precedes user in DOM[2m > [22m[2mshould still capture messages correctly when model turn appears before user in DOM
+[22m[39m[bAInder] Gemini extraction: user elements=1 model elements=1
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini() ΓÇô sort returns 1 when model element precedes user in DOM[2m > [22m[2mshould still capture messages correctly when model turn appears before user in DOM
+[22m[39m[bAInder] Gemini assistant : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini() ΓÇô sort returns 1 when model element precedes user in DOM[2m > [22m[2mshould still capture messages correctly when model turn appears before user in DOM
+[22m[39m[bAInder] Gemini turn: assistant DIV | light imgs: [33m0[39m | markdown len: [33m21[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini() ΓÇô sort returns 1 when model element precedes user in DOM[2m > [22m[2mshould still capture messages correctly when model turn appears before user in DOM
+[22m[39m[bAInder] Gemini user : NO <table> elements. Tags in response el: 
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractGemini() ΓÇô sort returns 1 when model element precedes user in DOM[2m > [22m[2mshould still capture messages correctly when model turn appears before user in DOM
+[22m[39m[bAInder] Gemini turn: user DIV | light imgs: [33m0[39m | markdown len: [33m13[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot() ΓÇô sort returns 1 when assistant element precedes user in DOM[2m > [22m[2mshould still capture messages correctly when assistant turn appears before user in DOM
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m assistant | len: [33m20[39m | preview: "I am GitHub Copilot."
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractCopilot() ΓÇô sort returns 1 when assistant element precedes user in DOM[2m > [22m[2mshould still capture messages correctly when assistant turn appears before user in DOM
+[22m[39m[bAInder] [copilot] extracted msg [33m1[39m user | len: [33m12[39m | preview: "Who are you?"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat() ΓÇô URL resolution branches[2m > [22m[2muses doc.location.href when no url arg is provided
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat() ΓÇô URL resolution branches[2m > [22m[2muses doc.location.href when no url arg is provided
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m5[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat() ΓÇô URL resolution branches[2m > [22m[2muses empty string when url arg is omitted and doc has no location
+[22m[39m[bAInder] ChatGPT extraction: turns=1
+[bAInder] ChatGPT turn conversation-turn-0 user | contentEl: .markdown | imgs contentEl/turn: [33m0[39m / [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat() ΓÇô URL resolution branches[2m > [22m[2muses empty string when url arg is omitted and doc has no location
+[22m[39m[bAInder] ChatGPT turn result conversation-turn-0 user | markdown len: [33m4[39m | hasImg: [33mfalse[39m | hasPlaceholder: [33mfalse[39m
+[bAInder] ChatGPT docSweep: total audio markers found: [33m0[39m
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat() ΓÇô URL resolution branches[2m > [22m[2mcopilot: uses explicit url arg when provided
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m5[39m | preview: "Hello"
+
+[90mstdout[2m | tests/chat-extractor.test.js[2m > [22m[2mextractChat() ΓÇô URL resolution branches[2m > [22m[2mcopilot: falls back to doc.location.href when no url arg
+[22m[39m[bAInder] [copilot] extracted msg [33m0[39m user | len: [33m5[39m | preview: "Hello"
+
+ [32mΓ£ô[39m tests/chat-extractor.test.js [2m([22m[2m254 tests[22m[2m)[22m[33m 705[2mms[22m[39m
+ [32mΓ£ô[39m tests/entity-cards/attachment-card.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32mΓ£ô[39m tests/compare-page.test.js [2m([22m[2m23 tests[22m[2m)[22m[32m 103[2mms[22m[39m
+ [32mΓ£ô[39m tests/annotations.test.js [2m([22m[2m40 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+[90mstdout[2m | tests/excerpt-format.test.js
+[22m[39m[bAInder] Phase AΓÇôE extractors registered: prompt, citation, table, code, diagram, toolCall, attachment, image, audio, artifact
+
+[90mstdout[2m | tests/save-and-open.integration.test.js
+[22m[39m[bAInder] Phase AΓÇôE extractors registered: prompt, citation, table, code, diagram, toolCall, attachment, image, audio, artifact
+
+ [32mΓ£ô[39m tests/excerpt-format.test.js [2m([22m[2m32 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+[90mstderr[2m | tests/multi-select.test.js[2m > 
+[22m[2mhandleCopyAll()[2m > [22m[2mshows error when loadFullByIds throws
+[22m[39mCopy all: failed to load chat content: Error: DB error
+    at C:/Repos/Personal/bAInder/tests/multi-select.test.js:289:69
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstderr[2m | tests/multi-select.test.js[2m > 
+[22m[2mhandleExportDigest()[2m > [22m[2mshows alert when export throws
+[22m[39mDigest export failed: Error: Export crash
+    at C:/Repos/Personal/bAInder/tests/multi-select.test.js:333:76
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js
+[22m[39m[bAInder] Phase AΓÇôE extractors registered: prompt, citation, table, code, diagram, toolCall, attachment, image, audio, artifact
+
+[90mstderr[2m | tests/multi-select.test.js[2m > 
+[22m[2mhandleExportDigest()[2m > [22m[2mshows error when loadFullByIds 
+throws in handleExportDigest
+[22m[39mFailed to load full chat content for digest export: Error: DB fail
+    at C:/Repos/Personal/bAInder/tests/multi-select.test.js:342:69
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstderr[2m | tests/multi-select.test.js[2m > 
+[22m[2mhandleAssemble()[2m > [22m[2mshows error when loadFullByIds throws 
+during assembly
+[22m[39mFailed to load full chat content for assembly: Error: DB fail
+    at C:/Repos/Personal/bAInder/tests/multi-select.test.js:468:53
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mFull chat ΓÇö Save to bAInder ΓåÆ open in reader[2m > [22m[2msaves the chat and reader can find and render it
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m2[39m
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mFull chat ΓÇö Save to bAInder ΓåÆ open in reader[2m > [22m[2msaves the chat and reader can find and render it
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m2[39m messages for 1774355002181-907fec6b72ed
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "How do I centre a div in CSS?"
+[bAInder] [attachments] msg [33m1[39m assistant | content[:200]: "Use `display: flex; ΓÇª`"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mFull chat ΓÇö Save to bAInder ΓåÆ open in reader[2m > [22m[2msaves the chat and reader can find and render it
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mFull chat ΓÇö Save to bAInder ΓåÆ open in reader[2m > [22m[2msaves the chat and reader can find and render it
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002181-907fec6b72ed
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController.init()[2m > [22m[2mrenders prompt cards for chats with prompt entities
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstderr[2m | tests/multi-select.test.js[2m > 
+[22m[2mhandleAssemble()[2m > [22m[2mshows error notification when addChat 
+throws
+[22m[39mAssembly failed: Error: Storage full
+    at C:/Repos/Personal/bAInder/tests/multi-select.test.js:528:47
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mincludes an auto-generated id
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+ [32mΓ£ô[39m tests/multi-select.test.js [2m([22m[2m36 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mincludes an auto-generated id
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002204-81ed33439a0d
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Q"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mincludes an auto-generated id
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mtrims title and content
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController.init()[2m > [22m[2mrenders a section header for each entity type present
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m, [32m'table'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mFull chat ΓÇö Save to bAInder ΓåÆ open in reader[2m > [22m[2msaves the chat and reader can find and render it
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m354[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"How do I centre a div in CSS?\"\nsource: copilot\nurl: https://copilot.microsoft.com/chats/test-thread-abc123\ndate: 2026-02-22T10:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# How do I centre a div in CSS?\n\n≡ƒÖï How do I centre a div in CSS?\n\n---\n\n≡ƒñû Use `display: flex; justify-content: center; align-items: center;` on the parent."
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mtrims title and content
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002211-8d2197183fe1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Q"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController.init()[2m > [22m[2mis idempotent ΓÇö calling init() twice does not double-render
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mtrims title and content
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController.init()[2m > [22m[2mrenders empty-state message when no entities in chats
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m0[39m
+[bAInder] EntityController.init: present entity types: []
+
+ [32mΓ£ô[39m tests/entity-cards/tool-call-card.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mFull chat ΓÇö Save to bAInder ΓåÆ open in reader[2m > [22m[2massigns saved chat to topic "1" and tree reflects the relationship
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m2[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2msets source from chatData.source
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController.init()[2m > [22m[2mdoes nothing when entityTree element is absent
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+
+ [32mΓ£ô[39m tests/tree.test.js [2m([22m[2m98 tests[22m[2m)[22m[32m 135[2mms[22m[39m
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mFull chat ΓÇö Save to bAInder ΓåÆ open in reader[2m > [22m[2massigns saved chat to topic "1" and tree reflects the relationship
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m2[39m messages for 1774355002272-59b24d050485
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "How do I centre a div in CSS?"
+[bAInder] [attachments] msg [33m1[39m assistant | content[:200]: "Use `display: flex; ΓÇª`"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2msets source from chatData.source
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002214-09d4e7f88328
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Q"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController.refresh()[2m > [22m[2mrefresh() re-renders after a new chat with table entities is added
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mFull chat ΓÇö Save to bAInder ΓåÆ open in reader[2m > [22m[2massigns saved chat to topic "1" and tree reflects the relationship
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2msets source from chatData.source
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController.refresh()[2m > [22m[2mrefresh() before init() does not throw
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mFull chat ΓÇö Save to bAInder ΓåÆ open in reader[2m > [22m[2massigns saved chat to topic "1" and tree reflects the relationship
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002272-59b24d050485
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2minfers source from URL when chatData.source missing
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController.setFilter()[2m > [22m[2msetFilter("prompt") hides table sections
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m, [32m'table'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mFull chat ΓÇö Save to bAInder ΓåÆ open in reader[2m > [22m[2massigns saved chat to topic "1" and tree reflects the relationship
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m354[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"How do I centre a div in CSS?\"\nsource: copilot\nurl: https://copilot.microsoft.com/chats/test-thread-abc123\ndate: 2026-02-22T10:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# How do I centre a div in CSS?\n\n≡ƒÖï How do I centre a div in CSS?\n\n---\n\n≡ƒñû Use `display: flex; justify-content: center; align-items: center;` on the parent."
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2minfers source from URL when chatData.source missing
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002215-c0e5db706987
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Q"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController.setFilter()[2m > [22m[2msetFilter(null) restores all sections
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m, [32m'table'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mExcerpt ΓÇö context-menu Save ΓåÆ open in reader[2m > [22m[2mbuilds excerpt payload, saves it, and reader renders it
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2minfers source from URL when chatData.source missing
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController ΓÇö entity-click navigation[2m > [22m[2mentity-click event triggers onChatClick with correct chatId
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mExcerpt ΓÇö context-menu Save ΓåÆ open in reader[2m > [22m[2mbuilds excerpt payload, saves it, and reader renders it
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m0[39m messages for 1774355002301-01cccb1b5ec8
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2muses tabUrl when chatData.url is missing
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mExcerpt ΓÇö context-menu Save ΓåÆ open in reader[2m > [22m[2mbuilds excerpt payload, saves it, and reader renders it
+[22m[39m[bAInder] extractChatEntities: result = (none)
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2muses tabUrl when chatData.url is missing
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002217-0cc97d9efe0e
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Q"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController ΓÇö entity-click navigation[2m > [22m[2muser-role entity produces #p<roleOrdinal> anchor
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mExcerpt ΓÇö context-menu Save ΓåÆ open in reader[2m > [22m[2mbuilds excerpt payload, saves it, and reader renders it
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002301-01cccb1b5ec8
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2muses tabUrl when chatData.url is missing
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController ΓÇö entity-click navigation[2m > [22m[2massistant-role entity produces #r<roleOrdinal> anchor
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mExcerpt ΓÇö context-menu Save ΓåÆ open in reader[2m > [22m[2mbuilds excerpt payload, saves it, and reader renders it
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m310[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Use display: flex; justify-content: center; align-items: center; on the parent.\"\nsource: copilot\nurl: https://copilot.microsoft.com/chats/test-thread-def456\nmessageCount: 0\nexcerpt: true\ncontentFormat: markdown-v1\n---\n\nUse display: flex; justify-content: center; align-items: center; on the parent."
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2msets topicId to null (assigned later in Stage 7)
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase B ΓÇö code/diagram rendering[2m > [22m[2mchats with code snippets render code cards in the entity tree
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'code'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mExcerpt ΓÇö context-menu Save ΓåÆ open in reader[2m > [22m[2massigns excerpt to topic "excerpt" and tree reflects the relationship
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2msets topicId to null (assigned later in Stage 7)
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002218-12a3427285d8
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Q"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase B ΓÇö code/diagram rendering[2m > [22m[2mchats with Mermaid blocks render diagram cards
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'diagram'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mExcerpt ΓÇö context-menu Save ΓåÆ open in reader[2m > [22m[2massigns excerpt to topic "excerpt" and tree reflects the relationship
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m0[39m messages for 1774355002313-b770e9f67d94
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2msets topicId to null (assigned later in Stage 7)
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase B ΓÇö code/diagram rendering[2m > [22m[2msection header for code type is present
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'code'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mExcerpt ΓÇö context-menu Save ΓåÆ open in reader[2m > [22m[2massigns excerpt to topic "excerpt" and tree reflects the relationship
+[22m[39m[bAInder] extractChatEntities: result = (none)
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mincludes timestamp close to Date.now()
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase B ΓÇö code/diagram rendering[2m > [22m[2msection header for diagram type is present
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'diagram'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mExcerpt ΓÇö context-menu Save ΓåÆ open in reader[2m > [22m[2massigns excerpt to topic "excerpt" and tree reflects the relationship
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002313-b770e9f67d94
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mincludes timestamp close to Date.now()
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002219-419ab6da0ae6
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Q"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase B ΓÇö code/diagram rendering[2m > [22m[2mrefresh() after adding a code entity chat re-renders code section
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mExcerpt ΓÇö context-menu Save ΓåÆ open in reader[2m > [22m[2massigns excerpt to topic "excerpt" and tree reflects the relationship
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m310[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Use display: flex; justify-content: center; align-items: center; on the parent.\"\nsource: copilot\nurl: https://copilot.microsoft.com/chats/test-thread-def456\nmessageCount: 0\nexcerpt: true\ncontentFormat: markdown-v1\n---\n\nUse display: flex; justify-content: center; align-items: center; on the parent."
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mincludes timestamp close to Date.now()
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase C ΓÇö tool-call/attachment rendering[2m > [22m[2mchats with tool call entities render tool-call cards
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'toolCall'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2msaves full chat and excerpt to separate topics; each loads independently
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m2[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mcopies messages and messageCount
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase C ΓÇö tool-call/attachment rendering[2m > [22m[2mchats with attachment entities render attachment cards
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'attachment'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2msaves full chat and excerpt to separate topics; each loads independently
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m2[39m messages for 1774355002320-d60dd2493432
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "How do I centre a div in CSS?"
+[bAInder] [attachments] msg [33m1[39m assistant | content[:200]: "Use `display: flex; ΓÇª`"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mcopies messages and messageCount
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002220-e4b254090c0e
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Q"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase C ΓÇö tool-call/attachment rendering[2m > [22m[2msection header for toolCall type is present
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'toolCall'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2msaves full chat and excerpt to separate topics; each loads independently
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mcopies messages and messageCount
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase C ΓÇö tool-call/attachment rendering[2m > [22m[2msection header for attachment type is present
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'attachment'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2msaves full chat and excerpt to separate topics; each loads independently
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002320-d60dd2493432
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mcopies metadata
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase C ΓÇö tool-call/attachment rendering[2m > [22m[2mrefresh() after adding a tool-call entity chat re-renders
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2msaves full chat and excerpt to separate topics; each loads independently
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mcopies metadata
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002223-9ca26c41e8bb
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Q"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase D ΓÇö image/audio rendering[2m > [22m[2mchats with image entities render image cards
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'image'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2msaves full chat and excerpt to separate topics; each loads independently
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m0[39m messages for 1774355002321-9c05db21cf8a
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mcopies metadata
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase D ΓÇö image/audio rendering[2m > [22m[2mchats with audio entities render audio cards
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'audio'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2msaves full chat and excerpt to separate topics; each loads independently
+[22m[39m[bAInder] extractChatEntities: result = (none)
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mdefaults messageCount to 0 when not provided
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase D ΓÇö image/audio rendering[2m > [22m[2msection header for image type is present
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'image'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2msaves full chat and excerpt to separate topics; each loads independently
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002321-9c05db21cf8a
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mdefaults messageCount to 0 when not provided
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002225-972c4cabf6db
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Q"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase D ΓÇö image/audio rendering[2m > [22m[2msection header for audio type is present
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'audio'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2msaves full chat and excerpt to separate topics; each loads independently
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m354[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"How do I centre a div in CSS?\"\nsource: copilot\nurl: https://copilot.microsoft.com/chats/test-thread-abc123\ndate: 2026-02-22T10:00:00.000Z\nmessageCount: 2\ncontentFormat: markdown-v1\n---\n\n# How do I centre a div in CSS?\n\n≡ƒÖï How do I centre a div in CSS?\n\n---\n\n≡ƒñû Use `display: flex; justify-content: center; align-items: center;` on the parent."
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry()[2m > [22m[2mdefaults messageCount to 0 when not provided
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase D ΓÇö image/audio rendering[2m > [22m[2mrefresh() after adding an image entity chat re-renders
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2msaves full chat and excerpt to separate topics; each loads independently
+[22m[39m[bAInder] [INFO] [reader] renderMarkdown: content length [33m310[39m | audio markers: [33m0[39m | lines with file extensions: []
+[bAInder] [INFO] [reader] full content dump: "---\ntitle: \"Use display: flex; justify-content: center; align-items: center; on the parent.\"\nsource: copilot\nurl: https://copilot.microsoft.com/chats/test-thread-def456\nmessageCount: 0\nexcerpt: true\ncontentFormat: markdown-v1\n---\n\nUse display: flex; justify-content: center; align-items: center; on the parent."
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2msaves a valid chat and returns the new entry
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase E ΓÇö artifact rendering[2m > [22m[2mchats with artifact entities render artifact cards
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'artifact'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2mreturns "not found" error when an unknown chatId is requested
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m2[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2msaves a valid chat and returns the new entry
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002228-fac6f83991f7
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Hello"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase E ΓÇö artifact rendering[2m > [22m[2msection header for artifact type is present
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'artifact'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2mreturns "not found" error when an unknown chatId is requested
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m2[39m messages for 1774355002337-eadc735b038b
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "How do I centre a div in CSS?"
+[bAInder] [attachments] msg [33m1[39m assistant | content[:200]: "Use `display: flex; ΓÇª`"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2msaves a valid chat and returns the new entry
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase E ΓÇö artifact rendering[2m > [22m[2mrefresh() after adding an artifact entity chat re-renders artifact section
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2mreturns "not found" error when an unknown chatId is requested
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2msaves a valid chat and returns the new entry
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002228-fac6f83991f7
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController Phase E ΓÇö artifact rendering[2m > [22m[2m"Preview" button on artifact card calls showArtifactPreview
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'artifact'[39m ]
+
+[90mstdout[2m | tests/save-and-open.integration.test.js[2m > [22m[2mStage 7 Happy Path ΓÇö Save ΓåÆ Open in Reader[2m > [22m[2mBoth chats saved ΓÇö each opens its own content in the reader[2m > [22m[2mreturns "not found" error when an unknown chatId is requested
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002337-eadc735b038b
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mcalls addChat with the new entry
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController ΓÇö _defaultOnChatClick[2m > [22m[2mcalls browser.tabs.create with a reader URL when entity-click fires without a custom handler
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mcalls addChat with the new entry
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002230-0be549764b32
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Hello"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/entity-controller.test.js[2m > [22m[2mEntityController ΓÇö getPresentEntityTypes[2m > [22m[2mreturns types from EntityStore after init() is called
+[22m[39m[bAInder] EntityController.init: chats in state: [33m1[39m | chats with Phase-A entities: [33m1[39m
+[bAInder] EntityController.init: present entity types: [ [32m'prompt'[39m ]
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mcalls addChat with the new entry
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+ [32mΓ£ô[39m tests/save-and-open.integration.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 197[2mms[22m[39m
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mcalls addChat with the new entry
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002230-0be549764b32
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mdeduplicates: returns existing chat without saving again
+[22m[39m[bAInder] [INFO] Duplicate save skipped ΓÇö returning existing: old-id
+
+ [32mΓ£ô[39m tests/entity-controller.test.js [2m([22m[2m35 tests[22m[2m)[22m[32m 185[2mms[22m[39m
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mdoes NOT deduplicate when same URL saved a long time ago
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstderr[2m | tests/topic-actions.test.js[2m > 
+[22m[2mhandleExportTopic()[2m > [22m[2mshows an alert dialog when export 
+throws
+[22m[39m[bAInder] [ERROR] Export failed: Error: Export failed!
+    at C:/Repos/Personal/bAInder/tests/topic-actions.test.js:410:59
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mdoes NOT deduplicate when same URL saved a long time ago
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002236-3183453779b0
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Hello"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstderr[2m | tests/topic-actions.test.js[2m > 
+[22m[2mhandleCopyAllTopicChats()[2m > [22m[2mshows error when 
+loadFullByIds throws
+[22m[39m[bAInder] [WARN] Copy all: failed to load chat content Error: DB 
+error
+    at C:/Repos/Personal/bAInder/tests/topic-actions.test.js:447:53
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:20
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mdoes NOT deduplicate when same URL saved a long time ago
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstderr[2m | tests/search-controller.test.js[2m > 
+[22m[2mclearSearch()[2m > [22m[2mruns search when active filters exist
+[22m[39m[bAInder] [ERROR] Search failed: TypeError: Cannot set properties of 
+null (setting 'textContent')
+    at renderSearchResults (C:/Repos/Personal/bAInder/src/sidepanel/controllers
+/search-controller.js:175:36)
+    at 
+C:/Repos/Personal/bAInder/src/sidepanel/controllers/search-controller.js:104:7
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mdoes NOT deduplicate when same URL saved a long time ago
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002236-3183453779b0
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2minfers source from tab URL when payload source missing
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstderr[2m | tests/search-controller.test.js[2m > 
+[22m[2mrerunSearch()[2m > [22m[2mtriggers a deferred search when query is 
+non-empty
+[22m[39m[bAInder] [ERROR] Search failed: TypeError: Cannot set properties of 
+null (setting 'textContent')
+    at renderSearchResults (C:/Repos/Personal/bAInder/src/sidepanel/controllers
+/search-controller.js:175:36)
+    at 
+C:/Repos/Personal/bAInder/src/sidepanel/controllers/search-controller.js:104:7
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2minfers source from tab URL when payload source missing
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002238-5212a9cf70d5
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Hello"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstderr[2m | tests/search-controller.test.js[2m > 
+[22m[2mrerunSearch()[2m > [22m[2mtriggers search when there are active 
+filters but no query
+[22m[39m[bAInder] [ERROR] Search failed: TypeError: Cannot set properties of 
+null (setting 'textContent')
+    at renderSearchResults (C:/Repos/Personal/bAInder/src/sidepanel/controllers
+/search-controller.js:175:36)
+    at 
+C:/Repos/Personal/bAInder/src/sidepanel/controllers/search-controller.js:104:7
+
+ [32mΓ£ô[39m tests/topic-actions.test.js [2m([22m[2m34 tests[22m[2m)[22m[32m 223[2mms[22m[39m
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2minfers source from tab URL when payload source missing
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2minfers source from tab URL when payload source missing
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002238-5212a9cf70d5
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mstarts from empty list when loadAll returns []
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstderr[2m | tests/chat-actions.test.js[2m > 
+[22m[2mhandleChatSaved()[2m > [22m[2mupdates the chat and saves tree when 
+dialog returns a result
+[22m[39m[bAInder] [WARN] Auto-export check failed: TypeError: Cannot read 
+properties of undefined (reading 'local')
+    at Module.handleChatSaved 
+(C:/Repos/Personal/bAInder/src/sidepanel/controllers/chat-actions.js:257:42)
+    at C:/Repos/Personal/bAInder/tests/chat-actions.test.js:464:5
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:20
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mstarts from empty list when loadAll returns []
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002240-fced3996f275
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Hello"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+ [32mΓ£ô[39m tests/search-controller.test.js [2m([22m[2m78 tests[22m[2m)[22m[32m 177[2mms[22m[39m
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mstarts from empty list when loadAll returns []
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+[90mstderr[2m | tests/chat-actions.test.js[2m > [22m[2mprivate 
+chat-action handlers via setupChatContextMenuActions[2m > [22m[2mexport: 
+calls dialog.alert when showExportChat throws
+[22m[39m[bAInder] [ERROR] Export chat failed: Error: Boom
+    at C:/Repos/Personal/bAInder/tests/chat-actions.test.js:620:67
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mstarts from empty list when loadAll returns []
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002240-fced3996f275
+
+[90mstderr[2m | tests/chat-actions.test.js[2m > [22m[2mprivate 
+chat-action handlers via setupChatContextMenuActions[2m > [22m[2mcopy: 
+shows error when chatRepo.loadFullByIds rejects
+[22m[39m[bAInder] [WARN] Copy: failed to load chat content Error: load fail
+    at C:/Repos/Personal/bAInder/tests/chat-actions.test.js:751:59
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mreturns an entry with all required fields
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+ [32mΓ£ô[39m tests/export-engine.test.js [2m([22m[2m226 tests[22m[2m)[22m[32m 244[2mms[22m[39m
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mreturns an entry with all required fields
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002245-f795c4c274c3
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Hello"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mreturns an entry with all required fields
+[22m[39m[bAInder] extractChatEntities: result = prompt(1)
+
+ [32mΓ£ô[39m tests/chat-actions.test.js [2m([22m[2m49 tests[22m[2m)[22m[32m 202[2mms[22m[39m
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mhandleSaveChat()[2m > [22m[2mreturns an entry with all required fields
+[22m[39m[bAInder] [INFO] Chat saved: 1774355002245-f795c4c274c3
+
+ [32mΓ£ô[39m tests/entity-cards/prompt-card.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö structured content.parts[2m > [22m[2mmessage with file_reference part ΓåÆ 1 attachment entity
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2mdefaults messages to [] when not provided
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö structured content.parts[2m > [22m[2mmessage with image_file part ΓåÆ 1 attachment entity
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2mdefaults messages to [] when not provided
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m0[39m messages for 1774355002249-080d5b4f99fc
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö structured content.parts[2m > [22m[2mmultiple parts ΓåÆ multiple attachment entities
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m2[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2mdefaults messages to [] when not provided
+[22m[39m[bAInder] extractChatEntities: result = (none)
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö structured content.parts[2m > [22m[2mnon-attachment part types are ignored
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2mdefaults messages to [] when not provided
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö structured content.parts[2m > [22m[2msizeBytes is extracted from size_bytes field
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2mdefaults messages to [] when not provided
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m0[39m messages for 1774355002249-e9e626b51046
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö structured content.parts[2m > [22m[2mmime type inferred from extension when not provided
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2mdefaults messages to [] when not provided
+[22m[39m[bAInder] extractChatEntities: result = (none)
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö structured content.parts[2m > [22m[2mmessageIndex taken from message.index
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2mdefaults metadata to {} when not provided
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö structured content.parts[2m > [22m[2mchatId is stamped on each entity
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2mdefaults metadata to {} when not provided
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m0[39m messages for 1774355002250-5bc279727195
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö structured content.parts[2m > [22m[2massistant-role messages are also scanned
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2mdefaults metadata to {} when not provided
+[22m[39m[bAInder] extractChatEntities: result = (none)
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö DOM scan[2m > [22m[2m[data-filename] element ΓåÆ attachment captured
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] strategy2 (dom): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2muses empty string url when both chatData.url and tabUrl are falsy
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m0[39m
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö DOM scan[2m > [22m[2m.attachment-name element ΓåÆ attachment captured
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] strategy2 (dom): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2muses empty string url when both chatData.url and tabUrl are falsy
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m0[39m messages for 1774355002251-e749b4baa238
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö DOM scan[2m > [22m[2m.attachment-name inside [data-filename] is not double-captured
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] strategy2 (dom): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇô optional-field fallbacks[2m > [22m[2muses empty string url when both chatData.url and tabUrl are falsy
+[22m[39m[bAInder] extractChatEntities: result = (none)
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö DOM scan[2m > [22m[2m[data-size-bytes] parsed to numeric sizeBytes
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] strategy2 (dom): [33m1[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇö entity extraction[2m > [22m[2mentry contains code entities when a code extractor is registered and matches
+[22m[39m[bAInder] extractChatEntities: registry size = [33m10[39m | messages = [33m1[39m
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö no attachment data[2m > [22m[2mplain-text content messages ΓåÆ empty result
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m2[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Hello"
+[bAInder] [attachments] msg [33m1[39m assistant | content[:200]: "Hi back"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇö entity extraction[2m > [22m[2mentry contains code entities when a code extractor is registered and matches
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for 1774355002264-b83574caee5e
+[bAInder] [attachments] msg [33m0[39m assistant | content[:200]: "```js\nconsole.log(\"hi\");\n```"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö no attachment data[2m > [22m[2mempty messages array and no doc ΓåÆ empty result
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m0[39m messages for chat-1
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇö entity extraction[2m > [22m[2mentry contains code entities when a code extractor is registered and matches
+[22m[39m[bAInder] extractChatEntities: result = code(1)
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö no attachment data[2m > [22m[2mdoc null does not throw
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m0[39m messages for chat-1
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇö entity extraction[2m > [22m[2mentry has no entity keys when no extractors are registered
+[22m[39m[bAInder] extractChatEntities: registry size = [33m0[39m | messages = [33m0[39m
+[bAInder] extractChatEntities: result = (none)
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö no attachment data[2m > [22m[2mempty body DOM ΓåÆ empty result
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] strategy2 (dom): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m0[39m messages for chat-1
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/chat-save-handler.test.js[2m > [22m[2mbuildChatEntry() ΓÇö entity extraction[2m > [22m[2ma failing extractor does not cause buildChatEntry to throw
+[22m[39m[bAInder] extractChatEntities: registry size = [33m1[39m | messages = [33m0[39m
+[bAInder] extractChatEntities: result = (none)
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mfilename on its own line ΓåÆ 1 attachment entity
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "termination_letter_template.pdf"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+[90mstderr[2m | tests/chat-save-handler.test.js[2m > 
+[22m[2mbuildChatEntry() ΓÇö entity extraction[2m > [22m[2ma failing 
+extractor does not cause buildChatEntry to throw
+[22m[39m[bAInder] Entity extractor threw for type code: Error: extractor boom
+    at C:/Repos/Personal/bAInder/tests/chat-save-handler.test.js:578:45
+    at extractChatEntities 
+(C:/Repos/Personal/bAInder/src/lib/entities/entity-extractor.js:36:46)
+    at buildChatEntry 
+(C:/Repos/Personal/bAInder/src/background/chat-save-handler.js:162:45)
+    at C:/Repos/Personal/bAInder/tests/chat-save-handler.test.js:579:32
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mChatGPT chip format (filename \n\n type label) ΓåÆ 1 attachment entity
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "termination_letter_template.pdf\n\nPDF"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mfilename embedded in prose is NOT extracted (line contains more text)
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "Please review the file report.pdf and let me know."
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mfilename inside a fenced code block is NOT extracted
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m assistant | content[:200]: "```\nreport.pdf\n```"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mfilename inside inline code is NOT extracted
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m assistant | content[:200]: "Run `data.csv` to see results."
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+ [32mΓ£ô[39m tests/chat-save-handler.test.js [2m([22m[2m81 tests[22m[2m)[22m[32m 102[2mms[22m[39m
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mfilename inside a URL is NOT extracted
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m assistant | content[:200]: "See [report](https://example.com/report.pdf)"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mmultiple files in one message ΓåÆ multiple entities
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "data.csv\nreport.pdf"
+[bAInder] [attachments] strategy3 (text): [33m2[39m found
+
+[90mstderr[2m | tests/storage.test.js[2m > 
+[22m[2mChromeStorageAdapter[2m > [22m[2mSearch Operations[2m > 
+[22m[2mthrows wrapped error when storage.local.get rejects (catch block 
+lines 172-173)
+[22m[39m[bAInder] [ERROR] Error searching chats: Error: storage failure
+    at Object.<anonymous> 
+(C:/Repos/Personal/bAInder/tests/storage.test.js:228:31)
+    at Object.Mock [as get] [90m(file:///C:/Repos/Personal/bAInder/[39mnode_m
+odules/[4m@vitest/spy[24m/dist/index.js:285:34[90m)[39m
+    at ChromeStorageAdapter.searchChats 
+(C:/Repos/Personal/bAInder/src/lib/storage.js:172:52)
+    at C:/Repos/Personal/bAInder/tests/storage.test.js:230:28
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2msame filename twice in one message ΓåÆ deduplicated to 1 entity
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "report.pdf\n\nreport.pdf"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mDOCX file ΓåÆ mimeType correctly inferred
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "proposal.docx"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+ [32mΓ£ô[39m tests/thumbnail-service.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+[90mstderr[2m | tests/storage.test.js[2m > [22m[2mChromeStorageAdapter 
+ΓÇô error propagation[2m > [22m[2mshould throw wrapped error when 
+loadTopicTree fails
+[22m[39m[bAInder] [ERROR] Error loading topic tree: Error: storage gone
+    at Object.<anonymous> 
+(C:/Repos/Personal/bAInder/tests/storage.test.js:586:13)
+    at Object.Mock [as get] [90m(file:///C:/Repos/Personal/bAInder/[39mnode_m
+odules/[4m@vitest/spy[24m/dist/index.js:285:34[90m)[39m
+    at ChromeStorageAdapter.loadTopicTree 
+(C:/Repos/Personal/bAInder/src/lib/storage.js:139:50)
+    at C:/Repos/Personal/bAInder/tests/storage.test.js:589:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mPNG file ΓåÆ mimeType image/png
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "screenshot.png"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+ [32mΓ£ô[39m tests/entity-cards/image-card.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 169[2mms[22m[39m
+[90mstderr[2m | tests/storage.test.js[2m > [22m[2mChromeStorageAdapter 
+ΓÇô error propagation[2m > [22m[2mshould throw wrapped error when 
+saveTopicTree fails
+[22m[39m[bAInder] [ERROR] Error saving topic tree: Error: quota exceeded
+    at Object.<anonymous> 
+(C:/Repos/Personal/bAInder/tests/storage.test.js:594:13)
+    at Object.Mock [as set] [90m(file:///C:/Repos/Personal/bAInder/[39mnode_m
+odules/[4m@vitest/spy[24m/dist/index.js:285:34[90m)[39m
+    at ChromeStorageAdapter.saveTopicTree 
+(C:/Repos/Personal/bAInder/src/lib/storage.js:123:35)
+    at C:/Repos/Personal/bAInder/tests/storage.test.js:597:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mCSV file ΓåÆ mimeType text/csv
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "data.csv"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+ [32mΓ£ô[39m tests/entity-cards/citation-card.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 120[2mms[22m[39m
+[90mstderr[2m | tests/storage.test.js[2m > [22m[2mChromeStorageAdapter 
+ΓÇô error propagation[2m > [22m[2mshould throw wrapped error when 
+getStorageUsage fails
+[22m[39m[bAInder] [ERROR] Error getting storage usage: Error: Permission 
+denied
+    at Object.<anonymous> 
+(C:/Repos/Personal/bAInder/tests/storage.test.js:604:13)
+    at Object.Mock [as getBytesInUse] [90m(file:///C:/Repos/Personal/bAInder/
+[39mnode_modules/[4m@vitest/spy[24m/dist/index.js:285:34[90m)[39m
+    at ChromeStorageAdapter.getStorageUsage 
+(C:/Repos/Personal/bAInder/src/lib/storage.js:293:31)
+    at C:/Repos/Personal/bAInder/tests/storage.test.js:607:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mPython file ΓåÆ text-scan picks it up
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "analysis.py"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+[90mstderr[2m | tests/storage.test.js[2m > [22m[2mChromeStorageAdapter 
+ΓÇô error propagation[2m > [22m[2mshould throw wrapped error when clearAll 
+fails
+[22m[39m[bAInder] [ERROR] Error clearing storage: Error: Permission denied
+    at Object.<anonymous> 
+(C:/Repos/Personal/bAInder/tests/storage.test.js:612:13)
+    at Object.Mock [as clear] [90m(file:///C:/Repos/Personal/bAInder/[39mnode
+_modules/[4m@vitest/spy[24m/dist/index.js:285:34[90m)[39m
+    at ChromeStorageAdapter.clearAll 
+(C:/Repos/Personal/bAInder/src/lib/storage.js:318:35)
+    at C:/Repos/Personal/bAInder/tests/storage.test.js:615:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mfilename with spaces and accents ΓåÆ extracted
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "r├⌐sum├⌐ finale.pdf"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+[90mstderr[2m | tests/storage.test.js[2m > [22m[2mChromeStorageAdapter 
+ΓÇô error propagation[2m > [22m[2mshould handle _updateMetadata error 
+gracefully (no rethrow)
+[22m[39m[bAInder] [ERROR] Error updating metadata: Error: metadata write 
+failed
+    at Object.<anonymous> 
+(C:/Repos/Personal/bAInder/tests/storage.test.js:621:13)
+    at Object.Mock [as set] [90m(file:///C:/Repos/Personal/bAInder/[39mnode_m
+odules/[4m@vitest/spy[24m/dist/index.js:285:34[90m)[39m
+    at ChromeStorageAdapter._updateMetadata 
+(C:/Repos/Personal/bAInder/src/lib/storage.js:359:35)
+    at C:/Repos/Personal/bAInder/tests/storage.test.js:624:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2msizeBytes is null for text-scan entities (unavailable from text)
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "report.pdf"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+ [32mΓ£ô[39m tests/notification.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 157[2mms[22m[39m
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mchatId stamped on text-scan entity
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-xyz
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "report.pdf"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mmessageIndex taken from message.index in text-scan
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "report.pdf"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+ [32mΓ£ô[39m tests/storage.test.js [2m([22m[2m58 tests[22m[2m)[22m[32m 189[2mms[22m[39m
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mstructured strategy takes priority over text scan when parts are present
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m1[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2mbare line "PDF" (type label only) is NOT extracted as a filename
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m user | content[:200]: "PDF"
+[bAInder] [attachments] strategy3 (text): [33m0[39m found
+
+[90mstdout[2m | tests/extractors/attachments.test.js[2m > [22m[2mextractAttachments() ΓÇö markdown text scan[2m > [22m[2massistant message with standalone attachment filename ΓåÆ extracted
+[22m[39m[bAInder] [attachments] strategy1 (parts): [33m0[39m found
+[bAInder] [attachments] _extractFromText: scanning [33m1[39m messages for chat-1
+[bAInder] [attachments] msg [33m0[39m assistant | content[:200]: "Here is the output:\nresults.csv"
+[bAInder] [attachments] strategy3 (text): [33m1[39m found
+
+ [32mΓ£ô[39m tests/extractors/attachments.test.js [2m([22m[2m36 tests[22m[2m)[22m[32m 105[2mms[22m[39m
+ [32mΓ£ô[39m tests/extractors/diagrams.test.js [2m([22m[2m24 tests[22m[2m)[22m[32m 126[2mms[22m[39m
+ [32mΓ£ô[39m tests/clipboard-settings.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 251[2mms[22m[39m
+ [32mΓ£ô[39m tests/extractors/citations.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32mΓ£ô[39m tests/deepseek-extractor.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 117[2mms[22m[39m
+[90mstderr[2m | tests/clipboard-multiselect.test.js[2m > 
+[22m[2mhandleCopyAll[2m > [22m[2mshows error when loadFullByIds rejects
+[22m[39mCopy all: failed to load chat content: Error: storage failure
+    at C:/Repos/Personal/bAInder/tests/clipboard-multiselect.test.js:96:27
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+ [32mΓ£ô[39m tests/clipboard-multiselect.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mreturns an empty array when storage has no chats
+[22m[39m[bAInder] [INFO] Chats loaded: [33m0[39m
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mstrips the content field from each chat (chatIndex has no content)
+[22m[39m[bAInder] [INFO] Chats loaded: [33m1[39m
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mpreserves all other metadata fields
+[22m[39m[bAInder] [INFO] Chats loaded: [33m1[39m
+
+ [32mΓ£ô[39m tests/entity-cards/table-card.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32mΓ£ô[39m tests/extractors/images.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+[90mstderr[2m | tests/chat-repository.test.js[2m > 
+[22m[2mChatRepository.loadAll()[2m > [22m[2mreturns empty array when 
+storage.get rejects
+[22m[39m[bAInder] [ERROR] ChatRepository.loadAll error: Error: boom
+    at C:/Repos/Personal/bAInder/tests/chat-repository.test.js:113:54
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mnever calls adapter.set
+[22m[39m[bAInder] [INFO] Chats loaded: [33m1[39m
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mreturns chats sorted by timestamp descending (most-recent first)
+[22m[39m[bAInder] [INFO] Chats loaded: [33m3[39m
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mtreats missing timestamp as 0 when sorting
+[22m[39m[bAInder] [INFO] Chats loaded: [33m2[39m
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mcaps the returned array at MAX_CHATS_IN_MEMORY
+[22m[39m[bAInder] [INFO] Chats loaded: [33m5000[39m
+
+[90mstderr[2m | tests/chat-repository.test.js[2m > 
+[22m[2mChatRepository.loadAll()[2m > [22m[2mcaps the returned array at 
+MAX_CHATS_IN_MEMORY
+[22m[39m[bAInder] [WARN] ChatRepository.loadAll: 5010 chats in storage 
+exceeds MAX_CHATS_IN_MEMORY (5000). Loading most-recent 5000 only.
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mcap keeps the most-recent entries
+[22m[39m[bAInder] [INFO] Chats loaded: [33m5000[39m
+
+[90mstderr[2m | tests/chat-repository.test.js[2m > 
+[22m[2mChatRepository.loadAll()[2m > [22m[2mcap keeps the most-recent 
+entries
+[22m[39m[bAInder] [WARN] ChatRepository.loadAll: 5001 chats in storage 
+exceeds MAX_CHATS_IN_MEMORY (5000). Loading most-recent 5000 only.
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mlogs a warning when the cap is applied
+[22m[39m[bAInder] [INFO] Chats loaded: [33m5000[39m
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mdoes not warn when count is at or below MAX_CHATS_IN_MEMORY
+[22m[39m[bAInder] [INFO] Chats loaded: [33m5000[39m
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mauto-migrates from legacy monolithic chats key when chatIndex is absent
+[22m[39m[bAInder] [INFO] ChatRepository: migrating 1 chats to per-key format
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository.loadAll()[2m > [22m[2mauto-migrates from legacy monolithic chats key when chatIndex is absent
+[22m[39m[bAInder] [INFO] Chats loaded: [33m1[39m
+
+[90mstderr[2m | tests/chat-repository.test.js[2m > 
+[22m[2mChatRepository.getFullContent()[2m > [22m[2mreturns null when 
+storage.get rejects
+[22m[39m[bAInder] [ERROR] ChatRepository.getFullContent error: Error: fail
+    at C:/Repos/Personal/bAInder/tests/chat-repository.test.js:229:54
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository ├óΓé¼ΓÇ¥ DI isolation[2m > [22m[2mcompletes a full save/load cycle using only the injected adapter
+[22m[39m[bAInder] [INFO] Chats loaded: [33m1[39m
+
+[90mstdout[2m | tests/chat-repository.test.js[2m > [22m[2mChatRepository ├óΓé¼ΓÇ¥ constructor without explicit adapter[2m > [22m[2muses StorageService singleton when no adapter is provided (right-hand of ?? is taken)
+[22m[39m[bAInder] [INFO] Chats loaded: [33m0[39m
+
+ [32mΓ£ô[39m tests/chat-repository.test.js [2m([22m[2m42 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+[90mstderr[2m | tests/clipboard-serialiser.test.js[2m > 
+[22m[2mwriteToClipboardHtml[2m > [22m[2mfalls back to plain text when 
+clipboard.write rejects
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its 
+implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+ [32mΓ£ô[39m tests/recent-rail.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 50[2mms[22m[39m
+ [32mΓ£ô[39m tests/entity-cards/audio-card.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32mΓ£ô[39m tests/clipboard-serialiser.test.js [2m([22m[2m78 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+ [32mΓ£ô[39m tests/reader-ordinals.test.js [2m([22m[2m28 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32mΓ£ô[39m tests/extractors/artifacts.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 90[2mms[22m[39m
+ [32mΓ£ô[39m tests/artifact-screenshot.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 105[2mms[22m[39m
+ [32mΓ£ô[39m tests/search-utils.test.js [2m([22m[2m68 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+ [32mΓ£ô[39m tests/sticky-notes.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32mΓ£ô[39m tests/extractors/code-snippets.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32mΓ£ô[39m tests/tree-sort.test.js [2m([22m[2m30 tests[22m[2m)[22m[32m 91[2mms[22m[39m
+ [32mΓ£ô[39m tests/extractors/prompts.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32mΓ£ô[39m tests/jsonl-builder.test.js [2m([22m[2m30 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32mΓ£ô[39m tests/entity-cards/code-card.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+ [32mΓ£ô[39m tests/style-transformer.test.js [2m([22m[2m129 tests[22m[2m)[22m[32m 84[2mms[22m[39m
+ [32mΓ£ô[39m tests/entity-cards/diagram-card.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 119[2mms[22m[39m
+ [32mΓ£ô[39m tests/chat-manager.test.js [2m([22m[2m56 tests[22m[2m)[22m[32m 103[2mms[22m[39m
+ [32mΓ£ô[39m tests/clipboard-copy-actions.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 173[2mms[22m[39m
+ [32mΓ£ô[39m tests/sidepanel-tabs.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 130[2mms[22m[39m
+ [32mΓ£ô[39m tests/reasoning-synthesiser.test.js [2m([22m[2m23 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32mΓ£ô[39m tests/structural-analyser.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32mΓ£ô[39m tests/semantic-analyser.test.js [2m([22m[2m22 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32mΓ£ô[39m tests/extractors/tool-calls.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+ [32mΓ£ô[39m tests/entity-navigation.test.js [2m([22m[2m22 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+ [32mΓ£ô[39m tests/markdown-serialiser.test.js [2m([22m[2m55 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+[90mstderr[2m | tests/storage-usage.test.js[2m > 
+[22m[2mupdateStorageUsage()[2m > [22m[2msets "Unknown" text when 
+StorageUsageTracker throws
+[22m[39m[bAInder] [ERROR] Error getting storage usage: Error: Quota API error
+    at C:/Repos/Personal/bAInder/tests/storage-usage.test.js:78:36
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules
+/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@vitest/run
+ner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mv
+itest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4mvite
+st[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Repos/Personal/bAInder/[39mnode_modules/[4m@v
+itest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+ [32mΓ£ô[39m tests/storage-usage.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 81[2mms[22m[39m
+ [32mΓ£ô[39m tests/message-validator.test.js [2m([22m[2m23 tests[22m[2m)[22m[32m 84[2mms[22m[39m
+ [32mΓ£ô[39m tests/chat-turns.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+ [32mΓ£ô[39m tests/extractors/tables.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 103[2mms[22m[39m
+ [32mΓ£ô[39m tests/chat-entity.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 43[2mms[22m[39m
+ [32mΓ£ô[39m tests/entity-store.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32mΓ£ô[39m tests/url-utils.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mΓ£ô[39m tests/clipboard-topic-copy.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mΓ£ô[39m tests/compare-navigation.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+[31mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[39m[1m[41m Unhandled Errors 
+[49m[22m[31mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[39m
+[31m[1m
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure 
+your tests are not affected.[22m[39m
+
+[31mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[39m[1m[41m Uncaught Exception 
+[49m[22m[31mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[39m
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading 
+'searchChats')[39m
+[36m [2mΓ¥»[22m runSearch 
+src/sidepanel/controllers/search-controller.js:[2m100:18[22m[39m
+    [90m 98| [39m    }
+    [90m 99| [39m  }
+    [90m100| [39m  
+_state[33m.[39mstorage[33m.[39m[34msearchChats[39m(query)
+    [90m   | [39m                 [31m^[39m
+    [90m101| [39m    [33m.[39m[34mthen[39m(results [33m=>[39m {
+    [90m102| [39m      searchContainer[33m?.[39mclassList[33m.[39m[34mre
+move[39m([32m'is-typing'[39m)[33m;[39m
+[90m [2mΓ¥»[22m Timeout._onTimeout 
+src/sidepanel/controllers/search-controller.js:[2m73:30[22m[39m
+[90m [2mΓ¥»[22m listOnTimeout node:internal/timers:[2m605:17[22m[39m
+[90m [2mΓ¥»[22m processTimers node:internal/timers:[2m541:7[22m[39m
+
+[31mThis error originated in "[1mtests/search-controller.test.js[22m" test 
+file. It doesn't mean the error was thrown inside the file itself, but while 
+it was running.[39m
+[31mΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ
+»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[39m
+
+
+[2m Test Files [22m [1m[32m87 passed[39m[22m[90m (87)[39m
+[2m      Tests [22m [1m[32m3514 passed[39m[22m[90m (3514)[39m
+[2m     Errors [22m [1m[31m1 error[39m[22m
+[2m   Start at [22m 14:22:33
+[2m   Duration [22m 103.40s[2m (transform 220.63s, setup 104.42s, import 378.87s, tests 22.15s, environment 52.12s)[22m
+
+JUNIT report written to C:/Repos/Personal/bAInder/test-results/junit.xml

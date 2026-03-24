@@ -57,11 +57,11 @@ export const elements = {
   backupRemindLaterBtn: document.getElementById('backupRemindLaterBtn'),
   backupNeverRemindBtn: document.getElementById('backupNeverRemindBtn'),
   backupDismissBtn:     document.getElementById('backupDismissBtn'),
-  // C.17 — multi-select / assembly
+  // C.17 — multi-select / join
   multiSelectToggleBtn: document.getElementById('multiSelectToggleBtn'),
   selectionBar:         document.getElementById('selectionBar'),
   selectionCount:       document.getElementById('selectionCount'),
-  assembleBtn:          document.getElementById('assembleBtn'),
+  joinBtn:              document.getElementById('joinBtn'),
   exportDigestBtn:      document.getElementById('exportDigestBtn'),
   // C.26 — copy all selected chats
   copyAllBtn:           document.getElementById('copyAllBtn'),

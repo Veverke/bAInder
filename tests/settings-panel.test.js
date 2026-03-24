@@ -33,6 +33,17 @@ vi.mock('../src/lib/utils/logger.js', () => ({
   },
 }));
 
+vi.mock('../src/lib/export/auto-export.js', () => ({
+  getAutoExportDirHandle:   vi.fn().mockResolvedValue(null),
+  storeAutoExportDirHandle: vi.fn().mockResolvedValue(undefined),
+  clearAutoExportDirHandle: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../src/lib/export/clipboard-serialiser.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return actual;
+});
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function buildPanelDOM() {
@@ -64,6 +75,12 @@ function buildPanelDOM() {
       <input type="text" id="clipboardTurnSeparatorInput" />
       <div id="clipboardTurnSeparatorPreview"><span class="settings-separator-preview__content"></span></div>
       <input type="checkbox" id="showOrdinalsToggle" />
+      <input type="checkbox" id="autoExportToggle" />
+      <input type="number" id="autoExportThresholdInput" value="10" />
+      <input type="text"   id="autoExportTopicsInput" value="" />
+      <span id="autoExportFolderName"></span>
+      <button id="autoExportFolderBrowseBtn"></button>
+      <button id="autoExportFolderClearBtn" hidden></button>
     </div>
   `;
 }
@@ -261,5 +278,198 @@ describe('closeSettingsPanel()', () => {
     panel.setAttribute('aria-hidden', 'false');
     closeSettingsPanel();
     expect(panel.getAttribute('aria-hidden')).toBe('true');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// openSettingsPanel() — auto-export controls
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('openSettingsPanel() — auto-export controls', () => {
+  it('loads autoExport settings from storage and applies to form', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    browser.storage.local.get.mockImplementation(keys => {
+      if (Array.isArray(keys) && keys.includes('autoExportEnabled'))
+        return Promise.resolve({ autoExportEnabled: true, autoExportThreshold: 25, autoExportTopics: 'topic1' });
+      return Promise.resolve({});
+    });
+    openSettingsPanel();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(document.getElementById('autoExportToggle').checked).toBe(true);
+    expect(document.getElementById('autoExportThresholdInput').value).toBe('25');
+    expect(document.getElementById('autoExportTopicsInput').value).toBe('topic1');
+  });
+
+  it('disables threshold input when autoExport is off after loading', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    browser.storage.local.get.mockImplementation(keys => {
+      if (Array.isArray(keys) && keys.includes('autoExportEnabled'))
+        return Promise.resolve({ autoExportEnabled: false });
+      return Promise.resolve({});
+    });
+    openSettingsPanel();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(document.getElementById('autoExportThresholdInput').disabled).toBe(true);
+  });
+
+  it('shows folder name and unhides clear button when getAutoExportDirHandle resolves with a handle', async () => {
+    const { getAutoExportDirHandle } = await import('../src/lib/export/auto-export.js');
+    getAutoExportDirHandle.mockResolvedValueOnce({ name: 'MyExportFolder' });
+    openSettingsPanel();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(document.getElementById('autoExportFolderName').textContent).toBe('MyExportFolder');
+    expect(document.getElementById('autoExportFolderClearBtn').hidden).toBe(false);
+  });
+
+  it('shows "Downloads (default)" and hides clear button when no dir handle', async () => {
+    const { getAutoExportDirHandle } = await import('../src/lib/export/auto-export.js');
+    getAutoExportDirHandle.mockResolvedValueOnce(null);
+    openSettingsPanel();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(document.getElementById('autoExportFolderName').textContent).toBe('Downloads (default)');
+    expect(document.getElementById('autoExportFolderClearBtn').hidden).toBe(true);
+  });
+
+  it('autoExportToggle change saves autoExportEnabled to storage', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    openSettingsPanel();
+    const toggle = document.getElementById('autoExportToggle');
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change'));
+    await Promise.resolve();
+    expect(browser.storage.local.set).toHaveBeenCalledWith({ autoExportEnabled: true });
+  });
+
+  it('autoExportToggle change enables threshold input when toggled on', () => {
+    openSettingsPanel();
+    const toggle = document.getElementById('autoExportToggle');
+    const thresholdInput = document.getElementById('autoExportThresholdInput');
+    thresholdInput.disabled = true;
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change'));
+    expect(thresholdInput.disabled).toBe(false);
+  });
+
+  it('threshold input change saves value to storage', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    openSettingsPanel();
+    const thresholdInput = document.getElementById('autoExportThresholdInput');
+    thresholdInput.value = '20';
+    thresholdInput.dispatchEvent(new Event('change'));
+    await Promise.resolve();
+    expect(browser.storage.local.set).toHaveBeenCalledWith({ autoExportThreshold: 20 });
+  });
+
+  it('threshold input clamps value to 1 when set to 0', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    openSettingsPanel();
+    // Let the storage-load promise resolve so it does not overwrite the input value below
+    await Promise.resolve();
+    await Promise.resolve();
+    const thresholdInput = document.getElementById('autoExportThresholdInput');
+    thresholdInput.value = '0';
+    thresholdInput.dispatchEvent(new Event('change'));
+    expect(thresholdInput.value).toBe('1');
+    expect(browser.storage.local.set).toHaveBeenCalledWith({ autoExportThreshold: 1 });
+  });
+
+  it('threshold input clamps negative value to 1', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    openSettingsPanel();
+    await Promise.resolve();
+    await Promise.resolve();
+    const thresholdInput = document.getElementById('autoExportThresholdInput');
+    thresholdInput.value = '-5';
+    thresholdInput.dispatchEvent(new Event('change'));
+    expect(thresholdInput.value).toBe('1');
+    expect(browser.storage.local.set).toHaveBeenCalledWith({ autoExportThreshold: 1 });
+  });
+
+  it('autoExportTopicsInput input event saves topics to storage', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    openSettingsPanel();
+    const topicsInput = document.getElementById('autoExportTopicsInput');
+    topicsInput.value = 'work,personal';
+    topicsInput.dispatchEvent(new Event('input'));
+    await Promise.resolve();
+    expect(browser.storage.local.set).toHaveBeenCalledWith({ autoExportTopics: 'work,personal' });
+  });
+
+  it('browse button click stores handle and updates folder display', async () => {
+    const { storeAutoExportDirHandle } = await import('../src/lib/export/auto-export.js');
+    const mockHandle = { name: 'ChosenFolder' };
+    window.showDirectoryPicker = vi.fn().mockResolvedValue(mockHandle);
+    openSettingsPanel();
+    document.getElementById('autoExportFolderBrowseBtn').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(storeAutoExportDirHandle).toHaveBeenCalledWith(mockHandle);
+    expect(document.getElementById('autoExportFolderName').textContent).toBe('ChosenFolder');
+  });
+
+  it('browse button click — AbortError is silently ignored', async () => {
+    const { logger } = await import('../src/lib/utils/logger.js');
+    const abortErr = new DOMException('User cancelled', 'AbortError');
+    window.showDirectoryPicker = vi.fn().mockRejectedValue(abortErr);
+    openSettingsPanel();
+    document.getElementById('autoExportFolderBrowseBtn').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('browse button click — non-AbortError logs a warning', async () => {
+    const { logger } = await import('../src/lib/utils/logger.js');
+    const err = new Error('Picker unavailable');
+    err.name = 'NotAllowedError';
+    window.showDirectoryPicker = vi.fn().mockRejectedValue(err);
+    openSettingsPanel();
+    document.getElementById('autoExportFolderBrowseBtn').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(logger.warn).toHaveBeenCalledWith('Folder picker error:', err);
+  });
+
+  it('clear button click clears stored handle and resets display', async () => {
+    const { clearAutoExportDirHandle } = await import('../src/lib/export/auto-export.js');
+    openSettingsPanel();
+    document.getElementById('autoExportFolderName').textContent = 'SomeFolder';
+    document.getElementById('autoExportFolderClearBtn').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(clearAutoExportDirHandle).toHaveBeenCalled();
+    expect(document.getElementById('autoExportFolderName').textContent).toBe('Downloads (default)');
+    expect(document.getElementById('autoExportFolderClearBtn').hidden).toBe(true);
+  });
+
+  it('is idempotent — second open does not re-wire auto-export toggle', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    openSettingsPanel();
+    openSettingsPanel();
+    const toggle = document.getElementById('autoExportToggle');
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change'));
+    const autoExportSetCalls = browser.storage.local.set.mock.calls.filter(
+      ([arg]) => 'autoExportEnabled' in arg
+    );
+    expect(autoExportSetCalls).toHaveLength(1);
+  });
+
+  it('silently ignores getAutoExportDirHandle rejection', async () => {
+    const { getAutoExportDirHandle } = await import('../src/lib/export/auto-export.js');
+    getAutoExportDirHandle.mockRejectedValueOnce(new Error('IDB unavailable'));
+    // Should not throw; panel opens normally
+    expect(() => openSettingsPanel()).not.toThrow();
+    // Flush the rejected promise so the unhandled-rejection doesn't leak
+    await Promise.resolve();
+    await Promise.resolve();
   });
 });

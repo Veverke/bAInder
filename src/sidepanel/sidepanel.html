@@ -167,6 +167,7 @@
               <option value="date-asc">Chats: Oldest</option>
             </select>
             <span id="itemCount" class="badge">0 topics</span>
+            <span id="chatCount" class="badge">0 chats</span>
             <!-- C.17 — Multi-select toggle -->
             <button id="multiSelectToggleBtn" class="section-toggle" aria-label="Select chats for digest export" title="Select chats" aria-pressed="false">
               <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
@@ -308,12 +309,12 @@
     <div id="selectionBar" class="selection-bar" style="display:none" role="status" aria-live="polite">
       <span id="selectionCount" class="selection-bar__count">0 selected</span>
       <div class="selection-bar__actions">
-        <button id="assembleBtn" class="selection-bar__btn selection-bar__btn--primary" disabled title="Select at least 2 chats to assemble into a new chat">
+        <button id="joinBtn" class="selection-bar__btn selection-bar__btn--primary" disabled title="Select at least 2 chats to join into a new chat">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
             <path d="M6.5 9.5a3.5 3.5 0 0 0 4.95 0l2-2a3.5 3.5 0 0 0-4.95-4.95l-1.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M9.5 6.5a3.5 3.5 0 0 0-4.95 0l-2 2a3.5 3.5 0 0 0 4.95 4.95l1.5-1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          Assemble
+          Join
         </button>
         <button id="exportDigestBtn" class="selection-bar__btn" disabled title="Select at least 2 chats to export a digest">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
@@ -383,6 +384,13 @@
 
   <!-- Context Menu (hidden by default) -->
   <div id="contextMenu" class="context-menu" style="display: none;">
+    <div class="context-menu-item" data-action="add-child-topic">
+      <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Add Topic</span>
+    </div>
+    <div class="context-menu-divider"></div>
     <div class="context-menu-item" data-action="rename">
       <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M11.3 1.9L14.1 4.7L5.6 13.2H2.8V10.4L11.3 1.9Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -649,6 +657,49 @@
               <input type="checkbox" class="settings-toggle__input" id="showOrdinalsToggle" checked>
               <span class="settings-toggle__track"></span>
             </label>
+          </div>
+        </section>
+
+        <!-- Auto Export settings -->
+        <section class="settings-section">
+          <h3 class="settings-section__title">Auto Export</h3>
+          <div class="settings-row">
+            <label class="settings-row__label" for="autoExportToggle">
+              Enable auto-export
+              <span class="settings-row__hint">Automatically export after saving N new chats</span>
+            </label>
+            <label class="settings-toggle" aria-label="Enable auto-export">
+              <input type="checkbox" class="settings-toggle__input" id="autoExportToggle">
+              <span class="settings-toggle__track"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <label class="settings-row__label" for="autoExportThresholdInput">Export after</label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="autoExportThresholdInput" class="settings-input"
+                value="10" min="1" step="1" style="width:60px;text-align:right"
+                aria-label="Auto-export threshold" disabled>
+              <span style="font-size:0.8rem;color:var(--text-secondary)">new chats</span>
+            </div>
+          </div>
+          <div class="settings-row">
+            <label class="settings-row__label" for="autoExportTopicsInput">
+              Topics filter
+              <span class="settings-row__hint">Comma-separated topic names to export. Leave blank to export everything.</span>
+            </label>
+            <input type="text" id="autoExportTopicsInput" class="settings-input"
+              placeholder="All topics" aria-label="Topics to auto-export (comma-separated)">
+          </div>
+          <div class="settings-row">
+            <label class="settings-row__label">
+              Destination folder
+              <span class="settings-row__hint">Where auto-exports are saved. Defaults to your browser's Downloads folder.</span>
+            </label>
+            <div class="settings-folder-picker">
+              <span id="autoExportFolderName" class="settings-folder-picker__name">Downloads (default)</span>
+              <button type="button" id="autoExportFolderBrowseBtn" class="settings-btn">Browse…</button>
+              <button type="button" id="autoExportFolderClearBtn" class="settings-btn settings-btn--minor" hidden>Clear</button>
+            </div>
           </div>
         </section>
 

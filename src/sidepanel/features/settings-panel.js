@@ -10,6 +10,11 @@
 import { logger } from '../../lib/utils/logger.js';
 import browser from '../../lib/vendor/browser.js';
 import { sanitiseSeparator, DEFAULT_CLIPBOARD_SETTINGS } from '../../lib/export/clipboard-serialiser.js';
+import {
+  getAutoExportDirHandle,
+  storeAutoExportDirHandle,
+  clearAutoExportDirHandle,
+} from '../../lib/export/auto-export.js';
 
 export function openSettingsPanel() {
   const panel = document.getElementById('settingsPanel');
@@ -142,6 +147,86 @@ export function openSettingsPanel() {
           readerSettings: { ...current, showOrdinals: showOrdinalsToggle.checked },
         });
       }).catch(() => {});
+    });
+  }
+
+  // Wire auto-export settings (idempotent)
+  const autoExportToggle          = document.getElementById('autoExportToggle');
+  const autoExportThresholdInput  = document.getElementById('autoExportThresholdInput');
+  const autoExportTopicsInput     = document.getElementById('autoExportTopicsInput');
+  const autoExportFolderName      = document.getElementById('autoExportFolderName');
+  const autoExportFolderBrowseBtn = document.getElementById('autoExportFolderBrowseBtn');
+  const autoExportFolderClearBtn  = document.getElementById('autoExportFolderClearBtn');
+
+  function _syncFolderDisplay(handle) {
+    if (handle) {
+      if (autoExportFolderName)     autoExportFolderName.textContent = handle.name;
+      if (autoExportFolderClearBtn) autoExportFolderClearBtn.hidden  = false;
+    } else {
+      if (autoExportFolderName)     autoExportFolderName.textContent = 'Downloads (default)';
+      if (autoExportFolderClearBtn) autoExportFolderClearBtn.hidden  = true;
+    }
+  }
+
+  if (autoExportToggle && !autoExportToggle.dataset.wired) {
+    autoExportToggle.dataset.wired = '1';
+
+    function _syncThresholdEnabled() {
+      if (autoExportThresholdInput) autoExportThresholdInput.disabled = !autoExportToggle.checked;
+    }
+
+    // Load persisted scalar settings
+    browser.storage.local.get(['autoExportEnabled', 'autoExportThreshold', 'autoExportTopics'])
+      .then(data => {
+        autoExportToggle.checked = !!data.autoExportEnabled;
+        if (autoExportThresholdInput) {
+          autoExportThresholdInput.value = data.autoExportThreshold ?? 10;
+        }
+        if (autoExportTopicsInput) {
+          autoExportTopicsInput.value = data.autoExportTopics || '';
+        }
+        _syncThresholdEnabled();
+      }).catch(() => {});
+
+    // Load persisted folder handle and update display
+    getAutoExportDirHandle().then(_syncFolderDisplay).catch(() => {});
+
+    // Toggle — also enables/disables threshold input
+    autoExportToggle.addEventListener('change', () => {
+      browser.storage.local.set({ autoExportEnabled: autoExportToggle.checked }).catch(() => {});
+      _syncThresholdEnabled();
+    });
+
+    // Threshold
+    autoExportThresholdInput?.addEventListener('change', () => {
+      let val = parseInt(autoExportThresholdInput.value, 10);
+      if (!val || val < 1) { val = 1; autoExportThresholdInput.value = '1'; }
+      browser.storage.local.set({ autoExportThreshold: val }).catch(() => {});
+    });
+
+    // Topics filter
+    autoExportTopicsInput?.addEventListener('input', () => {
+      browser.storage.local.set({ autoExportTopics: autoExportTopicsInput.value }).catch(() => {});
+    });
+
+    // Browse button — opens native folder picker
+    autoExportFolderBrowseBtn?.addEventListener('click', async () => {
+      try {
+        const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        await storeAutoExportDirHandle(handle);
+        _syncFolderDisplay(handle);
+      } catch (err) {
+        // User cancelled or API unavailable — ignore
+        if (err.name !== 'AbortError') {
+          logger.warn('Folder picker error:', err);
+        }
+      }
+    });
+
+    // Clear button — removes stored handle
+    autoExportFolderClearBtn?.addEventListener('click', async () => {
+      await clearAutoExportDirHandle().catch(() => {});
+      _syncFolderDisplay(null);
     });
   }
 }

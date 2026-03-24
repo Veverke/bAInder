@@ -535,6 +535,30 @@ describe('TreeRenderer', () => {
       // textContent unchanged (empty) since condition was not entered
       expect(itemCount.textContent).toBe('');
     });
+
+    it('updates chatCount badge when chatCount element is present', () => {
+      const chatCount = document.createElement('span');
+      chatCount.id = 'chatCount';
+      document.body.appendChild(chatCount);
+
+      renderer = new TreeRenderer(container, tree);
+      renderer.chats = [{ id: 'c1' }, { id: 'c2' }];
+      renderer.updateTopicCount();
+
+      expect(chatCount.textContent).toBe('2 chats');
+    });
+
+    it('chatCount badge uses singular for one chat', () => {
+      const chatCount = document.createElement('span');
+      chatCount.id = 'chatCount';
+      document.body.appendChild(chatCount);
+
+      renderer = new TreeRenderer(container, tree);
+      renderer.chats = [{ id: 'c1' }];
+      renderer.updateTopicCount();
+
+      expect(chatCount.textContent).toBe('1 chat');
+    });
   });
 
   describe('State Persistence', () => {
@@ -962,6 +986,23 @@ describe('TreeRenderer – Stage 7 chat items', () => {
       const content = container.querySelector('.tree-chat-item .tree-node-content');
       const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
       expect(() => content.dispatchEvent(event)).not.toThrow();
+    });
+  });
+
+  describe('_makeVirtualCtx', () => {
+    it('builds chatCountByTopic index for chats with topicId', () => {
+      const t1 = tree.addTopic('T1');
+      renderer = new TreeRenderer(container, tree);
+      renderer.chats = [
+        { id: 'c1', topicId: t1 },
+        { id: 'c2', topicId: t1 },
+        { id: 'c3', topicId: 'other-topic' },
+        { id: 'c4' }, // no topicId — must NOT appear in map
+      ];
+      const ctx = renderer._makeVirtualCtx();
+      expect(ctx.chatCountByTopic.get(t1)).toBe(2);
+      expect(ctx.chatCountByTopic.get('other-topic')).toBe(1);
+      expect(ctx.chatCountByTopic.has('c4')).toBe(false);
     });
   });
 });

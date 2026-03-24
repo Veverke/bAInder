@@ -103,7 +103,7 @@ import { initBackupReminder }  from './features/backup-reminder.js';
 import { init as initEntityController, refresh as refreshEntityController } from './controllers/entity-controller.js';
 import {
   handleMultiSelectToggle,
-  handleAssemble,
+  handleJoin,
   handleExportDigest,
   handleCopyAll,
   exitMultiSelectMode,
@@ -250,7 +250,7 @@ function setupEventListeners() {
 
   // C.17 â€” multi-select
   elements.multiSelectToggleBtn?.addEventListener('click', handleMultiSelectToggle);
-  elements.assembleBtn?.addEventListener('click', handleAssemble);
+  elements.joinBtn?.addEventListener('click', handleJoin);
   elements.exportDigestBtn?.addEventListener('click', handleExportDigest);
   elements.copyAllBtn?.addEventListener('click', handleCopyAll);  // C.26
   elements.compareBtn?.addEventListener('click', handleCompare);  // C.18
