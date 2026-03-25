@@ -107,6 +107,7 @@ export function setupChatContextMenuActions() {
     move:              handleMoveChatAction,
     export:            handleExportChatAction,
     copy:              handleCopyChatAction,
+    overwrite:         handleOverwriteChatAction,
     delete:            handleDeleteChatAction,
     'set-review-date': handleSetReviewDateAction,
   };
@@ -198,7 +199,7 @@ export async function handleChatSaved(chatEntry) {
   }
 
   // 3. Apply mutations
-  const updatedChat = assignChatToTopic(chatEntry, result.topicId, _state.tree);
+  let updatedChat = assignChatToTopic(chatEntry, result.topicId, _state.tree);
   if (result.title && result.title !== chatEntry.title) updatedChat.title = result.title;
   if (result.tags  !== undefined)                       updatedChat.tags  = result.tags;
 
@@ -218,6 +219,10 @@ export async function handleChatSaved(chatEntry) {
     }
     await _state.chatRepo.removeChat(duplicate.id);
     _state.chats = _state.chats.filter(c => c.id !== duplicate.id);
+    // Preserve the original's tree position — move to the duplicate's topic.
+    if (duplicate.topicId && duplicate.topicId !== updatedChat.topicId) {
+      updatedChat = moveChatToTopic(updatedChat, duplicate.topicId, _state.tree);
+    }
   }
 
   // 4. Persist
@@ -252,6 +257,15 @@ export async function handleChatSaved(chatEntry) {
   updateRecentRail(handleChatClick);
 
   // Feature c — auto-export check
+  await checkAndTriggerAutoExport();
+}
+
+/**
+ * Increment the auto-export counter and fire triggerAutoExport when the
+ * configured threshold is reached.  Shared by handleChatSaved (normal saves)
+ * and the READER_CHAT_CREATED sidepanel handler (Create-mode saves).
+ */
+export async function checkAndTriggerAutoExport() {
   try {
     const stored = await browser.storage.local.get(
       ['autoExportEnabled', 'autoExportThreshold', 'chatsSinceLastAutoExport', 'autoExportTopics']
@@ -405,6 +419,69 @@ export async function handleCopyChatAction() {
     return;
   }
   showNotification('Copied to clipboard', 'success');
+}
+
+async function handleOverwriteChatAction() {
+  const target = _state.contextMenuChat;
+  if (!target) return;
+
+  // 1. Get the active tab and extract its chat content
+  let tab;
+  try {
+    [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  } catch (err) {
+    showNotification('Could not access the active tab', 'error');
+    return;
+  }
+  if (!tab?.id) {
+    showNotification('No active tab found', 'error');
+    return;
+  }
+
+  let extractResponse;
+  try {
+    extractResponse = await browser.tabs.sendMessage(tab.id, { type: 'EXTRACT_CHAT' });
+  } catch (err) {
+    showNotification('Could not extract chat — reload the tab and try again', 'error');
+    return;
+  }
+  if (!extractResponse?.success) {
+    showNotification(extractResponse?.error || 'Extraction failed — is this an AI chat tab?', 'error');
+    return;
+  }
+  const chatData = extractResponse.data;
+  if (!chatData || (chatData.messageCount === 0 && !chatData.messages?.length)) {
+    showNotification('No chat content found in the current tab', 'error');
+    return;
+  }
+
+  // 2. Confirm — this replaces the saved chat's content irreversibly
+  const confirmed = await _state.dialog.confirm(
+    `Replace the contents of "${target.title}" with the current tab's conversation?\n\nThe existing messages will be permanently overwritten.`,
+    'Overwrite Chat Content?'
+  );
+  if (!confirmed) return;
+
+  // 3. Update only the content fields; preserve title, tags, topicId, rating, etc.
+  const updates = {
+    content:      chatData.content,
+    messages:     chatData.messages      ?? [],
+    messageCount: chatData.messageCount  ?? (chatData.messages?.length ?? 0),
+    url:          chatData.url           || tab.url || target.url || '',
+    source:       chatData.source        || target.source || '',
+  };
+
+  try {
+    _state.chats = await _state.chatRepo.updateChat(target.id, updates);
+  } catch (err) {
+    logger.error('Overwrite chat failed:', err);
+    showNotification('Failed to overwrite chat', 'error');
+    return;
+  }
+
+  _state.renderer.setChatData(_state.chats);
+  renderTreeView();
+  showNotification(`"${target.title}" updated with current tab content`, 'success');
 }
 
 

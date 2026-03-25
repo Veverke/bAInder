@@ -121,6 +121,16 @@ export function handleSearch(event) {
   if (elements.clearSearchBtn) elements.clearSearchBtn.style.display = query ? 'block' : 'none';
   const searchContainer = elements.searchInput?.closest('.search-container');
 
+  // Auto-collapse the Saved Chats section when search is active so results are visible
+  if (query) {
+    const tocSection = document.querySelector('.toc-section');
+    const tocBtn = document.getElementById('tocCollapseBtn');
+    if (tocSection && !tocSection.classList.contains('section--collapsed')) {
+      tocSection.classList.add('section--collapsed');
+      tocBtn?.setAttribute('aria-expanded', 'false');
+    }
+  }
+
   // C.13 — route to entity search when entity context is active
   // Read via .state reference first so test-injected mutations on `st` are picked up
   const searchContext = (_state.state ?? _state).searchContext;
@@ -138,9 +148,20 @@ export function handleSearch(event) {
     if (_hasActiveFilters()) {
       _handleSearchDeferred('');
     } else {
+      _expandTocSection();
       _state.renderer?.clearHighlight();
       hideSearchResults();
     }
+  }
+}
+
+/** Expand the Saved Chats (TOC) section if it was auto-collapsed during search. */
+function _expandTocSection() {
+  const tocSection = document.querySelector('.toc-section');
+  const tocBtn = document.getElementById('tocCollapseBtn');
+  if (tocSection && tocSection.classList.contains('section--collapsed')) {
+    tocSection.classList.remove('section--collapsed');
+    tocBtn?.setAttribute('aria-expanded', 'true');
   }
 }
 
@@ -150,6 +171,7 @@ export function clearSearch() {
   elements.searchInput.value = '';
   _state.searchQuery = '';
   elements.clearSearchBtn.style.display = 'none';
+  _expandTocSection();
   if (_hasActiveFilters()) {
     runSearch('');
   } else {
@@ -163,6 +185,7 @@ export function rerunSearch() {
   if (_state.searchQuery || _hasActiveFilters()) {
     _handleSearchDeferred(_state.searchQuery);
   } else {
+    _expandTocSection();
     hideSearchResults();
   }
 }

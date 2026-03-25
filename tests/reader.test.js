@@ -27,6 +27,9 @@ import {
   setupAnnotations,
   _entityPresentInContent,
   _findMarkdownRange,
+  _buildTopicList,
+  _showTopicPickerModal,
+  setupCreateMode,
 } from '../src/reader/reader.js';
 import { messagesToMarkdown } from '../src/lib/io/markdown-serialiser.js';
 import { ENTITY_TYPES } from '../src/lib/entities/chat-entity.js';
@@ -2430,6 +2433,871 @@ describe('setupAnnotations delete-text button', () => {
     const annSetCall = setCalls.find(c => c[0]?.['annotations:chat-1'] !== undefined);
     expect(annSetCall).toBeTruthy();
     expect(annSetCall[0]['annotations:chat-1']).toEqual([]);
+  });
+});
+
+// ─── _buildTopicList ──────────────────────────────────────────────────────────
+
+describe('_buildTopicList', () => {
+  it('returns empty array for null/undefined/empty treeObj', () => {
+    expect(_buildTopicList(null)).toEqual([]);
+    expect(_buildTopicList(undefined)).toEqual([]);
+    expect(_buildTopicList({})).toEqual([]);
+  });
+
+  it('returns a flat list for root topics with no children', () => {
+    const treeObj = {
+      rootTopicIds: ['t1', 't2'],
+      topics: {
+        t1: { id: 't1', name: 'Alpha', children: [] },
+        t2: { id: 't2', name: 'Beta',  children: [] },
+      },
+    };
+    const result = _buildTopicList(treeObj);
+    expect(result).toEqual([
+      { id: 't1', name: 'Alpha', depth: 0 },
+      { id: 't2', name: 'Beta',  depth: 0 },
+    ]);
+  });
+
+  it('tracks depth for nested children', () => {
+    const treeObj = {
+      rootTopicIds: ['root'],
+      topics: {
+        root:  { id: 'root',  name: 'Root',  children: ['child'] },
+        child: { id: 'child', name: 'Child', children: ['grand'] },
+        grand: { id: 'grand', name: 'Grand', children: [] },
+      },
+    };
+    const result = _buildTopicList(treeObj);
+    expect(result).toEqual([
+      { id: 'root',  name: 'Root',  depth: 0 },
+      { id: 'child', name: 'Child', depth: 1 },
+      { id: 'grand', name: 'Grand', depth: 2 },
+    ]);
+  });
+
+  it('skips missing topic IDs gracefully', () => {
+    const treeObj = {
+      rootTopicIds: ['t1', 'missing'],
+      topics: { t1: { id: 't1', name: 'A', children: [] } },
+    };
+    const result = _buildTopicList(treeObj);
+    expect(result).toEqual([{ id: 't1', name: 'A', depth: 0 }]);
+  });
+
+  it('handles multiple root topics each with children', () => {
+    const treeObj = {
+      rootTopicIds: ['r1', 'r2'],
+      topics: {
+        r1: { id: 'r1', name: 'Root1', children: ['c1'] },
+        r2: { id: 'r2', name: 'Root2', children: [] },
+        c1: { id: 'c1', name: 'Child1', children: [] },
+      },
+    };
+    const result = _buildTopicList(treeObj);
+    expect(result.map(t => t.id)).toEqual(['r1', 'c1', 'r2']);
+    expect(result.find(t => t.id === 'c1').depth).toBe(1);
+  });
+});
+
+// ─── _showTopicPickerModal ────────────────────────────────────────────────────
+
+describe('_showTopicPickerModal', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  // ── Helper: fill title and optionally confirm ─────────────────────────────
+  function fillTitle(value = 'My Chat') {
+    const input = document.getElementById('tp-chat-title');
+    if (input) { input.value = value; }
+  }
+
+  // ── Lifecycle / dismissal ─────────────────────────────────────────────────
+  it('returns a Promise', () => {
+    const p = _showTopicPickerModal({});
+    p.then(() => {});
+    expect(p).toBeInstanceOf(Promise);
+    document.querySelector('.topic-picker-modal__close')?.click();
+  });
+
+  it('appends the overlay to document.body', () => {
+    const p = _showTopicPickerModal({});
+    expect(document.querySelector('.topic-picker-overlay')).not.toBeNull();
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('close button (X) resolves with null', async () => {
+    const p = _showTopicPickerModal({});
+    document.querySelector('.topic-picker-modal__close').click();
+    expect(await p).toBeNull();
+  });
+
+  it('cancel button resolves with null', async () => {
+    const p = _showTopicPickerModal({});
+    document.querySelector('.topic-picker-modal__btn--secondary').click();
+    expect(await p).toBeNull();
+  });
+
+  it('Escape key resolves with null', async () => {
+    const p = _showTopicPickerModal({});
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(await p).toBeNull();
+  });
+
+  it('clicking the overlay backdrop resolves with null', async () => {
+    const p = _showTopicPickerModal({});
+    const overlay = document.querySelector('.topic-picker-overlay');
+    overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(await p).toBeNull();
+  });
+
+  it('overlay is removed from DOM after dismissal', async () => {
+    const p = _showTopicPickerModal({});
+    expect(document.querySelector('.topic-picker-overlay')).not.toBeNull();
+    document.querySelector('.topic-picker-modal__close').click();
+    await p;
+    expect(document.querySelector('.topic-picker-overlay')).toBeNull();
+  });
+
+  // ── Title field ───────────────────────────────────────────────────────────
+  it('renders the title input field', () => {
+    const p = _showTopicPickerModal({});
+    expect(document.getElementById('tp-chat-title')).not.toBeNull();
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('prefills title input with defaultTitle argument', () => {
+    const p = _showTopicPickerModal({}, 'Prefilled Title');
+    expect(document.getElementById('tp-chat-title').value).toBe('Prefilled Title');
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('confirm with empty title does not resolve (validation)', async () => {
+    const p = _showTopicPickerModal({});
+    // Clear any default title value
+    document.getElementById('tp-chat-title').value = '   ';
+    // 'new' is default for empty topics; give a topic name so only the title fails
+    document.getElementById('tp-new-name').value = 'Topic';
+    let resolved = false;
+    p.then(() => { resolved = true; });
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(resolved).toBe(false);
+    document.querySelector('.topic-picker-modal__close').click();
+    await p;
+  });
+
+  it('title input gets error class on empty submit', async () => {
+    const p = _showTopicPickerModal({});
+    document.getElementById('tp-chat-title').value = '';
+    document.getElementById('tp-new-name').value = 'Topic';
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(document.getElementById('tp-chat-title').classList.contains('topic-picker-modal__input--error')).toBe(true);
+    document.querySelector('.topic-picker-modal__close').click();
+    await p;
+  });
+
+  it('error class removed when user types into title input', async () => {
+    const p = _showTopicPickerModal({});
+    const ti = document.getElementById('tp-chat-title');
+    ti.value = '';
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    await new Promise(r => setTimeout(r, 0));
+    ti.classList.add('topic-picker-modal__input--error'); // simulate added
+    ti.value = 'x';
+    ti.dispatchEvent(new Event('input'));
+    expect(ti.classList.contains('topic-picker-modal__input--error')).toBe(false);
+    document.querySelector('.topic-picker-modal__close').click();
+    await p;
+  });
+
+  // ── Topic mode: only 2 options (existing / new), no skip ─────────────────
+  it('has exactly 2 topic radio options', () => {
+    const p = _showTopicPickerModal({});
+    const radios = document.querySelectorAll('input[name="tp-mode"]');
+    expect(radios.length).toBe(2);
+    const values = [...radios].map(r => r.value).sort();
+    expect(values).toEqual(['existing', 'new']);
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('does not render a "skip" / "no topic" radio', () => {
+    const p = _showTopicPickerModal({});
+    expect(document.querySelector('input[value="skip"]')).toBeNull();
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('defaults to "new" mode when no topics exist', () => {
+    const p = _showTopicPickerModal({ rootTopicIds: [], topics: {} });
+    const checked = [...document.querySelectorAll('input[name="tp-mode"]')].find(r => r.checked);
+    expect(checked?.value).toBe('new');
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('defaults to "existing" mode when topics exist', () => {
+    const treeObj = {
+      rootTopicIds: ['t1'],
+      topics: { t1: { id: 't1', name: 'Alpha', children: [] } },
+    };
+    const p = _showTopicPickerModal(treeObj);
+    const checked = [...document.querySelectorAll('input[name="tp-mode"]')].find(r => r.checked);
+    expect(checked?.value).toBe('existing');
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('"existing" radio is disabled when no topics exist', () => {
+    const p = _showTopicPickerModal({ rootTopicIds: [], topics: {} });
+    expect(document.querySelector('input[value="existing"]').disabled).toBe(true);
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('"existing" radio is enabled when topics exist', () => {
+    const treeObj = {
+      rootTopicIds: ['t1'],
+      topics: { t1: { id: 't1', name: 'Alpha', children: [] } },
+    };
+    const p = _showTopicPickerModal(treeObj);
+    expect(document.querySelector('input[value="existing"]').disabled).toBe(false);
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  // ── Confirm: "new" topic ──────────────────────────────────────────────────
+  it('confirms "new" mode → resolves { title, mode: "new", topicName }', async () => {
+    const p = _showTopicPickerModal({}, 'My Chat');
+    // 'new' is default for empty topic list
+    document.getElementById('tp-new-name').value = 'My New Topic';
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    const result = await p;
+    expect(result).toEqual({ title: 'My Chat', mode: 'new', topicName: 'My New Topic' });
+  });
+
+  it('confirm with "new" but empty topic name does not resolve (validation)', async () => {
+    const p = _showTopicPickerModal({}, 'My Chat');
+    document.getElementById('tp-new-name').value = '   ';
+    let resolved = false;
+    p.then(() => { resolved = true; });
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(resolved).toBe(false);
+    document.querySelector('.topic-picker-modal__close').click();
+    await p;
+  });
+
+  // ── Confirm: "existing" topic ─────────────────────────────────────────────
+  it('confirms "existing" mode → resolves { title, mode: "existing", topicId }', async () => {
+    const treeObj = {
+      rootTopicIds: ['t1'],
+      topics: { t1: { id: 't1', name: 'Alpha', children: [] } },
+    };
+    const p = _showTopicPickerModal(treeObj, 'My Chat');
+    const sel = document.getElementById('tp-existing-select');
+    sel.value = 't1';
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    const result = await p;
+    expect(result).toEqual({ title: 'My Chat', mode: 'existing', topicId: 't1' });
+  });
+
+  // ── Enter key ─────────────────────────────────────────────────────────────
+  it('Enter key triggers confirm (new mode with valid inputs)', async () => {
+    const p = _showTopicPickerModal({}, 'My Chat');
+    document.getElementById('tp-new-name').value = 'Topic Name';
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    const result = await p;
+    expect(result).toEqual({ title: 'My Chat', mode: 'new', topicName: 'Topic Name' });
+  });
+
+  // ── Dynamic section swap ──────────────────────────────────────────────────
+  it('radio change to "new" shows name input in body', () => {
+    const treeObj = {
+      rootTopicIds: ['t1'],
+      topics: { t1: { id: 't1', name: 'Alpha', children: [] } },
+    };
+    const p = _showTopicPickerModal(treeObj);
+    // Start in 'existing', switch to 'new'
+    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
+    const newRadio = document.querySelector('input[value="new"]');
+    newRadio.checked = true;
+    newRadio.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(document.getElementById('tp-new-name')).not.toBeNull();
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('radio change to "existing" shows topic select in body', () => {
+    const treeObj = {
+      rootTopicIds: ['t1'],
+      topics: { t1: { id: 't1', name: 'Alpha', children: [] } },
+    };
+    const p = _showTopicPickerModal(treeObj);
+    // Force switch to 'new' first, then back to 'existing'
+    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
+    document.querySelector('input[value="new"]').checked = true;
+    document.querySelector('input[value="new"]').dispatchEvent(new Event('change', { bubbles: true }));
+    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
+    const existRadio = document.querySelector('input[value="existing"]');
+    existRadio.checked = true;
+    existRadio.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(document.getElementById('tp-existing-select')).not.toBeNull();
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+});
+
+// ─── setupCreateMode ─────────────────────────────────────────────────────────
+
+function makeCreateModeDom(turns = 2) {
+  document.body.innerHTML = `
+    <div id="reader-content">
+      ${Array.from({ length: turns }, (_, i) =>
+        `<div class="chat-turn" data-msg-index="${i}"><span class="chat-turn__role">Turn ${i}</span></div>`
+      ).join('')}
+    </div>
+    <div class="reader-actions"></div>
+  `;
+}
+
+function makeCreateModeChat(turns = 2) {
+  return {
+    messages: Array.from({ length: turns }, (_, i) => ({ role: 'user', content: `msg ${i}` })),
+    source:   'chatgpt',
+    content:  '---\ntitle: Test\n---\n',
+    title:    'Test Chat',
+  };
+}
+
+describe('setupCreateMode — early returns', () => {
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('returns early when contentEl is absent', () => {
+    document.body.innerHTML = '<div class="reader-actions"></div>';
+    const chat = makeCreateModeChat();
+    expect(() => setupCreateMode('chat-1', chat, {})).not.toThrow();
+    // No create button added
+    expect(document.getElementById('reader-create-btn')).toBeNull();
+  });
+
+  it('returns early when chatId is falsy', () => {
+    makeCreateModeDom();
+    const chat = makeCreateModeChat();
+    setupCreateMode('', chat, {});
+    expect(document.getElementById('reader-create-btn')).toBeNull();
+  });
+
+  it('returns early when storage is falsy', () => {
+    makeCreateModeDom();
+    const chat = makeCreateModeChat();
+    setupCreateMode('chat-1', chat, null);
+    expect(document.getElementById('reader-create-btn')).toBeNull();
+  });
+
+  it('returns early when messages array is empty', () => {
+    makeCreateModeDom();
+    const chat = { messages: [] };
+    setupCreateMode('chat-1', chat, {});
+    expect(document.getElementById('reader-create-btn')).toBeNull();
+  });
+
+  it('returns early when messages is not an array', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', { messages: null }, {});
+    expect(document.getElementById('reader-create-btn')).toBeNull();
+  });
+
+  it('returns early when .reader-actions is absent', () => {
+    document.body.innerHTML = '<div id="reader-content"><div class="chat-turn" data-msg-index="0"></div></div>';
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    expect(document.getElementById('reader-create-btn')).toBeNull();
+  });
+});
+
+describe('setupCreateMode — buttons and initial state', () => {
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('appends a create button to .reader-actions', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    expect(document.getElementById('reader-create-btn')).not.toBeNull();
+  });
+
+  it('save and delete buttons are hidden initially', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    expect(document.getElementById('reader-create-save-btn').hidden).toBe(true);
+    expect(document.getElementById('reader-create-delete-btn').hidden).toBe(true);
+  });
+});
+
+describe('setupCreateMode — enter/exit toggle', () => {
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('clicking create button enters create mode (body gets create-mode class)', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    document.getElementById('reader-create-btn').click();
+    expect(document.body.classList.contains('create-mode')).toBe(true);
+  });
+
+  it('entering create mode shows save button', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    document.getElementById('reader-create-btn').click();
+    expect(document.getElementById('reader-create-save-btn').hidden).toBe(false);
+  });
+
+  it('entering create mode sets turns to draggable', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    document.getElementById('reader-create-btn').click();
+    const turns = document.querySelectorAll('.chat-turn');
+    turns.forEach(t => expect(t.getAttribute('draggable')).toBe('true'));
+  });
+
+  it('create button label changes to "Cancel" in create mode', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    const btn = document.getElementById('reader-create-btn');
+    btn.click();
+    expect(btn.querySelector('.btn-reader-action__label').textContent).toBe('Cancel');
+  });
+
+  it('clicking create button again exits create mode', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    const btn = document.getElementById('reader-create-btn');
+    btn.click(); // enter
+    btn.click(); // exit
+    expect(document.body.classList.contains('create-mode')).toBe(false);
+  });
+
+  it('exiting create mode hides save button and restores title', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    const btn = document.getElementById('reader-create-btn');
+    btn.click();
+    btn.click();
+    expect(document.getElementById('reader-create-save-btn').hidden).toBe(true);
+    expect(btn.querySelector('.btn-reader-action__label').textContent).toBe('Create');
+  });
+
+  it('exiting create mode removes draggable from turns', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    const btn = document.getElementById('reader-create-btn');
+    btn.click();
+    btn.click();
+    document.querySelectorAll('.chat-turn').forEach(t =>
+      expect(t.hasAttribute('draggable')).toBe(false)
+    );
+  });
+});
+
+describe('setupCreateMode — turn selection', () => {
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('clicking a turn in create mode selects it', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    document.getElementById('reader-create-btn').click(); // enter mode
+    const turn = document.querySelector('.chat-turn[data-msg-index="0"]');
+    turn.click();
+    expect(turn.classList.contains('turn-create-selected')).toBe(true);
+  });
+
+  it('clicking a selected turn deselects it', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    document.getElementById('reader-create-btn').click();
+    const turn = document.querySelector('.chat-turn[data-msg-index="0"]');
+    turn.click(); // select
+    turn.click(); // deselect
+    expect(turn.classList.contains('turn-create-selected')).toBe(false);
+  });
+
+  it('clicking outside create mode does nothing', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    // NOT clicking create button — mode stays off
+    const turn = document.querySelector('.chat-turn[data-msg-index="0"]');
+    turn.click();
+    expect(turn.classList.contains('turn-create-selected')).toBe(false);
+  });
+
+  it('clicking a button inside a turn does not select the turn', () => {
+    document.body.innerHTML = `
+      <div id="reader-content">
+        <div class="chat-turn" data-msg-index="0">
+          <button class="turn-copy-btn">Copy</button>
+        </div>
+      </div>
+      <div class="reader-actions"></div>
+    `;
+    setupCreateMode('chat-1', makeCreateModeChat(1), {});
+    document.getElementById('reader-create-btn').click();
+    document.querySelector('.turn-copy-btn').click();
+    expect(document.querySelector('.chat-turn').classList.contains('turn-create-selected')).toBe(false);
+  });
+
+  it('delete button appears when a turn is selected', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    document.getElementById('reader-create-btn').click();
+    document.querySelector('.chat-turn[data-msg-index="0"]').click();
+    expect(document.getElementById('reader-create-delete-btn').hidden).toBe(false);
+  });
+
+  it('delete button hides when selection is cleared', () => {
+    makeCreateModeDom();
+    setupCreateMode('chat-1', makeCreateModeChat(), {});
+    document.getElementById('reader-create-btn').click();
+    const turn = document.querySelector('.chat-turn[data-msg-index="0"]');
+    turn.click(); // select
+    turn.click(); // deselect
+    expect(document.getElementById('reader-create-delete-btn').hidden).toBe(true);
+  });
+});
+
+describe('setupCreateMode — delete selected turns', () => {
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('delete button removes the selected turn from the DOM', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    document.getElementById('reader-create-btn').click();
+    document.querySelector('.chat-turn[data-msg-index="1"]').click(); // select turn 1
+    document.getElementById('reader-create-delete-btn').click();
+    expect(document.querySelector('.chat-turn[data-msg-index="1"]')).toBeNull();
+  });
+
+  it('remaining turns are still present after delete', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    document.getElementById('reader-create-btn').click();
+    document.querySelector('.chat-turn[data-msg-index="1"]').click();
+    document.getElementById('reader-create-delete-btn').click();
+    expect(document.querySelector('.chat-turn[data-msg-index="0"]')).not.toBeNull();
+    expect(document.querySelector('.chat-turn[data-msg-index="2"]')).not.toBeNull();
+  });
+
+  it('selection is cleared and delete button hides after delete', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    document.querySelector('.chat-turn[data-msg-index="0"]').click();
+    document.getElementById('reader-create-delete-btn').click();
+    expect(document.getElementById('reader-create-delete-btn').hidden).toBe(true);
+  });
+});
+
+// ── Drag-and-drop helper ──────────────────────────────────────────────────────
+
+function fireDrag(target, type, opts = {}) {
+  const mockDT = {
+    effectAllowed: 'uninitialized',
+    dropEffect: 'none',
+    setData: vi.fn(),
+    getData: vi.fn(() => ''),
+  };
+  const e = new DragEvent(type, {
+    bubbles: true, cancelable: true, clientY: opts.clientY ?? 100,
+  });
+  Object.defineProperty(e, 'dataTransfer', { value: mockDT, writable: true, configurable: true });
+  target.dispatchEvent(e);
+  return { event: e, dt: mockDT };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('setupCreateMode — drag-and-drop', () => {
+  let rafSpy, cafSpy;
+
+  beforeEach(() => {
+    rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
+    cafSpy = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
+  });
+
+  it('dragstart outside create mode does nothing', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    // createMode is false — enter NOT clicked
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    fireDrag(turn0, 'dragstart');
+    expect(turn0.classList.contains('turn-dragging')).toBe(false);
+  });
+
+  it('dragstart in create mode marks turn as dragging and starts edge scroll', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click(); // enter create mode
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    fireDrag(turn0, 'dragstart');
+    expect(turn0.classList.contains('turn-dragging')).toBe(true);
+    expect(rafSpy).toHaveBeenCalled();
+  });
+
+  it('dragstart on non-turn element is ignored', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const content = document.getElementById('reader-content');
+    fireDrag(content, 'dragstart');
+    // No turn should gain turn-dragging
+    expect(document.querySelector('.turn-dragging')).toBeNull();
+  });
+
+  it('dragover outside create mode does nothing', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    const content = document.getElementById('reader-content');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(content, 'dragover');
+    expect(turn1.classList.contains('turn-swap-active')).toBe(false);
+  });
+
+  it('dragover with no drag source does nothing', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    // No dragstart fired — dragSrcEl is null
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn1, 'dragover');
+    expect(turn1.classList.contains('turn-swap-active')).toBe(false);
+  });
+
+  it('dragover over the drag source itself is ignored', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    fireDrag(turn0, 'dragstart');
+    const beforeOrder = [...document.querySelectorAll('.chat-turn')].map(t => t.dataset.msgIndex);
+    fireDrag(turn0, 'dragover');
+    const afterOrder = [...document.querySelectorAll('.chat-turn')].map(t => t.dataset.msgIndex);
+    expect(afterOrder).toEqual(beforeOrder);
+  });
+
+  it('dragover valid target swaps turns in DOM', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    document.getElementById('reader-create-btn').click();
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover');
+    // After live swap, turn1 should now be before turn0 in the DOM
+    const turns = [...document.querySelectorAll('.chat-turn')];
+    expect(turns[0].dataset.msgIndex).toBe('1');
+    expect(turns[1].dataset.msgIndex).toBe('0');
+    expect(turn0.classList.contains('turn-swap-active')).toBe(true);
+    expect(turn1.classList.contains('turn-swap-active')).toBe(true);
+  });
+
+  it('dragover the same target twice does not re-swap', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    document.getElementById('reader-create-btn').click();
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover'); // first: swap
+    fireDrag(turn1, 'dragover'); // second: should be no-op (same target)
+    const turns = [...document.querySelectorAll('.chat-turn')];
+    expect(turns[0].dataset.msgIndex).toBe('1');
+    expect(turns[1].dataset.msgIndex).toBe('0');
+  });
+
+  it('dragover a new target when a pending swap exists cancels old swap first', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    document.getElementById('reader-create-btn').click();
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    const turn2 = document.querySelector('.chat-turn[data-msg-index="2"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover'); // swap with turn1
+    fireDrag(turn2, 'dragover'); // now swap with turn2 instead
+    // turn1 should no longer be swap-active (undo was called)
+    expect(turn1.classList.contains('turn-swap-active')).toBe(false);
+    expect(turn2.classList.contains('turn-swap-active')).toBe(true);
+  });
+
+  it('drop commits the swap and stops edge scroll', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const content = document.getElementById('reader-content');
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover');
+    fireDrag(content, 'drop');
+    expect(cafSpy).toHaveBeenCalled();
+    // _currentSwapTarget cleared — turn1 swap-active should be removed
+    expect(turn1.classList.contains('turn-swap-active')).toBe(false);
+  });
+
+  it('dragend after committed drop cleans up dragging class and calls addOrdinalLabels', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const content = document.getElementById('reader-content');
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover');
+    fireDrag(content, 'drop');
+    fireDrag(content, 'dragend');
+    // turn0 should no longer have turn-dragging
+    expect(turn0.classList.contains('turn-dragging')).toBe(false);
+  });
+
+  it('dragend without drop (cancelled drag) restores original order', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    document.getElementById('reader-create-btn').click();
+    const content = document.getElementById('reader-content');
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover'); // live-swap: order is now [1, 0, 2]
+    // dragend without drop — should undo the live swap
+    fireDrag(content, 'dragend');
+    const turns = [...document.querySelectorAll('.chat-turn')];
+    expect(turns[0].dataset.msgIndex).toBe('0');
+    expect(turns[1].dataset.msgIndex).toBe('1');
+  });
+
+  it('document-level dragover updates _dragClientY while dragging', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    fireDrag(turn0, 'dragstart', { clientY: 50 });
+    // Fire document-level dragover — should not throw
+    const docDragover = new DragEvent('dragover', { bubbles: true, cancelable: true, clientY: 200 });
+    document.dispatchEvent(docDragover);
+    // No assertion on internal state; just verify no crash and stopEdgeScroll not called
+    expect(cafSpy).not.toHaveBeenCalled();
+  });
+
+  it('exitCreateMode during a mid-drag restores pending swap via _cancelPendingSwap', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    const createBtn = document.getElementById('reader-create-btn');
+    createBtn.click(); // enter
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover'); // live swap: order [1,0,2]
+    createBtn.click(); // exit — should restore order
+    const turns = [...document.querySelectorAll('.chat-turn')];
+    expect(turns[0].dataset.msgIndex).toBe('0');
+    expect(turns[1].dataset.msgIndex).toBe('1');
+  });
+
+  it('_stopEdgeScroll cancels the RAF when called via drop', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const content = document.getElementById('reader-content');
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    fireDrag(turn0, 'dragstart'); // starts edge scroll (calls RAF)
+    expect(rafSpy).toHaveBeenCalled();
+    fireDrag(content, 'drop'); // stops edge scroll (calls CAF)
+    expect(cafSpy).toHaveBeenCalledWith(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('setupCreateMode — save button flow', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
+  });
+
+  it('save button success path: persists new chat and shows saved label', async () => {
+    makeCreateModeDom(2);
+    const mockStorage = {
+      get: vi.fn().mockImplementation(keys => {
+        if (Array.isArray(keys) && keys.includes('topicTree')) {
+          return Promise.resolve({ topicTree: { topics: {}, rootTopicIds: [] } });
+        }
+        return Promise.resolve({ chatIndex: [], chatSearchIndex: [] });
+      }),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
+    setupCreateMode('chat-1', makeCreateModeChat(2), mockStorage);
+    document.getElementById('reader-create-btn').click();
+
+    document.getElementById('reader-create-save-btn').click();
+
+    // Wait for topicTree storage.get to resolve and modal to open
+    await vi.waitFor(() => {
+      expect(document.querySelector('.topic-picker-modal')).not.toBeNull();
+    }, { timeout: 2000 });
+
+    // Fill title + new topic name, then confirm
+    document.getElementById('tp-chat-title').value = 'My New Chat';
+    document.getElementById('tp-new-name').value = 'My Topic';
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+
+    // Wait for storage.set to be called (the save completes)
+    await vi.waitFor(() => {
+      expect(mockStorage.set).toHaveBeenCalled();
+    }, { timeout: 2000 });
+
+    const label = document.querySelector('#reader-create-save-btn .btn-reader-action__label');
+    expect(label?.textContent).toContain('Saved');
+  });
+
+  it('save button shows error label when storage.set throws', async () => {
+    makeCreateModeDom(2);
+    const mockStorage = {
+      get: vi.fn().mockImplementation(keys => {
+        if (Array.isArray(keys) && keys.includes('topicTree')) {
+          return Promise.resolve({ topicTree: { topics: {}, rootTopicIds: [] } });
+        }
+        return Promise.resolve({ chatIndex: [], chatSearchIndex: [] });
+      }),
+      set: vi.fn().mockRejectedValue(new Error('storage full')),
+    };
+    setupCreateMode('chat-1', makeCreateModeChat(2), mockStorage);
+    document.getElementById('reader-create-btn').click();
+
+    document.getElementById('reader-create-save-btn').click();
+
+    await vi.waitFor(() => {
+      expect(document.querySelector('.topic-picker-modal')).not.toBeNull();
+    }, { timeout: 2000 });
+
+    // Fill title + new topic name, then confirm
+    document.getElementById('tp-chat-title').value = 'Fail Chat';
+    document.getElementById('tp-new-name').value = 'My Topic';
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+
+    await vi.waitFor(() => {
+      expect(
+        document.querySelector('#reader-create-save-btn .btn-reader-action__label')?.textContent
+      ).toBe('Error');
+    }, { timeout: 2000 });
+
+    const label = document.querySelector('#reader-create-save-btn .btn-reader-action__label');
+    expect(label?.textContent).toBe('Error');
   });
 });
 

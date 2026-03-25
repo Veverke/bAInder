@@ -95,6 +95,7 @@ import {
   setupChatContextMenuActions,
   hideChatContextMenu,
   handleChatSaved,
+  checkAndTriggerAutoExport,
 } from './controllers/chat-actions.js';
 import { handleExportAll, handleImport, handleClearAll } from './controllers/import-export-actions.js';
 
@@ -357,6 +358,23 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         refreshEntityController(); // keep entity tree up to date when tab is already open
         refreshEntityTypeChipVisibility(); // show/hide chips for newly present entity types
         _refreshTagSuggestions(); // keep autocomplete up to date
+        sendResponse({ success: true });
+      })
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true; // async
+  }
+
+  if (message.type === 'READER_CHAT_CREATED') {
+    // Reader page created a new chat (with topic already assigned to storage).
+    // Reload tree + chats from storage, re-render, then check auto-export.
+    Promise.all([loadTree(), state.chatRepo.loadAll()])
+      .then(async ([, chats]) => {
+        state.chats = chats;
+        state.renderer?.setChatData(state.chats);
+        renderTreeView();
+        updateRecentRail(handleChatClick);
+        _refreshTagSuggestions();
+        await checkAndTriggerAutoExport();
         sendResponse({ success: true });
       })
       .catch(err => sendResponse({ success: false, error: err.message }));
