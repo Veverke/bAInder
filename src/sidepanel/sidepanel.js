@@ -363,6 +363,22 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true; // async
   }
 
+  if (message.type === 'READER_CHAT_CREATED') {
+    // Reader page created a new chat (with topic already assigned to storage).
+    // Reload tree + chats from storage and re-render without the assign dialog.
+    Promise.all([loadTree(), state.chatRepo.loadAll()])
+      .then(([, chats]) => {
+        state.chats = chats;
+        state.renderer?.setChatData(state.chats);
+        renderTreeView();
+        updateRecentRail(handleChatClick);
+        _refreshTagSuggestions();
+        sendResponse({ success: true });
+      })
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true; // async
+  }
+
   if (message.type === 'SELECT_CHAT') {
     const { chatId } = message;
     const chat = state.chats?.find(c => c.id === chatId);

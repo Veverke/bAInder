@@ -2833,16 +2833,17 @@ export function _buildTopicList(treeObj) {
 }
 
 /**
- * Show a topic-picker modal and return a Promise that resolves to one of:
- *   { mode: 'existing', topicId: string }
- *   { mode: 'new',      topicName: string }
- *   { mode: 'skip' }
+ * Show a combined "Save chat" modal (title + topic assignment) and return a
+ * Promise that resolves to one of:
+ *   { title: string, mode: 'existing', topicId: string }
+ *   { title: string, mode: 'new',      topicName: string }
  *   null  — user dismissed / cancelled
  *
  * @param {{ topics?: Object, rootTopicIds?: string[] }} treeObj
- * @returns {Promise<{mode:string, topicId?:string, topicName?:string}|null>}
+ * @param {string} [defaultTitle]
+ * @returns {Promise<{title:string, mode:string, topicId?:string, topicName?:string}|null>}
  */
-export function _showTopicPickerModal(treeObj) {
+export function _showTopicPickerModal(treeObj, defaultTitle = '') {
   const topicList = _buildTopicList(treeObj);
   const hasTopics = topicList.length > 0;
 
@@ -2856,13 +2857,13 @@ export function _showTopicPickerModal(treeObj) {
     modal.className = 'topic-picker-modal';
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-label', 'Save to topic');
+    modal.setAttribute('aria-label', 'Save chat');
 
     // Header
     const header = document.createElement('div');
     header.className = 'topic-picker-modal__header';
     header.innerHTML =
-      '<span class="topic-picker-modal__title">Save to topic</span>' +
+      '<span class="topic-picker-modal__title">Save chat</span>' +
       '<button class="topic-picker-modal__close" type="button" aria-label="Cancel">' +
         '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
           '<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708' +
@@ -2871,16 +2872,36 @@ export function _showTopicPickerModal(treeObj) {
         '</svg>' +
       '</button>';
 
-    // Options group
+    // ── Title field ───────────────────────────────────────────────────────────
+    const titleSection = document.createElement('div');
+    titleSection.className = 'topic-picker-modal__title-section';
+    const titleLabel = document.createElement('label');
+    titleLabel.className = 'topic-picker-modal__field-label';
+    titleLabel.textContent = 'Chat title';
+    titleLabel.setAttribute('for', 'tp-chat-title');
+    const titleInput = document.createElement('input');
+    titleInput.type        = 'text';
+    titleInput.id          = 'tp-chat-title';
+    titleInput.className   = 'topic-picker-modal__input';
+    titleInput.value       = defaultTitle;
+    titleInput.maxLength   = 200;
+    titleInput.placeholder = 'Chat title\u2026';
+    titleSection.appendChild(titleLabel);
+    titleSection.appendChild(titleInput);
+
+    // ── Options group (topic) ─────────────────────────────────────────────────
     const optGroup = document.createElement('div');
     optGroup.className = 'topic-picker-modal__options';
+    const topicFieldLabel = document.createElement('div');
+    topicFieldLabel.className = 'topic-picker-modal__field-label';
+    topicFieldLabel.textContent = 'Topic';
+    optGroup.appendChild(topicFieldLabel);
 
     // Default selection: existing (if any topics), else new
     const defaults = hasTopics ? 'existing' : 'new';
     const radios = [
       { value: 'existing', label: 'Add to existing topic', disabled: !hasTopics },
       { value: 'new',      label: 'Create new topic',       disabled: false },
-      { value: 'skip',     label: 'No topic',               disabled: false },
     ];
 
     for (const r of radios) {
@@ -2924,7 +2945,7 @@ export function _showTopicPickerModal(treeObj) {
     nameInput.type        = 'text';
     nameInput.id          = 'tp-new-name';
     nameInput.className   = 'topic-picker-modal__input';
-    nameInput.placeholder = 'Topic name…';
+    nameInput.placeholder = 'Topic name\u2026';
     nameInput.maxLength   = 120;
     newSection.appendChild(nameInput);
 
@@ -2938,11 +2959,12 @@ export function _showTopicPickerModal(treeObj) {
     const confirmBtn2 = document.createElement('button');
     confirmBtn2.type      = 'button';
     confirmBtn2.className = 'topic-picker-modal__btn topic-picker-modal__btn--primary';
-    confirmBtn2.textContent = 'Confirm';
+    confirmBtn2.textContent = 'Save';
     footer.appendChild(cancelBtn2);
     footer.appendChild(confirmBtn2);
 
     modal.appendChild(header);
+    modal.appendChild(titleSection);
     modal.appendChild(optGroup);
     modal.appendChild(body);
     modal.appendChild(footer);
@@ -2953,8 +2975,7 @@ export function _showTopicPickerModal(treeObj) {
       body.innerHTML = '';
       const mode = optGroup.querySelector('input[name="tp-mode"]:checked')?.value ?? defaults;
       if (mode === 'existing') body.appendChild(existingSection);
-      else if (mode === 'new') body.appendChild(newSection);
-      // 'skip' → empty body
+      else body.appendChild(newSection);
     }
     renderSection();
 
@@ -2973,20 +2994,25 @@ export function _showTopicPickerModal(treeObj) {
     }
 
     function confirm() {
+      const chatTitle = titleInput.value.trim();
+      if (!chatTitle) {
+        titleInput.focus();
+        titleInput.classList.add('topic-picker-modal__input--error');
+        return;
+      }
       const mode = optGroup.querySelector('input[name="tp-mode"]:checked')?.value ?? defaults;
       if (mode === 'existing') {
         const topicId = sel.value;
         if (!topicId) return;
-        dismiss({ mode: 'existing', topicId });
-      } else if (mode === 'new') {
+        dismiss({ title: chatTitle, mode: 'existing', topicId });
+      } else {
         const topicName = nameInput.value.trim();
         if (!topicName) { nameInput.focus(); nameInput.classList.add('topic-picker-modal__input--error'); return; }
-        dismiss({ mode: 'new', topicName });
-      } else {
-        dismiss({ mode: 'skip' });
+        dismiss({ title: chatTitle, mode: 'new', topicName });
       }
     }
 
+    titleInput.addEventListener('input', () => titleInput.classList.remove('topic-picker-modal__input--error'));
     nameInput.addEventListener('input', () => nameInput.classList.remove('topic-picker-modal__input--error'));
     header.querySelector('.topic-picker-modal__close').addEventListener('click', () => dismiss(null));
     overlay.addEventListener('click', (e) => { if (e.target === overlay) dismiss(null); });
@@ -2995,13 +3021,8 @@ export function _showTopicPickerModal(treeObj) {
     document.addEventListener('keydown', onKey);
 
     document.body.appendChild(overlay);
-    // Focus the first relevant input
-    const firstRadio = optGroup.querySelector('input:not(:disabled)');
-    requestAnimationFrame(() => {
-      if (defaults === 'existing' && sel.options.length) sel.focus();
-      else if (defaults === 'new') nameInput.focus();
-      else firstRadio?.focus();
-    });
+    // Auto-focus the title input so the user can type right away
+    requestAnimationFrame(() => titleInput.focus());
   });
 }
 
@@ -3320,24 +3341,17 @@ export function setupCreateMode(chatId, chat, storage) {
       return;
     }
 
-    /* c8 ignore next 4 */
-    const rawTitle = window.prompt(
-      'Enter a title for the new chat:',
-      chat.title ? `${chat.title} (copy)` : 'New Chat'
-    );
-    /* c8 ignore next */
-    if (rawTitle === null) return;  // user cancelled
-    const title = rawTitle.trim() || (chat.title ? `${chat.title} (copy)` : 'New Chat');
-
-    // ── Topic picker ──────────────────────────────────────────────────────
+    // ── Combined title + topic picker ──────────────────────────────────────
     /* c8 ignore next 3 */
-    const treeResult = await storage.get(['topicTree']);
-    const treeObj    = treeResult.topicTree ?? { topics: {}, rootTopicIds: [], version: 1 };
+    const treeResult  = await storage.get(['topicTree']);
+    const treeObj     = treeResult.topicTree ?? { topics: {}, rootTopicIds: [], version: 1 };
+    const defaultTitle = chat.title ? `${chat.title} (copy)` : 'New Chat';
 
     /* c8 ignore next 2 */
-    const topicChoice = await _showTopicPickerModal(treeObj);
+    const topicChoice = await _showTopicPickerModal(treeObj, defaultTitle);
     /* c8 ignore next */
-    if (topicChoice === null) return;  // user cancelled the topic picker
+    if (topicChoice === null) return;  // user cancelled
+    const title = topicChoice.title;
 
     const labelEl = saveCreateBtn.querySelector('.btn-reader-action__label');
     if (labelEl) labelEl.textContent = 'Saving\u2026';
@@ -3426,10 +3440,10 @@ export function setupCreateMode(chatId, chat, storage) {
         chatIndex:             [...chatIdx,   chatMeta],
         chatSearchIndex:       [...searchIdx, searchEntry],
       };
-      /* c8 ignore next */
-      if (topicChoice.mode !== 'skip') writes.topicTree = treeObj;
-
+      writes.topicTree = treeObj;
       await storage.set(writes);
+      /* c8 ignore next 2 */
+      browser.runtime.sendMessage({ type: 'READER_CHAT_CREATED' }).catch(() => {});
 
       if (labelEl) labelEl.textContent = '\u2713 Saved!';
       saveCreateBtn.classList.add('btn-reader-action--success');

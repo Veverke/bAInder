@@ -2508,11 +2508,17 @@ describe('_showTopicPickerModal', () => {
     document.body.innerHTML = '';
   });
 
+  // ── Helper: fill title and optionally confirm ─────────────────────────────
+  function fillTitle(value = 'My Chat') {
+    const input = document.getElementById('tp-chat-title');
+    if (input) { input.value = value; }
+  }
+
+  // ── Lifecycle / dismissal ─────────────────────────────────────────────────
   it('returns a Promise', () => {
     const p = _showTopicPickerModal({});
-    p.then(() => {});  // prevent unhandled rejection if it doesn't auto-close
+    p.then(() => {});
     expect(p).toBeInstanceOf(Promise);
-    // click cancel to resolve it
     document.querySelector('.topic-picker-modal__close')?.click();
   });
 
@@ -2526,13 +2532,11 @@ describe('_showTopicPickerModal', () => {
   it('close button (X) resolves with null', async () => {
     const p = _showTopicPickerModal({});
     document.querySelector('.topic-picker-modal__close').click();
-    const result = await p;
-    expect(result).toBeNull();
+    expect(await p).toBeNull();
   });
 
   it('cancel button resolves with null', async () => {
     const p = _showTopicPickerModal({});
-    // cancel is the first .topic-picker-modal__btn--secondary
     document.querySelector('.topic-picker-modal__btn--secondary').click();
     expect(await p).toBeNull();
   });
@@ -2546,15 +2550,94 @@ describe('_showTopicPickerModal', () => {
   it('clicking the overlay backdrop resolves with null', async () => {
     const p = _showTopicPickerModal({});
     const overlay = document.querySelector('.topic-picker-overlay');
-    // dispatchEvent sets e.target to the element the event is dispatched on
     overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(await p).toBeNull();
   });
 
+  it('overlay is removed from DOM after dismissal', async () => {
+    const p = _showTopicPickerModal({});
+    expect(document.querySelector('.topic-picker-overlay')).not.toBeNull();
+    document.querySelector('.topic-picker-modal__close').click();
+    await p;
+    expect(document.querySelector('.topic-picker-overlay')).toBeNull();
+  });
+
+  // ── Title field ───────────────────────────────────────────────────────────
+  it('renders the title input field', () => {
+    const p = _showTopicPickerModal({});
+    expect(document.getElementById('tp-chat-title')).not.toBeNull();
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('prefills title input with defaultTitle argument', () => {
+    const p = _showTopicPickerModal({}, 'Prefilled Title');
+    expect(document.getElementById('tp-chat-title').value).toBe('Prefilled Title');
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('confirm with empty title does not resolve (validation)', async () => {
+    const p = _showTopicPickerModal({});
+    // Clear any default title value
+    document.getElementById('tp-chat-title').value = '   ';
+    // 'new' is default for empty topics; give a topic name so only the title fails
+    document.getElementById('tp-new-name').value = 'Topic';
+    let resolved = false;
+    p.then(() => { resolved = true; });
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(resolved).toBe(false);
+    document.querySelector('.topic-picker-modal__close').click();
+    await p;
+  });
+
+  it('title input gets error class on empty submit', async () => {
+    const p = _showTopicPickerModal({});
+    document.getElementById('tp-chat-title').value = '';
+    document.getElementById('tp-new-name').value = 'Topic';
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(document.getElementById('tp-chat-title').classList.contains('topic-picker-modal__input--error')).toBe(true);
+    document.querySelector('.topic-picker-modal__close').click();
+    await p;
+  });
+
+  it('error class removed when user types into title input', async () => {
+    const p = _showTopicPickerModal({});
+    const ti = document.getElementById('tp-chat-title');
+    ti.value = '';
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    await new Promise(r => setTimeout(r, 0));
+    ti.classList.add('topic-picker-modal__input--error'); // simulate added
+    ti.value = 'x';
+    ti.dispatchEvent(new Event('input'));
+    expect(ti.classList.contains('topic-picker-modal__input--error')).toBe(false);
+    document.querySelector('.topic-picker-modal__close').click();
+    await p;
+  });
+
+  // ── Topic mode: only 2 options (existing / new), no skip ─────────────────
+  it('has exactly 2 topic radio options', () => {
+    const p = _showTopicPickerModal({});
+    const radios = document.querySelectorAll('input[name="tp-mode"]');
+    expect(radios.length).toBe(2);
+    const values = [...radios].map(r => r.value).sort();
+    expect(values).toEqual(['existing', 'new']);
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('does not render a "skip" / "no topic" radio', () => {
+    const p = _showTopicPickerModal({});
+    expect(document.querySelector('input[value="skip"]')).toBeNull();
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
   it('defaults to "new" mode when no topics exist', () => {
     const p = _showTopicPickerModal({ rootTopicIds: [], topics: {} });
-    const radios = [...document.querySelectorAll('input[name="tp-mode"]')];
-    const checked = radios.find(r => r.checked);
+    const checked = [...document.querySelectorAll('input[name="tp-mode"]')].find(r => r.checked);
     expect(checked?.value).toBe('new');
     document.querySelector('.topic-picker-modal__close').click();
     return p;
@@ -2566,103 +2649,107 @@ describe('_showTopicPickerModal', () => {
       topics: { t1: { id: 't1', name: 'Alpha', children: [] } },
     };
     const p = _showTopicPickerModal(treeObj);
-    const radios = [...document.querySelectorAll('input[name="tp-mode"]')];
-    const checked = radios.find(r => r.checked);
+    const checked = [...document.querySelectorAll('input[name="tp-mode"]')].find(r => r.checked);
     expect(checked?.value).toBe('existing');
     document.querySelector('.topic-picker-modal__close').click();
     return p;
   });
 
-  it('"existing" radio disabled when no topics exist', () => {
+  it('"existing" radio is disabled when no topics exist', () => {
     const p = _showTopicPickerModal({ rootTopicIds: [], topics: {} });
-    const existingRadio = document.querySelector('input[value="existing"]');
-    expect(existingRadio.disabled).toBe(true);
+    expect(document.querySelector('input[value="existing"]').disabled).toBe(true);
     document.querySelector('.topic-picker-modal__close').click();
     return p;
   });
 
-  it('confirms "skip" mode → resolves { mode: "skip" }', async () => {
-    const p = _showTopicPickerModal({});
-    // JSDOM doesn't auto-uncheck sibling radios on .checked = true, so do it manually
-    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
-    const skipRadio = document.querySelector('input[value="skip"]');
-    skipRadio.checked = true;
-    skipRadio.dispatchEvent(new Event('change', { bubbles: true }));
-    document.querySelector('.topic-picker-modal__btn--primary').click();
-    const result = await p;
-    expect(result).toEqual({ mode: 'skip' });
-  });
-
-  it('confirms "new" mode with a name → resolves { mode: "new", topicName }', async () => {
-    const p = _showTopicPickerModal({});
-    // 'new' is already the default for empty topic list
-    const nameInput = document.getElementById('tp-new-name');
-    nameInput.value = 'My New Topic';
-    document.querySelector('.topic-picker-modal__btn--primary').click();
-    const result = await p;
-    expect(result).toEqual({ mode: 'new', topicName: 'My New Topic' });
-  });
-
-  it('confirm with "new" but empty name does not resolve (validation)', async () => {
-    const p = _showTopicPickerModal({});
-    const nameInput = document.getElementById('tp-new-name');
-    nameInput.value = '   ';  // whitespace only
-    let resolved = false;
-    p.then(() => { resolved = true; });
-    document.querySelector('.topic-picker-modal__btn--primary').click();
-    await new Promise(r => setTimeout(r, 0));
-    expect(resolved).toBe(false);
-    // now close properly
-    document.querySelector('.topic-picker-modal__close').click();
-    await p;
-  });
-
-  it('confirms "existing" mode → resolves { mode: "existing", topicId }', async () => {
+  it('"existing" radio is enabled when topics exist', () => {
     const treeObj = {
       rootTopicIds: ['t1'],
       topics: { t1: { id: 't1', name: 'Alpha', children: [] } },
     };
     const p = _showTopicPickerModal(treeObj);
-    // "existing" is the default when topics exist; select the topic
+    expect(document.querySelector('input[value="existing"]').disabled).toBe(false);
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  // ── Confirm: "new" topic ──────────────────────────────────────────────────
+  it('confirms "new" mode → resolves { title, mode: "new", topicName }', async () => {
+    const p = _showTopicPickerModal({}, 'My Chat');
+    // 'new' is default for empty topic list
+    document.getElementById('tp-new-name').value = 'My New Topic';
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    const result = await p;
+    expect(result).toEqual({ title: 'My Chat', mode: 'new', topicName: 'My New Topic' });
+  });
+
+  it('confirm with "new" but empty topic name does not resolve (validation)', async () => {
+    const p = _showTopicPickerModal({}, 'My Chat');
+    document.getElementById('tp-new-name').value = '   ';
+    let resolved = false;
+    p.then(() => { resolved = true; });
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(resolved).toBe(false);
+    document.querySelector('.topic-picker-modal__close').click();
+    await p;
+  });
+
+  // ── Confirm: "existing" topic ─────────────────────────────────────────────
+  it('confirms "existing" mode → resolves { title, mode: "existing", topicId }', async () => {
+    const treeObj = {
+      rootTopicIds: ['t1'],
+      topics: { t1: { id: 't1', name: 'Alpha', children: [] } },
+    };
+    const p = _showTopicPickerModal(treeObj, 'My Chat');
     const sel = document.getElementById('tp-existing-select');
     sel.value = 't1';
     document.querySelector('.topic-picker-modal__btn--primary').click();
     const result = await p;
-    expect(result).toEqual({ mode: 'existing', topicId: 't1' });
+    expect(result).toEqual({ title: 'My Chat', mode: 'existing', topicId: 't1' });
   });
 
-  it('overlay is removed from DOM after dismissal', async () => {
-    const p = _showTopicPickerModal({});
-    expect(document.querySelector('.topic-picker-overlay')).not.toBeNull();
-    document.querySelector('.topic-picker-modal__close').click();
-    await p;
-    expect(document.querySelector('.topic-picker-overlay')).toBeNull();
-  });
-
-  it('Enter key triggers confirm (skip mode)', async () => {
-    const p = _showTopicPickerModal({});
-    // JSDOM doesn't auto-uncheck sibling radios on .checked = true, so do it manually
-    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
-    const skipRadio = document.querySelector('input[value="skip"]');
-    skipRadio.checked = true;
-    skipRadio.dispatchEvent(new Event('change', { bubbles: true }));
+  // ── Enter key ─────────────────────────────────────────────────────────────
+  it('Enter key triggers confirm (new mode with valid inputs)', async () => {
+    const p = _showTopicPickerModal({}, 'My Chat');
+    document.getElementById('tp-new-name').value = 'Topic Name';
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     const result = await p;
-    expect(result).toEqual({ mode: 'skip' });
+    expect(result).toEqual({ title: 'My Chat', mode: 'new', topicName: 'Topic Name' });
   });
 
+  // ── Dynamic section swap ──────────────────────────────────────────────────
   it('radio change to "new" shows name input in body', () => {
-    const p = _showTopicPickerModal({
+    const treeObj = {
       rootTopicIds: ['t1'],
       topics: { t1: { id: 't1', name: 'Alpha', children: [] } },
-    });
+    };
+    const p = _showTopicPickerModal(treeObj);
     // Start in 'existing', switch to 'new'
-    // JSDOM doesn't auto-uncheck sibling radios on .checked = true, so do it manually
     [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
     const newRadio = document.querySelector('input[value="new"]');
     newRadio.checked = true;
     newRadio.dispatchEvent(new Event('change', { bubbles: true }));
     expect(document.getElementById('tp-new-name')).not.toBeNull();
+    document.querySelector('.topic-picker-modal__close').click();
+    return p;
+  });
+
+  it('radio change to "existing" shows topic select in body', () => {
+    const treeObj = {
+      rootTopicIds: ['t1'],
+      topics: { t1: { id: 't1', name: 'Alpha', children: [] } },
+    };
+    const p = _showTopicPickerModal(treeObj);
+    // Force switch to 'new' first, then back to 'existing'
+    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
+    document.querySelector('input[value="new"]').checked = true;
+    document.querySelector('input[value="new"]').dispatchEvent(new Event('change', { bubbles: true }));
+    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
+    const existRadio = document.querySelector('input[value="existing"]');
+    existRadio.checked = true;
+    existRadio.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(document.getElementById('tp-existing-select')).not.toBeNull();
     document.querySelector('.topic-picker-modal__close').click();
     return p;
   });
@@ -3154,7 +3241,6 @@ describe('setupCreateMode — save button flow', () => {
       }),
       set: vi.fn().mockResolvedValue(undefined),
     };
-    vi.stubGlobal('prompt', vi.fn().mockReturnValue('My New Chat'));
     setupCreateMode('chat-1', makeCreateModeChat(2), mockStorage);
     document.getElementById('reader-create-btn').click();
 
@@ -3165,11 +3251,9 @@ describe('setupCreateMode — save button flow', () => {
       expect(document.querySelector('.topic-picker-modal')).not.toBeNull();
     }, { timeout: 2000 });
 
-    // Select 'skip' then confirm
-    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
-    const skipRadio = document.querySelector('input[value="skip"]');
-    skipRadio.checked = true;
-    skipRadio.dispatchEvent(new Event('change', { bubbles: true }));
+    // Fill title + new topic name, then confirm
+    document.getElementById('tp-chat-title').value = 'My New Chat';
+    document.getElementById('tp-new-name').value = 'My Topic';
     document.querySelector('.topic-picker-modal__btn--primary').click();
 
     // Wait for storage.set to be called (the save completes)
@@ -3192,7 +3276,6 @@ describe('setupCreateMode — save button flow', () => {
       }),
       set: vi.fn().mockRejectedValue(new Error('storage full')),
     };
-    vi.stubGlobal('prompt', vi.fn().mockReturnValue('Fail Chat'));
     setupCreateMode('chat-1', makeCreateModeChat(2), mockStorage);
     document.getElementById('reader-create-btn').click();
 
@@ -3202,10 +3285,9 @@ describe('setupCreateMode — save button flow', () => {
       expect(document.querySelector('.topic-picker-modal')).not.toBeNull();
     }, { timeout: 2000 });
 
-    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
-    const skipRadio = document.querySelector('input[value="skip"]');
-    skipRadio.checked = true;
-    skipRadio.dispatchEvent(new Event('change', { bubbles: true }));
+    // Fill title + new topic name, then confirm
+    document.getElementById('tp-chat-title').value = 'Fail Chat';
+    document.getElementById('tp-new-name').value = 'My Topic';
     document.querySelector('.topic-picker-modal__btn--primary').click();
 
     await vi.waitFor(() => {

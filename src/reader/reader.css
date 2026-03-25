@@ -905,6 +905,21 @@ body.create-mode .chat-turn.turn-swap-active {
   border-bottom: 1px solid var(--border-primary, #e2e8f0);
 }
 
+.topic-picker-modal__title-section {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border-primary, #e2e8f0);
+}
+
+.topic-picker-modal__field-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 5px;
+}
+
 .topic-picker-modal__title {
   font-weight: 600;
   font-size: 0.9rem;
@@ -932,7 +947,7 @@ body.create-mode .chat-turn.turn-swap-active {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 14px 16px 10px;
+  padding: 12px 16px 10px;
 }
 
 .topic-picker-modal__radio-label {
