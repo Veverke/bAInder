@@ -95,6 +95,7 @@ import {
   setupChatContextMenuActions,
   hideChatContextMenu,
   handleChatSaved,
+  checkAndTriggerAutoExport,
 } from './controllers/chat-actions.js';
 import { handleExportAll, handleImport, handleClearAll } from './controllers/import-export-actions.js';
 
@@ -365,14 +366,15 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === 'READER_CHAT_CREATED') {
     // Reader page created a new chat (with topic already assigned to storage).
-    // Reload tree + chats from storage and re-render without the assign dialog.
+    // Reload tree + chats from storage, re-render, then check auto-export.
     Promise.all([loadTree(), state.chatRepo.loadAll()])
-      .then(([, chats]) => {
+      .then(async ([, chats]) => {
         state.chats = chats;
         state.renderer?.setChatData(state.chats);
         renderTreeView();
         updateRecentRail(handleChatClick);
         _refreshTagSuggestions();
+        await checkAndTriggerAutoExport();
         sendResponse({ success: true });
       })
       .catch(err => sendResponse({ success: false, error: err.message }));

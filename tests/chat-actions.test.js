@@ -12,6 +12,7 @@ import {
   updateChatRatingWidget,
   handleRateChatAction,
   handleChatSaved,
+  checkAndTriggerAutoExport,
 } from '../src/sidepanel/controllers/chat-actions.js';
 import { elements } from '../src/sidepanel/app-context.js';
 
@@ -959,6 +960,81 @@ describe('handleChatSaved() — Feature c: auto-export', () => {
     st.chatRepo.updateChat.mockResolvedValueOnce([]);
     _setContext(st);
     await expect(handleChatSaved({ id: 'err-chat', title: 'Err', messages: [] })).resolves.not.toThrow();
+  });
+});
+
+// ─── checkAndTriggerAutoExport ────────────────────────────────────────────────
+
+describe('checkAndTriggerAutoExport()', () => {
+  async function runCheck(storageValues, stateOverrides = {}) {
+    const browser = (await import('../src/lib/vendor/browser.js')).default;
+    vi.mocked(browser.storage.local.get).mockResolvedValueOnce(storageValues);
+    const st = makeState();
+    Object.assign(st, stateOverrides);
+    _setContext(st);
+    await checkAndTriggerAutoExport();
+    return { browser, st };
+  }
+
+  it('does not call triggerAutoExport when autoExportEnabled is false', async () => {
+    const { triggerAutoExport } = await import('../src/lib/export/auto-export.js');
+    vi.mocked(triggerAutoExport).mockClear();
+    await runCheck({ autoExportEnabled: false });
+    expect(triggerAutoExport).not.toHaveBeenCalled();
+  });
+
+  it('increments chatsSinceLastAutoExport when threshold not reached', async () => {
+    const { browser } = await runCheck({
+      autoExportEnabled: true,
+      autoExportThreshold: 5,
+      chatsSinceLastAutoExport: 1,
+      autoExportTopics: '',
+    });
+    expect(vi.mocked(browser.storage.local.set)).toHaveBeenCalledWith({ chatsSinceLastAutoExport: 2 });
+  });
+
+  it('calls triggerAutoExport and resets counter when threshold is reached', async () => {
+    const { triggerAutoExport } = await import('../src/lib/export/auto-export.js');
+    vi.mocked(triggerAutoExport).mockClear();
+    const mockTree  = {};
+    const mockChats = [{ id: 'c1' }];
+    const { browser } = await runCheck(
+      { autoExportEnabled: true, autoExportThreshold: 3, chatsSinceLastAutoExport: 2, autoExportTopics: 'Work' },
+      { tree: mockTree, chats: mockChats },
+    );
+    expect(vi.mocked(browser.storage.local.set)).toHaveBeenCalledWith({ chatsSinceLastAutoExport: 0 });
+    expect(triggerAutoExport).toHaveBeenCalledWith(mockTree, mockChats, 'Work');
+  });
+
+  it('uses default threshold of 10 when autoExportThreshold is absent', async () => {
+    const { triggerAutoExport } = await import('../src/lib/export/auto-export.js');
+    vi.mocked(triggerAutoExport).mockClear();
+    const { browser } = await runCheck({
+      autoExportEnabled: true,
+      chatsSinceLastAutoExport: 9,
+    });
+    expect(vi.mocked(browser.storage.local.set)).toHaveBeenCalledWith({ chatsSinceLastAutoExport: 0 });
+    expect(triggerAutoExport).toHaveBeenCalled();
+  });
+
+  it('does not throw when browser.storage.local.get rejects', async () => {
+    const browser = (await import('../src/lib/vendor/browser.js')).default;
+    vi.mocked(browser.storage.local.get).mockRejectedValueOnce(new Error('storage error'));
+    const st = makeState();
+    _setContext(st);
+    await expect(checkAndTriggerAutoExport()).resolves.not.toThrow();
+  });
+
+  it('threshold 1: triggers on the very first save', async () => {
+    const { triggerAutoExport } = await import('../src/lib/export/auto-export.js');
+    vi.mocked(triggerAutoExport).mockClear();
+    const { browser } = await runCheck({
+      autoExportEnabled: true,
+      autoExportThreshold: 1,
+      chatsSinceLastAutoExport: 0,
+    });
+    expect(vi.mocked(browser.storage.local.set)).toHaveBeenCalledWith({ chatsSinceLastAutoExport: 0 });
+    expect(triggerAutoExport).toHaveBeenCalled();
   });
 });
 

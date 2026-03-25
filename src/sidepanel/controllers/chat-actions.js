@@ -257,6 +257,15 @@ export async function handleChatSaved(chatEntry) {
   updateRecentRail(handleChatClick);
 
   // Feature c — auto-export check
+  await checkAndTriggerAutoExport();
+}
+
+/**
+ * Increment the auto-export counter and fire triggerAutoExport when the
+ * configured threshold is reached.  Shared by handleChatSaved (normal saves)
+ * and the READER_CHAT_CREATED sidepanel handler (Create-mode saves).
+ */
+export async function checkAndTriggerAutoExport() {
   try {
     const stored = await browser.storage.local.get(
       ['autoExportEnabled', 'autoExportThreshold', 'chatsSinceLastAutoExport', 'autoExportTopics']
