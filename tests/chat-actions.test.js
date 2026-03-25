@@ -20,7 +20,11 @@ import { elements } from '../src/sidepanel/app-context.js';
 vi.mock('../src/lib/vendor/browser.js', () => ({
   default: {
     runtime: { getURL: vi.fn(p => `chrome-extension://test/${p}`) },
-    tabs:    { create: vi.fn().mockResolvedValue({}) },
+    tabs: {
+      create:      vi.fn().mockResolvedValue({}),
+      query:       vi.fn().mockResolvedValue([]),
+      sendMessage: vi.fn().mockResolvedValue(null),
+    },
     storage: { local: {
       get: vi.fn().mockResolvedValue({}),
       set: vi.fn().mockResolvedValue(undefined),
@@ -955,5 +959,248 @@ describe('handleChatSaved() — Feature c: auto-export', () => {
     st.chatRepo.updateChat.mockResolvedValueOnce([]);
     _setContext(st);
     await expect(handleChatSaved({ id: 'err-chat', title: 'Err', messages: [] })).resolves.not.toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// handleOverwriteChatAction (via setupChatContextMenuActions dispatch)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('handleOverwriteChatAction via setupChatContextMenuActions', () => {
+  function setupOverwriteMenu(st) {
+    const menu = document.createElement('div');
+    menu.id = 'chatContextMenu';
+    menu.style.display = 'none';
+    document.body.appendChild(menu);
+    const item = document.createElement('div');
+    item.dataset.chatAction = 'overwrite';
+    menu.appendChild(item);
+    elements.chatContextMenu = menu;
+    _setContext(st);
+    setupChatContextMenuActions();
+    return { menu, item };
+  }
+
+  afterEach(() => {
+    elements.chatContextMenu = null;
+  });
+
+  it('does nothing when contextMenuChat is null', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    const st = makeState();
+    st.contextMenuChat = null;
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(browser.tabs.query).not.toHaveBeenCalled();
+  });
+
+  it('shows error notification when tabs.query throws', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockRejectedValueOnce(new Error('no permission'));
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat' };
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(toast.textContent).toContain('Could not access the active tab');
+  });
+
+  it('shows error when no active tab is found (tab.id is falsy)', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: undefined, url: '' }]);
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat' };
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(toast.textContent).toContain('No active tab found');
+  });
+
+  it('shows error when tabs.query returns empty array (no tab)', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([]);
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat' };
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(toast.textContent).toContain('No active tab found');
+  });
+
+  it('shows error when tabs.sendMessage throws', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: 42 }]);
+    vi.mocked(browser.tabs.sendMessage).mockRejectedValueOnce(new Error('no content script'));
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat' };
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(toast.textContent).toContain('Could not extract chat');
+  });
+
+  it('shows extraction error when response.success is false (no custom error)', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: 42 }]);
+    vi.mocked(browser.tabs.sendMessage).mockResolvedValueOnce({ success: false });
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat' };
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(toast.textContent).toContain('Extraction failed');
+  });
+
+  it('shows custom error when response.success is false and error is set', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: 42 }]);
+    vi.mocked(browser.tabs.sendMessage).mockResolvedValueOnce({ success: false, error: 'Wrong page' });
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat' };
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(toast.textContent).toContain('Wrong page');
+  });
+
+  it('shows error when extractResponse has no data', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: 42 }]);
+    vi.mocked(browser.tabs.sendMessage).mockResolvedValueOnce({ success: true, data: null });
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat' };
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(toast.textContent).toContain('No chat content found');
+  });
+
+  it('shows error when chatData has messageCount 0 and no messages array', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: 42 }]);
+    vi.mocked(browser.tabs.sendMessage).mockResolvedValueOnce({
+      success: true,
+      data: { messageCount: 0, messages: [] },
+    });
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat' };
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(toast.textContent).toContain('No chat content found');
+  });
+
+  it('returns without updating when user cancels the confirm dialog', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: 42 }]);
+    vi.mocked(browser.tabs.sendMessage).mockResolvedValueOnce({
+      success: true,
+      data: { messages: [{ role: 'user', content: 'hi' }], messageCount: 1 },
+    });
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat' };
+    st.dialog.confirm.mockResolvedValueOnce(false);
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(st.chatRepo.updateChat).not.toHaveBeenCalled();
+  });
+
+  it('shows error when chatRepo.updateChat throws', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: 42 }]);
+    vi.mocked(browser.tabs.sendMessage).mockResolvedValueOnce({
+      success: true,
+      data: { messages: [{ role: 'user', content: 'hello' }], messageCount: 1 },
+    });
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat' };
+    st.dialog.confirm.mockResolvedValueOnce(true);
+    st.chatRepo.updateChat.mockRejectedValueOnce(new Error('DB error'));
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(toast.textContent).toContain('Failed to overwrite chat');
+  });
+
+  it('success path: updates renderer, calls renderTreeView, shows success toast', async () => {
+    const { renderTreeView } = await import('../src/sidepanel/controllers/tree-controller.js');
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: 99, url: 'https://chat.openai.com' }]);
+    vi.mocked(browser.tabs.sendMessage).mockResolvedValueOnce({
+      success: true,
+      data: {
+        content: '# Chat\n...',
+        messages: [{ role: 'user', content: 'test' }],
+        messageCount: 1,
+        url: 'https://chat.openai.com',
+        source: 'chatgpt',
+      },
+    });
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+    const updatedChats = [{ id: 'c1', title: 'My Chat' }];
+    const st = makeState();
+    st.contextMenuChat = { id: 'c1', title: 'My Chat', source: 'chatgpt', url: '' };
+    st.dialog.confirm.mockResolvedValueOnce(true);
+    st.chatRepo.updateChat.mockResolvedValueOnce(updatedChats);
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(st.chatRepo.updateChat).toHaveBeenCalledWith('c1', expect.objectContaining({
+      messages: expect.any(Array),
+      messageCount: 1,
+    }));
+    expect(st.renderer.setChatData).toHaveBeenCalledWith(updatedChats);
+    expect(renderTreeView).toHaveBeenCalled();
+    expect(toast.textContent).toContain('My Chat');
+  });
+
+  it('success: uses tab.url as fallback when chatData.url is empty', async () => {
+    const { default: browser } = await import('../src/lib/vendor/browser.js');
+    vi.mocked(browser.tabs.query).mockResolvedValueOnce([{ id: 7, url: 'https://fallback.url' }]);
+    vi.mocked(browser.tabs.sendMessage).mockResolvedValueOnce({
+      success: true,
+      data: { messages: [{ role: 'user', content: 'hi' }], messageCount: 1, url: '', source: '' },
+    });
+    const st = makeState();
+    st.contextMenuChat = { id: 'c2', title: 'Chat 2', source: 'mysrc', url: 'https://orig.url' };
+    st.dialog.confirm.mockResolvedValueOnce(true);
+    st.chatRepo.updateChat.mockResolvedValueOnce([]);
+    const { item } = setupOverwriteMenu(st);
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(st.chatRepo.updateChat).toHaveBeenCalledWith('c2', expect.objectContaining({
+      url: 'https://fallback.url',
+    }));
   });
 });

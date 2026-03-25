@@ -2913,3 +2913,309 @@ describe('setupCreateMode — delete selected turns', () => {
   });
 });
 
+// ── Drag-and-drop helper ──────────────────────────────────────────────────────
+
+function fireDrag(target, type, opts = {}) {
+  const mockDT = {
+    effectAllowed: 'uninitialized',
+    dropEffect: 'none',
+    setData: vi.fn(),
+    getData: vi.fn(() => ''),
+  };
+  const e = new DragEvent(type, {
+    bubbles: true, cancelable: true, clientY: opts.clientY ?? 100,
+  });
+  Object.defineProperty(e, 'dataTransfer', { value: mockDT, writable: true, configurable: true });
+  target.dispatchEvent(e);
+  return { event: e, dt: mockDT };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('setupCreateMode — drag-and-drop', () => {
+  let rafSpy, cafSpy;
+
+  beforeEach(() => {
+    rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
+    cafSpy = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
+  });
+
+  it('dragstart outside create mode does nothing', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    // createMode is false — enter NOT clicked
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    fireDrag(turn0, 'dragstart');
+    expect(turn0.classList.contains('turn-dragging')).toBe(false);
+  });
+
+  it('dragstart in create mode marks turn as dragging and starts edge scroll', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click(); // enter create mode
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    fireDrag(turn0, 'dragstart');
+    expect(turn0.classList.contains('turn-dragging')).toBe(true);
+    expect(rafSpy).toHaveBeenCalled();
+  });
+
+  it('dragstart on non-turn element is ignored', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const content = document.getElementById('reader-content');
+    fireDrag(content, 'dragstart');
+    // No turn should gain turn-dragging
+    expect(document.querySelector('.turn-dragging')).toBeNull();
+  });
+
+  it('dragover outside create mode does nothing', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    const content = document.getElementById('reader-content');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(content, 'dragover');
+    expect(turn1.classList.contains('turn-swap-active')).toBe(false);
+  });
+
+  it('dragover with no drag source does nothing', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    // No dragstart fired — dragSrcEl is null
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn1, 'dragover');
+    expect(turn1.classList.contains('turn-swap-active')).toBe(false);
+  });
+
+  it('dragover over the drag source itself is ignored', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    fireDrag(turn0, 'dragstart');
+    const beforeOrder = [...document.querySelectorAll('.chat-turn')].map(t => t.dataset.msgIndex);
+    fireDrag(turn0, 'dragover');
+    const afterOrder = [...document.querySelectorAll('.chat-turn')].map(t => t.dataset.msgIndex);
+    expect(afterOrder).toEqual(beforeOrder);
+  });
+
+  it('dragover valid target swaps turns in DOM', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    document.getElementById('reader-create-btn').click();
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover');
+    // After live swap, turn1 should now be before turn0 in the DOM
+    const turns = [...document.querySelectorAll('.chat-turn')];
+    expect(turns[0].dataset.msgIndex).toBe('1');
+    expect(turns[1].dataset.msgIndex).toBe('0');
+    expect(turn0.classList.contains('turn-swap-active')).toBe(true);
+    expect(turn1.classList.contains('turn-swap-active')).toBe(true);
+  });
+
+  it('dragover the same target twice does not re-swap', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    document.getElementById('reader-create-btn').click();
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover'); // first: swap
+    fireDrag(turn1, 'dragover'); // second: should be no-op (same target)
+    const turns = [...document.querySelectorAll('.chat-turn')];
+    expect(turns[0].dataset.msgIndex).toBe('1');
+    expect(turns[1].dataset.msgIndex).toBe('0');
+  });
+
+  it('dragover a new target when a pending swap exists cancels old swap first', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    document.getElementById('reader-create-btn').click();
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    const turn2 = document.querySelector('.chat-turn[data-msg-index="2"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover'); // swap with turn1
+    fireDrag(turn2, 'dragover'); // now swap with turn2 instead
+    // turn1 should no longer be swap-active (undo was called)
+    expect(turn1.classList.contains('turn-swap-active')).toBe(false);
+    expect(turn2.classList.contains('turn-swap-active')).toBe(true);
+  });
+
+  it('drop commits the swap and stops edge scroll', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const content = document.getElementById('reader-content');
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover');
+    fireDrag(content, 'drop');
+    expect(cafSpy).toHaveBeenCalled();
+    // _currentSwapTarget cleared — turn1 swap-active should be removed
+    expect(turn1.classList.contains('turn-swap-active')).toBe(false);
+  });
+
+  it('dragend after committed drop cleans up dragging class and calls addOrdinalLabels', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const content = document.getElementById('reader-content');
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover');
+    fireDrag(content, 'drop');
+    fireDrag(content, 'dragend');
+    // turn0 should no longer have turn-dragging
+    expect(turn0.classList.contains('turn-dragging')).toBe(false);
+  });
+
+  it('dragend without drop (cancelled drag) restores original order', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    document.getElementById('reader-create-btn').click();
+    const content = document.getElementById('reader-content');
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover'); // live-swap: order is now [1, 0, 2]
+    // dragend without drop — should undo the live swap
+    fireDrag(content, 'dragend');
+    const turns = [...document.querySelectorAll('.chat-turn')];
+    expect(turns[0].dataset.msgIndex).toBe('0');
+    expect(turns[1].dataset.msgIndex).toBe('1');
+  });
+
+  it('document-level dragover updates _dragClientY while dragging', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    fireDrag(turn0, 'dragstart', { clientY: 50 });
+    // Fire document-level dragover — should not throw
+    const docDragover = new DragEvent('dragover', { bubbles: true, cancelable: true, clientY: 200 });
+    document.dispatchEvent(docDragover);
+    // No assertion on internal state; just verify no crash and stopEdgeScroll not called
+    expect(cafSpy).not.toHaveBeenCalled();
+  });
+
+  it('exitCreateMode during a mid-drag restores pending swap via _cancelPendingSwap', () => {
+    makeCreateModeDom(3);
+    setupCreateMode('chat-1', makeCreateModeChat(3), {});
+    const createBtn = document.getElementById('reader-create-btn');
+    createBtn.click(); // enter
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    const turn1 = document.querySelector('.chat-turn[data-msg-index="1"]');
+    fireDrag(turn0, 'dragstart');
+    fireDrag(turn1, 'dragover'); // live swap: order [1,0,2]
+    createBtn.click(); // exit — should restore order
+    const turns = [...document.querySelectorAll('.chat-turn')];
+    expect(turns[0].dataset.msgIndex).toBe('0');
+    expect(turns[1].dataset.msgIndex).toBe('1');
+  });
+
+  it('_stopEdgeScroll cancels the RAF when called via drop', () => {
+    makeCreateModeDom(2);
+    setupCreateMode('chat-1', makeCreateModeChat(2), {});
+    document.getElementById('reader-create-btn').click();
+    const content = document.getElementById('reader-content');
+    const turn0 = document.querySelector('.chat-turn[data-msg-index="0"]');
+    fireDrag(turn0, 'dragstart'); // starts edge scroll (calls RAF)
+    expect(rafSpy).toHaveBeenCalled();
+    fireDrag(content, 'drop'); // stops edge scroll (calls CAF)
+    expect(cafSpy).toHaveBeenCalledWith(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('setupCreateMode — save button flow', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
+  });
+
+  it('save button success path: persists new chat and shows saved label', async () => {
+    makeCreateModeDom(2);
+    const mockStorage = {
+      get: vi.fn().mockImplementation(keys => {
+        if (Array.isArray(keys) && keys.includes('topicTree')) {
+          return Promise.resolve({ topicTree: { topics: {}, rootTopicIds: [] } });
+        }
+        return Promise.resolve({ chatIndex: [], chatSearchIndex: [] });
+      }),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.stubGlobal('prompt', vi.fn().mockReturnValue('My New Chat'));
+    setupCreateMode('chat-1', makeCreateModeChat(2), mockStorage);
+    document.getElementById('reader-create-btn').click();
+
+    document.getElementById('reader-create-save-btn').click();
+
+    // Wait for topicTree storage.get to resolve and modal to open
+    await vi.waitFor(() => {
+      expect(document.querySelector('.topic-picker-modal')).not.toBeNull();
+    }, { timeout: 2000 });
+
+    // Select 'skip' then confirm
+    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
+    const skipRadio = document.querySelector('input[value="skip"]');
+    skipRadio.checked = true;
+    skipRadio.dispatchEvent(new Event('change', { bubbles: true }));
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+
+    // Wait for storage.set to be called (the save completes)
+    await vi.waitFor(() => {
+      expect(mockStorage.set).toHaveBeenCalled();
+    }, { timeout: 2000 });
+
+    const label = document.querySelector('#reader-create-save-btn .btn-reader-action__label');
+    expect(label?.textContent).toContain('Saved');
+  });
+
+  it('save button shows error label when storage.set throws', async () => {
+    makeCreateModeDom(2);
+    const mockStorage = {
+      get: vi.fn().mockImplementation(keys => {
+        if (Array.isArray(keys) && keys.includes('topicTree')) {
+          return Promise.resolve({ topicTree: { topics: {}, rootTopicIds: [] } });
+        }
+        return Promise.resolve({ chatIndex: [], chatSearchIndex: [] });
+      }),
+      set: vi.fn().mockRejectedValue(new Error('storage full')),
+    };
+    vi.stubGlobal('prompt', vi.fn().mockReturnValue('Fail Chat'));
+    setupCreateMode('chat-1', makeCreateModeChat(2), mockStorage);
+    document.getElementById('reader-create-btn').click();
+
+    document.getElementById('reader-create-save-btn').click();
+
+    await vi.waitFor(() => {
+      expect(document.querySelector('.topic-picker-modal')).not.toBeNull();
+    }, { timeout: 2000 });
+
+    [...document.querySelectorAll('input[name="tp-mode"]')].forEach(r => { r.checked = false; });
+    const skipRadio = document.querySelector('input[value="skip"]');
+    skipRadio.checked = true;
+    skipRadio.dispatchEvent(new Event('change', { bubbles: true }));
+    document.querySelector('.topic-picker-modal__btn--primary').click();
+
+    await vi.waitFor(() => {
+      expect(
+        document.querySelector('#reader-create-save-btn .btn-reader-action__label')?.textContent
+      ).toBe('Error');
+    }, { timeout: 2000 });
+
+    const label = document.querySelector('#reader-create-save-btn .btn-reader-action__label');
+    expect(label?.textContent).toBe('Error');
+  });
+});
+
