@@ -194,7 +194,16 @@ export function buildChatItem(chat, level, ctx) {
   // Source badge chip (not shown for assembled chats)
   if (!chat.metadata?.isJoined) {
     const sourceChip = document.createElement('span');
-    sourceChip.className   = `tree-source-chip tree-source-chip--${source}`;
+    if (SOURCE_LABELS[source] || source === 'unknown') {
+      sourceChip.className = `tree-source-chip tree-source-chip--${source}`;
+    } else {
+      // Custom / user-supplied source — derive a deterministic hue from the string
+      const hue = getTagColor(source);
+      sourceChip.className = 'tree-source-chip tree-source-chip--dynamic';
+      sourceChip.style.setProperty('--source-hue', hue);
+      li.setAttribute('data-source-dynamic', '');
+      li.style.setProperty('--source-hue', hue); // for left-border accent
+    }
     sourceChip.textContent = SOURCE_LABELS[source] || source;
     label.appendChild(sourceChip);
   }

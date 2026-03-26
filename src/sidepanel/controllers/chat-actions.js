@@ -294,35 +294,38 @@ function handleOpenChatAction() {
 }
 
 async function handleRenameChatAction() {
-  if (!_state.contextMenuChat) return;
-  const result = await _state.chatDialogs.showRenameChat(_state.contextMenuChat);
+  const chat = _state.contextMenuChat;
+  if (!chat) return;
+  const result = await _state.chatDialogs.showRenameChat(chat);
   if (!result) return;
 
   const updates = { title: result.title };
   if (result.tags !== undefined) updates.tags = result.tags;
-  _state.chats = await _state.chatRepo.updateChat(_state.contextMenuChat.id, updates);
+  _state.chats = await _state.chatRepo.updateChat(chat.id, updates);
   _state.renderer.setChatData(_state.chats);
   renderTreeView();
   updateRecentRail(handleChatClick);
 }
 
 async function handleEditTagsAction() {
-  if (!_state.contextMenuChat) return;
-  const result = await _state.chatDialogs.showEditTags(_state.contextMenuChat);
+  const chat = _state.contextMenuChat;
+  if (!chat) return;
+  const result = await _state.chatDialogs.showEditTags(chat);
   if (!result) return;
 
-  _state.chats = await _state.chatRepo.updateChat(_state.contextMenuChat.id, { tags: result.tags });
+  _state.chats = await _state.chatRepo.updateChat(chat.id, { tags: result.tags });
   _state.renderer.setChatData(_state.chats);
   renderTreeView();
 }
 
 async function handleMoveChatAction() {
-  if (!_state.contextMenuChat) return;
-  const result = await _state.chatDialogs.showMoveChat(_state.contextMenuChat);
+  const chat = _state.contextMenuChat;
+  if (!chat) return;
+  const result = await _state.chatDialogs.showMoveChat(chat);
   if (!result) return;
 
-  const movedChat = moveChatToTopic(_state.contextMenuChat, result.topicId, _state.tree);
-  _state.chats = await _state.chatRepo.updateChat(_state.contextMenuChat.id, movedChat);
+  const movedChat = moveChatToTopic(chat, result.topicId, _state.tree);
+  _state.chats = await _state.chatRepo.updateChat(chat.id, movedChat);
   await saveTree();
   _state.renderer.setChatData(_state.chats);
   renderTreeView();
@@ -368,12 +371,13 @@ async function handleDeleteChatAction() {
 }
 
 async function handleSetReviewDateAction() {
-  if (!_state.contextMenuChat) return;
-  const result = await _state.chatDialogs.showSetReviewDate(_state.contextMenuChat);
+  const chat = _state.contextMenuChat;
+  if (!chat) return;
+  const result = await _state.chatDialogs.showSetReviewDate(chat);
   if (!result) return;
 
   _state.chats = await _state.chatRepo.updateChat(
-    _state.contextMenuChat.id,
+    chat.id,
     { reviewDate: result.reviewDate, flaggedAsStale: false }
   );
   _state.renderer.setChatData(_state.chats);

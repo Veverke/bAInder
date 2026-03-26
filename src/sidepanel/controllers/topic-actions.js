@@ -23,6 +23,9 @@ import {
   collectDescendantChatIds,
 } from './tree-controller.js';
 import { setSaveBtnState } from '../features/save-banner.js';
+import { parseMarkdownImport } from '../../lib/io/markdown-import.js';
+import { buildImportedChatEntry } from '../../background/chat-save-handler.js';
+import { handleChatClick } from './chat-actions.js';
 let _state = state;
 // ---------------------------------------------------------------------------
 // Test injection hook - lets unit tests provide a mock app context instead of
@@ -78,6 +81,7 @@ export function setupContextMenuActions() {
     move:                handleMoveTopic,
     merge:               handleMergeTopic,
     export:              handleExportTopic,
+    'import-markdown':   handleImportMarkdown,
     delete:              handleDeleteTopic,
     'copy-all':          handleCopyAllTopicChats,
     'add-child-topic':   handleAddChildTopic,
@@ -295,3 +299,68 @@ export async function handleCopyAllTopicChats() {
   }
   showNotification(`Copied ${fullChats.length} chat${fullChats.length !== 1 ? 's' : ''} to clipboard`, 'success');
 }
+
+// ---------------------------------------------------------------------------
+// Import markdown
+// ---------------------------------------------------------------------------
+
+export async function handleImportMarkdown() {
+  const topic = _state.contextMenuTopic;
+  if (!topic) return;
+
+  // Show paste/file dialog — returns { content, filename } or null
+  const input = await _state.topicDialogs.showMarkdownInputDialog();
+  if (!input) return;
+
+  // Parse the markdown into messages + metadata
+  const parsed = parseMarkdownImport(input.content, input.filename);
+  logger.debug('handleImportMarkdown: detectedFormat =', parsed.detectedFormat,
+    '| messages =', parsed.messages.length);
+
+  // Show metadata confirmation dialog
+  const formValues = await _state.topicDialogs.showImportMarkdownDialog({
+    title:  parsed.title,
+    source: parsed.source,
+  });
+  if (!formValues) return;   // user cancelled
+
+  let entry;
+  try {
+    entry = await buildImportedChatEntry(parsed, formValues, topic.id);
+  } catch (err) {
+    logger.error('handleImportMarkdown: buildImportedChatEntry failed', err);
+    await _state.dialog.alert(err.message || 'Failed to build chat entry.', 'Import Error');
+    return;
+  }
+
+  // Assign to topic in the tree
+  if (!Array.isArray(topic.chatIds)) topic.chatIds = [];
+  topic.chatIds.push(entry.id);
+
+  // Persist
+  try {
+    _state.chats = await _state.chatRepo.addChat(entry);
+    await saveTree();
+  } catch (err) {
+    // Roll back the topic assignment on storage failure
+    topic.chatIds = topic.chatIds.filter(id => id !== entry.id);
+    logger.error('handleImportMarkdown: storage failed', err);
+    await _state.dialog.alert(err.message || 'Failed to save the imported chat.', 'Import Error');
+    return;
+  }
+
+  _state.renderer.setChatData(_state.chats);
+
+  renderTreeView();
+  _state.renderer.expandToTopic(topic.id); // expand ancestors so topic is reachable
+  _state.renderer.expandNode(topic.id);    // expand the topic itself so the chat is visible
+  _state.renderer.selectNode(entry.id);
+  saveExpandedState();
+
+  // Open the chat in the reader
+  await handleChatClick(entry);
+
+  showNotification('Chat imported from markdown', 'success');
+}
+
+

@@ -253,6 +253,65 @@ export function buildExcerptPayload(selectionText, pageUrl, richMarkdown = null)
 }
 
 /**
+ * Build a chat entry from an imported Markdown file.
+ *
+ * Designed for the "Import markdown" side-panel feature — does NOT go through
+ * the background service worker and does NOT deduplicate by URL (IDE chats
+ * have no meaningful origin URL).
+ *
+ * @param {{
+ *   title:     string,
+ *   source:    string,
+ *   url:       string,
+ *   timestamp: number,
+ *   messages:  Array<{role:string, content:string}>
+ * }} parsed          Output of parseMarkdownImport()
+ * @param {{
+ *   title:  string,
+ *   source: string
+ * }} formValues       User-confirmed title and source label from the dialog
+ * @param {string|null} topicId  Topic to assign the chat to immediately
+ * @returns {Promise<Object>}   Full ChatEntry ready for chatRepo.addChat()
+ */
+export async function buildImportedChatEntry(parsed, formValues, topicId) {
+  const title  = (formValues.title  || parsed.title  || 'Imported chat').trim();
+  const source = (formValues.source || parsed.source || 'external').trim();
+  const url    = parsed.url || '';
+
+  const generatedId = generateId();
+
+  // Entity extraction (same as ZIP import path)
+  const entities = await extractChatEntities(parsed.messages ?? [], null, generatedId);
+
+  // Serialise to canonical markdown-v1 so the reader works without changes
+  const content = messagesToMarkdown(parsed.messages ?? [], {
+    title,
+    source,
+    url,
+    timestamp:    parsed.timestamp,
+    messageCount: (parsed.messages ?? []).length,
+  });
+
+  return {
+    id:           generatedId,
+    title,
+    content,
+    url,
+    source,
+    timestamp:    parsed.timestamp || Date.now(),
+    topicId:      topicId || null,
+    messageCount: (parsed.messages ?? []).length,
+    messages:     parsed.messages ?? [],
+    metadata: {
+      contentFormat: 'markdown-v1',
+      importedAt:    Date.now(),
+      importSource:  'markdown-file',
+    },
+    ...entities,
+  };
+}
+
+/**
  * High-level save handler – deduplicates and persists a new chat via
  * the ChatRepository abstraction.
  *
