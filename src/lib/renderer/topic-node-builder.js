@@ -97,13 +97,14 @@ export function buildTopicNode(topic, level, ctx) {
     label.appendChild(badge);
   }
 
-  if (topic.chatIds.length > 0) {
+  const totalChatCount = ctx.chatCountByTopic?.get(topic.id) ?? topic.chatIds.length;
+  if (totalChatCount > 0) {
     const chatBadge = document.createElement('span');
     chatBadge.className   = 'tree-chat-count';
-    chatBadge.textContent = topic.chatIds.length;
+    chatBadge.textContent = totalChatCount;
     chatBadge.setAttribute(
       'title',
-      `${topic.chatIds.length} chat${topic.chatIds.length !== 1 ? 's' : ''}`
+      `${totalChatCount} chat${totalChatCount !== 1 ? 's' : ''}`
     );
     label.appendChild(chatBadge);
   }

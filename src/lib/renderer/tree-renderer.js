@@ -390,6 +390,7 @@ export class TreeRenderer {
       multiSelectMode: this.multiSelectMode,
       selectedChatIds: this.selectedChatIds,
       chats:           this.chats,
+      chatCountByTopic: this._buildTotalChatCountByTopic(),
       tree:            this.tree,
       nodeIndex,
       getDrag:  ()  => this._drag,
@@ -411,22 +412,36 @@ export class TreeRenderer {
     };
   }
 
-  /** Context for the virtual-scroll path. */
-  _makeVirtualCtx() {
-    // Build a topic→chatCount index once per render; renderVirtualRow does a
-    // constant-time Map.get() instead of a linear Array.filter() for every
-    // row stamped during a scroll event (fixes P2.1 — O(n×m) scroll cost).
-    const chatCountByTopic = new Map();
+  /**
+   * Build a topic→totalChatCount map that includes chats in descendant topics.
+   * Each chat increments its direct topic and every ancestor up to the root.
+   */
+  _buildTotalChatCountByTopic() {
+    const map = new Map();
     for (const chat of this.chats) {
-      if (chat.topicId) {
-        chatCountByTopic.set(chat.topicId, (chatCountByTopic.get(chat.topicId) ?? 0) + 1);
+      if (!chat.topicId) continue;
+      map.set(chat.topicId, (map.get(chat.topicId) ?? 0) + 1);
+      if (this.tree) {
+        let parentId = this.tree.topics[chat.topicId]?.parentId;
+        while (parentId) {
+          map.set(parentId, (map.get(parentId) ?? 0) + 1);
+          parentId = this.tree.topics[parentId]?.parentId;
+        }
       }
     }
+    return map;
+  }
+
+  /** Context for the virtual-scroll path. */
+  _makeVirtualCtx() {
+    // Build a topic→chatCount index (including descendants) once per render;
+    // renderVirtualRow does a constant-time Map.get() instead of a linear
+    // Array.filter() for every row stamped during a scroll event.
     return {
       expandedNodes:   this.expandedNodes,
       selectedNodeId:  this.selectedNodeId,
       chats:           this.chats,
-      chatCountByTopic,
+      chatCountByTopic: this._buildTotalChatCountByTopic(),
       tree:            this.tree,
       virtualThreshold: this.virtualThreshold,
       toggleExpand:    (id) => {

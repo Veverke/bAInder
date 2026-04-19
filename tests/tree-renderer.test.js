@@ -1004,6 +1004,20 @@ describe('TreeRenderer – Stage 7 chat items', () => {
       expect(ctx.chatCountByTopic.get('other-topic')).toBe(1);
       expect(ctx.chatCountByTopic.has('c4')).toBe(false);
     });
+
+    it('propagates descendant chat counts to ancestor topics', () => {
+      const parent = tree.addTopic('Parent');
+      const child  = tree.addTopic('Child', parent);
+      renderer = new TreeRenderer(container, tree);
+      renderer.chats = [
+        { id: 'c1', topicId: parent },  // direct chat on parent
+        { id: 'c2', topicId: child },   // chat on child — must be counted on parent too
+        { id: 'c3', topicId: child },
+      ];
+      const ctx = renderer._makeVirtualCtx();
+      expect(ctx.chatCountByTopic.get(child)).toBe(2);   // direct only
+      expect(ctx.chatCountByTopic.get(parent)).toBe(3);  // 1 direct + 2 from child
+    });
   });
 });
 
