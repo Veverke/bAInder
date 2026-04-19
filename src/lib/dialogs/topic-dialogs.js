@@ -324,4 +324,146 @@ export class TopicDialogs {
     
     return options;
   }
+
+  /**
+   * Show the markdown-input dialog for the "Import markdown" flow.
+   *
+   * Presents a textarea for pasting markdown and a "Browse file…" button for
+   * loading from disk.  Selecting a file disables the textarea; the file
+   * content takes precedence.  Returns the raw markdown string and the source
+   * filename (empty string when pasted), or null if the user cancels.
+   *
+   * @returns {Promise<{ content: string, filename: string }|null>}
+   */
+  async showMarkdownInputDialog() {
+    let selectedFileContent = null;
+    let selectedFileName    = '';
+
+    const html = `
+      <div class="modal-header">
+        <h2>Import Markdown Chat</h2>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="md-import-textarea">Paste markdown</label>
+          <textarea id="md-import-textarea" class="form-textarea"
+            placeholder="Paste your Markdown conversation here…"
+            style="min-height:160px;resize:vertical"></textarea>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <button type="button" class="btn-secondary" id="md-import-browse">Browse file…</button>
+          <span id="md-import-file-name"
+            style="font-size:0.85em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px"
+          ></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="md-import-cancel">Cancel</button>
+        <button class="btn-primary"   id="md-import-confirm">Import</button>
+      </div>
+    `;
+
+    // show() synchronously mounts the HTML then returns a Promise that
+    // resolves when close() is called from any code path.
+    const showPromise = this.dialog.show(html);
+    const container   = this.dialog.container;
+
+    const textarea   = container.querySelector('#md-import-textarea');
+    const browseBtn  = container.querySelector('#md-import-browse');
+    const fileLabel  = container.querySelector('#md-import-file-name');
+    const cancelBtn  = container.querySelector('#md-import-cancel');
+    const confirmBtn = container.querySelector('#md-import-confirm');
+
+    // ── Browse button: open a hidden file input ──────────────────────────
+    browseBtn.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type   = 'file';
+      input.accept = '.md,text/markdown,text/plain';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+
+      input.addEventListener('change', async () => {
+        if (document.body.contains(input)) document.body.removeChild(input);
+        const file = input.files && input.files[0];
+        if (!file) return;
+        try {
+          selectedFileContent  = await file.text();
+          selectedFileName     = file.name;
+          textarea.disabled    = true;
+          fileLabel.textContent = file.name;
+        } catch (_) {
+          // Read error — leave textarea usable
+        }
+      }, { once: true });
+
+      // Heuristic: window re-focuses after file picker closes without selection
+      const onFocus = () => {
+        setTimeout(() => {
+          if (document.body.contains(input)) document.body.removeChild(input);
+          window.removeEventListener('focus', onFocus);
+        }, 300);
+      };
+      window.addEventListener('focus', onFocus);
+      input.click();
+    });
+
+    // ── Cancel ───────────────────────────────────────────────────────────
+    cancelBtn.addEventListener('click', () => {
+      selectedFileContent = null;
+      selectedFileName    = '';
+      this.dialog.close(null);
+    });
+
+    // ── Import ───────────────────────────────────────────────────────────
+    confirmBtn.addEventListener('click', () => {
+      const content = selectedFileContent !== null
+        ? selectedFileContent
+        : textarea.value;
+      if (!content || !content.trim()) {
+        textarea.classList.add('error');
+        return;
+      }
+      this.dialog.close({ content, filename: selectedFileName });
+    });
+
+    // ESC / backdrop close resolve showPromise with undefined → treated as null
+    return (await showPromise) ?? null;
+  }
+
+  /**
+   * Show the "Import markdown" metadata confirmation dialog.
+   *
+   * Pre-fills title and source from the parsed markdown; the user may edit
+   * both fields before confirming.
+   *
+   * @param {{ title: string, source: string }} defaults  Pre-parsed metadata
+   * @returns {Promise<{ title: string, source: string }|null>}
+   *   Resolves with the confirmed values, or null if the user cancels.
+   */
+  async showImportMarkdownDialog(defaults = {}) {
+    const result = await this.dialog.form([
+      {
+        name:        'title',
+        label:       'Chat title',
+        type:        'text',
+        value:       defaults.title || '',
+        placeholder: 'Enter a title for this chat',
+        required:    true,
+      },
+      {
+        name:        'source',
+        label:       'Source',
+        type:        'text',
+        value:       defaults.source || 'external',
+        placeholder: 'e.g. VS Code Copilot, Cursor, Windsurf',
+        hint:        'The tool or service where this conversation took place',
+      },
+    ], 'Import Markdown Chat', 'Import');
+
+    if (!result) return null;
+    return {
+      title:  result.title.trim()  || defaults.title  || 'Imported chat',
+      source: result.source.trim() || defaults.source || 'external',
+    };
+  }
 }

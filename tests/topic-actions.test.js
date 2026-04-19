@@ -17,6 +17,7 @@ import {
   handleMergeTopic,
   handleExportTopic,
   handleCopyAllTopicChats,
+  handleImportMarkdown,
 } from '../src/sidepanel/controllers/topic-actions.js';
 import { elements } from '../src/sidepanel/app-context.js';
 
@@ -45,6 +46,25 @@ vi.mock('../src/lib/export/clipboard-serialiser.js', () => ({
   MAX_CLIPBOARD_CHARS:  1_000_000,
 }));
 
+vi.mock('../src/lib/io/markdown-import.js', () => ({
+  parseMarkdownImport: vi.fn().mockReturnValue({
+    title: 'Parsed Title',
+    source: 'external',
+    url: '',
+    timestamp: 1700000000000,
+    messages: [],
+    detectedFormat: 'single-block',
+  }),
+}));
+
+vi.mock('../src/background/chat-save-handler.js', () => ({
+  buildImportedChatEntry: vi.fn().mockResolvedValue({ id: 'imported-id', title: 'Imported Chat' }),
+}));
+
+vi.mock('../src/sidepanel/controllers/chat-actions.js', () => ({
+  handleChatClick: vi.fn().mockResolvedValue(undefined),
+}));
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeContextMenuEl() {
@@ -69,6 +89,7 @@ function makeState(overrides = {}) {
     renderer: {
       setChatData:    vi.fn(),
       expandToTopic:  vi.fn(),
+      expandNode:     vi.fn(),
       selectNode:     vi.fn(),
     },
     chatRepo: {
@@ -77,11 +98,13 @@ function makeState(overrides = {}) {
       loadFullByIds:     vi.fn().mockResolvedValue([]),
     },
     topicDialogs: {
-      showAddTopic:    vi.fn().mockResolvedValue(null),
-      showRenameTopic: vi.fn().mockResolvedValue(null),
-      showMoveTopic:   vi.fn().mockResolvedValue(null),
-      showDeleteTopic: vi.fn().mockResolvedValue(null),
-      showMergeTopic:  vi.fn().mockResolvedValue(null),
+      showAddTopic:            vi.fn().mockResolvedValue(null),
+      showRenameTopic:         vi.fn().mockResolvedValue(null),
+      showMoveTopic:           vi.fn().mockResolvedValue(null),
+      showDeleteTopic:         vi.fn().mockResolvedValue(null),
+      showMergeTopic:          vi.fn().mockResolvedValue(null),
+      showMarkdownInputDialog: vi.fn().mockResolvedValue(null),
+      showImportMarkdownDialog:vi.fn().mockResolvedValue(null),
     },
     exportDialog: {
       showExportTopic: vi.fn().mockResolvedValue(undefined),
@@ -648,5 +671,104 @@ describe('handleAddChildTopic()', () => {
     _setContext(st);
     await handleAddChildTopic();
     expect(st.lastCreatedTopicId).toBe('new-child');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// handleImportMarkdown
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('handleImportMarkdown()', () => {
+  it('returns early when contextMenuTopic is null', async () => {
+    const st = makeState();
+    st.contextMenuTopic = null;
+    _setContext(st);
+    await handleImportMarkdown();
+    expect(st.topicDialogs.showMarkdownInputDialog).not.toHaveBeenCalled();
+  });
+
+  it('returns early when showMarkdownInputDialog returns null', async () => {
+    const st = makeState();
+    st.contextMenuTopic = { id: 't1', chatIds: [] };
+    st.topicDialogs.showMarkdownInputDialog.mockResolvedValueOnce(null);
+    _setContext(st);
+    await handleImportMarkdown();
+    expect(st.topicDialogs.showImportMarkdownDialog).not.toHaveBeenCalled();
+  });
+
+  it('returns early when showImportMarkdownDialog returns null', async () => {
+    const { buildImportedChatEntry } = await import('../src/background/chat-save-handler.js');
+    const st = makeState();
+    st.contextMenuTopic = { id: 't1', chatIds: [] };
+    st.topicDialogs.showMarkdownInputDialog.mockResolvedValueOnce({ content: '# Hi', filename: '' });
+    st.topicDialogs.showImportMarkdownDialog.mockResolvedValueOnce(null);
+    _setContext(st);
+    await handleImportMarkdown();
+    expect(buildImportedChatEntry).not.toHaveBeenCalled();
+  });
+
+  it('shows alert and returns when buildImportedChatEntry throws', async () => {
+    const { buildImportedChatEntry } = await import('../src/background/chat-save-handler.js');
+    buildImportedChatEntry.mockRejectedValueOnce(new Error('build failed'));
+    const st = makeState();
+    st.contextMenuTopic = { id: 't1', chatIds: [] };
+    st.topicDialogs.showMarkdownInputDialog.mockResolvedValueOnce({ content: '# Hi', filename: '' });
+    st.topicDialogs.showImportMarkdownDialog.mockResolvedValueOnce({ title: 'T', source: 'external' });
+    _setContext(st);
+    await handleImportMarkdown();
+    expect(st.dialog.alert).toHaveBeenCalledWith('build failed', 'Import Error');
+  });
+
+  it('shows alert and rolls back topic assignment when chatRepo.addChat throws', async () => {
+    const { buildImportedChatEntry } = await import('../src/background/chat-save-handler.js');
+    buildImportedChatEntry.mockResolvedValueOnce({ id: 'entry-1', title: 'T' });
+    const st = makeState();
+    st.contextMenuTopic = { id: 't1', chatIds: [] };
+    st.topicDialogs.showMarkdownInputDialog.mockResolvedValueOnce({ content: '# Hi', filename: '' });
+    st.topicDialogs.showImportMarkdownDialog.mockResolvedValueOnce({ title: 'T', source: 'external' });
+    st.chatRepo.addChat = vi.fn().mockRejectedValueOnce(new Error('storage error'));
+    _setContext(st);
+    await handleImportMarkdown();
+    expect(st.dialog.alert).toHaveBeenCalledWith('storage error', 'Import Error');
+    // Entry id should be rolled back from topic.chatIds
+    expect(st.contextMenuTopic.chatIds).not.toContain('entry-1');
+  });
+
+  it('saves tree, renders, and notifies on success', async () => {
+    const { saveTree, renderTreeView, saveExpandedState } = await import('../src/sidepanel/controllers/tree-controller.js');
+    const { buildImportedChatEntry } = await import('../src/background/chat-save-handler.js');
+    buildImportedChatEntry.mockResolvedValueOnce({ id: 'entry-ok', title: 'T' });
+    const st = makeState();
+    st.contextMenuTopic = { id: 't1', chatIds: [] };
+    st.topicDialogs.showMarkdownInputDialog.mockResolvedValueOnce({ content: '# Hi', filename: 'chat.md' });
+    st.topicDialogs.showImportMarkdownDialog.mockResolvedValueOnce({ title: 'My Chat', source: 'external' });
+    st.chatRepo.addChat = vi.fn().mockResolvedValue([{ id: 'entry-ok' }]);
+    makeToast();
+    _setContext(st);
+    await handleImportMarkdown();
+    expect(saveTree).toHaveBeenCalled();
+    expect(renderTreeView).toHaveBeenCalled();
+    expect(st.renderer.expandToTopic).toHaveBeenCalledWith('t1');
+    expect(st.renderer.expandNode).toHaveBeenCalledWith('t1');
+    expect(st.renderer.selectNode).toHaveBeenCalledWith('entry-ok');
+    expect(saveExpandedState).toHaveBeenCalled();
+    const toast = document.getElementById('toast');
+    expect(toast.textContent).toContain('imported');
+  });
+
+  it('registers import-markdown action in setupContextMenuActions', async () => {
+    const menu = makeContextMenuEl();
+    elements.contextMenu = menu;
+    const item = document.createElement('div');
+    item.dataset.action = 'import-markdown';
+    menu.appendChild(item);
+    const st = makeState();
+    st.contextMenuTopic = { id: 't1', chatIds: [] };
+    st.topicDialogs.showMarkdownInputDialog.mockResolvedValueOnce(null);
+    _setContext(st);
+    setupContextMenuActions();
+    item.click();
+    await vi.runAllTimersAsync();
+    expect(st.topicDialogs.showMarkdownInputDialog).toHaveBeenCalled();
   });
 });

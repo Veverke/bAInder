@@ -2070,6 +2070,7 @@ button:focus-visible {
 .tree-chat-item[data-source="copilot"] > .tree-node-content  { box-shadow: inset 3px 0 0 0 #8b5cf6; }
 .tree-chat-item[data-source="perplexity"] > .tree-node-content { box-shadow: inset 3px 0 0 0 #9b6b2e; }
 .tree-chat-item[data-source="unknown"] > .tree-node-content  { box-shadow: inset 3px 0 0 0 var(--border-secondary); }
+.tree-chat-item[data-source-dynamic]   > .tree-node-content  { box-shadow: inset 3px 0 0 0 hsl(var(--source-hue), 50%, 55%); }
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬ Source badge chips on chat rows Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .tree-source-chip {
@@ -2095,6 +2096,11 @@ button:focus-visible {
 .tree-source-chip--deepseek   { background: #ddd6fe; color: #2e1065; }
 .tree-source-chip--joined    { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 .tree-source-chip--unknown   { background: var(--bg-tertiary); color: var(--text-tertiary); }
+/* Dynamic source chips — hue derived from source string via JS */
+.tree-source-chip--dynamic   {
+  background: hsl(var(--source-hue), 50%, 88%);
+  color:       hsl(var(--source-hue), 50%, 25%);
+}
 
 /* Expand/collapse button */
 .tree-expand-btn {
