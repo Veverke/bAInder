@@ -338,3 +338,76 @@ describe('parseMarkdownImport — edge cases', () => {
     expect(result.title).toBe('test');
   });
 });
+
+// ─── parseFrontmatter – excerpt field ────────────────────────────────────────
+
+describe('parseFrontmatter – excerpt field', () => {
+  it('parses excerpt: true as boolean true', () => {
+    const md = '---\nexcerpt: true\n---\n\nBody.';
+    expect(parseFrontmatter(md).excerpt).toBe(true);
+  });
+
+  it('parses excerpt: false as boolean false', () => {
+    const md = '---\nexcerpt: false\n---\n\nBody.';
+    expect(parseFrontmatter(md).excerpt).toBe(false);
+  });
+});
+
+// ─── parseMarkdownImport – invalid date fallbacks ─────────────────────────────
+
+describe('parseMarkdownImport – invalid frontmatter date fallbacks', () => {
+  const MD_INVALID_DATE = [
+    '---',
+    'title: "Bad Date Chat"',
+    'date: not-a-valid-date',
+    '---',
+    '',
+    '### User',
+    'Hello',
+    '',
+    '### Assistant',
+    'World',
+  ].join('\n');
+
+  it('falls back to fileLastModified when date is invalid', () => {
+    const result = parseMarkdownImport(MD_INVALID_DATE, 'chat.md', 9_000_000_000_000);
+    expect(result.timestamp).toBe(9_000_000_000_000);
+  });
+
+  it('falls back to Date.now() when date is invalid and fileLastModified is 0', () => {
+    const before = Date.now();
+    const result = parseMarkdownImport(MD_INVALID_DATE, 'chat.md', 0);
+    expect(result.timestamp).toBeGreaterThanOrEqual(before);
+  });
+});
+
+// ─── parseBainderV1Messages – export footer stripping ────────────────────────
+
+describe('parseMarkdownImport – bAInder v1 export footer stripping', () => {
+  it('strips the export footer from the last assistant message', () => {
+    const md = [
+      '### User',
+      'Hello',
+      '',
+      '### Assistant',
+      'World',
+      '',
+      '---',
+      '*Exported from bAInder on 2026-01-01*',
+    ].join('\n');
+    const result = parseMarkdownImport(md, 'chat.md');
+    expect(result.messages).toHaveLength(2);
+    expect(result.messages[1].content).not.toContain('Exported from bAInder');
+  });
+
+  it('strips the trailing turn separator (---) from message content', () => {
+    const md = [
+      '### User',
+      'Hello',
+      '',
+      '---',
+    ].join('\n');
+    const result = parseMarkdownImport(md, 'chat.md');
+    expect(result.messages[0].content).not.toMatch(/---\s*$/);
+  });
+});

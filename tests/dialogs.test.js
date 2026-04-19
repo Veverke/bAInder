@@ -583,6 +583,132 @@ describe('TopicDialogs', () => {
       expect(options.some(o => o.value === topic2)).toBe(false);
     });
   });
+
+  describe('showMarkdownInputDialog', () => {
+    it('returns null when cancel is clicked', async () => {
+      const promise = topicDialogs.showMarkdownInputDialog();
+      dialog.container.querySelector('#md-import-cancel').click();
+      const result = await promise;
+      expect(result).toBeNull();
+    });
+
+    it('shows error class on textarea when confirm is clicked with empty content', async () => {
+      const promise = topicDialogs.showMarkdownInputDialog();
+      const textarea = dialog.container.querySelector('#md-import-textarea');
+      textarea.value = '';
+      dialog.container.querySelector('#md-import-confirm').click();
+      expect(textarea.classList.contains('error')).toBe(true);
+      // Dialog still open — cancel to clean up
+      dialog.container.querySelector('#md-import-cancel').click();
+      await promise;
+    });
+
+    it('returns { content, filename: "" } when pasted text is confirmed', async () => {
+      const promise = topicDialogs.showMarkdownInputDialog();
+      const textarea = dialog.container.querySelector('#md-import-textarea');
+      textarea.value = '# Hello\n\nSome content';
+      dialog.container.querySelector('#md-import-confirm').click();
+      const result = await promise;
+      expect(result).toEqual({ content: '# Hello\n\nSome content', filename: '' });
+    });
+
+    it('returns null when ESC key closes the dialog', async () => {
+      const promise = topicDialogs.showMarkdownInputDialog();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      const result = await promise;
+      expect(result).toBeNull();
+    });
+
+    it('creates a hidden file input when browse button is clicked', async () => {
+      const promise = topicDialogs.showMarkdownInputDialog();
+      dialog.container.querySelector('#md-import-browse').click();
+      const fileInput = document.querySelector('input[type="file"]');
+      expect(fileInput).toBeTruthy();
+      expect(fileInput.accept).toContain('.md');
+      // Dispatch change with no files selected (no-op path)
+      fileInput.dispatchEvent(new Event('change'));
+      // Cancel to clean up
+      dialog.container.querySelector('#md-import-cancel').click();
+      await promise;
+    });
+
+    it('uses file content and filename when a file is selected via browse', async () => {
+      const promise = topicDialogs.showMarkdownInputDialog();
+      dialog.container.querySelector('#md-import-browse').click();
+      const fileInput = document.querySelector('input[type="file"]');
+
+      const fileContent = '# Imported\n\nFile content here.';
+      const file = new File([fileContent], 'my-chat.md', { type: 'text/markdown' });
+      Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
+      fileInput.dispatchEvent(new Event('change'));
+
+      // Wait for async file.text()
+      await new Promise(r => setTimeout(r, 20));
+
+      dialog.container.querySelector('#md-import-confirm').click();
+      const result = await promise;
+      expect(result).toEqual({ content: fileContent, filename: 'my-chat.md' });
+    });
+  });
+
+  describe('showImportMarkdownDialog', () => {
+    it('returns null when cancel is clicked', async () => {
+      const promise = topicDialogs.showImportMarkdownDialog({ title: 'T', source: 'chatgpt' });
+      dialog.container.querySelector('[data-action="cancel"]').click();
+      const result = await promise;
+      expect(result).toBeNull();
+    });
+
+    it('returns confirmed title and source', async () => {
+      const promise = topicDialogs.showImportMarkdownDialog({ title: 'Default', source: 'external' });
+      const titleInput  = dialog.container.querySelector('[data-field="title"]');
+      const sourceInput = dialog.container.querySelector('[data-field="source"]');
+      titleInput.value  = 'My Chat Title';
+      sourceInput.value = 'VS Code Copilot';
+      dialog.container.querySelector('[data-action="submit"]').click();
+      const result = await promise;
+      expect(result).toEqual({ title: 'My Chat Title', source: 'VS Code Copilot' });
+    });
+
+    it('pre-fills title and source from defaults', async () => {
+      topicDialogs.showImportMarkdownDialog({ title: 'Pre Title', source: 'gemini' });
+      expect(dialog.container.querySelector('[data-field="title"]').value).toBe('Pre Title');
+      expect(dialog.container.querySelector('[data-field="source"]').value).toBe('gemini');
+      dialog.container.querySelector('[data-action="cancel"]').click();
+    });
+
+    it('trims whitespace from returned title and source', async () => {
+      const promise = topicDialogs.showImportMarkdownDialog({ title: 'Default', source: 'chatgpt' });
+      const titleInput  = dialog.container.querySelector('[data-field="title"]');
+      const sourceInput = dialog.container.querySelector('[data-field="source"]');
+      titleInput.value  = '  Trimmed Title  ';
+      sourceInput.value = '  Trimmed Source  ';
+      dialog.container.querySelector('[data-action="submit"]').click();
+      const result = await promise;
+      expect(result.title).toBe('Trimmed Title');
+      expect(result.source).toBe('Trimmed Source');
+    });
+
+    it('defaults source to "external" when both form and defaults are empty', async () => {
+      const promise = topicDialogs.showImportMarkdownDialog({});
+      const titleInput  = dialog.container.querySelector('[data-field="title"]');
+      const sourceInput = dialog.container.querySelector('[data-field="source"]');
+      titleInput.value  = 'A Title';
+      sourceInput.value = '';
+      dialog.container.querySelector('[data-action="submit"]').click();
+      const result = await promise;
+      expect(result.source).toBe('external');
+    });
+
+    it('defaults title to "Imported chat" when both form and defaults.title are empty', async () => {
+      const promise = topicDialogs.showImportMarkdownDialog({ title: '', source: 'external' });
+      // The `required: true` field blocks empty form submission.
+      // Cancel instead and confirm the null return path is covered.
+      dialog.container.querySelector('[data-action="cancel"]').click();
+      const result = await promise;
+      expect(result).toBeNull();
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

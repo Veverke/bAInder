@@ -13,6 +13,7 @@ import {
   findDuplicate,
   buildChatEntry,
   buildExcerptPayload,
+  buildImportedChatEntry,
   handleSaveChat
 } from '../src/background/chat-save-handler.js';
 import {
@@ -577,5 +578,106 @@ describe('buildChatEntry() — entity extraction', () => {
   it('a failing extractor does not cause buildChatEntry to throw', async () => {
     registerExtractor('code', () => { throw new Error('extractor boom'); });
     await expect(buildChatEntry({ ...baseData, messages: [] }, '')).resolves.not.toThrow();
+  });
+});
+
+// ─── buildImportedChatEntry ───────────────────────────────────────────────────
+
+describe('buildImportedChatEntry()', () => {
+  const parsed = {
+    title:     'Parsed Title',
+    source:    'chatgpt',
+    url:       'https://chat.openai.com/c/abc',
+    timestamp: 1700000000000,
+    messages:  [{ role: 'user', content: 'Hello' }, { role: 'assistant', content: 'Hi' }],
+  };
+
+  it('uses formValues.title when provided', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'Form Title', source: 'gemini' }, null);
+    expect(entry.title).toBe('Form Title');
+  });
+
+  it('falls back to parsed.title when formValues.title is empty', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: '', source: 'gemini' }, null);
+    expect(entry.title).toBe('Parsed Title');
+  });
+
+  it('falls back to "Imported chat" when both title sources are empty', async () => {
+    const entry = await buildImportedChatEntry({ ...parsed, title: '' }, { title: '', source: '' }, null);
+    expect(entry.title).toBe('Imported chat');
+  });
+
+  it('uses formValues.source over parsed.source', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'T', source: 'external' }, null);
+    expect(entry.source).toBe('external');
+  });
+
+  it('falls back to parsed.source when formValues.source is empty', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'T', source: '' }, null);
+    expect(entry.source).toBe('chatgpt');
+  });
+
+  it('assigns topicId from parameter', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'T', source: 'S' }, 'topic-abc');
+    expect(entry.topicId).toBe('topic-abc');
+  });
+
+  it('topicId is null when not provided', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'T', source: 'S' }, null);
+    expect(entry.topicId).toBeNull();
+  });
+
+  it('generates a unique id per call', async () => {
+    const e1 = await buildImportedChatEntry(parsed, { title: 'T', source: 'S' }, null);
+    const e2 = await buildImportedChatEntry(parsed, { title: 'T', source: 'S' }, null);
+    expect(e1.id).not.toBe(e2.id);
+  });
+
+  it('sets messageCount from messages length', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'T', source: 'S' }, null);
+    expect(entry.messageCount).toBe(2);
+  });
+
+  it('sets metadata.importSource to "markdown-file"', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'T', source: 'S' }, null);
+    expect(entry.metadata.importSource).toBe('markdown-file');
+  });
+
+  it('sets metadata.contentFormat to "markdown-v1"', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'T', source: 'S' }, null);
+    expect(entry.metadata.contentFormat).toBe('markdown-v1');
+  });
+
+  it('serialises messages into a non-empty content string', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'T', source: 'S' }, null);
+    expect(typeof entry.content).toBe('string');
+    expect(entry.content.length).toBeGreaterThan(0);
+  });
+
+  it('uses parsed.timestamp for timestamp', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'T', source: 'S' }, null);
+    expect(entry.timestamp).toBe(1700000000000);
+  });
+
+  it('falls back to Date.now() when parsed.timestamp is 0', async () => {
+    const before = Date.now();
+    const entry = await buildImportedChatEntry({ ...parsed, timestamp: 0 }, { title: 'T', source: 'S' }, null);
+    expect(entry.timestamp).toBeGreaterThanOrEqual(before);
+  });
+
+  it('uses empty array when parsed.messages is undefined', async () => {
+    const entry = await buildImportedChatEntry({ ...parsed, messages: undefined }, { title: 'T', source: 'S' }, null);
+    expect(entry.messages).toEqual([]);
+    expect(entry.messageCount).toBe(0);
+  });
+
+  it('uses parsed.url', async () => {
+    const entry = await buildImportedChatEntry(parsed, { title: 'T', source: 'S' }, null);
+    expect(entry.url).toBe('https://chat.openai.com/c/abc');
+  });
+
+  it('falls back to empty string when parsed.url is absent', async () => {
+    const entry = await buildImportedChatEntry({ ...parsed, url: '' }, { title: 'T', source: 'S' }, null);
+    expect(entry.url).toBe('');
   });
 });
