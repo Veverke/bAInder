@@ -530,36 +530,58 @@
     <!-- Modals will be dynamically inserted here -->
   </div>
 
-  <!-- Settings slide-in panel -->
-  <div id="settingsPanel" class="settings-panel" aria-hidden="true">
-    <div class="settings-panel__backdrop"></div>
-    <aside class="settings-panel__drawer" role="complementary" aria-label="Settings">
-      <header class="settings-panel__header">
-        <h2>Settings</h2>
-        <button id="settingsPanelClose" class="btn-icon" aria-label="Close settings">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M2 2L14 14M2 14L14 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Settings full-screen overlay -->
+  <div id="settingsPanel" class="settings-panel" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Settings">
+
+    <!-- Top bar -->
+    <header class="settings-panel__header">
+      <div class="settings-panel__title-group">
+        <span class="settings-panel__logo">📖</span>
+        <h2 class="settings-panel__title">Settings</h2>
+      </div>
+      <button id="settingsPanelClose" class="btn-icon settings-panel__close" aria-label="Close settings">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M2 2L14 14M2 14L14 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Body: sidebar nav + content -->
+    <div class="settings-panel__body">
+
+      <!-- Vertical tab nav -->
+      <nav class="settings-nav" aria-label="Settings sections">
+        <button class="settings-nav__item settings-nav__item--active" data-settings-tab="general" aria-selected="true">
+          <svg class="settings-nav__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
           </svg>
+          <span>General</span>
         </button>
-      </header>
+        <button class="settings-nav__item" data-settings-tab="clipboard" aria-selected="false">
+          <svg class="settings-nav__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          <span>Clipboard</span>
+        </button>
+        <button class="settings-nav__item" data-settings-tab="reader" aria-selected="false">
+          <svg class="settings-nav__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+          <span>Reader</span>
+        </button>
+        <button class="settings-nav__item" data-settings-tab="export" aria-selected="false">
+          <svg class="settings-nav__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
+          </svg>
+          <span>Export</span>
+        </button>
+      </nav>
 
-      <div class="settings-panel__body">
+      <!-- Tab content panels -->
+      <div class="settings-content">
 
-        <!-- About -->
-        <section class="settings-section">
-          <h3 class="settings-section__title">About</h3>
-          <div class="settings-about">
-            <span class="logo" style="font-size:2rem;">📖</span>
-            <div>
-              <p class="settings-about__name">bAInder</p>
-              <p class="settings-about__version">Version 1.0.0</p>
-              <p class="settings-about__tagline">Your AI conversations, organised.</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- Notifications -->
-        <section class="settings-section">
+        <!-- General tab: Notifications + Log Level -->
+        <section class="settings-tab-panel settings-tab-panel--active" id="settings-tab-general" aria-label="General settings">
           <h3 class="settings-section__title">Notifications</h3>
           <div class="settings-row">
             <label class="settings-row__label" for="backupReminderToggle">Backup reminder</label>
@@ -579,13 +601,26 @@
             </select>
           </div>
           <p class="settings-hint">Show a banner at the chosen interval prompting you to export your saved chats as a backup.</p>
+
+          <h3 class="settings-section__title" style="margin-top: var(--space-xl)">Logging</h3>
+          <div class="settings-row">
+            <label class="settings-row__label" for="logLevelSelect">Log level</label>
+            <select id="logLevelSelect" class="settings-select" aria-label="Log level">
+              <option value="ALL">All</option>
+              <option value="DEBUG">Debug</option>
+              <option value="INFO" selected>Info</option>
+              <option value="WARN">Warning</option>
+              <option value="ERROR">Error</option>
+              <option value="OFF">Off</option>
+            </select>
+          </div>
+          <p class="settings-hint">Controls how much bAInder writes to the browser DevTools console. <strong>Info</strong> is the default. Use <strong>All</strong> or <strong>Debug</strong> for verbose troubleshooting output.</p>
         </section>
 
-        <!-- C.26 — Clipboard settings -->
-        <section class="settings-section">
+        <!-- Clipboard tab -->
+        <section class="settings-tab-panel" id="settings-tab-clipboard" aria-label="Clipboard settings" hidden>
           <h3 class="settings-section__title">Clipboard</h3>
 
-          <!-- Format -->
           <div class="settings-row">
             <label class="settings-row__label" for="clipboardFormatSelect">
               Copy format
@@ -598,7 +633,6 @@
             </select>
           </div>
 
-          <!-- Content types -->
           <div class="settings-row settings-row--stack">
             <span class="settings-row__label">Content to include</span>
             <div class="settings-checkboxes">
@@ -621,7 +655,6 @@
             </div>
           </div>
 
-          <!-- Separator -->
           <div class="settings-row settings-row--stack">
             <label class="settings-row__label" for="clipboardSeparatorInput">
               Chat separator
@@ -640,7 +673,6 @@
             <span class="settings-separator-preview__content">------------------------------------</span>
           </p>
 
-          <!-- Prompt/Response separator -->
           <div class="settings-row settings-row--stack">
             <label class="settings-row__label" for="clipboardTurnSeparatorInput">
               Prompt/Response separator
@@ -660,8 +692,8 @@
           </p>
         </section>
 
-        <!-- C.28 — Reader display settings -->
-        <section class="settings-section">
+        <!-- Reader tab -->
+        <section class="settings-tab-panel" id="settings-tab-reader" aria-label="Reader settings" hidden>
           <h3 class="settings-section__title">Reader</h3>
           <div class="settings-row">
             <label class="settings-row__label" for="showOrdinalsToggle">
@@ -675,8 +707,8 @@
           </div>
         </section>
 
-        <!-- Auto Export settings -->
-        <section class="settings-section">
+        <!-- Export tab -->
+        <section class="settings-tab-panel" id="settings-tab-export" aria-label="Export settings" hidden>
           <h3 class="settings-section__title">Auto Export</h3>
           <div class="settings-row">
             <label class="settings-row__label" for="autoExportToggle">
@@ -718,25 +750,16 @@
           </div>
         </section>
 
-        <!-- Advanced / Logging settings -->
-        <section class="settings-section">
-          <h3 class="settings-section__title">Advanced</h3>
-          <div class="settings-row">
-            <label class="settings-row__label" for="logLevelSelect">Log level</label>
-            <select id="logLevelSelect" class="settings-select" aria-label="Log level">
-              <option value="ALL">All</option>
-              <option value="DEBUG">Debug</option>
-              <option value="INFO"  selected>Info</option>
-              <option value="WARN">Warning</option>
-              <option value="ERROR">Error</option>
-              <option value="OFF">Off</option>
-            </select>
-          </div>
-          <p class="settings-hint">Controls how much bAInder writes to the browser DevTools console. <strong>Info</strong> is the default. Use <strong>All</strong> or <strong>Debug</strong> for verbose troubleshooting output.</p>
-        </section>
+      </div><!-- /.settings-content -->
+    </div><!-- /.settings-panel__body -->
 
-      </div>
-    </aside>
+    <!-- Footer: about info -->
+    <footer class="settings-panel__footer">
+      <span class="settings-panel__footer-app">bAInder</span>
+      <span class="settings-panel__footer-version">Version 1.0.0</span>
+      <span class="settings-panel__footer-tagline">Your AI conversations, organised.</span>
+    </footer>
+
   </div>
 
   <!-- E.3 — Sandboxed artifact preview panel (hidden by default) -->
