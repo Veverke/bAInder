@@ -1,8 +1,8 @@
 /**
  * settings-panel.js
  *
- * Responsibility: open/close the settings slide-in panel and wire its
- * internal controls (log-level selector).
+ * Responsibility: open/close the settings full-screen overlay, handle sidebar
+ * tab switching, and wire internal controls to persistence.
  *
  * NOT responsible for: persisting settings (delegated to the logger module).
  */
@@ -22,14 +22,27 @@ export function openSettingsPanel() {
   panel.classList.add('settings-panel--open');
   panel.setAttribute('aria-hidden', 'false');
 
-  // Backdrop click closes the panel (once listener — re-attached each open)
-  panel.querySelector('.settings-panel__backdrop')
-    ?.addEventListener('click', closeSettingsPanel, { once: true });
-
   document.getElementById('settingsPanelClose')
     ?.addEventListener('click', closeSettingsPanel, { once: true });
 
-  // Wire log-level selector (idempotent — guard with data attribute)
+  // Wire sidebar tab navigation (idempotent)
+  if (!panel.dataset.tabsWired) {
+    panel.dataset.tabsWired = '1';
+    panel.querySelectorAll('.settings-nav__item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.settingsTab;
+        panel.querySelectorAll('.settings-nav__item').forEach(b => {
+          b.classList.toggle('settings-nav__item--active', b === btn);
+          b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+        });
+        panel.querySelectorAll('.settings-tab-panel').forEach(section => {
+          section.hidden = section.id !== `settings-tab-${tab}`;
+        });
+      });
+    });
+  }
+
+  // Wire log-level selector (idempotent)
   const logLevelSelect = document.getElementById('logLevelSelect');
   if (logLevelSelect) {
     logLevelSelect.value = logger.getLevel();

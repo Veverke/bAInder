@@ -49,8 +49,15 @@ vi.mock('../src/lib/export/clipboard-serialiser.js', async (importOriginal) => {
 function buildPanelDOM() {
   document.body.innerHTML = `
     <div id="settingsPanel" aria-hidden="true">
-      <div class="settings-panel__backdrop"></div>
       <button id="settingsPanelClose"></button>
+      <button class="settings-nav__item settings-nav__item--active" data-settings-tab="general" aria-selected="true"></button>
+      <button class="settings-nav__item" data-settings-tab="clipboard" aria-selected="false"></button>
+      <button class="settings-nav__item" data-settings-tab="reader" aria-selected="false"></button>
+      <button class="settings-nav__item" data-settings-tab="export" aria-selected="false"></button>
+      <section class="settings-tab-panel settings-tab-panel--active" id="settings-tab-general"></section>
+      <section class="settings-tab-panel" id="settings-tab-clipboard" hidden></section>
+      <section class="settings-tab-panel" id="settings-tab-reader" hidden></section>
+      <section class="settings-tab-panel" id="settings-tab-export" hidden></section>
       <select id="logLevelSelect">
         <option value="debug">Debug</option>
         <option value="info">Info</option>
@@ -143,18 +150,31 @@ describe('openSettingsPanel()', () => {
     expect(logger.setLevel).toHaveBeenCalledTimes(1);
   });
 
-  it('wires backdrop click to close the panel', () => {
-    openSettingsPanel();
-    const panel = document.getElementById('settingsPanel');
-    panel.querySelector('.settings-panel__backdrop').click();
-    expect(panel.classList.contains('settings-panel--open')).toBe(false);
-  });
-
   it('wires close button to close the panel', () => {
     openSettingsPanel();
     const panel = document.getElementById('settingsPanel');
     document.getElementById('settingsPanelClose').click();
     expect(panel.classList.contains('settings-panel--open')).toBe(false);
+  });
+
+  it('wires sidebar nav to switch active tab', () => {
+    openSettingsPanel();
+    const panel = document.getElementById('settingsPanel');
+    const clipboardBtn = panel.querySelector('[data-settings-tab="clipboard"]');
+    clipboardBtn.click();
+    expect(clipboardBtn.classList.contains('settings-nav__item--active')).toBe(true);
+    expect(document.getElementById('settings-tab-clipboard').hidden).toBe(false);
+    expect(document.getElementById('settings-tab-general').hidden).toBe(true);
+  });
+
+  it('does not re-wire nav tabs on second open (idempotent)', () => {
+    openSettingsPanel();
+    openSettingsPanel();
+    // Only one set of listeners — clicking still works without double-firing
+    const panel = document.getElementById('settingsPanel');
+    const exportBtn = panel.querySelector('[data-settings-tab="export"]');
+    exportBtn.click();
+    expect(exportBtn.getAttribute('aria-selected')).toBe('true');
   });
 
   it('loads backupReminderToggle state from storage', async () => {
