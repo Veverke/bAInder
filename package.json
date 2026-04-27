@@ -1,7 +1,7 @@
 {
   "name": "bainder",
   "version": "0.0.9",
-  "description": "Chrome extension to organize AI browser chats (ChatGPT, Claude, Gemini) into a hierarchical notebook with topics, table of contents, and search functionality.",
+  "description": "Browser extension (chrome, edge, firefox to come) to organize AI browser chats (ChatGPT, Claude, Gemini) into a hierarchical notebook with topics, table of contents, and search functionality.",
   "type": "module",
   "scripts": {
     "test": "vitest",
