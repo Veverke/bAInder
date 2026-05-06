@@ -1,0 +1,2334 @@
+<testsuites id="" name="" tests="285" failures="28" skipped="257" errors="0" time="32.296704">
+<testsuite name="a-injection.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="12" failures="1" skipped="11" time="0" errors="0">
+<testcase name="A01 — chatgpt: zero console errors on load" classname="a-injection.spec.js" time="0">
+<failure message="a-injection.spec.js:33:3 A01 — chatgpt: zero console errors on load" type="FAILURE">
+<![CDATA[  a-injection.spec.js:33:3 › A01 — chatgpt: zero console errors on load ────────────────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\a-injection.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\a-injection.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="A01 — gemini: zero console errors on load" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="A01 — copilot: zero console errors on load" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="A01 — deepseek: zero console errors on load" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="A01 — perplexity: zero console errors on load" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="A02 — ChatGPT: Save button appears on a conversation page" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="A03 — ChatGPT: Save button absent on empty new-chat page" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="A04 — ChatGPT: Save button appears after first assistant turn is added dynamically" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="A05 — ChatGPT: button appears after SPA navigation to a new conversation" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="A06 — ChatGPT: button absent on settings page" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="A07 — Toolbar icon click opens the side panel" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="A09 — First install: empty state shown when storage is empty" classname="a-injection.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="aa-annotations.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="9" failures="1" skipped="8" time="0" errors="0">
+<testcase name="AA01 — Selecting text in the reader shows an annotation toolbar" classname="aa-annotations.spec.js" time="0">
+<failure message="aa-annotations.spec.js:32:1 AA01 — Selecting text in the reader shows an annotation toolbar" type="FAILURE">
+<![CDATA[  aa-annotations.spec.js:32:1 › AA01 — Selecting text in the reader shows an annotation toolbar ────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\aa-annotations.spec.js:15:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\aa-annotations.spec.js:19:9
+]]>
+</failure>
+</testcase>
+<testcase name="AA02 — Highlight colour options are present in annotation toolbar" classname="aa-annotations.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="AA03 — Highlighted text rendered with coloured background" classname="aa-annotations.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="AA04 — Annotations persist after reader page reload" classname="aa-annotations.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="AA05 — Annotation can be removed by clicking &quot;Remove&quot; in toolbar" classname="aa-annotations.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="AA06 — Annotations are stored in chrome.storage keyed to chat ID" classname="aa-annotations.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="AA07 — Annotations on one chat do not appear in a different chat" classname="aa-annotations.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="AA08 — Annotation panel lists all highlights for the current chat" classname="aa-annotations.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="AA09 — Annotations appear in exported Markdown as HTML mark tags" classname="aa-annotations.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="ab-auto-export.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="5" failures="1" skipped="4" time="0" errors="0">
+<testcase name="AB01 — Auto-export is disabled by default when extension is freshly installed" classname="ab-auto-export.spec.js" time="0">
+<failure message="ab-auto-export.spec.js:53:1 AB01 — Auto-export is disabled by default when extension is freshly installed" type="FAILURE">
+<![CDATA[  ab-auto-export.spec.js:53:1 › AB01 — Auto-export is disabled by default when extension is freshly installed 
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\ab-auto-export.spec.js:17:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\ab-auto-export.spec.js:21:9
+]]>
+</failure>
+</testcase>
+<testcase name="AB02 — Auto-export toggle is present in the settings panel" classname="ab-auto-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="AB03 — Enabling auto-export saves the setting to storage" classname="ab-auto-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="AB04 — Disabling auto-export saves the updated setting to storage" classname="ab-auto-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="AB05 — Saving a chat triggers auto-export write to selected folder" classname="ab-auto-export.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="b-extraction.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="11" failures="1" skipped="10" time="0" errors="0">
+<testcase name="B01 — ChatGPT: all user turns captured" classname="b-extraction.spec.js" time="0">
+<failure message="b-extraction.spec.js:62:1 B01 — ChatGPT: all user turns captured" type="FAILURE">
+<![CDATA[  b-extraction.spec.js:62:1 › B01 — ChatGPT: all user turns captured ───────────────────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\b-extraction.spec.js:21:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\b-extraction.spec.js:25:9
+]]>
+</failure>
+</testcase>
+<testcase name="B02 — ChatGPT: all assistant turns captured" classname="b-extraction.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="B03 — ChatGPT: turn order preserved (user/assistant alternation)" classname="b-extraction.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="B04 — ChatGPT: all turns captured in a multi-turn conversation" classname="b-extraction.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="B05 — ChatGPT: user turns prefixed with 🙋 in stored content" classname="b-extraction.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="B06 — ChatGPT: assistant turns prefixed with 🤖 in stored content" classname="b-extraction.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="B07 — ChatGPT: HR separators between turns in stored content" classname="b-extraction.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="B08 — DeepSeek: turns extracted and stored" classname="b-extraction.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="B09 — Perplexity: answer content captured from .prose block" classname="b-extraction.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="B10 — ChatGPT: messageCount matches number of messages stored" classname="b-extraction.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="B-Claude — Claude API extraction requires live session" classname="b-extraction.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="c-markdown.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="15" failures="1" skipped="14" time="0" errors="0">
+<testcase name="C01 — Plain prose extracted without garbage" classname="c-markdown.spec.js" time="0">
+<failure message="c-markdown.spec.js:73:1 C01 — Plain prose extracted without garbage" type="FAILURE">
+<![CDATA[  c-markdown.spec.js:73:1 › C01 — Plain prose extracted without garbage ────────────────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\c-markdown.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\c-markdown.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="C02 — Bold text preserved as **bold**" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C03 — Italic text preserved as *italic*" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C04 — Inline code preserved as `code`" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C05 — Fenced code block with language label preserved" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C06 — Numbered list preserved as 1. 2. 3." classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C07 — Bulleted list preserved as - item" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C08 — H2 heading preserved as ## heading" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C09 — Blockquote preserved as &gt; text" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C10 — Hyperlink preserved as [text](url)" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C11 — https:// image preserved as Markdown image" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C12 — blob: image URL is not saved in content" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C15 — Markdown table (| col |) preserved from HTML table" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C17 — LaTeX/KaTeX math block preserved as $$...$$" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="C18 — Emoji characters in response body preserved intact" classname="c-markdown.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="d-title.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="5" failures="1" skipped="4" time="0" errors="0">
+<testcase name="D01 — Title derived from first user message" classname="d-title.spec.js" time="0">
+<failure message="d-title.spec.js:65:1 D01 — Title derived from first user message" type="FAILURE">
+<![CDATA[  d-title.spec.js:65:1 › D01 — Title derived from first user message ───────────────────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\d-title.spec.js:13:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\d-title.spec.js:17:9
+]]>
+</failure>
+</testcase>
+<testcase name="D02 — Title is always a non-empty string" classname="d-title.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="D03 — Very short first message produces non-empty fallback title" classname="d-title.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="D04 — Markdown artefacts stripped from generated title" classname="d-title.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="D05 — Title is truncated to a reasonable length" classname="d-title.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="e-save-flow.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="10" failures="1" skipped="9" time="0" errors="0">
+<testcase name="E01 — Save dialog opens when Save button is clicked" classname="e-save-flow.spec.js" time="0">
+<failure message="e-save-flow.spec.js:54:1 E01 — Save dialog opens when Save button is clicked" type="FAILURE">
+<![CDATA[  e-save-flow.spec.js:54:1 › E01 — Save dialog opens when Save button is clicked ───────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\e-save-flow.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\e-save-flow.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="E02 — Title field pre-filled with generated title" classname="e-save-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E03 — Title can be edited before confirming save" classname="e-save-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E04 — Chat saved with custom title after confirm" classname="e-save-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E05 — Cancel button discards save without storing chat" classname="e-save-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E06 — Tags can be added before confirming save" classname="e-save-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E07 — Tag autocomplete shows existing tag suggestions" classname="e-save-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E08 — Source platform icon shown in save dialog" classname="e-save-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E09 — Recent rail chip appears in side panel after save" classname="e-save-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="E10 — Storage usage increases after a chat is saved" classname="e-save-flow.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="f-topics.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="19" failures="1" skipped="18" time="0" errors="0">
+<testcase name="F01 — Root topics are visible in the side panel tree" classname="f-topics.spec.js" time="0">
+<failure message="f-topics.spec.js:49:1 F01 — Root topics are visible in the side panel tree" type="FAILURE">
+<![CDATA[  f-topics.spec.js:49:1 › F01 — Root topics are visible in the side panel tree ─────────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\f-topics.spec.js:24:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\f-topics.spec.js:28:9
+]]>
+</failure>
+</testcase>
+<testcase name="F02 — Create new root topic via context menu" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F03 — Create child topic nested inside parent" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F04 — Rename topic via context menu" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F05 — Delete empty topic removes it from the tree" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F06 — Deleting non-empty topic shows confirmation prompt" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F07 — Collapsed topic hides child items" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F08 — Expanding a collapsed topic reveals children" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F09 — Topic can be reordered by drag and drop" classname="f-topics.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F10 — Move topic into another topic via context menu" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F11 — Duplicate root topic name is blocked" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F12 — Topic count badge reflects number of chats inside" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F13 — Topics can be sorted alphabetically" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F14 — Typing in search box filters topic tree" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F15 — Empty state shown when no topics exist" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F16 — Created topic persists after panel reload" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F17 — Deeply nested (3+ level) topic can be created" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F18 — Cancelling new topic dialog creates no topic" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="F19 — Chat assigned to topic appears under that topic in the tree" classname="f-topics.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="g-tags.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="9" failures="1" skipped="8" time="0" errors="0">
+<testcase name="G01 — Tags tab shows all unique tags across saved chats" classname="g-tags.spec.js" time="0">
+<failure message="g-tags.spec.js:39:1 G01 — Tags tab shows all unique tags across saved chats" type="FAILURE">
+<![CDATA[  g-tags.spec.js:39:1 › G01 — Tags tab shows all unique tags across saved chats ────────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\g-tags.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\g-tags.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="G02 — Clicking a tag chip filters visible chats by that tag" classname="g-tags.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="G03 — Tag can be added to a saved chat via context menu" classname="g-tags.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="G04 — Tag can be removed from a saved chat" classname="g-tags.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="G05 — Active tag filter clears when ✕ is clicked" classname="g-tags.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="G06 — Multiple tag filters applied simultaneously narrow results" classname="g-tags.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="G07 — Tags are displayed on chat cards in the side panel" classname="g-tags.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="G08 — Searching &quot;#react&quot; in search box shows chats tagged &quot;react&quot;" classname="g-tags.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="G09 — Tags assigned to chats persist across panel reloads" classname="g-tags.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="h-chat-management.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="15" failures="1" skipped="14" time="0" errors="0">
+<testcase name="H01 — Chat can be deleted from the side panel via context menu" classname="h-chat-management.spec.js" time="0">
+<failure message="h-chat-management.spec.js:47:1 H01 — Chat can be deleted from the side panel via context menu" type="FAILURE">
+<![CDATA[  h-chat-management.spec.js:47:1 › H01 — Chat can be deleted from the side panel via context menu ──
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\h-chat-management.spec.js:24:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\h-chat-management.spec.js:28:9
+]]>
+</failure>
+</testcase>
+<testcase name="H02 — Cancelling delete dialog preserves the chat" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H03 — Chat can be renamed via context menu" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H04 — Chat can be moved to a different topic" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H05 — Clicking &quot;Open in Reader&quot; navigates to reader page" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H06 — Chat source URL is copied to clipboard via context menu" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H07 — Deleted chat key is removed from storage" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H08 — Chat can be duplicated (creates a copy)" classname="h-chat-management.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H09 — Hovering over a chat item shows title and metadata" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H10 — Context menu is dismissed when Escape is pressed" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H11 — Chat card shows source platform icon" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H12 — Chat card shows a date/time stamp" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H13 — Chat list defaults to most-recent-first sort order" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H14 — Chat card can be dragged to a different topic node" classname="h-chat-management.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="H15 — Multiple chats assigned to same topic are all shown under it" classname="h-chat-management.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="i-search.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="16" failures="1" skipped="15" time="0" errors="0">
+<testcase name="I01 — Keyword search &quot;React&quot; returns chats containing &quot;React&quot;" classname="i-search.spec.js" time="0">
+<failure message="i-search.spec.js:42:1 I01 — Keyword search &quot;React&quot; returns chats containing &quot;React&quot;" type="FAILURE">
+<![CDATA[  i-search.spec.js:42:1 › I01 — Keyword search "React" returns chats containing "React" ────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\i-search.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\i-search.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="I02 — Partial keyword &quot;quan&quot; matches &quot;quantum computing&quot; chat" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I03 — Search is case-insensitive (&quot;PANDAS&quot; finds pandas chat)" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I04 — No-match search shows an empty result state" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I05 — Clearing search input restores full chat list" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I06 — Pressing Escape clears the active search" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I07 — Searching &quot;#react&quot; filters chats by the &quot;react&quot; tag" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I08 — Ctrl+K focuses the search input" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I09 — Matching text in search result is highlighted" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I10 — Search scope toggle restricts search to titles or full content" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I11 — Search results include a content snippet" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I12 — Filter bar allows filtering chats by source platform" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I13 — Filter chats by date range (start and end date)" classname="i-search.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I14 — Search query persists after scrolling down the chat list" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I15 — Search results appear within 500ms for 7 seeded chats" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="I16 — Search finds chats in any topic, not just expanded ones" classname="i-search.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="j-reader.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="13" failures="1" skipped="12" time="0" errors="0">
+<testcase name="J01 — Reader page loads successfully for a seeded chat" classname="j-reader.spec.js" time="0">
+<failure message="j-reader.spec.js:33:1 J01 — Reader page loads successfully for a seeded chat" type="FAILURE">
+<![CDATA[  j-reader.spec.js:33:1 › J01 — Reader page loads successfully for a seeded chat ───────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\j-reader.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\j-reader.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="J02 — Reader displays the chat title in the page header" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J03 — Reader shows source platform in the metadata bar" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J04 — Reader shows the chat save date in the metadata bar" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J05 — Reader renders all conversation turns (user + assistant)" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J06 — User turns show the 🙋 prefix or user label" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J07 — Assistant turns show the 🤖 prefix or assistant label" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J08 — Fenced code blocks are rendered with &lt;code&gt; tags in the reader" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J09 — Copy button present on code blocks in the reader" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J10 — Reader shows a word count or turn count metric" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J11 — Reader is scrollable for long conversations" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J12 — Reader displays the tags assigned to the chat" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="J13 — Back button / browser back navigates away from reader without error" classname="j-reader.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="k-sticky-notes.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="16" failures="1" skipped="15" time="0" errors="0">
+<testcase name="K01 — Sticky note button is present in the reader toolbar" classname="k-sticky-notes.spec.js" time="0">
+<failure message="k-sticky-notes.spec.js:33:1 K01 — Sticky note button is present in the reader toolbar" type="FAILURE">
+<![CDATA[  k-sticky-notes.spec.js:33:1 › K01 — Sticky note button is present in the reader toolbar ──────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\k-sticky-notes.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\k-sticky-notes.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="K02 — Clicking sticky note button opens a note overlay" classname="k-sticky-notes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K03 — Text can be typed into the sticky note overlay" classname="k-sticky-notes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K04 — Sticky note content persists after reader page reload" classname="k-sticky-notes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K05 — Multiple sticky notes can coexist on the same chat" classname="k-sticky-notes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K06 — A sticky note can be deleted" classname="k-sticky-notes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K07 — Sticky note overlay can be repositioned by dragging" classname="k-sticky-notes.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K08 — Right-clicking a conversation turn offers &quot;Add Note&quot; option" classname="k-sticky-notes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K09 — Sticky notes are stored in chrome.storage keyed to chat ID" classname="k-sticky-notes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K10 — Notes on one chat do not appear in another chat reader" classname="k-sticky-notes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K11 — Note colour can be changed" classname="k-sticky-notes.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K12 — Minimised note shows a collapsed chip" classname="k-sticky-notes.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K13 — Note renders Markdown content" classname="k-sticky-notes.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K14 — Note linked to a specific turn is highlighted on that turn" classname="k-sticky-notes.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K15 — Disambiguation dialog shown when note has unsaved changes" classname="k-sticky-notes.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="K16 — Notes exported together with the chat (Markdown export)" classname="k-sticky-notes.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="l-single-export.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="14" failures="1" skipped="13" time="0" errors="0">
+<testcase name="L01 — Export dialog opens via side panel context menu" classname="l-single-export.spec.js" time="0">
+<failure message="l-single-export.spec.js:56:1 L01 — Export dialog opens via side panel context menu" type="FAILURE">
+<![CDATA[  l-single-export.spec.js:56:1 › L01 — Export dialog opens via side panel context menu ─────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\l-single-export.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\l-single-export.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="L02 — Markdown export triggers a .md file download" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L03 — Exported Markdown file contains YAML frontmatter and chat turns" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L04 — HTML export triggers a .html file download" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L05 — Exported HTML file contains valid HTML structure" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L06 — PDF export triggers a .pdf file download" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L07 — Export filename reflects the chat title" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L08 — Cancelling the export dialog produces no download" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L09 — Export dialog offers &quot;Include Notes&quot; option" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L10 — Export dialog offers &quot;Include Tags&quot; option" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L11 — Export dialog offers a &quot;Copy to Clipboard&quot; option" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L12 — Exported Markdown frontmatter includes chat tags" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L13 — Exported Markdown preserves fenced code blocks" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="L14 — JSONL export format is available in export dialog" classname="l-single-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="m-zip-export.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="10" failures="1" skipped="9" time="0" errors="0">
+<testcase name="M01 — Topic context menu has &quot;Export as ZIP&quot; option" classname="m-zip-export.spec.js" time="0">
+<failure message="m-zip-export.spec.js:62:1 M01 — Topic context menu has &quot;Export as ZIP&quot; option" type="FAILURE">
+<![CDATA[  m-zip-export.spec.js:62:1 › M01 — Topic context menu has "Export as ZIP" option ──────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\m-zip-export.spec.js:20:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\m-zip-export.spec.js:24:9
+]]>
+</failure>
+</testcase>
+<testcase name="M02 — Exporting a topic triggers a .zip download" classname="m-zip-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="M03 — ZIP contains Markdown files for each chat in the topic" classname="m-zip-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="M04 — ZIP entry names are derived from chat titles" classname="m-zip-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="M05 — ZIP entry content is valid Markdown with frontmatter" classname="m-zip-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="M06 — &quot;Export all&quot; produces a ZIP containing all 7 seeded chats" classname="m-zip-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="M07 — ZIP folder structure mirrors the topic hierarchy" classname="m-zip-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="M08 — Exporting a sub-topic only includes its own chats" classname="m-zip-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="M09 — Cancelling topic export dialog produces no download" classname="m-zip-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="M10 — ZIP filename contains the exported topic name" classname="m-zip-export.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="n-import.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="12" failures="1" skipped="11" time="0" errors="0">
+<testcase name="N01 — Import dialog is reachable from the side panel" classname="n-import.spec.js" time="0">
+<failure message="n-import.spec.js:77:1 N01 — Import dialog is reachable from the side panel" type="FAILURE">
+<![CDATA[  n-import.spec.js:77:1 › N01 — Import dialog is reachable from the side panel ─────────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\n-import.spec.js:19:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\n-import.spec.js:23:9
+]]>
+</failure>
+</testcase>
+<testcase name="N02 — Clicking &quot;Choose file&quot; opens a file input" classname="n-import.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="N03 — A valid .md file is accepted and shows a preview" classname="n-import.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="N04 — An invalid file type (.txt) is rejected" classname="n-import.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="N05 — Confirming import adds the chat to storage" classname="n-import.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="N06 — Cancelling import dialog adds no chats to storage" classname="n-import.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="N07 — Imported chat preserves title, source, and tags from frontmatter" classname="n-import.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="N08 — Dragging a .md file onto the side panel triggers the import dialog" classname="n-import.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="N09 — Import preview shows the chat title" classname="n-import.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="N10 — Importing a duplicate chat warns or skips the duplicate" classname="n-import.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="N11 — Multiple .md files can be imported at once" classname="n-import.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="N12 — Malformed .md without frontmatter is handled gracefully" classname="n-import.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="o-roundtrip.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="5" failures="1" skipped="4" time="0" errors="0">
+<testcase name="O01 — Exported and re-imported chats have the same titles" classname="o-roundtrip.spec.js" time="0">
+<failure message="o-roundtrip.spec.js:43:1 O01 — Exported and re-imported chats have the same titles" type="FAILURE">
+<![CDATA[  o-roundtrip.spec.js:43:1 › O01 — Exported and re-imported chats have the same titles ─────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\o-roundtrip.spec.js:20:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\o-roundtrip.spec.js:24:9
+]]>
+</failure>
+</testcase>
+<testcase name="O02 — Tags are preserved after export → import round-trip" classname="o-roundtrip.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="O03 — Chat message content is preserved after export → import round-trip" classname="o-roundtrip.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="O04 — Topic hierarchy is preserved after export → import round-trip" classname="o-roundtrip.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="O05 — Exporting an empty library produces an importable but empty export" classname="o-roundtrip.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="p-themes.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="10" failures="1" skipped="9" time="0" errors="0">
+<testcase name="P01 — Settings panel can be opened from the side panel" classname="p-themes.spec.js" time="0">
+<failure message="p-themes.spec.js:59:1 P01 — Settings panel can be opened from the side panel" type="FAILURE">
+<![CDATA[  p-themes.spec.js:59:1 › P01 — Settings panel can be opened from the side panel ───────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\p-themes.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\p-themes.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="P02 — Selecting &quot;Dark&quot; theme applies dark-mode class to root" classname="p-themes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="P03 — Selecting &quot;Light&quot; theme applies light-mode class to root" classname="p-themes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="P04 — Selected theme persists across side panel reload" classname="p-themes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="P05 — &quot;Auto&quot; theme option is available and selectable" classname="p-themes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="P06 — Selecting &quot;Sharp&quot; skin reduces border-radius of cards" classname="p-themes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="P07 — Selecting &quot;Rounded&quot; skin applies larger border-radius to cards" classname="p-themes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="P08 — Selected skin persists across panel reload" classname="p-themes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="P09 — Theme applied in side panel is also applied in reader page" classname="p-themes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="P10 — Accent colour control is present in settings" classname="p-themes.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="q-storage.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="5" failures="1" skipped="4" time="0" errors="0">
+<testcase name="Q01 — Storage usage indicator is visible in the side panel" classname="q-storage.spec.js" time="0">
+<failure message="q-storage.spec.js:39:1 Q01 — Storage usage indicator is visible in the side panel" type="FAILURE">
+<![CDATA[  q-storage.spec.js:39:1 › Q01 — Storage usage indicator is visible in the side panel ──────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\q-storage.spec.js:17:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\q-storage.spec.js:21:9
+]]>
+</failure>
+</testcase>
+<testcase name="Q02 — Storage indicator shows minimal usage when library is empty" classname="q-storage.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Q03 — Storage usage increases after saving a chat" classname="q-storage.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Q04 — Storage usage decreases after deleting a chat" classname="q-storage.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Q05 — Storage indicator displays a meaningful value (% or bytes)" classname="q-storage.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="r-resilience.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="10" failures="1" skipped="9" time="0" errors="0">
+<testcase name="R01 — Corrupted topicTree in storage does not crash the side panel" classname="r-resilience.spec.js" time="0">
+<failure message="r-resilience.spec.js:37:1 R01 — Corrupted topicTree in storage does not crash the side panel" type="FAILURE">
+<![CDATA[  r-resilience.spec.js:37:1 › R01 — Corrupted topicTree in storage does not crash the side panel ───
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\r-resilience.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\r-resilience.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="R02 — Missing chatIndex key in storage does not crash the panel" classname="r-resilience.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="R03 — A partial chat entry (missing content/messages) does not crash the panel" classname="r-resilience.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="R04 — A library with 100+ chats loads without freezing" classname="r-resilience.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="R05 — Side panel shows correct data after the service worker restarts" classname="r-resilience.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="R06 — Malformed JSON in a single chat key does not crash the panel" classname="r-resilience.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="R07 — Navigating to a non-AI page does not throw content script errors" classname="r-resilience.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="R08 — Completely empty storage shows empty-state UI, not an error" classname="r-resilience.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="R09 — Panel shows warning when storage quota is nearly full" classname="r-resilience.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="R10 — Opening a second side panel while one is already open does not corrupt data" classname="r-resilience.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="s-context-menu.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="9" failures="1" skipped="8" time="0" errors="0">
+<testcase name="S01 — &quot;Save to bAInder&quot; context menu item present on ChatGPT mock page" classname="s-context-menu.spec.js" time="0">
+<failure message="s-context-menu.spec.js:31:1 S01 — &quot;Save to bAInder&quot; context menu item present on ChatGPT mock page" type="FAILURE">
+<![CDATA[  s-context-menu.spec.js:31:1 › S01 — "Save to bAInder" context menu item present on ChatGPT mock page 
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\s-context-menu.spec.js:15:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\s-context-menu.spec.js:19:9
+]]>
+</failure>
+</testcase>
+<testcase name="S02 — &quot;Save selection&quot; saves selected text as an excerpt chat entry" classname="s-context-menu.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="S03 — Saved excerpt appears in the chat index with excerpt type" classname="s-context-menu.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="S04 — Context menu item does not appear on non-AI pages (soft check)" classname="s-context-menu.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="S05 — Saving empty selection does not create an empty entry" classname="s-context-menu.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="S06 — Excerpt entries shown with a different visual indicator in the panel" classname="s-context-menu.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="S07 — Source URL is stored with the saved excerpt" classname="s-context-menu.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="S08 — Multiple excerpts from the same page stored as separate entries" classname="s-context-menu.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="S09 — Extension manifest registers a contextMenus permission" classname="s-context-menu.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="t-multiselect.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="13" failures="1" skipped="12" time="0" errors="0">
+<testcase name="T01 — Multi-select mode can be activated from the toolbar" classname="t-multiselect.spec.js" time="0">
+<failure message="t-multiselect.spec.js:64:1 T01 — Multi-select mode can be activated from the toolbar" type="FAILURE">
+<![CDATA[  t-multiselect.spec.js:64:1 › T01 — Multi-select mode can be activated from the toolbar ───────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\t-multiselect.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\t-multiselect.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="T02 — All chat items show checkboxes in multi-select mode" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T03 — Clicking a checkbox selects the chat item" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T04 — Multiple chat checkboxes can be ticked simultaneously" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T05 — Multi-select toolbar shows the number of selected items" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T06 — &quot;Select All&quot; selects every visible chat item" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T07 — Clicking &quot;Select All&quot; again deselects all items" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T08 — Exiting multi-select mode removes checkboxes from view" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T09 — &quot;Delete selected&quot; removes all selected chats from storage" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T10 — &quot;Move selected&quot; moves all selected chats to a chosen topic" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T11 — &quot;Export selected&quot; triggers a download for selected chats" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T12 — &quot;Copy all&quot; copies selected chats content to clipboard" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="T13 — Selecting exactly 2 chats enables the &quot;Compare&quot; action" classname="t-multiselect.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="u-compare.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="5" failures="1" skipped="4" time="0" errors="0">
+<testcase name="U01 — Selecting two chats and clicking Compare opens the compare view" classname="u-compare.spec.js" time="0">
+<failure message="u-compare.spec.js:62:1 U01 — Selecting two chats and clicking Compare opens the compare view" type="FAILURE">
+<![CDATA[  u-compare.spec.js:62:1 › U01 — Selecting two chats and clicking Compare opens the compare view ───
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\u-compare.spec.js:15:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\u-compare.spec.js:19:9
+]]>
+</failure>
+</testcase>
+<testcase name="U02 — Both chat titles are displayed in the compare view header" classname="u-compare.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="U03 — Both chats&apos; content is rendered in the compare columns" classname="u-compare.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="U04 — Compare columns are independently scrollable" classname="u-compare.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="U05 — Compare view can be closed or exited" classname="u-compare.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="v-entities.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="9" failures="1" skipped="8" time="0" errors="0">
+<testcase name="V01 — Entities tab is present in the side panel navigation bar" classname="v-entities.spec.js" time="0">
+<failure message="v-entities.spec.js:39:1 V01 — Entities tab is present in the side panel navigation bar" type="FAILURE">
+<![CDATA[  v-entities.spec.js:39:1 › V01 — Entities tab is present in the side panel navigation bar ─────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\v-entities.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\v-entities.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="V02 — Clicking the Entities tab reveals entity cards" classname="v-entities.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="V03 — Entity cards display entity name and type (Person, Tech, Place, etc.)" classname="v-entities.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="V04 — Entity card shows count of chats mentioning the entity" classname="v-entities.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="V05 — Filtering by entity type narrows entity list" classname="v-entities.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="V06 — Clicking an entity card filters chat list to chats mentioning it" classname="v-entities.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="V07 — Typing in entity search filters the entity list" classname="v-entities.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="V08 — Entities tab shows empty state when library has no chats" classname="v-entities.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="V09 — Entities are extracted and shown after saving a new chat" classname="v-entities.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="w-settings.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="11" failures="1" skipped="10" time="0" errors="0">
+<testcase name="W01 — Settings panel opens via the toolbar gear/settings icon" classname="w-settings.spec.js" time="0">
+<failure message="w-settings.spec.js:55:1 W01 — Settings panel opens via the toolbar gear/settings icon" type="FAILURE">
+<![CDATA[  w-settings.spec.js:55:1 › W01 — Settings panel opens via the toolbar gear/settings icon ──────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\w-settings.spec.js:16:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\w-settings.spec.js:20:9
+]]>
+</failure>
+</testcase>
+<testcase name="W02 — Settings panel can be closed via close button" classname="w-settings.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="W03 — Theme selection controls (Dark / Light / Auto) present in settings" classname="w-settings.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="W04 — Skin/style controls (Default / Sharp / Rounded) present in settings" classname="w-settings.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="W05 — Auto-export toggle can be switched on and off" classname="w-settings.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="W06 — Auto-export toggle state persists across panel reload" classname="w-settings.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="W07 — Stale-chat threshold setting accepts a numeric value" classname="w-settings.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="W08 — &quot;Clear All&quot; button in settings requires confirmation" classname="w-settings.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="W09 — Confirming &quot;Clear All&quot; removes all chats from storage" classname="w-settings.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="W10 — Extension version number is displayed in settings" classname="w-settings.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="W11 — Privacy policy link is present in the settings panel" classname="w-settings.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="x-keyboard.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="4" failures="1" skipped="3" time="0" errors="0">
+<testcase name="X01 — Ctrl+K focuses the search input" classname="x-keyboard.spec.js" time="0">
+<failure message="x-keyboard.spec.js:38:1 X01 — Ctrl+K focuses the search input" type="FAILURE">
+<![CDATA[  x-keyboard.spec.js:38:1 › X01 — Ctrl+K focuses the search input ──────────────────────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\x-keyboard.spec.js:15:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\x-keyboard.spec.js:19:9
+]]>
+</failure>
+</testcase>
+<testcase name="X02 — Escape clears active search and restores full list" classname="x-keyboard.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="X03 — Pressing Escape exits multi-select mode" classname="x-keyboard.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="X04 — Arrow keys navigate through topics in the topic tree" classname="x-keyboard.spec.js" time="0">
+<properties>
+<property name="fixme" value="">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="y-recent-rail.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="6" failures="1" skipped="5" time="0" errors="0">
+<testcase name="Y01 — Recent rail chips appear in the side panel" classname="y-recent-rail.spec.js" time="0">
+<failure message="y-recent-rail.spec.js:38:1 Y01 — Recent rail chips appear in the side panel" type="FAILURE">
+<![CDATA[  y-recent-rail.spec.js:38:1 › Y01 — Recent rail chips appear in the side panel ────────────────────
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\y-recent-rail.spec.js:15:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\y-recent-rail.spec.js:19:9
+]]>
+</failure>
+</testcase>
+<testcase name="Y02 — Clicking a recent chip opens the reader page for that chat" classname="y-recent-rail.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Y03 — Most recently saved chat appears first in the recent rail" classname="y-recent-rail.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Y04 — Recent rail does not exceed maximum chip count" classname="y-recent-rail.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Y05 — Recent rail removes a chip when that chat is deleted" classname="y-recent-rail.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Y06 — Recent rail content persists after reloading the side panel" classname="y-recent-rail.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="z-backup.spec.js" timestamp="2026-05-06T16:35:43.989Z" hostname="" tests="7" failures="1" skipped="6" time="0" errors="0">
+<testcase name="Z01 — Backup reminder banner is shown when last backup is more than 30 days ago" classname="z-backup.spec.js" time="0">
+<failure message="z-backup.spec.js:47:1 Z01 — Backup reminder banner is shown when last backup is more than 30 days ago" type="FAILURE">
+<![CDATA[  z-backup.spec.js:47:1 › Z01 — Backup reminder banner is shown when last backup is more than 30 days ago 
+
+    Error: browserType.launchPersistentContext: Executable doesn't exist at C:\Users\ay250177\AppData\Local\ms-playwright\chromium-1208\chrome-win64\chrome.exe
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+       at ..\fixtures\extension.js:64
+
+      62 |   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bainder-e2e-'));
+      63 |
+    > 64 |   const context = await chromium.launchPersistentContext(userDataDir, {
+         |                   ^
+      65 |     headless,
+      66 |     args: [
+      67 |       `--disable-extensions-except=${EXTENSION_PATH}`,
+        at launchExtension (C:\_\bAInder\e2e\fixtures\extension.js:64:19)
+        at C:\_\bAInder\e2e\tests\z-backup.spec.js:15:31
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+       at ..\fixtures\extension.js:100
+
+       98 |  */
+       99 | export async function closeExtension(context) {
+    > 100 |   await context.close();
+          |                 ^
+      101 |   if (context.__bainderUserDataDir) {
+      102 |     fs.rmSync(context.__bainderUserDataDir, { recursive: true, force: true });
+      103 |   }
+        at closeExtension (C:\_\bAInder\e2e\fixtures\extension.js:100:17)
+        at C:\_\bAInder\e2e\tests\z-backup.spec.js:19:9
+]]>
+</failure>
+</testcase>
+<testcase name="Z02 — Backup reminder banner is hidden when last backup was very recent" classname="z-backup.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Z03 — Backup reminder banner can be dismissed by the user" classname="z-backup.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Z04 — Stale-chat badge shown on chats not viewed in more than threshold days" classname="z-backup.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Z05 — Freshly saved chats do not display a stale badge" classname="z-backup.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Z06 — Stale-chat threshold can be changed in settings" classname="z-backup.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Z07 — Dismissed backup reminder does not immediately reappear after reload" classname="z-backup.spec.js" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>
