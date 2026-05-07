@@ -37,15 +37,11 @@ test.afterEach(async () => {
 // ---------------------------------------------------------------------------
 
 async function openSettings() {
-  const btn = panel.locator(
-    'button[aria-label*="settings" i], button[title*="settings" i], [data-action="settings"], .settings-btn'
-  ).first();
-  if (await btn.count() > 0) {
-    await btn.click();
-    await panel.waitForTimeout(400);
-    return true;
-  }
-  return false;
+  const btn = panel.locator('#settingsHeaderBtn');
+  if (await btn.count() === 0) return false;
+  await btn.click();
+  await expect(panel.locator('#settingsPanel')).toHaveClass(/settings-panel--open/, { timeout: 5000 });
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,19 +65,13 @@ test('W01 — Settings panel opens via the toolbar gear/settings icon', async ()
 test('W02 — Settings panel can be closed via close button', async () => {
   if (!(await openSettings())) { return; }
 
-  const closeBtn = panel.locator('button[aria-label*="close" i], .close-settings, [data-action="close-settings"]').first();
-  if (await closeBtn.count() === 0) {
-    // Try Escape
-    await panel.keyboard.press('Escape');
-  } else {
+  const closeBtn = panel.locator('#settingsPanelClose');
+  if (await closeBtn.count() > 0) {
     await closeBtn.click();
+  } else {
+    await panel.keyboard.press('Escape');
   }
-  await panel.waitForTimeout(400);
-
-  const settings = panel.locator('.settings-panel, [data-testid="settings"]').first();
-  if (await settings.count() > 0) {
-    await expect(settings).not.toBeVisible();
-  }
+  await expect(panel.locator('#settingsPanel')).not.toHaveClass(/settings-panel--open/, { timeout: 3000 });
 });
 
 // ---------------------------------------------------------------------------
@@ -117,16 +107,21 @@ test('W04 — Skin/style controls (Default / Sharp / Rounded) present in setting
 test('W05 — Auto-export toggle can be switched on and off', async () => {
   if (!(await openSettings())) { return; }
 
-  const autoExportToggle = panel.locator(
-    'input[name*="auto-export"], [data-setting="auto-export"], label:has-text("Auto")'
-  ).first();
+  // Navigate to the Export tab where the auto-export toggle lives
+  await panel.locator('button[data-settings-tab="export"]').click();
+  await expect(panel.locator('#settings-tab-export')).toBeVisible({ timeout: 3000 });
+
+  const autoExportToggle = panel.locator('#autoExportToggle');
   if (await autoExportToggle.count() === 0) { return; }
 
-  const wasChecked = await autoExportToggle.isChecked().catch(() => false);
-  await autoExportToggle.click().catch(() => {});
-  await panel.waitForTimeout(400);
-  const isNowChecked = await autoExportToggle.isChecked().catch(() => !wasChecked);
-  expect(isNowChecked).not.toBe(wasChecked);
+  const wasChecked = await autoExportToggle.isChecked();
+  await autoExportToggle.click();
+  if (wasChecked) {
+    await expect(autoExportToggle).not.toBeChecked({ timeout: 3000 });
+  } else {
+    await expect(autoExportToggle).toBeChecked({ timeout: 3000 });
+  }
+  expect(await autoExportToggle.isChecked()).not.toBe(wasChecked);
 });
 
 // ---------------------------------------------------------------------------

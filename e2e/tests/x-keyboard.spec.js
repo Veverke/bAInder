@@ -77,22 +77,20 @@ test('X02 — Escape clears active search and restores full list', async () => {
 // ---------------------------------------------------------------------------
 
 test('X03 — Pressing Escape exits multi-select mode', async () => {
-  const msBtn = panel.locator('button[aria-label*="multi" i], [data-action="multiselect"], .multi-select-btn').first();
+  // #multiSelectToggleBtn opens multi-select; #multiSelectCancelBtn (aria-label="Exit multi-select mode") exits it
+  const msBtn = panel.locator('#multiSelectToggleBtn');
   if (await msBtn.count() === 0) { return; }
 
   await msBtn.click();
-  await panel.waitForTimeout(400);
+  // Wait for the cancel button to appear — confirms multi-select mode is active
+  await expect(panel.locator('#multiSelectCancelBtn')).toBeVisible({ timeout: 3000 });
 
   const checkboxes = panel.locator('input[type="checkbox"], [role="checkbox"]');
   if (await checkboxes.count() === 0) { return; }
 
   await panel.keyboard.press('Escape');
-  await panel.waitForTimeout(400);
-
-  // Checkboxes should no longer be visible
-  const visibleCheckboxes = checkboxes.filter({ has: panel.locator(':visible') });
-  const visibleCount = await visibleCheckboxes.count();
-  expect(visibleCount).toBe(0);
+  // Wait for the cancel button to disappear — confirms multi-select mode has exited
+  await expect(panel.locator('#multiSelectCancelBtn')).not.toBeVisible({ timeout: 3000 });
 });
 
 // ---------------------------------------------------------------------------
