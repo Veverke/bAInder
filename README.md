@@ -2,8 +2,11 @@
 
 ## Badges
 
-[![License: MIT + Commons Clause](https://img.shields.io/badge/License-MIT%20%2B%20Commons%20Clause-yellow.svg)](LICENSE)
+[![CI](https://github.com/Veverke/bAInder/actions/workflows/pull-request.yml/badge.svg)](https://github.com/Veverke/bAInder/actions/workflows/pull-request.yml)
 [![codecov](https://codecov.io/gh/Veverke/bAInder/graph/badge.svg?token=VU94SFNHN3)](https://codecov.io/gh/Veverke/bAInder)
+[![License: MIT + Commons Clause](https://img.shields.io/badge/License-MIT%20%2B%20Commons%20Clause-yellow.svg)](LICENSE)
+[![Tested with Playwright](https://img.shields.io/badge/tested%20with-Playwright-45ba4b.svg)](https://playwright.dev/)
+[![Unit tested with Vitest](https://img.shields.io/badge/unit%20tested%20with-Vitest-6E9F18.svg)](https://vitest.dev/)
 
 > Stop losing your best AI conversations. bAInder saves, organises, and lets you search every chat from ChatGPT, Claude, Gemini, Copilot, Perplexity, and DeepSeek — all in a sleek browser side panel, entirely on your device.
 
