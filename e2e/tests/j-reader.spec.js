@@ -90,7 +90,7 @@ test('J05 — Reader renders all conversation turns (user + assistant)', async (
   const reader = await openReader(context, extensionId, CHAT_IDS.reactHooks);
   await reader.waitForLoadState('domcontentloaded');
 
-  const turns = reader.locator('.turn, .message, [data-testid="turn"]');
+  const turns = reader.locator('.chat-turn, .turn, .message, [data-testid="turn"]');
   await turns.first().waitFor({ state: 'visible', timeout: 5000 });
   const count = await turns.count();
   expect(count).toBeGreaterThanOrEqual(4); // reactHooks has 4 turns

@@ -218,7 +218,7 @@ test('P09 — Theme applied in side panel is also applied in reader page', async
   });
   if (!index.length) { return; }
 
-  const readerUrl = `chrome-extension://${extensionId}/src/reader/reader.html?id=${index[0].id}`;
+  const readerUrl = `chrome-extension://${extensionId}/src/reader/reader.html?chatId=${index[0].id}`;
   const reader    = await context.newPage();
   await reader.goto(readerUrl, { waitUntil: 'domcontentloaded' });
   await reader.waitForTimeout(500);

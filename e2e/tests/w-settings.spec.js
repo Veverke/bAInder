@@ -115,7 +115,7 @@ test('W05 — Auto-export toggle can be switched on and off', async () => {
   if (await autoExportToggle.count() === 0) { return; }
 
   const wasChecked = await autoExportToggle.isChecked();
-  await autoExportToggle.click();
+  await panel.evaluate(() => document.getElementById('autoExportToggle').click());
   if (wasChecked) {
     await expect(autoExportToggle).not.toBeChecked({ timeout: 3000 });
   } else {

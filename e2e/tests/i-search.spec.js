@@ -43,9 +43,9 @@ test('I01 — Keyword search "React" returns chats containing "React"', async ()
   await searchInput(panel).fill('React');
   await panel.waitForTimeout(500);
 
-  const chats = panel.locator('.chat-item, [data-testid="chat-item"]');
-  await expect(chats.first()).toBeVisible({ timeout: 5000 });
-  const title = (await chats.first().textContent()).toLowerCase();
+  const chats = panel.locator('.result-card, .tree-chat-item, [data-chat-id]');
+  await expect(chats.filter({ visible: true }).first()).toBeVisible({ timeout: 5000 });
+  const title = (await chats.filter({ visible: true }).first().textContent()).toLowerCase();
   expect(title).toContain('react');
 });
 
@@ -88,7 +88,7 @@ test('I04 — No-match search shows an empty result state', async () => {
   await searchInput(panel).fill('zzz-no-such-chat-xqx');
   await panel.waitForTimeout(600);
 
-  const noResults = panel.locator('.no-results, [data-testid="no-results"], :has-text("No results"), :has-text("Nothing found")').first();
+  const noResults = panel.locator('.no-results, .result-empty-state, [data-testid="no-results"], :has-text("No results"), :has-text("No matches"), :has-text("Nothing found")').first();
   await noResults.waitFor({ state: 'visible', timeout: 4000 });
   await expect(noResults).toBeVisible();
 });
@@ -104,7 +104,7 @@ test('I05 — Clearing search input restores full chat list', async () => {
   await input.fill('');
   await panel.waitForTimeout(400);
 
-  const chats = panel.locator('.chat-item, [data-testid="chat-item"]');
+  const chats = panel.locator('.tree-chat-item, [data-chat-id]');
   await expect(chats.first()).toBeVisible({ timeout: 5000 });
   const count = await chats.count();
   expect(count).toBeGreaterThanOrEqual(7); // Seeded 7 chats
@@ -264,8 +264,8 @@ test('I15 — Search results appear within 500ms for 7 seeded chats', async () =
   const start = Date.now();
   await input.fill('quantum');
 
-  const chats = panel.locator('.chat-item, [data-testid="chat-item"]');
-  await chats.first().waitFor({ state: 'visible', timeout: 2000 });
+  const chats = panel.locator('.result-card, .tree-chat-item, [data-chat-id]');
+  await chats.filter({ visible: true }).first().waitFor({ state: 'visible', timeout: 2000 });
   const elapsed = Date.now() - start;
   expect(elapsed).toBeLessThan(2000);
 });

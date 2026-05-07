@@ -34,6 +34,9 @@ export async function openSidepanel(context, extensionId, seedData = false) {
     document.getElementById('emptyState') !== null
   , { timeout: 10_000 });
 
+  // Expand all topic nodes so chat items are visible in the DOM.
+  await expandAllTopics(page);
+
   return page;
 }
 
@@ -52,6 +55,7 @@ export async function reseedSidepanel(panelPage, payload) {
     document.getElementById('treeView') !== null ||
     document.getElementById('emptyState') !== null
   , { timeout: 10_000 });
+  await expandAllTopics(panelPage);
 }
 
 /**
@@ -63,7 +67,7 @@ export async function reseedSidepanel(panelPage, payload) {
  * @returns {Promise<import('@playwright/test').Page>}
  */
 export async function openReader(context, extensionId, chatId) {
-  const url  = `chrome-extension://${extensionId}/src/reader/reader.html?id=${chatId}`;
+  const url  = `chrome-extension://${extensionId}/src/reader/reader.html?chatId=${chatId}`;
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'domcontentloaded' });
 
@@ -77,15 +81,35 @@ export async function openReader(context, extensionId, chatId) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Expand all topic nodes in the sidepanel so that chat items are visible.
+ * Clicks every collapsed expand button and waits for the tree to stabilise.
+ * @param {import('@playwright/test').Page} page
+ */
+export async function expandAllTopics(page) {
+  // Run all expand clicks inside the page to avoid per-click action timeouts.
+  // btn.click() triggers the same listeners as a user click and render() is
+  // synchronous, so after evaluate() returns all nodes are expanded.
+  await page.evaluate(() => {
+    for (let i = 0; i < 10; i++) {
+      const btns = Array.from(
+        document.querySelectorAll('#treeView .tree-expand-btn[aria-label="Expand"]')
+      );
+      if (!btns.length) break;
+      btns.forEach(btn => btn.click());
+    }
+  }).catch(() => {});
+}
+
+/**
  * Expand a topic node by its visible name.
  * @param {import('@playwright/test').Page} page
  * @param {string} topicName
  */
 export async function expandTopic(page, topicName) {
-  const row = page.locator(`.tree-item[data-topic-name="${topicName}"], .topic-row`).filter({ hasText: topicName }).first();
-  const toggle = row.locator('.tree-toggle, .topic-toggle, [aria-expanded]').first();
-  const expanded = await toggle.getAttribute('aria-expanded').catch(() => null);
-  if (expanded === 'false' || expanded === null) {
+  const row = page.locator(`.tree-node[data-topic-id]`).filter({ hasText: topicName }).first();
+  const expanded = await row.getAttribute('aria-expanded').catch(() => null);
+  if (expanded !== 'true') {
+    const toggle = row.locator('.tree-expand-btn').first();
     await toggle.click();
   }
 }
@@ -96,9 +120,10 @@ export async function expandTopic(page, topicName) {
  * @param {string} topicName
  */
 export async function rightClickTopic(page, topicName) {
-  const row = page.locator('.topic-row, [data-topic-id]').filter({ hasText: topicName }).first();
-  await row.click({ button: 'right' });
-  await page.locator('.context-menu, [role="menu"]').waitFor({ state: 'visible', timeout: 5_000 });
+  const row = page.locator('.tree-node[data-topic-id]').filter({ hasText: topicName }).first();
+  const content = row.locator('.tree-node-content').first();
+  await content.click({ button: 'right' });
+  await page.locator('#contextMenu').waitFor({ state: 'visible', timeout: 5_000 });
 }
 
 /**
@@ -107,9 +132,10 @@ export async function rightClickTopic(page, topicName) {
  * @param {string} chatTitle
  */
 export async function rightClickChat(page, chatTitle) {
-  const row = page.locator('.chat-item, [data-chat-id]').filter({ hasText: chatTitle }).first();
-  await row.click({ button: 'right' });
-  await page.locator('.context-menu, [role="menu"]').waitFor({ state: 'visible', timeout: 5_000 });
+  const row = page.locator('[data-chat-id]').filter({ hasText: chatTitle }).first();
+  const content = row.locator('.tree-node-content').first();
+  await content.click({ button: 'right' });
+  await page.locator('#chatContextMenu').waitFor({ state: 'visible', timeout: 5_000 });
 }
 
 /**
@@ -118,23 +144,86 @@ export async function rightClickChat(page, chatTitle) {
  * @param {string} label
  */
 export async function clickContextMenuItem(page, label) {
-  await page.locator('.context-menu [role="menuitem"], .context-menu-item').filter({ hasText: label }).first().click();
+  // Find the visible context menu (either topic or chat) and click the item.
+  const visibleMenu = page.locator('#contextMenu, #chatContextMenu').filter({ visible: true }).filter({ hasText: label });
+  await visibleMenu.locator('.context-menu-item').filter({ hasText: label }).first().click();
 }
 
 /**
- * Fill and confirm a modal dialog.
+ * Arm a download capture spy in the page.
+ * Call this BEFORE the action that triggers a download, then call
+ * `readCapturedDownload(page)` afterwards to retrieve the data.
+ *
+ * Works for blob: URL downloads from chrome-extension:// pages where
+ * Playwright's `waitForEvent('download')` cannot intercept.
+ *
+ * @param {import('@playwright/test').Page} page
+ */
+export async function armDownloadCapture(page) {
+  await page.evaluate(() => {
+    window.__bainderDownloadCapture = null;
+    const origCreate = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = function (blob) {
+      const url = origCreate(blob);
+      window.__bainderDownloadCapture = { blob, url };
+      return url;
+    };
+  });
+}
+
+/**
+ * Wait for a download to be captured (after calling armDownloadCapture) and
+ * return its content as a Buffer plus the suggested filename.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number} [timeout=10000]
+ * @returns {Promise<{ filename: string|null, buffer: Buffer, type: string }>}
+ */
+export async function readCapturedDownload(page, timeout = 10000) {
+  // Wait until URL.createObjectURL has been called with a blob.
+  await page.waitForFunction(
+    () => window.__bainderDownloadCapture !== null,
+    { timeout }
+  );
+
+  // Read the blob content and the filename from the anchor element.
+  const result = await page.evaluate(async () => {
+    const cap = window.__bainderDownloadCapture;
+    if (!cap) return null;
+    const ab = await cap.blob.arrayBuffer();
+    // The anchor with download attribute may still be in the DOM briefly.
+    const anchor = document.querySelector(`a[href="${cap.url}"]`);
+    return {
+      filename: anchor ? anchor.download : null,
+      type:     cap.blob.type,
+      data:     Array.from(new Uint8Array(ab)),
+    };
+  });
+
+  if (!result) throw new Error('No download captured');
+  return {
+    filename: result.filename,
+    type:     result.type,
+    buffer:   Buffer.from(result.data),
+  };
+}
+
+/**
  * @param {import('@playwright/test').Page} page
  * @param {object} fields  { fieldSelector: value, ... }
  * @param {string} [submitText] Text on the submit button (defaults to first primary button)
  */
 export async function fillDialog(page, fields, submitText) {
-  for (const [selector, value] of Object.entries(fields)) {
-    await page.locator(selector).fill(value);
+  for (const [key, value] of Object.entries(fields)) {
+    // The dialog manager renders inputs with data-field="<name>" attribute.
+    // Fall back to input[name="<key>"] for compatibility.
+    const el = page.locator(`[data-field="${key}"], input[name="${key}"]`).first();
+    await el.fill(value);
   }
   if (submitText) {
     await page.locator(`button`).filter({ hasText: submitText }).first().click();
   } else {
-    await page.locator('[data-action="submit"], .btn-primary').first().click();
+    await page.locator('#modalContainer [data-action="submit"], #modalContainer button[type="submit"], #modalContainer .btn-primary').first().click();
   }
 }
 

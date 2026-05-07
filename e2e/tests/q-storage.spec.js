@@ -79,8 +79,8 @@ test('Q03 — Storage usage increases after saving a chat', async () => {
 
   const titleInput = mockPage.locator('input[name="title"], input[placeholder*="title" i]').first();
   await titleInput.waitFor({ state: 'visible', timeout: 6000 }).catch(() => {});
-  const confirmBtn = mockPage.locator('button:has-text("Save"), button[type="submit"]').first();
-  if (await confirmBtn.count() > 0) await confirmBtn.click();
+  const confirmBtn = mockPage.locator('#bainder-save-dialog button[type="submit"], #bainder-save-dialog button:has-text("Save")').first();
+  if (await confirmBtn.isVisible({ timeout: 3000 }).catch(() => false)) await confirmBtn.click();
   await mockPage.waitForTimeout(2000);
   await mockPage.close();
 

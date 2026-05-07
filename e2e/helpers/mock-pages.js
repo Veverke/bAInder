@@ -33,13 +33,13 @@ export const CHATGPT_MOCK_PAGE = /* html */ `<!DOCTYPE html>
   <div id="__next">
     <main>
       <div class="flex flex-col" role="presentation">
-        <article data-testid="conversation-turn-0" data-message-author-role="user">
-          <div class="min-h-[20px] text-base">
+        <article data-testid="conversation-turn-0">
+          <div data-message-author-role="user" class="min-h-[20px] text-base">
             <p>What are React hooks and why should I use them?</p>
           </div>
         </article>
-        <article data-testid="conversation-turn-1" data-message-author-role="assistant">
-          <div class="markdown prose w-full">
+        <article data-testid="conversation-turn-1">
+          <div data-message-author-role="assistant" class="markdown prose w-full">
             <p>React Hooks are functions that let you use <strong>state</strong> and other React features in function components.</p>
             <p>The most commonly used hooks are:</p>
             <ul>
@@ -54,13 +54,13 @@ export const CHATGPT_MOCK_PAGE = /* html */ `<!DOCTYPE html>
             <p>Hooks replaced class components as the primary way to write React, making logic more reusable and composable.</p>
           </div>
         </article>
-        <article data-testid="conversation-turn-2" data-message-author-role="user">
-          <div class="min-h-[20px] text-base">
+        <article data-testid="conversation-turn-2">
+          <div data-message-author-role="user" class="min-h-[20px] text-base">
             <p>How does <code>useEffect</code> cleanup work?</p>
           </div>
         </article>
-        <article data-testid="conversation-turn-3" data-message-author-role="assistant">
-          <div class="markdown prose w-full">
+        <article data-testid="conversation-turn-3">
+          <div data-message-author-role="assistant" class="markdown prose w-full">
             <p>Return a function from <code>useEffect</code> and React will call it when the component unmounts or before the effect runs again:</p>
             <pre><code class="language-javascript">useEffect(() =&gt; {
   const subscription = subscribe(userId);
@@ -178,18 +178,17 @@ export const DEEPSEEK_MOCK_PAGE = /* html */ `<!DOCTYPE html>
 </head>
 <body>
   <div id="root">
-    <div class="ds-chat-container">
-      <div class="ds-message-container" data-role="user">
+    <div class="ds-message-container">
+      <div class="ds-message" data-role="user">
         <div class="ds-message-content">
           <p>What is gradient descent and how does it work?</p>
         </div>
       </div>
-      <div class="ds-message-container" data-role="assistant">
+      <div class="ds-message" data-role="assistant" style="--assistant: 1; color: var(--text-primary)">
         <div class="ds-message-content markdown-body">
           <p>Gradient descent is an optimisation algorithm used to minimise a <strong>loss function</strong> by iteratively moving in the direction of steepest descent.</p>
           <p><strong>Intuition:</strong> imagine being blindfolded on a hilly landscape trying to reach the lowest point. You feel the slope under your feet and take a step downhill. Repeat until flat.</p>
-          <p><strong>Update rule:</strong></p>
-          <pre><code class="language-python">theta = theta - learning_rate * gradient(loss, theta)</code></pre>
+          <p><strong>Update rule:</strong> <code>theta = theta - learning_rate * gradient(loss, theta)</code></p>
           <p>Common variants:</p>
           <ul>
             <li><strong>Batch GD</strong> — uses all training data per step (slow but accurate)</li>

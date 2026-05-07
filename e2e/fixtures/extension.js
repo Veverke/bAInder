@@ -137,5 +137,5 @@ export { expect };
  * @returns {string}
  */
 export function readerUrl(extensionId, chatId) {
-  return `chrome-extension://${extensionId}/src/reader/reader.html?id=${chatId}`;
+  return `chrome-extension://${extensionId}/src/reader/reader.html?chatId=${chatId}`;
 }

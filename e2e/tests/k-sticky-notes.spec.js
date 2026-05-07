@@ -36,7 +36,7 @@ test('K01 — Sticky note button is present in the reader toolbar', async () => 
 
   const stickyBtn = reader.locator(
     'button[title*="note" i], button[aria-label*="note" i], [data-action="sticky-note"], .sticky-note-btn'
-  ).first();
+  ).filter({ visible: true }).first();
   if (await stickyBtn.count() > 0) {
     await expect(stickyBtn).toBeVisible();
   }
@@ -53,7 +53,7 @@ test('K02 — Clicking sticky note button opens a note overlay', async () => {
 
   const stickyBtn = reader.locator(
     'button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn'
-  ).first();
+  ).filter({ visible: true }).first();
   if (await stickyBtn.count() > 0) {
     await stickyBtn.click();
     const overlay = reader.locator('.sticky-note, .note-overlay, [data-testid="sticky-note"]').first();
@@ -71,7 +71,7 @@ test('K03 — Text can be typed into the sticky note overlay', async () => {
   const reader = await openReader(context, extensionId, CHAT_IDS.reactHooks);
   await reader.waitForLoadState('domcontentloaded');
 
-  const stickyBtn = reader.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').first();
+  const stickyBtn = reader.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').filter({ visible: true }).first();
   if (await stickyBtn.count() > 0) {
     await stickyBtn.click();
     const textarea = reader.locator('.sticky-note textarea, .note-overlay textarea, [data-testid="note-input"]').first();
@@ -91,7 +91,7 @@ test('K04 — Sticky note content persists after reader page reload', async () =
   const reader = await openReader(context, extensionId, CHAT_IDS.reactHooks);
   await reader.waitForLoadState('domcontentloaded');
 
-  const stickyBtn = reader.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').first();
+  const stickyBtn = reader.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').filter({ visible: true }).first();
   if (await stickyBtn.count() === 0) {
     await reader.close();
     return; // Feature not present — skip
@@ -121,7 +121,7 @@ test('K05 — Multiple sticky notes can coexist on the same chat', async () => {
   const reader = await openReader(context, extensionId, CHAT_IDS.reactHooks);
   await reader.waitForLoadState('domcontentloaded');
 
-  const stickyBtn = reader.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').first();
+  const stickyBtn = reader.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').filter({ visible: true }).first();
   if (await stickyBtn.count() === 0) { await reader.close(); return; }
 
   // Create first note
@@ -152,7 +152,7 @@ test('K06 — A sticky note can be deleted', async () => {
   const reader = await openReader(context, extensionId, CHAT_IDS.reactHooks);
   await reader.waitForLoadState('domcontentloaded');
 
-  const stickyBtn = reader.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').first();
+  const stickyBtn = reader.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').filter({ visible: true }).first();
   if (await stickyBtn.count() === 0) { await reader.close(); return; }
 
   await stickyBtn.click();
@@ -191,11 +191,11 @@ test('K08 — Right-clicking a conversation turn offers "Add Note" option', asyn
   const reader = await openReader(context, extensionId, CHAT_IDS.reactHooks);
   await reader.waitForLoadState('domcontentloaded');
 
-  const turn = reader.locator('.turn, .message, [data-testid="turn"]').first();
+  const turn = reader.locator('.chat-turn, .turn, .message, [data-testid="turn"]').first();
   await turn.waitFor({ state: 'visible', timeout: 5000 });
   await turn.click({ button: 'right' });
 
-  const addNoteItem = reader.locator('[role="menuitem"]:has-text("Note"), [role="menuitem"]:has-text("Add Note")').first();
+  const addNoteItem = reader.locator('#sn-add-note-btn, [role="menuitem"]:has-text("Note"), [role="menuitem"]:has-text("Add Note"), .sn-context-menu__item:has-text("Note")').first();
   if (await addNoteItem.count() > 0) {
     await expect(addNoteItem).toBeVisible();
     await reader.keyboard.press('Escape');
@@ -211,7 +211,7 @@ test('K09 — Sticky notes are stored in chrome.storage keyed to chat ID', async
   const reader = await openReader(context, extensionId, CHAT_IDS.reactHooks);
   await reader.waitForLoadState('domcontentloaded');
 
-  const stickyBtn = reader.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').first();
+  const stickyBtn = reader.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').filter({ visible: true }).first();
   if (await stickyBtn.count() === 0) { await reader.close(); return; }
 
   await stickyBtn.click();
@@ -246,7 +246,7 @@ test('K10 — Notes on one chat do not appear in another chat reader', async () 
   // Seed a note on reactHooks, then open existentialism reader and verify no note
   const reader1 = await openReader(context, extensionId, CHAT_IDS.reactHooks);
   await reader1.waitForLoadState('domcontentloaded');
-  const stickyBtn = reader1.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').first();
+  const stickyBtn = reader1.locator('button[title*="note" i], [data-action="sticky-note"], .sticky-note-btn').filter({ visible: true }).first();
   if (await stickyBtn.count() > 0) {
     await stickyBtn.click();
     const ta = reader1.locator('.sticky-note textarea').first();

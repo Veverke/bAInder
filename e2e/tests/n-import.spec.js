@@ -39,16 +39,19 @@ test.afterEach(async () => {
 // ---------------------------------------------------------------------------
 
 function writeTempMarkdown(chat) {
+  const content = chat.content
+    || (chat.messages || []).map(m => m.content || '').join('\n\n')
+    || '';
   const mdContent = [
     '---',
     `title: "${chat.title}"`,
     `source: ${chat.source}`,
     `url: ${chat.url}`,
     `timestamp: ${chat.timestamp}`,
-    `tags: [${chat.tags.join(', ')}]`,
+    `tags: [${(chat.tags || []).join(', ')}]`,
     '---',
     '',
-    chat.content,
+    content,
   ].join('\n');
 
   const tmpPath = path.join(os.tmpdir(), `bainder-import-test-${Date.now()}.md`);
@@ -59,7 +62,7 @@ function writeTempMarkdown(chat) {
 function writeTempZip() {
   // For tests that need a ZIP, just create a valid Markdown file;
   // ZIP creation would require jszip runtime at test-prep time.
-  return writeTempMarkdown(CHATS[0]);
+  return writeTempMarkdown(Object.values(CHATS)[0]);
 }
 
 async function openImportDialog() {
@@ -101,7 +104,7 @@ test('N02 — Clicking "Choose file" opens a file input', async () => {
 // ---------------------------------------------------------------------------
 
 test('N03 — A valid .md file is accepted and shows a preview', async () => {
-  const tmpPath = writeTempMarkdown(CHATS[0]);
+  const tmpPath = writeTempMarkdown(Object.values(CHATS)[0]);
   await openImportDialog();
 
   const fileInput = panel.locator('input[type="file"]').first();
@@ -144,7 +147,7 @@ test('N04 — An invalid file type (.txt) is rejected', async () => {
 // ---------------------------------------------------------------------------
 
 test('N05 — Confirming import adds the chat to storage', async () => {
-  const tmpPath = writeTempMarkdown(CHATS[0]);
+  const tmpPath = writeTempMarkdown(Object.values(CHATS)[0]);
   await openImportDialog();
 
   const fileInput = panel.locator('input[type="file"]').first();
@@ -169,7 +172,7 @@ test('N05 — Confirming import adds the chat to storage', async () => {
 // ---------------------------------------------------------------------------
 
 test('N06 — Cancelling import dialog adds no chats to storage', async () => {
-  const tmpPath = writeTempMarkdown(CHATS[0]);
+  const tmpPath = writeTempMarkdown(Object.values(CHATS)[0]);
   await openImportDialog();
 
   const fileInput = panel.locator('input[type="file"]').first();
@@ -194,7 +197,7 @@ test('N06 — Cancelling import dialog adds no chats to storage', async () => {
 // ---------------------------------------------------------------------------
 
 test('N07 — Imported chat preserves title, source, and tags from frontmatter', async () => {
-  const chat    = CHATS[0]; // reactHooks
+  const chat    = Object.values(CHATS)[0]; // reactHooks
   const tmpPath = writeTempMarkdown(chat);
   await openImportDialog();
 
@@ -234,7 +237,7 @@ test.fixme('N08 — Dragging a .md file onto the side panel triggers the import 
 // ---------------------------------------------------------------------------
 
 test('N09 — Import preview shows the chat title', async () => {
-  const chat    = CHATS[0];
+  const chat    = Object.values(CHATS)[0];
   const tmpPath = writeTempMarkdown(chat);
   await openImportDialog();
 
@@ -258,7 +261,7 @@ test('N09 — Import preview shows the chat title', async () => {
 // ---------------------------------------------------------------------------
 
 test('N10 — Importing a duplicate chat warns or skips the duplicate', async () => {
-  const chat = CHATS[0];
+  const chat = Object.values(CHATS)[0];
   // First import
   const sw = context.serviceWorkers()[0];
   await sw.evaluate(async (c) => {
@@ -288,8 +291,8 @@ test('N10 — Importing a duplicate chat warns or skips the duplicate', async ()
 // ---------------------------------------------------------------------------
 
 test('N11 — Multiple .md files can be imported at once', async () => {
-  const tmp1 = writeTempMarkdown(CHATS[0]);
-  const tmp2 = writeTempMarkdown(CHATS[1]);
+  const tmp1 = writeTempMarkdown(Object.values(CHATS)[0]);
+  const tmp2 = writeTempMarkdown(Object.values(CHATS)[1]);
   await openImportDialog();
 
   const fileInput = panel.locator('input[type="file"]').first();

@@ -30,11 +30,11 @@ async function saveChatAndGetTitle(firstUserMessage) {
   const mockHtml = /* html */ `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>ChatGPT</title></head>
 <body><div id="__next"><main><div class="flex flex-col">
-  <article data-testid="conversation-turn-0" data-message-author-role="user">
-    <div class="text-base"><p>${firstUserMessage}</p></div>
+  <article data-testid="conversation-turn-0">
+    <div data-message-author-role="user" class="text-base"><p>${firstUserMessage}</p></div>
   </article>
-  <article data-testid="conversation-turn-1" data-message-author-role="assistant">
-    <div class="markdown prose w-full"><p>Sure! Here's a detailed answer.</p></div>
+  <article data-testid="conversation-turn-1">
+    <div data-message-author-role="assistant" class="markdown prose w-full"><p>Sure! Here's a detailed answer.</p></div>
   </article>
 </div></main></div></body></html>`;
 
@@ -47,6 +47,11 @@ async function saveChatAndGetTitle(firstUserMessage) {
   const saveBtn = page.locator('[data-bainder-btn], .bainder-save-btn, button[title*="bAInder"]').first();
   await saveBtn.waitFor({ state: 'visible', timeout: 8000 });
   await saveBtn.click();
+
+  // Confirm the save dialog if it appears
+  const dialogSaveBtn = page.locator('#bainder-save-dialog button[type="submit"]').first();
+  const dialogVisible = await dialogSaveBtn.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+  if (dialogVisible) await dialogSaveBtn.click();
 
   await page.waitForTimeout(2000);
   await page.close();

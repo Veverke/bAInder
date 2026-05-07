@@ -52,7 +52,7 @@ test('S02 — "Save selection" saves selected text as an excerpt chat entry', as
   await routeMockPlatform(page, 'chatgpt');
 
   // Select some text in the first message
-  const turn = page.locator('article[data-message-author-role]').first();
+  const turn = page.locator('[data-message-author-role]').first();
   await turn.waitFor({ state: 'visible', timeout: 8000 });
 
   await turn.evaluate(el => {

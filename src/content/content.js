@@ -854,14 +854,17 @@ const logger = {
           .replace(/\*\*(.+?)\*\*/g, '$1')
           .replace(/\*(.+?)\*/g, '$1')
           .replace(/`([^`]*)`/g, '$1')
+          .replace(/#{1,6}/g, '')
           .trim()
         )
         .filter(l => l.length > 0 && !ROLE_LABEL_RE.test(l))
         [0] || '';
       if (firstLine) {
         const sentenceMatch = firstLine.match(/^(.+?[.?!])\s/);
-        if (sentenceMatch && sentenceMatch[1].length >= 8) return sentenceMatch[1].trim();
-        return firstLine;
+        const candidate = sentenceMatch && sentenceMatch[1].length >= 8
+          ? sentenceMatch[1].trim()
+          : firstLine;
+        return candidate.length > 100 ? candidate.slice(0, 100).trim() : candidate;
       }
     }
     if (url) {
@@ -1807,6 +1810,135 @@ const logger = {
     };
   }
 
+  const DIALOG_ID = 'bainder-save-dialog';
+
+  function showSaveDialog(chatData) {
+    // Remove any existing dialog
+    const existing = document.getElementById(DIALOG_ID);
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = DIALOG_ID;
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:2147483647',
+      'background:rgba(0,0,0,0.5)',
+      'display:flex', 'align-items:center', 'justify-content:center',
+    ].join(';');
+
+    const box = document.createElement('div');
+    box.style.cssText = [
+      'background:#fff', 'border-radius:12px', 'padding:24px',
+      'width:420px', 'max-width:90vw', 'box-shadow:0 8px 32px rgba(0,0,0,0.3)',
+      'font-family:system-ui,sans-serif', 'color:#111',
+    ].join(';');
+
+    const heading = document.createElement('h2');
+    heading.textContent = 'Save to bAInder';
+    heading.style.cssText = 'margin:0 0 16px;font-size:16px;font-weight:700;';
+
+    const titleLabel = document.createElement('label');
+    titleLabel.textContent = 'Title';
+    titleLabel.style.cssText = 'display:block;font-size:13px;font-weight:600;margin-bottom:4px;';
+
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.name = 'title';
+    titleInput.value = chatData.title || '';
+    titleInput.style.cssText = [
+      'width:100%', 'box-sizing:border-box', 'padding:8px 10px',
+      'border:1px solid #d1d5db', 'border-radius:6px', 'font-size:14px',
+      'margin-bottom:12px',
+    ].join(';');
+
+    const tagsLabel = document.createElement('label');
+    tagsLabel.textContent = 'Tags (comma-separated)';
+    tagsLabel.style.cssText = 'display:block;font-size:13px;font-weight:600;margin-bottom:4px;';
+
+    const tagsInput = document.createElement('input');
+    tagsInput.type = 'text';
+    tagsInput.name = 'tags';
+    tagsInput.placeholder = 'e.g. react, frontend';
+    tagsInput.style.cssText = [
+      'width:100%', 'box-sizing:border-box', 'padding:8px 10px',
+      'border:1px solid #d1d5db', 'border-radius:6px', 'font-size:14px',
+      'margin-bottom:20px',
+    ].join(';');
+
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = [
+      'padding:8px 16px', 'border:1px solid #d1d5db', 'border-radius:6px',
+      'background:#fff', 'cursor:pointer', 'font-size:14px',
+    ].join(';');
+    cancelBtn.addEventListener('click', () => {
+      overlay.remove();
+      const mainBtn = document.getElementById('__bainder_save_btn__');
+      if (mainBtn) mainBtn.style.display = 'flex';
+    });
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'submit';
+    saveBtn.textContent = 'Save';
+    saveBtn.style.cssText = [
+      'padding:8px 16px', 'border:none', 'border-radius:6px',
+      'background:#818cf8', 'color:#fff', 'cursor:pointer', 'font-size:14px', 'font-weight:600',
+    ].join(';');
+    saveBtn.addEventListener('click', async () => {
+      const editedTitle = titleInput.value.trim() || chatData.title || 'Untitled Chat';
+      const tagStr = tagsInput.value.trim();
+      const tags = tagStr ? tagStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+      overlay.remove();
+      const mainBtn = document.getElementById('__bainder_save_btn__');
+      if (mainBtn) mainBtn.style.display = 'flex';
+
+      const mergedData = { ...chatData, title: editedTitle, tags };
+      const prepared = prepareChatForSave(mergedData);
+      prepared.title = editedTitle;
+      prepared.tags = tags;
+      try {
+        const response = await sendMessage({ type: 'SAVE_CHAT', data: prepared });
+        const saveBtnEl = document.getElementById(BUTTON_ID);
+        if (saveBtnEl) {
+          if (response?.success) {
+            saveBtnEl.textContent = '✅ Saved!';
+            setTimeout(() => {
+              if (document.getElementById(BUTTON_ID)) {
+                saveBtnEl.textContent = '💾 Save to bAInder';
+              }
+            }, 2000);
+          } else {
+            saveBtnEl.textContent = '❌ Error — retry?';
+          }
+        }
+      } catch (err) {
+        logger.error('[bAInder] Save dialog save error:', err);
+      }
+    });
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(saveBtn);
+    box.appendChild(heading);
+    box.appendChild(titleLabel);
+    box.appendChild(titleInput);
+    box.appendChild(tagsLabel);
+    box.appendChild(tagsInput);
+    box.appendChild(actions);
+    overlay.appendChild(box);
+    // Hide the bAInder save button while dialog is open
+    const mainSaveBtn = document.getElementById('__bainder_save_btn__');
+    if (mainSaveBtn) mainSaveBtn.style.display = 'none';
+
+    document.body.appendChild(overlay);
+
+    // Focus the title input
+    titleInput.focus();
+    titleInput.select();
+  }
+
   // ─── Selection pre-capture for excerpt saves ───────────────────────────────
   // Chrome clears the page selection by the time a context menu item is clicked.
   // On right-click we immediately push the rich markdown to the background script
@@ -1985,6 +2117,122 @@ const logger = {
   history.replaceState = (...args) => { _replaceState(...args); onUrlChange(); };
   window.addEventListener('popstate', onUrlChange);
 
+  // ─── Save button injection ─────────────────────────────────────────────────
+
+  /**
+   * Return true if the current page has at least one conversation turn.
+   * Used to decide whether to show the "Save to bAInder" button.
+   */
+  function hasConversationTurns(doc) {
+    // ChatGPT
+    if (doc.querySelector('article[data-testid^="conversation-turn"]')) return true;
+    // Claude
+    if (doc.querySelector('[data-message-author-role]')) return true;
+    // Gemini
+    if (doc.querySelector('user-query, model-response')) return true;
+    // Copilot
+    if (doc.querySelector('cib-chat-turn')) return true;
+    // DeepSeek
+    if (doc.querySelector('.ds-message-container')) return true;
+    // Perplexity
+    if (doc.querySelector('.prose, .answer-section')) return true;
+    return false;
+  }
+
+  /** Inject (or reveal) the "Save to bAInder" button when there are turns. */
+  function updateSaveButton(platform) {
+    const BUTTON_ID = '__bainder_save_btn__';
+    const hasTurns = hasConversationTurns(document);
+
+    let btn = document.getElementById(BUTTON_ID);
+
+    if (!hasTurns) {
+      if (btn) btn.remove();
+      return;
+    }
+
+    if (btn) {
+      btn.style.display = 'flex';
+      return;
+    }
+
+    // Create the button
+    btn = document.createElement('button');
+    btn.id = BUTTON_ID;
+    btn.setAttribute('data-bainder-btn', 'true');
+    btn.className = 'bainder-save-btn';
+    btn.title = 'Save to bAInder';
+    btn.setAttribute('aria-label', 'Save to bAInder');
+    btn.textContent = '💾 Save to bAInder';
+    btn.style.cssText = [
+      'position:fixed',
+      'bottom:16px',
+      'right:16px',
+      'z-index:2147483646',
+      'display:flex',
+      'align-items:center',
+      'gap:6px',
+      'padding:8px 14px',
+      'background:#818cf8',
+      'color:#fff',
+      'border:none',
+      'border-radius:8px',
+      'font-size:13px',
+      'font-weight:600',
+      'cursor:pointer',
+      'box-shadow:0 2px 8px rgba(0,0,0,0.2)',
+      'transition:background 0.15s',
+    ].join(';');
+
+    btn.addEventListener('click', async () => {
+      btn.textContent = '⏳ Extracting…';
+      btn.disabled = true;
+      try {
+        let chatData;
+        if (platform === 'claude') {
+          const result = await extractClaudeViaApi();
+          chatData = {
+            platform,
+            url: window.location.href,
+            title: result.title,
+            messages: result.messages,
+            messageCount: result.messageCount,
+            extractedAt: Date.now(),
+          };
+        } else {
+          chatData = await extractChat(platform, document);
+        }
+        btn.textContent = '💾 Save to bAInder';
+        btn.disabled = false;
+        showSaveDialog(chatData);
+      } catch (err) {
+        btn.textContent = '❌ Error — retry?';
+        btn.disabled = false;
+        logger.error('[bAInder] Save button click error:', err);
+      }
+    });
+
+    document.body.appendChild(btn);
+  }
+
+  let _saveButtonObserver = null;
+
+  function startSaveButtonObserver(platform) {
+    if (_saveButtonObserver) {
+      _saveButtonObserver.disconnect();
+      _saveButtonObserver = null;
+    }
+    // Initial check
+    updateSaveButton(platform);
+
+    // Watch for DOM mutations (new turns added by SPA)
+    _saveButtonObserver = new MutationObserver(() => updateSaveButton(platform));
+    _saveButtonObserver.observe(document.body || document.documentElement, {
+      childList: true,
+      subtree:   true,
+    });
+  }
+
   // ─── Initialisation ────────────────────────────────────────────────────────
 
   function initContentScript() {
@@ -1995,6 +2243,7 @@ const logger = {
     }
     logger.info('[bAInder] Platform detected:', platform);
     logger.info('[bAInder] Content script ready');
+    startSaveButtonObserver(platform);
   }
 
   if (document.readyState === 'loading') {

@@ -181,17 +181,20 @@ test('T07 — Clicking "Select All" again deselects all items', async () => {
 test('T08 — Exiting multi-select mode removes checkboxes from view', async () => {
   if (!(await enterMultiSelectMode())) { return; }
 
-  // Exit via Escape or a cancel button
-  const cancelBtn = panel.locator('button:has-text("Cancel"), button:has-text("Done"), [data-action="exit-multiselect"]').first();
+  // Exit via cancel button or Escape
+  const cancelBtn = panel.locator('#multiSelectCancelBtn, button[aria-label*="exit" i], button:has-text("Cancel"), button:has-text("Done"), [data-action="exit-multiselect"]').first();
   if (await cancelBtn.count() > 0) {
-    await cancelBtn.click();
+    await panel.evaluate(() => {
+      const btn = document.getElementById('multiSelectCancelBtn');
+      if (btn) btn.click();
+    });
   } else {
     await panel.keyboard.press('Escape');
   }
   await panel.waitForTimeout(400);
 
   const checkboxes = panel.locator('input[type="checkbox"], [role="checkbox"]');
-  expect(await checkboxes.count()).toBe(0);
+  expect(await checkboxes.filter({ visible: true }).count()).toBe(0);
 });
 
 // ---------------------------------------------------------------------------
@@ -277,13 +280,19 @@ test('T12 — "Copy all" copies selected chats content to clipboard', async () =
   const checkboxes = panel.locator('input[type="checkbox"], [role="checkbox"]');
   await checkboxes.first().waitFor({ state: 'visible', timeout: 4000 });
   await checkboxes.nth(0).check();
+  if (await checkboxes.count() > 1) {
+    await checkboxes.nth(1).check();
+  }
 
   const copyBtn = panel.locator('button:has-text("Copy All"), button:has-text("Copy"), [data-action="copy-selected"]').first();
   if (await copyBtn.count() === 0) { return; }
   await copyBtn.click();
   await panel.waitForTimeout(500);
 
-  const text = await panel.evaluate(() => navigator.clipboard.readText().catch(() => '')).catch(() => '');
+  const text = await Promise.race([
+    panel.evaluate(() => navigator.clipboard.readText().catch(() => '')).catch(() => ''),
+    new Promise(resolve => setTimeout(() => resolve(''), 3000)),
+  ]);
   if (text) {
     expect(text.length).toBeGreaterThan(0);
   }

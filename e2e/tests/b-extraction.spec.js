@@ -45,6 +45,11 @@ async function saveFromMockPage(platform, path = '/c/test-123') {
   await saveBtn.waitFor({ state: 'visible', timeout: 8000 });
   await saveBtn.click();
 
+  // Confirm the save dialog if it appears
+  const dialogSaveBtn = page.locator('#bainder-save-dialog button[type="submit"]').first();
+  const dialogVisible = await dialogSaveBtn.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+  if (dialogVisible) await dialogSaveBtn.click();
+
   // Allow background SW to process and store the chat
   await page.waitForTimeout(2000);
   await page.close();

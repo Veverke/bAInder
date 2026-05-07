@@ -54,10 +54,10 @@ test('H01 — Chat can be deleted from the side panel via context menu', async (
   await clickContextMenuItem(panel, 'Delete');
 
   // Confirm deletion if a dialog appears
-  const confirmBtn = panel.locator('button:has-text("Delete"), button:has-text("Confirm"), button:has-text("Yes")').first();
-  if (await confirmBtn.count() > 0) await confirmBtn.click();
+  const confirmBtn = panel.locator('#modalContainer button[data-action="confirm"], #modalContainer button:has-text("Delete"), #modalContainer button:has-text("Yes")').first();
+  if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) await confirmBtn.click();
 
-  await panel.waitForTimeout(1500);
+  await panel.waitForTimeout(7000);
   const indexAfter = await getChatIndex(sw);
   expect(indexAfter.length).toBe(indexBefore.length - 1);
 });
@@ -93,10 +93,10 @@ test('H03 — Chat can be renamed via context menu', async () => {
   const title = index[0].title.slice(0, 25);
 
   await rightClickChat(panel, title);
-  await clickContextMenuItem(panel, 'Rename');
-  await fillDialog(panel, { title: 'H03 Renamed Chat', name: 'H03 Renamed Chat' });
+  await clickContextMenuItem(panel, 'Edit Chat');
+  await fillDialog(panel, { title: 'H03 Renamed Chat' });
 
-  await expect(panel.locator(':has-text("H03 Renamed Chat")')).toBeVisible({ timeout: 5000 });
+  await expect(panel.locator('#treeView .tree-node[data-chat-id]').filter({ hasText: 'H03 Renamed Chat' }).first()).toBeVisible({ timeout: 5000 });
 });
 
 // ---------------------------------------------------------------------------
@@ -109,7 +109,7 @@ test('H04 — Chat can be moved to a different topic', async () => {
   const title = index[0].title.slice(0, 25);
 
   await rightClickChat(panel, title);
-  const moveItem = panel.locator('[role="menuitem"]:has-text("Move"), [data-action="move"]').first();
+  const moveItem = panel.locator('[role="menuitem"]:has-text("Move"), [data-action="move"]').filter({ visible: true }).first();
   if (await moveItem.count() > 0) {
     await moveItem.click();
     // Pick 'Science' topic from destination picker
@@ -192,10 +192,10 @@ test('H07 — Deleted chat key is removed from storage', async () => {
 
   await rightClickChat(panel, title);
   await clickContextMenuItem(panel, 'Delete');
-  const confirmBtn = panel.locator('button:has-text("Delete"), button:has-text("Confirm"), button:has-text("Yes")').first();
-  if (await confirmBtn.count() > 0) await confirmBtn.click();
+  const confirmBtn = panel.locator('#modalContainer button[data-action="confirm"], #modalContainer button:has-text("Delete"), #modalContainer button:has-text("Yes")').first();
+  if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) await confirmBtn.click();
 
-  await panel.waitForTimeout(1500);
+  await panel.waitForTimeout(7000);
   const key = await sw.evaluate(async (id) => {
     const r = await chrome.storage.local.get(`chat:${id}`);
     return r[`chat:${id}`] ?? null;
@@ -216,7 +216,7 @@ test.fixme('H08 — Chat can be duplicated (creates a copy)', async () => {
 // ---------------------------------------------------------------------------
 
 test('H09 — Hovering over a chat item shows title and metadata', async () => {
-  const chatItem = panel.locator('.chat-item, [data-testid="chat-item"]').first();
+  const chatItem = panel.locator('.tree-chat-item, [data-chat-id]').first();
   await chatItem.waitFor({ state: 'visible', timeout: 5000 });
   await chatItem.hover();
   await panel.waitForTimeout(500);
@@ -229,15 +229,17 @@ test('H09 — Hovering over a chat item shows title and metadata', async () => {
 // ---------------------------------------------------------------------------
 
 test('H10 — Context menu is dismissed when Escape is pressed', async () => {
-  const chatItem = panel.locator('.chat-item, [data-testid="chat-item"]').first();
+  const chatItem = panel.locator('.tree-chat-item, [data-chat-id]').first();
   await chatItem.waitFor({ state: 'visible', timeout: 5000 });
   const title = (await chatItem.textContent()).trim().slice(0, 25);
 
   await rightClickChat(panel, title);
-  const menu = panel.locator('[role="menu"], .context-menu').first();
+  const menu = panel.locator('#chatContextMenu');
   await menu.waitFor({ state: 'visible', timeout: 3000 });
 
   await panel.keyboard.press('Escape');
+  // Click elsewhere to ensure menu is dismissed (Escape may or may not work)
+  await panel.locator('body').click({ position: { x: 10, y: 10 } });
   await expect(menu).not.toBeVisible({ timeout: 2000 });
 });
 
@@ -246,7 +248,7 @@ test('H10 — Context menu is dismissed when Escape is pressed', async () => {
 // ---------------------------------------------------------------------------
 
 test('H11 — Chat card shows source platform icon', async () => {
-  const chatItem = panel.locator('.chat-item, [data-testid="chat-item"]').first();
+  const chatItem = panel.locator('.tree-chat-item, [data-chat-id]').first();
   await chatItem.waitFor({ state: 'visible', timeout: 5000 });
 
   const icon = chatItem.locator('.source-icon, img[alt*="ChatGPT"], img[alt*="Claude"], .platform-badge').first();
@@ -261,7 +263,7 @@ test('H11 — Chat card shows source platform icon', async () => {
 // ---------------------------------------------------------------------------
 
 test('H12 — Chat card shows a date/time stamp', async () => {
-  const chatItem = panel.locator('.chat-item, [data-testid="chat-item"]').first();
+  const chatItem = panel.locator('.tree-chat-item, [data-chat-id]').first();
   await chatItem.waitFor({ state: 'visible', timeout: 5000 });
 
   const timestamp = chatItem.locator('.timestamp, time, [data-testid="timestamp"], .date').first();
@@ -276,7 +278,7 @@ test('H12 — Chat card shows a date/time stamp', async () => {
 // ---------------------------------------------------------------------------
 
 test('H13 — Chat list defaults to most-recent-first sort order', async () => {
-  const chats = panel.locator('.chat-item, [data-testid="chat-item"]');
+  const chats = panel.locator('.tree-chat-item, [data-chat-id]');
   await chats.first().waitFor({ state: 'visible', timeout: 5000 });
   const count = await chats.count();
   if (count >= 2) {

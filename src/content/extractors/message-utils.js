@@ -23,6 +23,7 @@ export function generateTitle(messages, url) {
         .replace(/\*\*(.+?)\*\*/g, '$1')    // strip bold
         .replace(/\*(.+?)\*/g, '$1')        // strip italic
         .replace(/`([^`]*)`/g, '$1')        // strip inline code
+        .replace(/#{1,6}/g, '')             // strip remaining # chars
         .trim()
       )
       .filter(l => l.length > 0 && !ROLE_LABEL_RE.test(l))
@@ -30,9 +31,10 @@ export function generateTitle(messages, url) {
     if (firstLine) {
       // Try to extract the first complete sentence
       const sentenceMatch = firstLine.match(/^(.+?[.?!])\s/);
-      if (sentenceMatch && sentenceMatch[1].length >= 8) return sentenceMatch[1].trim();
-      // Otherwise return the full cleaned first line
-      return firstLine;
+      const candidate = sentenceMatch && sentenceMatch[1].length >= 8
+        ? sentenceMatch[1].trim()
+        : firstLine;
+      return candidate.length > 100 ? candidate.slice(0, 100).trim() : candidate;
     }
   }
 

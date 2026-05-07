@@ -47,7 +47,7 @@ test.afterEach(async () => {
 // ---------------------------------------------------------------------------
 
 test('F01 — Root topics are visible in the side panel tree', async () => {
-  const topics = panel.locator('.topic-node, [data-testid="topic-node"], .tree-item');
+  const topics = panel.locator('.tree-node[data-topic-id]');
   await expect(topics.first()).toBeVisible({ timeout: 5000 });
   const count = await topics.count();
   expect(count).toBeGreaterThan(0);
@@ -58,13 +58,11 @@ test('F01 — Root topics are visible in the side panel tree', async () => {
 // ---------------------------------------------------------------------------
 
 test('F02 — Create new root topic via context menu', async () => {
-  // Right-click on the tree root area to get "New Topic"
-  const treeRoot = panel.locator('.topic-tree, [data-testid="topic-tree"], #topic-tree').first();
-  await treeRoot.click({ button: 'right' });
-  await clickContextMenuItem(panel, 'New Topic');
+  // Click the "Add Topic" toolbar button to create a root topic
+  await panel.locator('#addTopicBtn').click();
   await fillDialog(panel, { name: 'F02 New Root Topic' });
 
-  await expect(panel.locator(':has-text("F02 New Root Topic")')).toBeVisible({ timeout: 5000 });
+  await expect(panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'F02 New Root Topic' }).first()).toBeVisible({ timeout: 5000 });
 });
 
 // ---------------------------------------------------------------------------
@@ -73,11 +71,11 @@ test('F02 — Create new root topic via context menu', async () => {
 
 test('F03 — Create child topic nested inside parent', async () => {
   await rightClickTopic(panel, 'Programming');
-  await clickContextMenuItem(panel, 'New Sub-Topic');
+  await clickContextMenuItem(panel, 'Add Topic');
   await fillDialog(panel, { name: 'F03 Child Topic' });
 
   await expandTopic(panel, 'Programming');
-  await expect(panel.locator(':has-text("F03 Child Topic")')).toBeVisible({ timeout: 5000 });
+  await expect(panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'F03 Child Topic' }).first()).toBeVisible({ timeout: 5000 });
 });
 
 // ---------------------------------------------------------------------------
@@ -89,7 +87,7 @@ test('F04 — Rename topic via context menu', async () => {
   await clickContextMenuItem(panel, 'Rename');
   await fillDialog(panel, { name: 'Programming (Renamed)' });
 
-  await expect(panel.locator(':has-text("Programming (Renamed)")')).toBeVisible({ timeout: 5000 });
+  await expect(panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'Programming (Renamed)' }).first()).toBeVisible({ timeout: 5000 });
   await expect(panel.locator(':has-text("Programming")')).not.toHaveText('Programming', { timeout: 2000 }).catch(() => {});
 });
 
@@ -99,21 +97,19 @@ test('F04 — Rename topic via context menu', async () => {
 
 test('F05 — Delete empty topic removes it from the tree', async () => {
   // Create a temporary topic to delete
-  const treeRoot = panel.locator('.topic-tree, [data-testid="topic-tree"], #topic-tree').first();
-  await treeRoot.click({ button: 'right' });
-  await clickContextMenuItem(panel, 'New Topic');
+  await panel.locator('#addTopicBtn').click();
   await fillDialog(panel, { name: 'F05 Topic To Delete' });
-  await expect(panel.locator(':has-text("F05 Topic To Delete")')).toBeVisible({ timeout: 5000 });
+  await expect(panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'F05 Topic To Delete' }).first()).toBeVisible({ timeout: 5000 });
 
   // Now delete it
   await rightClickTopic(panel, 'F05 Topic To Delete');
   await clickContextMenuItem(panel, 'Delete');
 
   // Confirm deletion dialog if present
-  const confirmBtn = panel.locator('button:has-text("Delete"), button:has-text("Confirm")').first();
-  if (await confirmBtn.count() > 0) await confirmBtn.click();
+  const confirmBtn = panel.locator('#modalContainer button[data-action="confirm"], #modalContainer button:has-text("Delete")').first();
+  if (await confirmBtn.isVisible({ timeout: 3000 }).catch(() => false)) await confirmBtn.click();
 
-  await expect(panel.locator(':has-text("F05 Topic To Delete")')).toHaveCount(0, { timeout: 5000 });
+  await expect(panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'F05 Topic To Delete' })).toHaveCount(0, { timeout: 5000 });
 });
 
 // ---------------------------------------------------------------------------
@@ -125,7 +121,7 @@ test('F06 — Deleting non-empty topic shows confirmation prompt', async () => {
   await clickContextMenuItem(panel, 'Delete');
 
   // A warning or confirmation dialog should appear
-  const warning = panel.locator('[role="alertdialog"], [data-testid="confirm-dialog"], dialog').first();
+  const warning = panel.locator('#modalContainer .modal-container, #modalContainer').first();
   await warning.waitFor({ state: 'visible', timeout: 5000 });
   await expect(warning).toBeVisible();
 
@@ -141,11 +137,11 @@ test('F07 — Collapsed topic hides child items', async () => {
   await expandTopic(panel, 'Programming');
 
   // Verify children visible
-  const child = panel.locator(':has-text("React")').first();
+  const child = panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'React' }).first();
   await expect(child).toBeVisible({ timeout: 3000 });
 
   // Collapse by clicking the toggle arrow
-  const toggle = panel.locator('[data-testid="topic-toggle"], .topic-toggle, .chevron').first();
+  const toggle = panel.locator('.tree-node[data-topic-id]').filter({ hasText: 'Programming' }).first().locator('.tree-expand-btn').first();
   await toggle.click();
 
   await expect(child).not.toBeVisible({ timeout: 3000 });
@@ -157,13 +153,13 @@ test('F07 — Collapsed topic hides child items', async () => {
 
 test('F08 — Expanding a collapsed topic reveals children', async () => {
   // First collapse Programming
-  const toggle = panel.locator('.topic-toggle, [data-testid="topic-toggle"], .chevron').first();
+  const toggle = panel.locator('.tree-node[data-topic-id]').filter({ hasText: 'Programming' }).first().locator('.tree-expand-btn').first();
   if (await toggle.count() > 0) await toggle.click();
   await panel.waitForTimeout(300);
 
   // Now expand it
   await expandTopic(panel, 'Programming');
-  const child = panel.locator(':has-text("React")').first();
+  const child = panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'React' }).first();
   await expect(child).toBeVisible({ timeout: 5000 });
 });
 
@@ -193,7 +189,7 @@ test('F10 — Move topic into another topic via context menu', async () => {
     if (await dest.count() > 0) await dest.click();
     await panel.waitForTimeout(1000);
     await expandTopic(panel, 'Science');
-    await expect(panel.locator(':has-text("Travel")')).toBeVisible({ timeout: 5000 });
+    await expect(panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'Travel' }).first()).toBeVisible({ timeout: 5000 });
   }
   // If move is not implemented, soft pass
 });
@@ -203,9 +199,7 @@ test('F10 — Move topic into another topic via context menu', async () => {
 // ---------------------------------------------------------------------------
 
 test('F11 — Duplicate root topic name is blocked', async () => {
-  const treeRoot = panel.locator('.topic-tree, [data-testid="topic-tree"], #topic-tree').first();
-  await treeRoot.click({ button: 'right' });
-  await clickContextMenuItem(panel, 'New Topic');
+  await panel.locator('#addTopicBtn').click();
   await fillDialog(panel, { name: 'Programming' });
 
   // Either error shown in dialog or toast
@@ -286,14 +280,12 @@ test('F15 — Empty state shown when no topics exist', async () => {
 // ---------------------------------------------------------------------------
 
 test('F16 — Created topic persists after panel reload', async () => {
-  const treeRoot = panel.locator('.topic-tree, [data-testid="topic-tree"], #topic-tree').first();
-  await treeRoot.click({ button: 'right' });
-  await clickContextMenuItem(panel, 'New Topic');
+  await panel.locator('#addTopicBtn').click();
   await fillDialog(panel, { name: 'F16 Persistent Topic' });
-  await expect(panel.locator(':has-text("F16 Persistent Topic")')).toBeVisible({ timeout: 5000 });
+  await expect(panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'F16 Persistent Topic' }).first()).toBeVisible({ timeout: 5000 });
 
   await panel.reload({ waitUntil: 'domcontentloaded' });
-  await expect(panel.locator(':has-text("F16 Persistent Topic")')).toBeVisible({ timeout: 5000 });
+  await expect(panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'F16 Persistent Topic' }).first()).toBeVisible({ timeout: 5000 });
 });
 
 // ---------------------------------------------------------------------------
@@ -302,16 +294,16 @@ test('F16 — Created topic persists after panel reload', async () => {
 
 test('F17 — Deeply nested (3+ level) topic can be created', async () => {
   await rightClickTopic(panel, 'Programming');
-  await clickContextMenuItem(panel, 'New Sub-Topic');
+  await clickContextMenuItem(panel, 'Add Topic');
   await fillDialog(panel, { name: 'F17 Level 2' });
 
   await expandTopic(panel, 'Programming');
   await rightClickTopic(panel, 'F17 Level 2');
-  await clickContextMenuItem(panel, 'New Sub-Topic');
+  await clickContextMenuItem(panel, 'Add Topic');
   await fillDialog(panel, { name: 'F17 Level 3' });
 
   await expandTopic(panel, 'F17 Level 2');
-  await expect(panel.locator(':has-text("F17 Level 3")')).toBeVisible({ timeout: 5000 });
+  await expect(panel.locator('#treeView .tree-node[data-topic-id]').filter({ hasText: 'F17 Level 3' }).first()).toBeVisible({ timeout: 5000 });
 });
 
 // ---------------------------------------------------------------------------
@@ -319,14 +311,12 @@ test('F17 — Deeply nested (3+ level) topic can be created', async () => {
 // ---------------------------------------------------------------------------
 
 test('F18 — Cancelling new topic dialog creates no topic', async () => {
-  const before = await panel.locator('.topic-node, [data-testid="topic-node"]').count();
+  const before = await panel.locator('.tree-node[data-topic-id]').count();
 
-  const treeRoot = panel.locator('.topic-tree, [data-testid="topic-tree"], #topic-tree').first();
-  await treeRoot.click({ button: 'right' });
-  await clickContextMenuItem(panel, 'New Topic');
+  await panel.locator('#addTopicBtn').click();
   await cancelDialog(panel);
 
-  const after = await panel.locator('.topic-node, [data-testid="topic-node"]').count();
+  const after = await panel.locator('.tree-node[data-topic-id]').count();
   expect(after).toBe(before);
 });
 
@@ -337,7 +327,7 @@ test('F18 — Cancelling new topic dialog creates no topic', async () => {
 test('F19 — Chat assigned to topic appears under that topic in the tree', async () => {
   // The seeded data includes chats with topic assignments — verify they appear
   await expandTopic(panel, 'Programming');
-  const chatItems = panel.locator('.chat-item, [data-testid="chat-item"]').first();
+  const chatItems = panel.locator('.tree-chat-item, [data-chat-id]').first();
   await chatItems.waitFor({ state: 'visible', timeout: 5000 });
   await expect(chatItems).toBeVisible();
 });

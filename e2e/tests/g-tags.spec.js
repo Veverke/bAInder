@@ -61,7 +61,7 @@ test('G02 — Clicking a tag chip filters visible chats by that tag', async () =
     await reactTag.click();
     await panel.waitForTimeout(500);
     // Should show chats with "react" tag — at least 1
-    const chats = panel.locator('.chat-item, [data-testid="chat-item"]');
+    const chats = panel.locator('.tree-chat-item, [data-chat-id]');
     await expect(chats.first()).toBeVisible({ timeout: 5000 });
   }
 });
@@ -72,12 +72,12 @@ test('G02 — Clicking a tag chip filters visible chats by that tag', async () =
 
 test('G03 — Tag can be added to a saved chat via context menu', async () => {
   // Open a chat context menu and add a tag
-  const chatItem = panel.locator('.chat-item, [data-testid="chat-item"]').first();
+  const chatItem = panel.locator('.tree-chat-item, [data-chat-id]').first();
   await chatItem.waitFor({ state: 'visible', timeout: 5000 });
   const chatTitle = (await chatItem.textContent()).trim().slice(0, 20);
 
   await rightClickChat(panel, chatTitle);
-  const editTagsItem = panel.locator('[role="menuitem"]:has-text("Tags"), [role="menuitem"]:has-text("Edit Tags"), [role="menuitem"]:has-text("Add Tag")').first();
+  const editTagsItem = panel.locator('.context-menu-item:has-text("Tags"), .context-menu-item:has-text("Edit Tags"), .context-menu-item:has-text("Add Tag")').first();
   if (await editTagsItem.count() > 0) {
     await editTagsItem.click();
     const tagInput = panel.locator('input[name="tags"], input[placeholder*="tag" i]').first();
@@ -97,12 +97,12 @@ test('G03 — Tag can be added to a saved chat via context menu', async () => {
 // ---------------------------------------------------------------------------
 
 test('G04 — Tag can be removed from a saved chat', async () => {
-  const chatItem = panel.locator('.chat-item, [data-testid="chat-item"]').first();
+  const chatItem = panel.locator('.tree-chat-item, [data-chat-id]').first();
   await chatItem.waitFor({ state: 'visible', timeout: 5000 });
   const chatTitle = (await chatItem.textContent()).trim().slice(0, 20);
 
   await rightClickChat(panel, chatTitle);
-  const editTagsItem = panel.locator('[role="menuitem"]:has-text("Tags"), [role="menuitem"]:has-text("Edit Tags")').first();
+  const editTagsItem = panel.locator('.context-menu-item:has-text("Tags"), .context-menu-item:has-text("Edit Tags")').first();
   if (await editTagsItem.count() > 0) {
     await editTagsItem.click();
     // Click ✕ or × on first visible tag chip in the dialog
@@ -165,7 +165,7 @@ test('G06 — Multiple tag filters applied simultaneously narrow results', async
 // ---------------------------------------------------------------------------
 
 test('G07 — Tags are displayed on chat cards in the side panel', async () => {
-  const chatItem = panel.locator('.chat-item, [data-testid="chat-item"]').first();
+  const chatItem = panel.locator('.tree-chat-item, [data-chat-id]').first();
   await chatItem.waitFor({ state: 'visible', timeout: 5000 });
 
   // Seeded chats have tags — check if they appear on card

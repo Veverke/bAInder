@@ -96,7 +96,7 @@ test('E04 — Chat saved with custom title after confirm', async () => {
   await titleInput.waitFor({ state: 'visible', timeout: 6000 });
   await titleInput.fill('E04 Custom Title');
 
-  const saveBtn = page.locator('button:has-text("Save"), button[type="submit"], [data-testid="confirm-save"]').first();
+  const saveBtn = page.locator('#bainder-save-dialog button[type="submit"], #bainder-save-dialog button:has-text("Save")').first();
   await saveBtn.click();
   await page.waitForTimeout(2000);
   await page.close();
@@ -144,7 +144,7 @@ test('E06 — Tags can be added before confirming save', async () => {
     await tagInput.press('Enter');
   }
 
-  const saveBtn = page.locator('button:has-text("Save"), button[type="submit"], [data-testid="confirm-save"]').first();
+  const saveBtn = page.locator('#bainder-save-dialog button[type="submit"], #bainder-save-dialog button:has-text("Save")').first();
   await saveBtn.click();
   await page.waitForTimeout(2000);
   await page.close();
@@ -242,7 +242,7 @@ test('E09 — Recent rail chip appears in side panel after save', async () => {
   const titleInput = page.locator('input[name="title"], input[placeholder*="title" i], [data-testid="title-input"]').first();
   await titleInput.waitFor({ state: 'visible', timeout: 6000 });
   await titleInput.fill('E09 Recent Rail Chat');
-  const confirm = page.locator('button:has-text("Save"), button[type="submit"]').first();
+  const confirm = page.locator('#bainder-save-dialog button[type="submit"], #bainder-save-dialog button:has-text("Save")').first();
   await confirm.click();
   await page.waitForTimeout(2500);
 
@@ -273,7 +273,7 @@ test('E10 — Storage usage increases after a chat is saved', async () => {
   const page = await openSaveDialog();
   const titleInput = page.locator('input[name="title"], input[placeholder*="title" i], [data-testid="title-input"]').first();
   await titleInput.waitFor({ state: 'visible', timeout: 6000 });
-  const confirm = page.locator('button:has-text("Save"), button[type="submit"]').first();
+  const confirm = page.locator('#bainder-save-dialog button[type="submit"], #bainder-save-dialog button:has-text("Save")').first();
   await confirm.click();
   await page.waitForTimeout(2000);
   await page.close();

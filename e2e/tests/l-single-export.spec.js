@@ -34,7 +34,7 @@ async function openExportDialogViaContextMenu(chatTitle) {
   const panel = await openSidepanel(context, extensionId);
   const title = chatTitle.slice(0, 25);
   await rightClickChat(panel, title);
-  const exportItem = panel.locator('[role="menuitem"]:has-text("Export"), [data-action="export"]').first();
+  const exportItem = panel.locator('.context-menu-item[data-chat-action="export"], .context-menu-item:has-text("Export Chat"), [data-chat-action="export"]').first();
   if (await exportItem.count() > 0) {
     await exportItem.click();
   }
@@ -246,7 +246,11 @@ test('L11 — Export dialog offers a "Copy to Clipboard" option', async () => {
   const copyBtn  = reader.locator('button:has-text("Copy"), [data-action="copy-export"]').first();
   if (await copyBtn.count() > 0) {
     await copyBtn.click();
-    const text = await reader.evaluate(() => navigator.clipboard.readText().catch(() => ''));
+    // Clipboard read may fail or hang — use a race to avoid hanging
+    const text = await Promise.race([
+      reader.evaluate(() => navigator.clipboard.readText().catch(() => '')).catch(() => ''),
+      new Promise(resolve => setTimeout(() => resolve(''), 3000)),
+    ]);
     if (text) {
       expect(text.length).toBeGreaterThan(0);
     }
