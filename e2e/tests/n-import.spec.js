@@ -38,6 +38,7 @@ test.afterEach(async () => {
 // Helpers
 // ---------------------------------------------------------------------------
 
+let _tmpCounter = 0;
 function writeTempMarkdown(chat) {
   const content = chat.content
     || (chat.messages || []).map(m => m.content || '').join('\n\n')
@@ -54,7 +55,7 @@ function writeTempMarkdown(chat) {
     content,
   ].join('\n');
 
-  const tmpPath = path.join(os.tmpdir(), `bainder-import-test-${Date.now()}.md`);
+  const tmpPath = path.join(os.tmpdir(), `bainder-import-test-${Date.now()}-${++_tmpCounter}.md`);
   fs.writeFileSync(tmpPath, mdContent, 'utf-8');
   return tmpPath;
 }
