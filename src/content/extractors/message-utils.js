@@ -34,7 +34,7 @@ export function generateTitle(messages, url) {
       const candidate = sentenceMatch && sentenceMatch[1].length >= 8
         ? sentenceMatch[1].trim()
         : firstLine;
-      return candidate.length > 100 ? candidate.slice(0, 100).trim() : candidate;
+      return candidate;
     }
   }
 
