@@ -14,7 +14,6 @@ Install the extension, hit **Save** on any conversation, drop it into a topic, a
 
 > 🔒 **Fully local & private** — All data lives in `chrome.storage.local`. Nothing is ever transmitted anywhere.
 
-**[▶ Watch the animated tutorial](docs/tutorial.html)**
 
 ---
 
