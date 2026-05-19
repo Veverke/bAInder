@@ -10,9 +10,21 @@ build/
 # Test coverage
 coverage/
 .nyc_output/
+coverage-*.txt
+cov-*.txt
+full-cov.txt
 
 # Test results (generated artifacts)
 test-results/
+test-results.xml
+e2e-results.xml
+vitest-results.txt
+run-result.txt
+coverage-output.txt
+coverage-run.txt
+coverage-run2.txt
+e2e-report/
+playwright-report/
 
 # Environment variables
 .env
