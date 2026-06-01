@@ -32,7 +32,22 @@ jobs:
         run: npm run test:coverage
 
       - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      - name: Install Playwright system dependencies
+        timeout-minutes: 10
+        run: |
+          echo "::group::apt-get update"
+          sudo apt-get update -q
+          echo "::endgroup::"
+          echo "::group::playwright install-deps"
+          sudo npx playwright install-deps chromium
+          echo "::endgroup::"
+          echo "Playwright deps installed successfully"
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          APT_LISTCHANGES_FRONTEND: none
 
       - name: Run E2E tests
         run: xvfb-run --auto-servernum -- npm run e2e
