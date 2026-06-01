@@ -192,7 +192,11 @@ export function htmlToMarkdown(el) {
       case 'br': return '\n';
       case 'hr': return '\n---\n';
       case 'blockquote': {
-        const t = inner.trim().split('\n').map(l => `> ${l}`).join('\n');
+        // Collapse double-newlines that arise from nested <p> and <br> elements
+        // inside a blockquote (e.g. BizChat wraps content in <p> with <br>).
+        // Without this, the empty string between two \n\n becomes a lone "> "
+        // blank line when split and prefixed.
+        const t = inner.trim().replace(/\n\n+/g, '\n').split('\n').map(l => `> ${l}`).join('\n');
         return `\n${t}\n`;
       }
 
