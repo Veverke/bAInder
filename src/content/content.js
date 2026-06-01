@@ -267,7 +267,11 @@ const logger = {
         case 'br': return '\n';
         case 'hr': return '\n---\n';
         case 'blockquote': {
-          const t = inner.trim().split('\n').map(l => `> ${l}`).join('\n');
+          // Collapse double-newlines that arise from nested <p> and <br> elements
+          // inside a blockquote (e.g. BizChat wraps content in <p> with <br>).
+          // Without this, the empty string between two \n\n becomes a lone "> "
+          // blank line when split and prefixed.
+          const t = inner.trim().replace(/\n\n+/g, '\n').split('\n').map(l => `> ${l}`).join('\n');
           return `\n${t}\n`;
         }
         case 'a': {
@@ -1348,9 +1352,280 @@ const logger = {
     return '\n\n**Sources:**\n\n' + lines.join('\n');
   }
 
+  /**
+   * Pre-pass for virtual-scroll / lazy-loaded conversations (M365 BizChat / Copilot).
+   *
+   * BizChat may
+   *   (a) use a React virtualised list — only visible messages are in the DOM, or
+   *   (b) use server-side pagination — scrolling UP loads older messages from the API.
+   *
+   * Strategy:
+   *   Phase 1 – scroll UP repeatedly until no new older messages are prepended.
+   *   Phase 2 – scroll DOWN step-by-step, harvesting every message that enters the DOM.
+   *
+   * Returns an array of { role, innerHTML } in conversation order, or null when the
+   * container is too small to scroll (pre-pass not needed).
+   */
+  async function _scrollAndCollectCopilot(doc) {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    // ── Step 1: find the real scrollable container ──────────────────────────
+    // Walk up from a real message element using getComputedStyle so we always
+    // land on the element that actually scrolls, not a layout wrapper with
+    // overflow:hidden that merely wraps a scrolling child.
+    const anchorEl =
+      doc.querySelector('[data-content="user-message"], [data-content="ai-message"]') ||
+      doc.querySelector('[data-testid="user-message"], [data-testid="ai-message"]') ||
+      doc.querySelector('[class*="user-message"], [class*="UserMessage"]');
+
+    let scrollEl = null;
+    if (anchorEl && typeof getComputedStyle !== 'undefined') {
+      let node = anchorEl.parentElement;
+      while (node && node !== doc.documentElement) {
+        const oy = getComputedStyle(node).overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight + 20) {
+          scrollEl = node;
+          break;
+        }
+        node = node.parentElement;
+      }
+    }
+
+    // Fallback: known BizChat / Copilot selectors
+    if (!scrollEl) {
+      for (const sel of [
+        '[data-testid="chat-page"]',
+        '[class*="conversation-list"]',
+        '[class*="conversationList"]',
+        'main',
+        '[role="main"]',
+      ]) {
+        const el = doc.querySelector(sel);
+        if (el && el.scrollHeight > el.clientHeight + 50) { scrollEl = el; break; }
+      }
+    }
+
+    // Last resort: page-level scroll
+    if (!scrollEl) scrollEl = doc.scrollingElement || doc.documentElement;
+
+    // Nothing to scroll — skip the pre-pass entirely
+    if (scrollEl.scrollHeight <= scrollEl.clientHeight + 100) return null;
+
+    // ── Progress overlay ───────────────────────────────────────────────────
+    // aria-setsize is set by BizChat's virtualiser on every message element and
+    // reflects the total number of turns in the conversation — use it to show
+    // accurate "N of M" progress without any guesswork.
+    const sizeAttr = doc.querySelector('[aria-setsize]');
+    const totalExpected = sizeAttr ? (parseInt(sizeAttr.getAttribute('aria-setsize'), 10) || 0) : 0;
+
+    const OVERLAY_ID = '__bainder_progress__';
+    const existingOv = doc.getElementById(OVERLAY_ID);
+    if (existingOv) existingOv.remove();
+
+    const ov = doc.createElement('div');
+    ov.id = OVERLAY_ID;
+    ov.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:2147483647',
+      'background:rgba(0,0,0,0.55)',
+      'display:flex', 'align-items:center', 'justify-content:center',
+    ].join(';');
+
+    const ovBox = doc.createElement('div');
+    ovBox.style.cssText = [
+      'background:#ffffff', 'border-radius:14px', 'padding:28px 32px',
+      'width:340px', 'max-width:90vw',
+      'box-shadow:0 8px 40px rgba(0,0,0,0.28)',
+      'font-family:system-ui,-apple-system,sans-serif', 'color:#111827',
+      'display:flex', 'flex-direction:column', 'gap:12px',
+    ].join(';');
+
+    const ovHdg = doc.createElement('div');
+    ovHdg.style.cssText = 'font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;';
+    ovHdg.innerHTML = '<span style="font-size:20px;line-height:1">📥</span> Loading full conversation\u2026';
+
+    const ovPhase = doc.createElement('div');
+    ovPhase.style.cssText = 'font-size:13px;color:#6b7280;min-height:18px;';
+    ovPhase.textContent = 'Fetching older messages\u2026';
+
+    const ovTrack = doc.createElement('div');
+    ovTrack.style.cssText = 'height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden;';
+    const ovFill = doc.createElement('div');
+    ovFill.style.cssText = [
+      'height:100%', 'width:0%', 'background:#818cf8',
+      'border-radius:99px', 'transition:width 0.35s ease',
+    ].join(';');
+    ovTrack.appendChild(ovFill);
+
+    const ovCounter = doc.createElement('div');
+    ovCounter.style.cssText = 'font-size:12px;color:#9ca3af;text-align:right;';
+    ovCounter.textContent = totalExpected > 0 ? '0\u202fof\u202f' + totalExpected + '\u202fmessages' : 'Starting\u2026';
+
+    ovBox.appendChild(ovHdg);
+    ovBox.appendChild(ovPhase);
+    ovBox.appendChild(ovTrack);
+    ovBox.appendChild(ovCounter);
+    ov.appendChild(ovBox);
+    doc.body.appendChild(ov);
+
+    function updateProgress(count, phase) {
+      const pct = totalExpected > 0
+        ? Math.min(count / totalExpected * 100, 99)
+        : null;  // unknown total — falls back to scroll-position estimate set by caller
+      if (pct !== null) ovFill.style.width = pct + '%';
+      ovPhase.textContent = phase;
+      ovCounter.textContent = totalExpected > 0
+        ? count + '\u202fof\u202f' + totalExpected + '\u202fmessages'
+        : count + '\u202fmessages loaded';
+    }
+
+    function updateProgressScroll(scrollPct, count, phase) {
+      // Used during Phase 2 when totalExpected is unknown; never goes backwards.
+      const current = parseFloat(ovFill.style.width) || 0;
+      ovFill.style.width = Math.max(current, Math.min(scrollPct, 99)) + '%';
+      ovPhase.textContent = phase;
+      ovCounter.textContent = count + '\u202fmessages loaded';
+    }
+    // ── End progress overlay setup ─────────────────────────────────────────
+
+    const savedTop  = scrollEl.scrollTop;
+    const collected = [];
+    const seenFps   = new Set();
+
+    function harvest() {
+      // Primary: stable BizChat/M365 data-content attributes (not on sidebar items)
+      let userEls   = Array.from(doc.querySelectorAll('[data-content="user-message"]'));
+      let assistEls = Array.from(doc.querySelectorAll('[data-content="ai-message"]'));
+      // Fallback: class/testid selectors used by copilot.microsoft.com variants
+      if (userEls.length === 0 && assistEls.length === 0) {
+        userEls = Array.from(doc.querySelectorAll(
+          '[class~="group/user-message"], [data-testid="user-message"], ' +
+          '.UserMessage, [class*="UserMessage"], [class*="user-message"]'
+        ));
+        assistEls = Array.from(doc.querySelectorAll(
+          '[class~="group/ai-message-item"], [class~="group/ai-message"], ' +
+          '[data-testid="ai-message"], [data-testid="copilot-message"], ' +
+          '[data-testid="assistant-message"], [class*="CopilotMessage"], ' +
+          '[class*="AssistantMessage"], [class*="ai-message"]'
+        ));
+      }
+      // Keep only top-level containers — remove nested elements with the same class
+      const deNested = els => els.filter(el => !els.some(o => o !== el && o.contains(el)));
+      userEls   = deNested(userEls);
+      assistEls = deNested(assistEls);
+      const allEls = [
+        ...userEls.map(el  => ({ el, role: 'user' })),
+        ...assistEls.map(el => ({ el, role: 'assistant' })),
+      ].sort((a, b) =>
+        a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+      );
+      for (const { el, role } of allEls) {
+        const fp = role + '::' + (el.textContent || '').trim().slice(0, 120);
+        if (seenFps.has(fp)) continue;
+        seenFps.add(fp);
+        collected.push({ role, innerHTML: el.innerHTML });
+      }
+    }
+
+    // ── Phase 1: scroll UP to load older messages ──────────────────────────
+    // BizChat prepends older messages when you scroll toward scrollTop=0.
+    // Jump to top, wait for the network fetch, check if scrollHeight grew.
+    // Stop when height stabilises (no more old messages) or cap is reached.
+    const MAX_UP_PASSES = 30;
+    for (let i = 0; i < MAX_UP_PASSES; i++) {
+      const prevH = scrollEl.scrollHeight;
+      scrollEl.scrollTo({ top: 0, behavior: 'instant' });
+      await sleep(600);
+      harvest();
+      updateProgress(collected.length, 'Fetching older messages\u2026');
+      if (scrollEl.scrollHeight === prevH) break; // nothing new prepended
+    }
+
+    // ── Phase 2: scroll DOWN to collect all messages ───────────────────────
+    const STEP_PX   = Math.max(300, Math.floor((scrollEl.clientHeight || 600) * 0.7));
+    const MAX_STEPS = 200;
+    let lastTop   = -1;
+    let sameCount = 0;
+    for (let step = 0; step < MAX_STEPS; step++) {
+      scrollEl.scrollBy({ top: STEP_PX, behavior: 'instant' });
+      await sleep(350);
+      harvest();
+      const top = scrollEl.scrollTop;
+      const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight;
+      const scrollPct = maxScroll > 0 ? (top / maxScroll) * 100 : 100;
+      if (totalExpected > 0) {
+        updateProgress(collected.length, 'Reading messages\u2026');
+      } else {
+        updateProgressScroll(scrollPct, collected.length, 'Reading messages\u2026');
+      }
+      if (top === lastTop) { if (++sameCount >= 3) break; }
+      else                 { sameCount = 0; lastTop = top; }
+    }
+
+    // ── Phase 2.5: final bottom sweep ─────────────────────────────────────
+    // The virtualizer may render the very last batch of items only after
+    // scrollTop stabilises (sameCount fires too early). Push to the new bottom
+    // up to 5 times until both the message count and scrollHeight are stable.
+    for (let extra = 0; extra < 5; extra++) {
+      const prevCount = collected.length;
+      const prevH     = scrollEl.scrollHeight;
+      scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'instant' });
+      await sleep(500);
+      harvest();
+      updateProgress(collected.length, 'Finishing\u2026');
+      if (collected.length === prevCount && scrollEl.scrollHeight === prevH) break;
+    }
+
+    // ── Restore position ───────────────────────────────────────────────────
+    scrollEl.scrollTo({ top: savedTop, behavior: 'instant' });
+    const raf = typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame : fn => setTimeout(fn, 16);
+    await new Promise(r => raf(() => raf(r)));
+
+    // Brief "done" flash before removing the overlay
+    ovFill.style.width = '100%';
+    ovHdg.innerHTML = '<span style="font-size:20px;line-height:1">✅</span> Conversation loaded';
+    ovPhase.textContent = collected.length + '\u202fmessages captured';
+    ovCounter.style.display = 'none';
+    await sleep(600);
+    ov.remove();
+
+    logger.info('[_scrollAndCollectCopilot] pre-pass captured ' + collected.length + ' message(s) (scrollEl: ' +
+      (scrollEl.tagName || 'document') + '#' + (scrollEl.id || '') +
+      ' scrollH=' + scrollEl.scrollHeight + ' clientH=' + scrollEl.clientHeight + ')');
+    return collected;
+  }
+
   async function extractCopilot(doc) {
     const messages = [];
     const DBG = '[extractCopilot]';
+
+    // ── Virtual-scroll pre-pass ───────────────────────────────────────────────
+    // M365 BizChat virtualises its message list: messages that scroll out of
+    // the viewport are unmounted from the DOM.  Scroll the full conversation
+    // first so every message is harvested before it can be evicted.
+    const _prePassMsgs = await _scrollAndCollectCopilot(doc);
+    if (_prePassMsgs && _prePassMsgs.length > 0) {
+      logger.info('[extractCopilot] scroll pre-pass: processing ' + _prePassMsgs.length + ' message(s)');
+      const bgFetchPre = url => new Promise((resolve, reject) => {
+        logger.info('[bAInder] Copilot bgFetch(pre-pass) → background:', url.slice(0, 80));
+        browser.runtime.sendMessage({ type: 'FETCH_IMAGE_AS_DATA_URL', url }, resp => {
+          if (browser.runtime.lastError) return reject(new Error(browser.runtime.lastError.message));
+          const du = resp?.dataUrl || '';
+          if (resp?.success && du.startsWith('data:')) resolve(du);
+          else reject(new Error(resp?.error || 'invalid dataUrl from background'));
+        });
+      });
+      for (const { role, innerHTML } of _prePassMsgs) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = innerHTML;
+        const processEl  = role === 'assistant' ? stripSourceContainers(tempDiv) : tempDiv;
+        const resolvedEl = await resolveImageBlobs(processEl, bgFetchPre);
+        let content = stripRoleLabels(htmlToMarkdown(resolvedEl));
+        if (role === 'assistant') content += extractSourceLinks(tempDiv);
+        if (content) messages.push(formatMessage(role, content));
+      }
+      return { title: generateTitle(messages, doc.location?.href || ''), messages, messageCount: messages.length };
+    }
+    logger.info('[extractCopilot] scroll pre-pass not triggered (fits on screen); using standard DOM extraction');
 
     // Scope to the main conversation area so sidebar history items are excluded.
     const scopeCandidates = [

@@ -31,8 +31,53 @@ jobs:
       - name: Run unit tests
         run: npm run test:coverage
 
+      - name: Get Playwright version
+        id: pw-version
+        run: |
+          VERSION=$(node -e "console.log(require('./node_modules/@playwright/test/package.json').version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Playwright version: $VERSION"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+
       - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 20
+        run: |
+          # Use curl + unzip to avoid Node.js in-memory zip extraction hanging
+          BROWSER_URL=$(npx playwright install --dry-run chromium 2>&1 | grep -o 'https://[^ ]*\.zip' | head -1)
+          if [ -n "$BROWSER_URL" ]; then
+            echo "Downloading from: $BROWSER_URL"
+            curl -L --progress-bar --retry 3 --retry-delay 5 -o /tmp/chromium.zip "$BROWSER_URL"
+            echo "Extracting..."
+            DEST=$(npx playwright install --dry-run chromium 2>&1 | grep -o '/home/[^ ]*\|/root/[^ ]*' | head -1 | xargs dirname 2>/dev/null || echo "$HOME/.cache/ms-playwright")
+            mkdir -p "$HOME/.cache/ms-playwright"
+            unzip -q /tmp/chromium.zip -d "$HOME/.cache/ms-playwright/"
+            rm /tmp/chromium.zip
+            echo "Extraction complete"
+          else
+            echo "Could not detect download URL, falling back to playwright install"
+            npx playwright install chromium
+          fi
+
+      - name: Install Playwright system dependencies
+        timeout-minutes: 10
+        run: |
+          echo "::group::apt-get update"
+          sudo apt-get update -q
+          echo "::endgroup::"
+          echo "::group::playwright install-deps"
+          sudo npx playwright install-deps chromium
+          echo "::endgroup::"
+          echo "Playwright deps installed successfully"
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          APT_LISTCHANGES_FRONTEND: none
 
       - name: Run E2E tests
         run: xvfb-run --auto-servernum -- npm run e2e

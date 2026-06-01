@@ -494,9 +494,14 @@ export function renderMarkdown(markdown, options = {}) {
     if (/^>\s?/.test(line)) {
       flushPara(paraBuf); paraBuf = '';
       flushList();
-      const bqText = line.replace(/^>\s?/, '');
-      htmlParts.push(`<blockquote><p>${applyInline(escapeHtml(bqText))}</p></blockquote>`);
-      i++;
+      // Accumulate consecutive > lines into a single <blockquote>
+      const bqLines = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) {
+        bqLines.push(lines[i].replace(/^>\s?/, ''));
+        i++;
+      }
+      const bqContent = bqLines.map(l => `<p>${applyInline(escapeHtml(l))}</p>`).join('');
+      htmlParts.push(`<blockquote>${bqContent}</blockquote>`);
       continue;
     }
 

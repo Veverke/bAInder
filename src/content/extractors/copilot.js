@@ -38,6 +38,152 @@ function stripRoleLabels(content) {
     .replace(/^\s+/, '');
 }
 
+// ─── Virtual-scroll pre-pass ──────────────────────────────────────────────────
+
+/**
+ * Scroll the Copilot / M365 BizChat conversation container from top to bottom,
+ * collecting the innerHTML of every message element as it enters the DOM.
+ *
+ * BizChat uses a virtualised list — messages outside the viewport are unmounted,
+ * so a plain querySelectorAll only captures the currently-visible window.  This
+ * pre-pass forces every message to load before it can be evicted.
+ *
+ * Returns an array of `{ role, innerHTML }` in conversation order, or `null`
+ * when the container fits on screen without scrolling (pre-pass not needed).
+ *
+ * @param {Document} doc
+ * @returns {Promise<Array<{role:string, innerHTML:string}>|null>}
+ */
+async function _scrollAndCollectCopilot(doc) {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // ── Step 1: find the real scrollable container ──────────────────────────
+  // Walk up from a real message element via getComputedStyle instead of
+  // guessing by selector — avoids picking a wrapper with overflow:hidden.
+  const anchorEl =
+    doc.querySelector('[data-content="user-message"], [data-content="ai-message"]') ||
+    doc.querySelector('[data-testid="user-message"], [data-testid="ai-message"]') ||
+    doc.querySelector('[class*="user-message"], [class*="UserMessage"]');
+
+  let scrollEl = null;
+  if (anchorEl && typeof getComputedStyle !== 'undefined') {
+    let node = anchorEl.parentElement;
+    while (node && node !== doc.documentElement) {
+      const oy = getComputedStyle(node).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight + 20) {
+        scrollEl = node;
+        break;
+      }
+      node = node.parentElement;
+    }
+  }
+
+  // Fallback: known BizChat / Copilot selectors
+  if (!scrollEl) {
+    for (const sel of [
+      '[data-testid="chat-page"]',
+      '[class*="conversation-list"]',
+      '[class*="conversationList"]',
+      'main',
+      '[role="main"]',
+    ]) {
+      const el = doc.querySelector(sel);
+      if (el && el.scrollHeight > el.clientHeight + 50) { scrollEl = el; break; }
+    }
+  }
+
+  if (!scrollEl) scrollEl = doc.scrollingElement || doc.documentElement;
+
+  if (scrollEl.scrollHeight <= scrollEl.clientHeight + 100) return null;
+
+  const savedTop  = scrollEl.scrollTop;
+  const collected = [];
+  const seenFps   = new Set();
+
+  function harvest() {
+    // Primary: stable BizChat/M365 data-content attributes (not on sidebar items)
+    let userEls   = Array.from(doc.querySelectorAll('[data-content="user-message"]'));
+    let assistEls = Array.from(doc.querySelectorAll('[data-content="ai-message"]'));
+    // Fallback: class/testid selectors used by copilot.microsoft.com variants
+    if (userEls.length === 0 && assistEls.length === 0) {
+      userEls = Array.from(doc.querySelectorAll(
+        '[class~="group/user-message"], [data-testid="user-message"], ' +
+        '.UserMessage, [class*="UserMessage"], [class*="user-message"]'
+      ));
+      assistEls = Array.from(doc.querySelectorAll(
+        '[class~="group/ai-message-item"], [class~="group/ai-message"], ' +
+        '[data-testid="ai-message"], [data-testid="copilot-message"], ' +
+        '[data-testid="assistant-message"], [class*="CopilotMessage"], ' +
+        '[class*="AssistantMessage"], [class*="ai-message"]'
+      ));
+    }
+    // Keep only top-level containers — remove nested elements with the same class
+    const deNested = els => els.filter(el => !els.some(o => o !== el && o.contains(el)));
+    userEls   = deNested(userEls);
+    assistEls = deNested(assistEls);
+    const allEls = [
+      ...userEls.map(el  => ({ el, role: 'user' })),
+      ...assistEls.map(el => ({ el, role: 'assistant' })),
+    ].sort((a, b) =>
+      a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+    );
+    for (const { el, role } of allEls) {
+      const fp = role + '::' + (el.textContent || '').trim().slice(0, 120);
+      if (seenFps.has(fp)) continue;
+      seenFps.add(fp);
+      collected.push({ role, innerHTML: el.innerHTML });
+    }
+  }
+
+  // ── Phase 1: scroll UP to load older messages ────────────────────────────
+  // BizChat prepends older messages when scrollTop approaches 0.
+  // Jump to top, wait for the network, check if scrollHeight grew.
+  // Stop when height stabilises (no more old messages) or cap is reached.
+  const MAX_UP_PASSES = 30;
+  for (let i = 0; i < MAX_UP_PASSES; i++) {
+    const prevH = scrollEl.scrollHeight;
+    scrollEl.scrollTo({ top: 0, behavior: 'instant' });
+    await sleep(600);
+    harvest();
+    if (scrollEl.scrollHeight === prevH) break;
+  }
+
+  // ── Phase 2: scroll DOWN to collect all messages ─────────────────────────
+  const STEP_PX   = Math.max(300, Math.floor((scrollEl.clientHeight || 600) * 0.7));
+  const MAX_STEPS = 200;
+  let lastTop   = -1;
+  let sameCount = 0;
+  for (let step = 0; step < MAX_STEPS; step++) {
+    scrollEl.scrollBy({ top: STEP_PX, behavior: 'instant' });
+    await sleep(350);
+    harvest();
+    const top = scrollEl.scrollTop;
+    if (top === lastTop) { if (++sameCount >= 3) break; }
+    else                 { sameCount = 0; lastTop = top; }
+  }
+
+  // ── Phase 2.5: final bottom sweep ─────────────────────────────────────────
+  // The virtualizer may render the very last batch only after scrollTop
+  // stabilises. Push to the new bottom until count and height are both stable.
+  for (let extra = 0; extra < 5; extra++) {
+    const prevCount = collected.length;
+    const prevH     = scrollEl.scrollHeight;
+    scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'instant' });
+    await sleep(500);
+    harvest();
+    if (collected.length === prevCount && scrollEl.scrollHeight === prevH) break;
+  }
+
+  scrollEl.scrollTo({ top: savedTop, behavior: 'instant' });
+  const raf = typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame : fn => setTimeout(fn, 16);
+  await new Promise(r => raf(() => raf(r)));
+
+  console.log('[bAInder] [copilot] scroll pre-pass captured', collected.length, 'message(s)',
+    '(scrollEl:', (scrollEl.tagName || 'document') + '#' + (scrollEl.id || ''),
+    'scrollH=' + scrollEl.scrollHeight, 'clientH=' + scrollEl.clientHeight + ')');
+  return collected;
+}
+
 // ─── Extractor ────────────────────────────────────────────────────────────────
 
 /**
@@ -48,7 +194,40 @@ function stripRoleLabels(content) {
 export async function extractCopilot(doc) {
   if (!doc) throw new Error('Document is required');
 
+  // ── Virtual-scroll pre-pass ─────────────────────────────────────────────────
+  // M365 BizChat virtualises its message list: messages outside the viewport are
+  // unmounted.  Scroll the full conversation so every message is harvested before
+  // it can be evicted, then process the collected HTML snapshots.
   const messages = [];
+  const _prePassMsgs = await _scrollAndCollectCopilot(doc);
+  if (_prePassMsgs && _prePassMsgs.length > 0) {
+    console.log('[bAInder] [copilot] processing', _prePassMsgs.length, 'pre-pass message(s)');
+    const bgFetch = (typeof chrome !== 'undefined' && chrome?.runtime?.sendMessage)
+      ? url => new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({ type: 'FETCH_IMAGE_AS_DATA_URL', url }, resp => {
+            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+            const du = resp?.dataUrl || '';
+            if (resp?.success && du.startsWith('data:')) resolve(du);
+            else reject(new Error(resp?.error || 'invalid dataUrl from background'));
+          });
+        })
+      : null;
+    for (const { role, innerHTML } of _prePassMsgs) {
+      const tempDiv = doc.createElement('div');
+      tempDiv.innerHTML = innerHTML;
+      const processEl  = role === 'assistant' ? stripSourceContainers(tempDiv) : tempDiv;
+      const resolvedEl = await resolveImageBlobs(processEl, bgFetch);
+      let content = stripRoleLabels(htmlToMarkdown(resolvedEl));
+      if (role === 'assistant') content += extractSourceLinks(tempDiv);
+      console.log('[bAInder] [copilot] pre-pass msg', messages.length, role,
+        '| len:', content.length, '| preview:', JSON.stringify(content.slice(0, 300)));
+      if (content) messages.push(formatMessage(role, content));
+    }
+    const title = generateTitle(messages, doc.location?.href || '');
+    return { title, messages, messageCount: messages.length };
+  }
+
+  // Fall through to standard DOM extraction when pre-pass is not needed.
 
   // Scope to the main conversation area so sidebar history items
   // (which may share the same class patterns) are not included.
