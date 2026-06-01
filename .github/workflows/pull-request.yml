@@ -31,9 +31,19 @@ jobs:
       - name: Run unit tests
         run: npm run test:coverage
 
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
       - name: Install Playwright browsers
-        timeout-minutes: 5
+        timeout-minutes: 15
         run: npx playwright install chromium
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: ${{ steps.playwright-cache.outputs.cache-hit == 'true' && '1' || '0' }}
 
       - name: Install Playwright system dependencies
         timeout-minutes: 10
