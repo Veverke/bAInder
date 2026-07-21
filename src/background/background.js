@@ -149,6 +149,17 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   logger.debug('Runtime message received:', message.type);
 
+  // ── Bulk fetch: forward content-script messages to the sidepanel ──────────
+  // Content-script messages have sender.tab set; extension pages don't.
+  if (sender.tab && (message.type === 'FETCH_ALL_CHATS_PROGRESS' || message.type === 'FETCH_ALL_CHATS_RESULT')) {
+    browser.runtime.sendMessage({
+      type: `SIDEPANEL_${message.type}`,
+      data: message.data,
+    }).catch(() => {});
+    sendResponse({ success: true });
+    return;
+  }
+
   // Forward logs from content scripts (tab console → SW console).
   if (message.type === 'CONTENT_LOG') {
     const lvl = message.level || 'info';
@@ -249,7 +260,38 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
-      
+
+    case 'FETCH_ALL_CHATS':
+      // Sidepanel requests injection of bulk-fetcher into the active tab.
+      (async () => {
+        try {
+          const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+          const tab = tabs?.[0];
+          if (!tab || !tab.id) {
+            sendResponse({ success: false, error: 'No active tab found' });
+            return;
+          }
+          const url = tab.url || '';
+          const supported = [
+            'chat.openai.com', 'chatgpt.com', 'claude.ai',
+            'gemini.google.com', 'copilot.microsoft.com',
+            'm365.cloud.microsoft', 'chat.deepseek.com', 'perplexity.ai'
+          ];
+          if (!supported.some(h => url.includes(h))) {
+            sendResponse({ success: false, error: 'Active tab is not on a supported AI chat platform' });
+            return;
+          }
+          await browser.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['bulk-fetcher.js'],
+          });
+          sendResponse({ success: true });
+        } catch (err) {
+          sendResponse({ success: false, error: err.message });
+        }
+      })();
+      return true;
+
     default:
       logger.warn('Unknown message type:', message.type);
       sendResponse({ success: false, error: 'Unknown message type' });

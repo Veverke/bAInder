@@ -2028,7 +2028,6 @@ const logger = {
 
     switch (message.type) {
 
-
       case 'EXTRACT_CHAT': {
         if (!platform) {
           sendResponse({ success: false, error: 'Not on a supported AI chat platform' });

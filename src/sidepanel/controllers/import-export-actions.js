@@ -12,6 +12,8 @@ import { state, elements } from '../app-context.js';
 import { logger } from '../../lib/utils/logger.js';
 import { TopicTree } from '../../lib/tree/tree.js';
 import browser from '../../lib/vendor/browser.js';
+import JSZip from '../../lib/vendor/jszip-esm.js';
+import { triggerDownload } from '../../lib/export/download.js';
 import { showNotification } from '../notification.js';
 import { saveTree, renderTreeView } from './tree-controller.js';
 import { updateStorageUsage } from '../features/storage-usage.js';
@@ -131,4 +133,131 @@ export async function handleClearAll() {
     logger.error('Clear all failed:', err);
     await _state.dialog.alert(err.message || 'Failed to clear data', 'Error');
   }
+}
+
+/**
+ * Fetch all chats from the currently active AI chat platform tab.
+ * Injects bulk-fetcher.js, listens for progress/result, builds a ZIP download.
+ */
+export async function handleFetchAllChats() {
+  try {
+    // ── Ask background to inject bulk-fetcher into the active tab ──────────
+    const resp = await browser.runtime.sendMessage({ type: 'FETCH_ALL_CHATS' });
+    if (!resp?.success) {
+      await _state.dialog.alert(resp?.error || 'Failed to start fetch', 'Fetch All Chats');
+      return;
+    }
+
+    // ── Show a simple "in progress" dialog ─────────────────────────────────
+    _state.dialog.show(`
+      <div class="modal-header">
+        <h2>Fetching all chats…</h2>
+      </div>
+      <div class="modal-body">
+        <p id="fetchProgressMsg">Starting…</p>
+        <div class="progress-bar" style="background:var(--bg-tertiary);border-radius:4px;height:8px;overflow:hidden">
+          <div id="fetchProgressFill" style="background:var(--accent);width:0%;height:100%;transition:width .3s"></div>
+        </div>
+      </div>
+    `);
+
+    // ── Listen for progress and result ─────────────────────────────────────
+    const result = await new Promise((resolve, reject) => {
+      const listener = (msg) => {
+        if (msg.type === 'SIDEPANEL_FETCH_ALL_CHATS_PROGRESS') {
+          const { current, total, title } = msg.data || {};
+          const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+          const msgEl = document.getElementById('fetchProgressMsg');
+          const fillEl = document.getElementById('fetchProgressFill');
+          if (msgEl) msgEl.textContent = title ? `${current} of ${total} — ${title}` : `Fetched ${current} of ${total}`;
+          if (fillEl) fillEl.style.width = `${pct}%`;
+        } else if (msg.type === 'SIDEPANEL_FETCH_ALL_CHATS_RESULT') {
+          browser.runtime.onMessage.removeListener(listener);
+          resolve(msg.data);
+        }
+      };
+      browser.runtime.onMessage.addListener(listener);
+
+      // Timeout after 10 minutes
+      setTimeout(() => {
+        browser.runtime.onMessage.removeListener(listener);
+        reject(new Error('Fetch timed out after 10 minutes'));
+      }, 600_000);
+    });
+
+    _state.dialog.close();
+
+    if (!result?.success) {
+      await _state.dialog.alert(result?.error || 'Fetch failed', 'Fetch All Chats');
+      return;
+    }
+
+    const { platform, chats, needsExtract } = result;
+
+    if (!chats || chats.length === 0) {
+      await _state.dialog.alert('No conversations found on this platform.', 'Fetch All Chats');
+      return;
+    }
+
+    // ── Build ZIP from fetched chats ───────────────────────────────────────
+    const dateTag = new Date().toISOString().slice(0, 10);
+    const rootDir = `bAInder-bulk-${platform}-${dateTag}`;
+    const zip = new JSZip();
+
+    for (const chat of chats) {
+      const title = chat.title || 'Untitled';
+      const safeName = title.replace(/[<>:"/\\|?*]/g, '_').slice(0, 100);
+      const md = _buildBulkMarkdown(chat);
+      zip.file(`${rootDir}/${safeName}.md`, md);
+    }
+
+    // Add a metadata file
+    const meta = {
+      exportDate: new Date().toISOString(),
+      platform,
+      totalChats: chats.length,
+      needsExtract,
+    };
+    zip.file(`${rootDir}/_metadata.json`, JSON.stringify(meta, null, 2));
+
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    triggerDownload(`bAInder-${platform}-all-chats-${dateTag}.zip`, blob, 'application/zip');
+
+    showNotification(`Fetched ${chats.length} chat(s) from ${platform}`, 'success');
+  } catch (err) {
+    logger.error('Fetch all chats failed:', err);
+    // Close any open dialog first
+    _state.dialog.close();
+    await _state.dialog.alert(err.message || 'Fetch failed', 'Fetch All Chats');
+  }
+}
+
+/**
+ * Build a simple markdown string from a fetched chat object.
+ * @param {{ title: string, messages: Array<{role: string, content: string}>, source: string, url: string }} chat
+ * @returns {string}
+ */
+function _buildBulkMarkdown(chat) {
+  const lines = [];
+  lines.push(`# ${chat.title || 'Untitled'}`);
+  lines.push('');
+  lines.push(`- **Source:** ${chat.source || 'unknown'}`);
+  if (chat.url) lines.push(`- **URL:** ${chat.url}`);
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+
+  if (Array.isArray(chat.messages)) {
+    for (const msg of chat.messages) {
+      const label = msg.role === 'user' ? '**User**' : '**Assistant**';
+      lines.push(`${label}:`);
+      lines.push('');
+      lines.push(msg.content || '');
+      lines.push('');
+      lines.push('---');
+      lines.push('');
+    }
+  }
+
+  return lines.join('\n');
 }

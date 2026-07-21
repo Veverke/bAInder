@@ -23,6 +23,7 @@ export const elements = {
   searchResultsList:    document.getElementById('searchResultsList'),
   addTopicBtn:          document.getElementById('addTopicBtn'),
   importBtn:            document.getElementById('importBtn'),
+  fetchAllBtn:          document.getElementById('fetchAllBtn'),
   exportAllBtn:         document.getElementById('exportAllBtn'),
   clearAllBtn:          document.getElementById('clearAllBtn'),
 

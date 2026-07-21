@@ -98,6 +98,7 @@ export default defineConfig(({ mode }) => {
           background:           resolve(__dirname, 'src/background/background.js'),
           content:              resolve(__dirname, 'src/content/content.js'),
           'audio-interceptor':  resolve(__dirname, 'src/content/audio-interceptor.js'),
+          'bulk-fetcher':       resolve(__dirname, 'src/content/bulk-fetcher.js'),
           sidepanel:  resolve(__dirname, 'src/sidepanel/sidepanel.html'),
           reader:     resolve(__dirname, 'src/reader/reader.html'),
           compare:    resolve(__dirname, 'src/compare/compare.html'),
