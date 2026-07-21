@@ -152,6 +152,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // ── Bulk fetch: forward content-script messages to the sidepanel ──────────
   // Content-script messages have sender.tab set; extension pages don't.
   if (sender.tab && (message.type === 'FETCH_ALL_CHATS_PROGRESS' || message.type === 'FETCH_ALL_CHATS_RESULT')) {
+    logger.info(`Relaying ${message.type} from content script → sidepanel`, message.data ? JSON.stringify(message.data).slice(0, 200) : '');
     browser.runtime.sendMessage({
       type: `SIDEPANEL_${message.type}`,
       data: message.data,
@@ -263,15 +264,18 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'FETCH_ALL_CHATS':
       // Sidepanel requests injection of bulk-fetcher into the active tab.
+      logger.info('FETCH_ALL_CHATS received from sidepanel');
       (async () => {
         try {
           const tabs = await browser.tabs.query({ active: true, currentWindow: true });
           const tab = tabs?.[0];
           if (!tab || !tab.id) {
+            logger.warn('FETCH_ALL_CHATS: no active tab');
             sendResponse({ success: false, error: 'No active tab found' });
             return;
           }
           const url = tab.url || '';
+          logger.info(`FETCH_ALL_CHATS: active tab url = ${url}`);
           const supported = [
             'chat.openai.com', 'chatgpt.com', 'claude.ai',
             'gemini.google.com', 'copilot.microsoft.com',
@@ -281,12 +285,15 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: false, error: 'Active tab is not on a supported AI chat platform' });
             return;
           }
+          logger.info('FETCH_ALL_CHATS: injecting bulk-fetcher.js into tab', tab.id);
           await browser.scripting.executeScript({
             target: { tabId: tab.id },
             files: ['bulk-fetcher.js'],
           });
+          logger.info('FETCH_ALL_CHATS: bulk-fetcher.js injected successfully');
           sendResponse({ success: true });
         } catch (err) {
+          logger.error('FETCH_ALL_CHATS injection error:', err.message);
           sendResponse({ success: false, error: err.message });
         }
       })();

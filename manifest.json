@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "bAInder - AI Chat Organizer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Organize AI browser chats into a hierarchical notebook with topics, table of contents, and search functionality",
   "permissions": [
     "storage",

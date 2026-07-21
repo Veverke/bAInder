@@ -23,6 +23,7 @@ import { refresh as refreshEntityController } from './entity-controller.js';
 import { refreshEntityTypeChipVisibility } from './search-controller.js';
 import { extractChatEntities } from '../../lib/entities/entity-extractor.js';
 import '../../lib/entities/extractors/index.js'; // registers all extractors so re-extraction works in sidepanel context
+import { parseZipEntries, buildImportPlan, executeImport } from '../../lib/io/import-parser.js';
 let _state = state;
 // ---------------------------------------------------------------------------
 // Test injection hook - lets unit tests provide a mock app context instead of
@@ -141,14 +142,9 @@ export async function handleClearAll() {
  */
 export async function handleFetchAllChats() {
   try {
-    // ── Ask background to inject bulk-fetcher into the active tab ──────────
-    const resp = await browser.runtime.sendMessage({ type: 'FETCH_ALL_CHATS' });
-    if (!resp?.success) {
-      await _state.dialog.alert(resp?.error || 'Failed to start fetch', 'Fetch All Chats');
-      return;
-    }
-
-    // ── Show a simple "in progress" dialog ─────────────────────────────────
+    // ── Show progress dialog FIRST (before sending request) ───────────────
+    // The bulk-fetcher may complete synchronously for DOM-based platforms
+    // (e.g. M365 Copilot), so the listener must be ready before we inject.
     _state.dialog.show(`
       <div class="modal-header">
         <h2>Fetching all chats…</h2>
@@ -161,17 +157,21 @@ export async function handleFetchAllChats() {
       </div>
     `);
 
-    // ── Listen for progress and result ─────────────────────────────────────
+    // ── Listen for progress and result BEFORE sending the request ─────────
+    // This avoids a race where a fast (DOM-only) bulk-fetcher finishes before
+    // the listener is registered.
     const result = await new Promise((resolve, reject) => {
       const listener = (msg) => {
         if (msg.type === 'SIDEPANEL_FETCH_ALL_CHATS_PROGRESS') {
           const { current, total, title } = msg.data || {};
           const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+          console.log(`[bAInder:sidepanel] Progress ${current}/${total} (${pct}%) — ${title || ''}`);
           const msgEl = document.getElementById('fetchProgressMsg');
           const fillEl = document.getElementById('fetchProgressFill');
           if (msgEl) msgEl.textContent = title ? `${current} of ${total} — ${title}` : `Fetched ${current} of ${total}`;
           if (fillEl) fillEl.style.width = `${pct}%`;
         } else if (msg.type === 'SIDEPANEL_FETCH_ALL_CHATS_RESULT') {
+          console.log(`[bAInder:sidepanel] Received result:`, JSON.stringify(msg.data).slice(0, 300));
           browser.runtime.onMessage.removeListener(listener);
           resolve(msg.data);
         }
@@ -183,6 +183,15 @@ export async function handleFetchAllChats() {
         browser.runtime.onMessage.removeListener(listener);
         reject(new Error('Fetch timed out after 10 minutes'));
       }, 600_000);
+
+      // ── Ask background to inject bulk-fetcher into the active tab ──────
+      // (do this AFTER the listener is registered)
+      browser.runtime.sendMessage({ type: 'FETCH_ALL_CHATS' }).then(resp => {
+        if (!resp?.success) {
+          browser.runtime.onMessage.removeListener(listener);
+          reject(new Error(resp?.error || 'Failed to start fetch'));
+        }
+      });
     });
 
     _state.dialog.close();
@@ -201,17 +210,29 @@ export async function handleFetchAllChats() {
 
     // ── Build ZIP from fetched chats ───────────────────────────────────────
     const dateTag = new Date().toISOString().slice(0, 10);
+
+    // Use a human-readable topic name derived from the platform ID
+    const topicName = {
+      copilot: 'M365 Copilot',
+      chatgpt: 'ChatGPT',
+      gemini: 'Gemini',
+      perplexity: 'Perplexity',
+      deepseek: 'DeepSeek',
+      claude: 'Claude',
+    }[platform] || platform.charAt(0).toUpperCase() + platform.slice(1);
+
     const rootDir = `bAInder-bulk-${platform}-${dateTag}`;
+    const topicDir = `${rootDir}/${topicName}`; // subfolder = topic in import parser
     const zip = new JSZip();
 
     for (const chat of chats) {
       const title = chat.title || 'Untitled';
       const safeName = title.replace(/[<>:"/\\|?*]/g, '_').slice(0, 100);
       const md = _buildBulkMarkdown(chat);
-      zip.file(`${rootDir}/${safeName}.md`, md);
+      zip.file(`${topicDir}/${safeName}.md`, md);
     }
 
-    // Add a metadata file
+    // Add a metadata file at the root
     const meta = {
       exportDate: new Date().toISOString(),
       platform,
@@ -221,9 +242,89 @@ export async function handleFetchAllChats() {
     zip.file(`${rootDir}/_metadata.json`, JSON.stringify(meta, null, 2));
 
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-    triggerDownload(`bAInder-${platform}-all-chats-${dateTag}.zip`, blob, 'application/zip');
 
-    showNotification(`Fetched ${chats.length} chat(s) from ${platform}`, 'success');
+    // ── Prompt user for import strategy, then auto-import ──────────────────
+    const strategy = await _promptImportStrategy(chats.length, platform);
+    if (!strategy) {
+      // User cancelled — fall back to just downloading the ZIP
+      triggerDownload(`bAInder-${platform}-all-chats-${dateTag}.zip`, blob, 'application/zip');
+      showNotification(`Fetched ${chats.length} chat(s) from ${platform}`, 'success');
+      return;
+    }
+
+    // User chose a strategy — import now
+    _state.dialog.show(`
+      <div class="modal-header">
+        <h2>Importing chats…</h2>
+      </div>
+      <div class="modal-body">
+        <p>Importing ${chats.length} chat(s) from ${platform}…</p>
+        <div class="progress-bar" style="background:var(--bg-tertiary);border-radius:4px;height:8px;overflow:hidden">
+          <div id="importProgressFill" style="background:var(--accent);width:50%;height:100%;transition:width .3s"></div>
+        </div>
+      </div>
+    `);
+
+    try {
+      // Load ZIP entries and build import plan
+      const jszip = await JSZip.loadAsync(blob);
+      const entryPromises = [];
+      jszip.forEach((relativePath, zipEntry) => {
+        if (!zipEntry.dir) {
+          entryPromises.push(
+            zipEntry.async('string').then((content) => ({ path: relativePath, content }))
+          );
+        }
+      });
+      const entries = await Promise.all(entryPromises);
+      const parsed = parseZipEntries(entries);
+      const plan = buildImportPlan(parsed, _state.tree, strategy === 'new-root' ? 'create_root' : strategy);
+
+      // Execute import
+      const treeObj = strategy === 'replace' ? null : _state.tree;
+      const chatArr = strategy === 'replace' ? [] : _state.chats;
+      const result = executeImport(plan, treeObj ? treeObj.toObject() : null, chatArr);
+
+      // Rebuild tree from imported data
+      _state.tree  = TopicTree.fromObject({ topics: result.updatedTopics, rootTopicIds: result.updatedRootTopics });
+      _state.chats = result.updatedChats;
+
+      // Keep dialog instances' tree reference in sync
+      _state.topicDialogs.tree = _state.tree;
+      _state.chatDialogs.tree  = _state.tree;
+
+      // Persist
+      await saveTree();
+      // Re-extract entities from imported chats
+      for (const chat of _state.chats) {
+        if (!chat.metadata?.importedAt) continue;
+        if (!Array.isArray(chat.messages) || chat.messages.length === 0) continue;
+        const entities = await extractChatEntities(chat.messages, null, chat.id);
+        Object.assign(chat, entities);
+      }
+      _state.chats = await _state.chatRepo.replaceAll(_state.chats);
+
+      // Refresh UI
+      _state.renderer.setTree(_state.tree);
+      _state.renderer.setChatData(_state.chats);
+      renderTreeView();
+      refreshEntityController();
+      refreshEntityTypeChipVisibility();
+      await updateStorageUsage();
+
+      _state.dialog.close();
+      const msg = `Imported ${result.summary.chatsImported} chat(s) from ${platform}.`;
+      showNotification(msg, 'success');
+    } catch (err) {
+      _state.dialog.close();
+      logger.error('Auto-import failed:', err);
+      // Fall back to ZIP download so data isn't lost
+      triggerDownload(`bAInder-${platform}-all-chats-${dateTag}.zip`, blob, 'application/zip');
+      await _state.dialog.alert(
+        `Import failed: ${err.message}\n\nThe ZIP file has been downloaded so your data is not lost.`,
+        'Import Error'
+      );
+    }
   } catch (err) {
     logger.error('Fetch all chats failed:', err);
     // Close any open dialog first
@@ -233,24 +334,104 @@ export async function handleFetchAllChats() {
 }
 
 /**
- * Build a simple markdown string from a fetched chat object.
+ * Prompt the user to choose an import strategy for the fetched chats.
+ * @param {number} count  Number of chats collected
+ * @param {string} platform
+ * @returns {Promise<string|null>} 'merge' | 'replace' | 'new-root' | null if cancelled
+ */
+function _promptImportStrategy(count, platform) {
+  return new Promise((resolve) => {
+    _state.dialog.show(`
+      <div class="modal-header">
+        <h2>Import ${count} chat(s) from ${platform}?</h2>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:var(--space-md)">Choose how to import the fetched chats into bAInder:</p>
+        <div class="dim-strategy-list">
+          <label class="dim-strategy-row">
+            <input type="radio" name="importStrategy" value="merge" checked>
+            <span class="dim-str-icon" aria-hidden="true">🔀</span>
+            <span class="dim-str-body">
+              <span class="dim-str-name">Merge</span>
+              <span class="dim-str-desc">Combine with your existing data</span>
+            </span>
+          </label>
+          <label class="dim-strategy-row">
+            <input type="radio" name="importStrategy" value="replace">
+            <span class="dim-str-icon" aria-hidden="true">⚠️</span>
+            <span class="dim-str-body">
+              <span class="dim-str-name">Replace</span>
+              <span class="dim-str-desc">Clear all existing data, then import</span>
+            </span>
+          </label>
+          <label class="dim-strategy-row">
+            <input type="radio" name="importStrategy" value="new-root">
+            <span class="dim-str-icon" aria-hidden="true">📂</span>
+            <span class="dim-str-body">
+              <span class="dim-str-name">New Root</span>
+              <span class="dim-str-desc">Import as new root topics alongside existing data</span>
+            </span>
+          </label>
+        </div>
+        <div class="dim-notice dim-notice--warning" id="importReplaceWarning" style="display:none">
+          ⚠️ Replace will permanently delete <em>all</em> existing topics and chats.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="strategyCancelBtn">Cancel</button>
+        <button class="btn-primary" id="strategyImportBtn">Import</button>
+      </div>
+    `);
+
+    // Toggle replace warning
+    document.querySelectorAll('input[name="importStrategy"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        const warn = document.getElementById('importReplaceWarning');
+        if (warn) warn.style.display = radio.value === 'replace' ? 'block' : 'none';
+      });
+    });
+
+    document.getElementById('strategyCancelBtn').addEventListener('click', () => {
+      _state.dialog.close();
+      resolve(null);
+    });
+
+    document.getElementById('strategyImportBtn').addEventListener('click', () => {
+      const checked = document.querySelector('input[name="importStrategy"]:checked');
+      _state.dialog.close();
+      resolve(checked ? checked.value : 'merge');
+    });
+  });
+}
+
+/**
+ * Build markdown for a fetched chat, using the same format as buildExportMarkdown
+ * so the ZIP can be re-imported via bAInder's native import pipeline.
+ *
  * @param {{ title: string, messages: Array<{role: string, content: string}>, source: string, url: string }} chat
  * @returns {string}
  */
 function _buildBulkMarkdown(chat) {
-  const lines = [];
-  lines.push(`# ${chat.title || 'Untitled'}`);
-  lines.push('');
-  lines.push(`- **Source:** ${chat.source || 'unknown'}`);
-  if (chat.url) lines.push(`- **URL:** ${chat.url}`);
-  lines.push('');
+  const title = (chat.title || 'Untitled').trim();
+  const source = chat.source || 'unknown';
+  const url = chat.url || '';
+  const now = new Date().toISOString();
+
+  const lines = [
+    '---',
+    `title: "${title.replace(/[\\"]/g, '\\$&')}"`,
+    `source: ${source}`,
+  ];
+  if (url) lines.push(`url: ${url}`);
+  lines.push('date: ' + now);
+  lines.push('contentFormat: markdown-v1');
   lines.push('---');
   lines.push('');
 
   if (Array.isArray(chat.messages)) {
     for (const msg of chat.messages) {
-      const label = msg.role === 'user' ? '**User**' : '**Assistant**';
-      lines.push(`${label}:`);
+      const role = msg.role === 'user' ? 'User' : 'Assistant';
+      lines.push(`### ${role}`);
       lines.push('');
       lines.push(msg.content || '');
       lines.push('');
