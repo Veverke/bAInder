@@ -13,6 +13,9 @@
  * the background worker, and progress updates as FETCH_ALL_CHATS_PROGRESS.
  */
 
+// Wrapped in a block to prevent Vite's top-level const declarations from
+// clashing with page-level variables when injected via executeScript.
+{
 // ─── Logger ──────────────────────────────────────────────────────────────────
 const _browser = chrome;
 const _log = {
@@ -432,3 +435,4 @@ async function _fetchDeepSeek() {
     }).catch(() => {});
   }
 })();
+}
