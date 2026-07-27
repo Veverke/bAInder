@@ -13,10 +13,10 @@
  * the background worker, and progress updates as FETCH_ALL_CHATS_PROGRESS.
  */
 
-import { htmlToMarkdown } from './extractors/html-to-markdown.js';
-
-// Wrapped in a block to prevent Vite's top-level const declarations from
-// clashing with page-level variables when injected via executeScript.
+// NOTE: A `{...}` block does NOT prevent Vite from placing inlined-import
+// const declarations at the top level of the bundled output.  The actual
+// fix is in vite.config.js — the wrap-bulk-fetcher-iife plugin wraps the
+// entire bundled file in an IIFE after Vite finishes.
 {
 // ─── Logger ──────────────────────────────────────────────────────────────────
 const _browser = chrome;
@@ -30,6 +30,37 @@ const _log = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const _delay = ms => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Map an array of items to async functions with bounded concurrency.
+ * Respects insertion order of results.
+ * @template T, R
+ * @param {T[]} items
+ * @param {(item: T, index: number) => Promise<R>} fn
+ * @param {number} [concurrency=5]
+ * @returns {Promise<R[]>}
+ */
+async function _mapConcurrent(items, fn, concurrency = 5) {
+  const results = new Array(items.length);
+  const executing = new Set();
+  let idx = 0;
+  const next = () => {
+    if (idx >= items.length) return null;
+    const i = idx++;
+    const p = fn(items[i], i).then(r => { results[i] = r; });
+    executing.add(p);
+    p.finally(() => executing.delete(p));
+    return p;
+  };
+  // Fill initial batch
+  while (executing.size < concurrency && idx < items.length) next();
+  // Drain and refill
+  while (executing.size > 0) {
+    await Promise.race(executing);
+    while (executing.size < concurrency && idx < items.length) next();
+  }
+  return results;
+}
 
 /**
  * Fetch JSON with credentials from a URL.
@@ -80,54 +111,72 @@ function _detectPlatform(hostname) {
 async function _fetchChatGPT() {
   _log.info('ChatGPT: starting bulk fetch…');
   const all = [];
+  const convIds = [];
   let offset = 0;
   const LIMIT = 100;
   let hasMore = true;
+  let totalConversations = 0;
 
   while (hasMore) {
     const list = await _apiFetch(`/api/conversations?offset=${offset}&limit=${LIMIT}&order=updated`);
     const items = list?.items || [];
     if (items.length === 0) break;
-    const total = list?.total || items.length;
-    _sendProgress(all.length, total, 'Listing conversations…');
+    totalConversations = list?.total || items.length;
+    _sendProgress(all.length, totalConversations, 'Listing conversations…');
 
     for (const item of items) {
       const convId = item.id;
-      if (!convId) { _sendProgress(++all.length, total, 'Skipping (no id)'); continue; }
-      try {
-        const conv = await _apiFetch(`/api/conversations/${convId}`);
-        if (!conv?.mapping) { _sendProgress(++all.length, total, 'Skipping (no mapping)'); continue; }
-
-        const messages = [];
-        const nodeIds = Object.keys(conv.mapping).sort((a, b) => {
-          const na = conv.mapping[a];
-          const nb = conv.mapping[b];
-          return (na?.position ?? 0) - (nb?.position ?? 0);
-        });
-        for (const nodeId of nodeIds) {
-          const node = conv.mapping[nodeId];
-          if (!node?.message) continue;
-          const msg = node.message;
-          const role = msg.author?.role === 'user' ? 'user' : 'assistant';
-          let content = '';
-          if (msg.content?.content_type === 'text') {
-            content = msg.content.parts?.filter(Boolean).join('\n\n') || '';
-          } else if (msg.content?.content_type === 'multimodal_text') {
-            content = msg.content.parts?.map(p => typeof p === 'string' ? p : '[🖼️ Image]').filter(Boolean).join('\n\n') || '';
-          }
-          if (content.trim()) messages.push({ role, content: content.trim() });
-        }
-        const title = conv.title || item.title || 'Untitled';
-        all.push({ title, messages, source: 'chatgpt', url: `https://chatgpt.com/chat/${convId}` });
-        _sendProgress(all.length, total, title);
-        await _delay(100);
-      } catch (err) {
-        _log.warn(`ChatGPT: skip ${convId}: ${err.message}`);
-        _sendProgress(all.length, all.length + 1, `⚠️ Error: ${convId}`);
-      }
+      if (!convId) { _sendProgress(++all.length, totalConversations, 'Skipping (no id)'); continue; }
+      convIds.push({ convId, item });
     }
     offset += items.length;
     hasMore = items.length >= LIMIT;
+  }
+
+  // ── Fetch conversation details concurrently (up to 5 at a time) ──
+  const results = await _mapConcurrent(convIds, async ({ convId, item }) => {
+    try {
+      const conv = await _apiFetch(`/api/conversations/${convId}`);
+      if (!conv?.mapping) return null;
+
+      const messages = [];
+      const nodeIds = Object.keys(conv.mapping).sort((a, b) => {
+        const na = conv.mapping[a];
+        const nb = conv.mapping[b];
+        return (na?.position ?? 0) - (nb?.position ?? 0);
+      });
+      for (const nodeId of nodeIds) {
+        const node = conv.mapping[nodeId];
+        if (!node?.message) continue;
+        const msg = node.message;
+        const role = msg.author?.role === 'user' ? 'user' : 'assistant';
+        let content = '';
+        if (msg.content?.content_type === 'text') {
+          content = msg.content.parts?.filter(Boolean).join('\n\n') || '';
+        } else if (msg.content?.content_type === 'multimodal_text') {
+          content = msg.content.parts?.map(p => typeof p === 'string' ? p : '[🖼️ Image]').filter(Boolean).join('\n\n') || '';
+        }
+        if (content.trim()) messages.push({ role, content: content.trim() });
+      }
+      if (messages.length === 0) return null;
+      return {
+        title: conv.title || item.title || 'Untitled',
+        messages,
+        source: 'chatgpt',
+        url: `https://chatgpt.com/chat/${convId}`,
+      };
+    } catch (err) {
+      _log.warn(`ChatGPT: skip ${convId}: ${err.message}`);
+      return null;
+    }
+  });
+
+  // Collect results, update progress
+  for (const chat of results) {
+    if (chat) {
+      all.push(chat);
+      _sendProgress(all.length, totalConversations, chat.title);
+    }
   }
 
   _log.info(`ChatGPT: fetched ${all.length} conversations`);
@@ -142,7 +191,8 @@ async function _fetchClaude() {
   const orgs = await _apiFetch('https://claude.ai/api/organizations', { headers: API_HEADERS });
   if (!orgs?.length) throw new Error('No Claude organizations found');
 
-  const all = [];
+  // ── Phase 1: collect all conversation references from all orgs ──────
+  const convRefs = []; // { convId, orgUuid, name }
   for (const org of orgs) {
     let cursor = null;
     let hasMore = true;
@@ -154,60 +204,79 @@ async function _fetchClaude() {
       const list = await _apiFetch(listUrl, { headers: API_HEADERS });
       const items = Array.isArray(list.data) ? list.data : Array.isArray(list) ? list : [];
       if (items.length === 0) break;
-      const total = list.total ?? items.length;
-      _sendProgress(all.length, total, 'Listing conversations…');
+      _sendProgress(convRefs.length, convRefs.length + items.length, 'Listing conversations…');
 
       for (const conv of items) {
         const convId = conv.uuid;
         if (!convId) continue;
-        try {
-          const resp = await fetch(
-            `https://claude.ai/api/organizations/${org.uuid}/chat_conversations/${convId}?tree=True&rendering_mode=messages&render_all_tools=true`,
-            { credentials: 'include', headers: API_HEADERS }
-          );
-          if (!resp.ok) { _log.warn(`Claude: skip ${convId} (HTTP ${resp.status})`); continue; }
-          const data = await resp.json();
-          if (!data?.chat_messages) continue;
-
-          const msgMap = {};
-          for (const m of data.chat_messages) msgMap[m.uuid] = m;
-          let ordered = [];
-          let cur = msgMap[data.current_leaf_message_uuid];
-          while (cur) { ordered.unshift(cur); cur = msgMap[cur.parent_message_uuid]; }
-          if (!ordered.length) ordered = data.chat_messages;
-
-          const messages = [];
-          for (const msg of ordered) {
-            const role = msg.sender === 'human' ? 'user' : 'assistant';
-            let content = '';
-            if (Array.isArray(msg.content)) {
-              content = msg.content.map(b => {
-                if (b.type === 'text') return b.text;
-                if (b.type === 'image' && b.source?.type === 'base64' && b.source.data && b.source.media_type) {
-                  return `![Image](data:${b.source.media_type};base64,${b.source.data})`;
-                }
-                if (b.type === 'image' && b.source?.type === 'url' && b.source.url) {
-                  return `![Image](${b.source.url})`;
-                }
-                return null;
-              }).filter(Boolean).join('\n\n');
-            } else if (typeof msg.text === 'string') {
-              content = msg.text;
-            }
-            if (content.trim()) messages.push({ role, content: content.trim() });
-          }
-          const title = data.name || conv.name || 'Untitled';
-          all.push({ title, messages, source: 'claude', url: `https://claude.ai/chat/${convId}` });
-          _sendProgress(all.length, total, title);
-          await _delay(80);
-        } catch (err) {
-          _log.warn(`Claude: skip ${convId}: ${err.message}`);
-        }
+        convRefs.push({ convId, orgUuid: org.uuid, name: conv.name || 'Untitled' });
       }
       cursor = list.cursor || null;
       hasMore = list.has_more === true && cursor;
     }
   }
+
+  // ── Phase 2: fetch conversation details concurrently (up to 5) ──────
+  const total = convRefs.length;
+  const results = await _mapConcurrent(convRefs, async ({ convId, orgUuid, name }) => {
+    try {
+      const resp = await fetch(
+        `https://claude.ai/api/organizations/${orgUuid}/chat_conversations/${convId}?tree=True&rendering_mode=messages&render_all_tools=true`,
+        { credentials: 'include', headers: API_HEADERS }
+      );
+      if (!resp.ok) { _log.warn(`Claude: skip ${convId} (HTTP ${resp.status})`); return null; }
+      const data = await resp.json();
+      if (!data?.chat_messages) return null;
+
+      const msgMap = {};
+      for (const m of data.chat_messages) msgMap[m.uuid] = m;
+      let ordered = [];
+      let cur = msgMap[data.current_leaf_message_uuid];
+      while (cur) { ordered.unshift(cur); cur = msgMap[cur.parent_message_uuid]; }
+      if (!ordered.length) ordered = data.chat_messages;
+
+      const messages = [];
+      for (const msg of ordered) {
+        const role = msg.sender === 'human' ? 'user' : 'assistant';
+        let content = '';
+        if (Array.isArray(msg.content)) {
+          content = msg.content.map(b => {
+            if (b.type === 'text') return b.text;
+            if (b.type === 'image' && b.source?.type === 'base64' && b.source.data && b.source.media_type) {
+              return `![Image](data:${b.source.media_type};base64,${b.source.data})`;
+            }
+            if (b.type === 'image' && b.source?.type === 'url' && b.source.url) {
+              return `![Image](${b.source.url})`;
+            }
+            return null;
+          }).filter(Boolean).join('\n\n');
+        } else if (typeof msg.text === 'string') {
+          content = msg.text;
+        }
+        if (content.trim()) messages.push({ role, content: content.trim() });
+      }
+      if (messages.length === 0) return null;
+      return {
+        title: data.name || name,
+        messages,
+        source: 'claude',
+        url: `https://claude.ai/chat/${convId}`,
+      };
+    } catch (err) {
+      _log.warn(`Claude: skip ${convId}: ${err.message}`);
+      return null;
+    }
+  });
+
+  // Collect results, update progress
+  const all = [];
+  for (const chat of results) {
+    if (chat) {
+      all.push(chat);
+      _sendProgress(all.length, total, chat.title);
+    }
+  }
+
   _log.info(`Claude: fetched ${all.length} conversations`);
   return all;
 }
@@ -269,11 +338,75 @@ async function _fetchGemini() {
 
 // ─── Copilot (DOM-based history scraping) ────────────────────────────────────
 
+/**
+ * Find the scrollable ancestor element of a given element.
+ * Walks up from `child` until it finds an element with overflow-y: auto|scroll
+ * that has actual scrollable content (scrollHeight > clientHeight + threshold).
+ * @param {Element} child
+ * @param {number} [threshold=20]
+ * @returns {Element|null}
+ */
+function _findScrollableAncestor(child, threshold = 20) {
+  if (!child || typeof getComputedStyle === 'undefined') return null;
+  let node = child.parentElement;
+  while (node && node !== document.documentElement) {
+    const oy = getComputedStyle(node).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight + threshold) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return null;
+}
+
+/**
+ * Scroll the sidebar chat-history list to trigger loading of all virtualised
+ * items.  The sidebar uses a virtualised/scrolling list — items outside the
+ * viewport may not be rendered in the DOM.
+ * @returns {Promise<void>}
+ */
+async function _scrollSidebarToLoadAll() {
+  // Find the sidebar scroll container — the t-custom-scrollbar div inside the nav
+  const nav = document.querySelector('nav') || document.querySelector('[role="navigation"]');
+  if (!nav) return;
+
+  // Find the scrollable container that contains "Our conversations together"
+  const scrollEl = nav.querySelector('.t-custom-scrollbar') || _findScrollableAncestor(
+    Array.from(nav.querySelectorAll('h2')).find(h => h.textContent?.includes('conversations'))
+  );
+  if (!scrollEl || scrollEl.scrollHeight <= scrollEl.clientHeight + 50) return;
+
+  _log.info(`Copilot: scrolling sidebar to load all history items (scrollH=${scrollEl.scrollHeight}, clientH=${scrollEl.clientHeight})`);
+
+  // Scroll to bottom in steps, waiting for new items to render
+  const STEP = Math.max(200, Math.floor((scrollEl.clientHeight || 400) * 0.6));
+  let lastItemCount = scrollEl.querySelectorAll('div[role="link"]').length;
+  let stableCount = 0;
+
+  for (let step = 0; step < 50; step++) {
+    scrollEl.scrollBy({ top: STEP, behavior: 'instant' });
+    await _delay(400);
+    const newCount = scrollEl.querySelectorAll('div[role="link"]').length;
+    if (newCount === lastItemCount) {
+      stableCount++;
+      if (stableCount >= 3) break;
+    } else {
+      stableCount = 0;
+      lastItemCount = newCount;
+    }
+  }
+
+  // Final sweep to the very bottom
+  scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'instant' });
+  await _delay(500);
+
+  _log.info(`Copilot: sidebar scroll done — ${lastItemCount} chat items visible`);
+}
+
 async function _fetchCopilot() {
   _log.info('Copilot: starting bulk fetch…');
   const all = [];
   const seen = new Set();
-  const itemLinks = []; // { link, title, url } — keep refs for later extraction
 
   // ── M365 Copilot (m365.cloud.microsoft) ──────────────────────────────
   // The side-nav uses a virtualised list; conversation links are nested
@@ -297,6 +430,25 @@ async function _fetchCopilot() {
 
   const m365Section = document.querySelector('#m365-copilot-chats-section');
   if (m365Section) {
+    // Scroll the sidebar to load all virtualised conversation items
+    const m365Scroll = m365Section.closest('[class*="t-custom-scrollbar"]') ||
+      _findScrollableAncestor(m365Section, 20);
+    if (m365Scroll && m365Scroll.scrollHeight > m365Scroll.clientHeight + 50) {
+      _log.info(`Copilot: scrolling M365 sidebar to load all history items`);
+      const STEP = Math.max(200, Math.floor((m365Scroll.clientHeight || 400) * 0.6));
+      let lastCount = m365Scroll.querySelectorAll("div[class*='SplitNavItem']").length;
+      let stable = 0;
+      for (let s = 0; s < 50; s++) {
+        m365Scroll.scrollBy({ top: STEP, behavior: 'instant' });
+        await _delay(400);
+        const n = m365Scroll.querySelectorAll("div[class*='SplitNavItem']").length;
+        if (n === lastCount) { if (++stable >= 3) break; }
+        else { stable = 0; lastCount = n; }
+      }
+      m365Scroll.scrollTo({ top: 0, behavior: 'instant' });
+      await _delay(300);
+    }
+
     // Try the user-verified SplitNavItem selector first.
     const splitItems = m365Section.querySelectorAll("div[class*='SplitNavItem']");
     _log.info(`Copilot: found ${splitItems.length} SplitNavItem elements`);
@@ -310,7 +462,6 @@ async function _fetchCopilot() {
         if (seen.has(absUrl)) continue;
         seen.add(absUrl);
         const title = link.textContent?.trim() || 'Untitled';
-        itemLinks.push({ link, title, url: absUrl });
         all.push({ title, messages: [], source: 'copilot', url: absUrl });
         _sendProgress(all.length, splitItems.length, title);
         _log.info(`Copilot: collected chat ${all.length}: "${title}" → ${absUrl}`);
@@ -320,14 +471,37 @@ async function _fetchCopilot() {
     }
     if (all.length > 0) {
       _log.info(`Copilot: collected ${all.length} conversation references (M365 nav)`);
-      // ── Extract messages inline by clicking each conversation ──────────
-      await _extractCopilotMessages(all, itemLinks);
       return all;
     }
     _log.warn('Copilot: M365 section found but no SplitNavItem matched');
   }
 
   // ── Fallback: any <a> with a conversation URL on the page ────────────
+  // Try scrolling the sidebar first to load all virtualised items
+  if (all.length === 0) {
+    try {
+      const nav = document.querySelector('nav') || document.querySelector('[role="navigation"]');
+      if (nav) {
+        const sb = nav.querySelector('.t-custom-scrollbar') || _findScrollableAncestor(
+          Array.from(nav.querySelectorAll('h2')).find(h => h.textContent?.includes('conversations'))
+        );
+        if (sb && sb.scrollHeight > sb.clientHeight + 50) {
+          _log.info('Copilot: scrolling sidebar before fallback <a> scrape');
+          const STEP = Math.max(200, Math.floor((sb.clientHeight || 400) * 0.6));
+          for (let s = 0; s < 50; s++) {
+            sb.scrollBy({ top: STEP, behavior: 'instant' });
+            await _delay(400);
+            const prev = sb.scrollTop;
+            await _delay(200);
+            if (sb.scrollTop === prev && sb.scrollTop + sb.clientHeight >= sb.scrollHeight - 10) break;
+          }
+          sb.scrollTo({ top: 0, behavior: 'instant' });
+          await _delay(300);
+        }
+      }
+    } catch {}
+  }
+
   try {
     for (const el of document.querySelectorAll('a[href*="/chat/conversation/"]')) {
       const href = el.getAttribute('href') || '';
@@ -336,14 +510,59 @@ async function _fetchCopilot() {
       if (seen.has(absUrl)) continue;
       seen.add(absUrl);
       const title = el.textContent?.trim() || 'Untitled';
-      itemLinks.push({ link: el, title, url: absUrl });
       all.push({ title, messages: [], source: 'copilot', url: absUrl });
     }
   } catch {}
 
   if (all.length > 0) {
     _log.info(`Copilot: collected ${all.length} conversation references (fallback)`);
-    await _extractCopilotMessages(all, itemLinks);
+    return all;
+  }
+
+  // ── copilot.microsoft.com: <div role="link"> chat history items ──────
+  // The consumer copilot renders history as <div role="link"> elements
+  // (no <a> tag, no href).  The conversation UUID is embedded in a
+  // button's id: conversation-options-{uuid}.  URL: /chats/{uuid}
+  //
+  // First, scroll the sidebar to ensure all virtualised history items are
+  // loaded into the DOM before scraping.
+  await _scrollSidebarToLoadAll();
+  try {
+    const nav = document.querySelector('nav') || document.querySelector('[role="navigation"]');
+    if (nav) {
+      const lists = nav.querySelectorAll('[role="list"]');
+      // The chat history list is typically the second [role="list"] in the nav
+      for (const list of lists) {
+        const linkItems = list.querySelectorAll('div[role="link"]');
+        if (linkItems.length === 0) continue;
+        _log.info(`Copilot: found ${linkItems.length} div[role="link"] items in nav list`);
+        for (const item of linkItems) {
+          try {
+            const title = item.textContent?.trim() || 'Untitled';
+            // Extract UUID from the options button id
+            const optBtn = item.querySelector('button[id^="conversation-options-"]');
+            if (!optBtn) continue;
+            const convId = optBtn.id.replace('conversation-options-', '');
+            if (!convId || seen.has(convId)) continue;
+            seen.add(convId);
+            const absUrl = `${location.origin}/chats/${convId}`;
+            all.push({ title, messages: [], source: 'copilot', url: absUrl });
+            _sendProgress(all.length, linkItems.length, title);
+            _log.info(`Copilot: collected chat ${all.length}: "${title}" → ${absUrl}`);
+          } catch (err) {
+            _log.warn(`Copilot: error processing div[role="link"] item: ${err.message}`);
+          }
+        }
+        // Only process the first list that has role="link" items
+        if (all.length > 0) break;
+      }
+    }
+  } catch (err) {
+    _log.warn(`Copilot: error scanning nav for div[role="link"]: ${err.message}`);
+  }
+
+  if (all.length > 0) {
+    _log.info(`Copilot: collected ${all.length} conversation references (div[role="link"])`);
     return all;
   }
 
@@ -379,180 +598,7 @@ async function _fetchCopilot() {
   }
 
   _log.info(`Copilot: collected ${all.length} conversation references`);
-  // Legacy copilot.microsoft.com may not support SPA click-through; try anyway
-  if (all.length > 0) {
-    await _extractCopilotMessages(all, itemLinks);
-  }
   return all;
-}
-
-/**
- * Extract messages from the currently visible M365 Copilot conversation DOM.
- * Uses htmlToMarkdown (same as regular content.js) to preserve formatting.
- * @returns {Array<{role: string, content: string}>}
- */
-function _extractVisibleCopilotMessages() {
-  const messages = [];
-
-  // User messages: fai-UserMessage__message / fai-BebopUserMessage__message
-  // contain the clean user text without "You said:" prefix.
-  const userEls = document.querySelectorAll(
-    '.fai-UserMessage__message, .fai-BebopUserMessage__message'
-  );
-
-  // Assistant messages: fai-CopilotMessage__content contains the rich HTML
-  // (p, strong, code, ul, ol, li, pre, etc.) — use htmlToMarkdown to preserve formatting.
-  const aiEls = document.querySelectorAll('.fai-CopilotMessage__content');
-
-  // Fallback: markdown-reply divs contain rendered markdown without labels
-  const markdownEls = document.querySelectorAll('[data-testid="markdown-reply"]');
-
-  // Build a combined list sorted by DOM position
-  const allEls = [];
-  userEls.forEach(el => allEls.push({ el, role: 'user' }));
-  aiEls.forEach(el => allEls.push({ el, role: 'assistant' }));
-  // If no fai-* elements found, fall back to markdown-reply (assistant only)
-  if (userEls.length === 0 && aiEls.length === 0) {
-    markdownEls.forEach(el => allEls.push({ el, role: 'assistant' }));
-  }
-
-  allEls.sort((a, b) => {
-    const pos = a.el.compareDocumentPosition(b.el);
-    return pos & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
-  });
-
-  for (const { el, role } of allEls) {
-    let content;
-    if (role === 'assistant') {
-      // Use htmlToMarkdown to preserve code blocks, lists, bold, etc.
-      content = htmlToMarkdown(el);
-    } else {
-      // User messages are plain text — innerText is fine
-      content = el.innerText || '';
-    }
-    content = content.trim();
-    if (content) messages.push({ role, content });
-  }
-  return messages;
-}
-
-/**
- * Wait for conversation messages to appear in the DOM (up to 8 seconds).
- * Uses the same selectors as _extractVisibleCopilotMessages.
- * @param {number} [timeoutMs=8000]
- * @returns {Promise<boolean>} true if content elements appeared
- */
-function _waitForConversationContent(timeoutMs = 8000) {
-  return new Promise(resolve => {
-    const start = Date.now();
-    const check = () => {
-      const user = document.querySelectorAll(
-        '.fai-UserMessage__message, .fai-BebopUserMessage__message'
-      );
-      const ai = document.querySelectorAll('.fai-CopilotMessage__content');
-      const md = document.querySelectorAll('[data-testid="markdown-reply"]');
-      if (user.length > 0 || ai.length > 0 || md.length > 0) {
-        resolve(true);
-        return;
-      }
-      if (Date.now() - start >= timeoutMs) {
-        resolve(false);
-        return;
-      }
-      setTimeout(check, 300);
-    };
-    check();
-  });
-}
-
-/**
- * Click through each sidebar conversation link, extract messages from the DOM.
- * Waits for the SPA URL to change before checking for content (fixes race
- * condition where old DOM elements are still present after clicking).
- * @param {Array<{title: string, messages: Array, url: string}>} all
- * @param {Array<{link: Element, title: string, url: string}>} itemLinks
- */
-async function _extractCopilotMessages(all, itemLinks) {
-  if (all.length === 0) return;
-  _log.info(`Copilot: extracting messages for ${all.length} conversations…`);
-
-  // 1. Check if any conversation is already loaded on the current page
-  const initialMsgs = _extractVisibleCopilotMessages();
-  if (initialMsgs.length > 0) {
-    _log.info(`Copilot: found ${initialMsgs.length} messages already visible — assigning to current conversation`);
-    const currentUrl = location.href.split('?')[0].split('#')[0];
-    const match = all.find(c => c.url === currentUrl);
-    if (match) {
-      match.messages = initialMsgs;
-    } else if (all.length > 0) {
-      all[0].messages = initialMsgs;
-    }
-  }
-
-  // 2. Click through each conversation that still has no messages
-  for (let i = 0; i < all.length; i++) {
-    const chat = all[i];
-    if (chat.messages.length > 0) {
-      _log.info(`Copilot: "${chat.title}" already has ${chat.messages.length} messages — skipping`);
-      continue;
-    }
-
-    _sendProgress(i + 1, all.length, `Extracting: ${chat.title}`);
-    _log.info(`Copilot: clicking "${chat.title}" → ${chat.url}`);
-
-    const entry = itemLinks.find(l => l.url === chat.url);
-    if (!entry || !entry.link) {
-      _log.warn(`Copilot: no link element for "${chat.title}" — skipping`);
-      continue;
-    }
-
-    try {
-      entry.link.click();
-
-      // Wait for SPA URL to change to the target conversation
-      const urlChanged = await _waitForUrlChange(chat.url, 8000);
-      if (!urlChanged) {
-        _log.warn(`Copilot: URL did not change to "${chat.url}" after clicking "${chat.title}"`);
-        continue;
-      }
-
-      // Now wait for content elements to appear (fresh DOM after SPA navigation)
-      const loaded = await _waitForConversationContent(8000);
-      if (!loaded) {
-        _log.warn(`Copilot: no content appeared for "${chat.title}" after click`);
-        continue;
-      }
-      await _delay(500); // Extra settle time for React rendering
-      chat.messages = _extractVisibleCopilotMessages();
-      _log.info(`Copilot: extracted ${chat.messages.length} messages from "${chat.title}"`);
-    } catch (err) {
-      _log.warn(`Copilot: error extracting "${chat.title}": ${err.message}`);
-    }
-  }
-}
-
-/**
- * Wait for location.href to contain the target URL (SPA navigation).
- * @param {string} targetUrl
- * @param {number} [timeoutMs=8000]
- * @returns {Promise<boolean>}
- */
-function _waitForUrlChange(targetUrl, timeoutMs = 8000) {
-  return new Promise(resolve => {
-    const start = Date.now();
-    const check = () => {
-      if (location.href.split('?')[0].split('#')[0] === targetUrl) {
-        resolve(true);
-        return;
-      }
-      if (Date.now() - start >= timeoutMs) {
-        resolve(false);
-        return;
-      }
-      setTimeout(check, 200);
-    };
-    check();
-  });
 }
 
 // ─── Perplexity (DOM-based) ──────────────────────────────────────────────────
@@ -656,8 +702,10 @@ async function _fetchDeepSeek() {
         break;
       case 'copilot':
         chats = await _fetchCopilot();
-        // Copilot now extracts message content inline via _extractCopilotMessages
-        needsExtract = false;
+        // Copilot extraction is done in parallel via background tab-opening
+        // (each URL opened in its own tab, EXTRACT_CHAT message, scroll-to-load).
+        // The bulk-fetcher only collects conversation references.
+        needsExtract = true;
         break;
       case 'perplexity':
         chats = await _fetchPerplexity();

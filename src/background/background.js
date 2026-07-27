@@ -151,12 +151,36 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // ── Bulk fetch: forward content-script messages to the sidepanel ──────────
   // Content-script messages have sender.tab set; extension pages don't.
-  if (sender.tab && (message.type === 'FETCH_ALL_CHATS_PROGRESS' || message.type === 'FETCH_ALL_CHATS_RESULT')) {
-    logger.info(`Relaying ${message.type} from content script → sidepanel`, message.data ? JSON.stringify(message.data).slice(0, 200) : '');
-    browser.runtime.sendMessage({
-      type: `SIDEPANEL_${message.type}`,
-      data: message.data,
-    }).catch(() => {});
+  if (sender.tab && message.type === 'FETCH_ALL_CHATS_PROGRESS') {
+    // Progress messages always forward directly.
+    const fwd = { type: `SIDEPANEL_${message.type}`, data: message.data };
+    logger.info(`Relaying ${message.type} → sidepanel (${JSON.stringify(message.data).slice(0, 120)})`);
+    browser.runtime.sendMessage(fwd).catch(() => {});
+    sendResponse({ success: true });
+    return;
+  }
+
+  if (sender.tab && message.type === 'FETCH_ALL_CHATS_RESULT') {
+    const { data } = message;
+    if (data?.needsExtract && Array.isArray(data?.chats) && data.chats.length > 0) {
+      // ── Parallel tab extraction ─────────────────────────────────────────
+      // The bulk-fetcher collected only URLs (needsExtract = true).
+      // Open each URL in its own tab, send EXTRACT_CHAT, collect messages,
+      // close tab — all with bounded concurrency (5 parallel).
+      logger.info(`FETCH_ALL_CHATS_RESULT: needsExtract — starting parallel tab extraction for ${data.chats.length} chats (platform=${data.platform})`);
+      sendResponse({ success: true }); // ack immediately
+
+      // Kick off async extraction — do not await inside the listener.
+      _extractChatsInTabs(data).catch(err => {
+        logger.error('Parallel tab extraction failed:', err.message);
+      });
+      return false; // sendResponse already called
+    }
+
+    // No extraction needed (e.g. ChatGPT/Claude already fully fetched via API).
+    const fwd = { type: `SIDEPANEL_${message.type}`, data: data };
+    logger.info(`Relaying ${message.type} → sidepanel (no extraction needed, ${data?.chats?.length || 0} chats)`);
+    browser.runtime.sendMessage(fwd).catch(() => {});
     sendResponse({ success: true });
     return;
   }
@@ -309,6 +333,162 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Delegates to the testable handler module, passing the shared ChatRepository
 async function handleSaveChat(chatData, sender) {
   return _handleSaveChat(chatData, sender, _chatRepo);
+}
+
+// ─── Parallel tab extraction for bulk-fetcher ────────────────────────────────
+
+/**
+ * Map an array concurrently with bounded parallelism, preserving insertion order.
+ * @template T, R
+ * @param {T[]} items
+ * @param {(item: T, index: number) => Promise<R>} fn
+ * @param {number} [concurrency=5]
+ * @returns {Promise<R[]>}
+ */
+async function _mapConcurrent(items, fn, concurrency = 5) {
+  const results = [];
+  const queue = items.entries();
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    for (const [i, item] of queue) {
+      results[i] = await fn(item, i);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+/**
+ * Send a progress update to the sidepanel during parallel tab extraction.
+ * @param {number} current
+ * @param {number} total
+ * @param {string} [title]
+ */
+function _sendExtractProgress(current, total, title) {
+  browser.runtime.sendMessage({
+    type: 'SIDEPANEL_FETCH_ALL_CHATS_PROGRESS',
+    data: { current, total, title },
+  }).catch(() => {});
+}
+
+/**
+ * Open each chat URL in a new tab, send EXTRACT_CHAT to the content script,
+ * collect messages, close the tab — all with bounded concurrency.
+ *
+ * @param {{ platform: string, chats: Array<{title: string, url: string, messages: Array}> }} data
+ */
+async function _extractChatsInTabs(data) {
+  const { platform, chats } = data;
+  const total = chats.length;
+  let extractedCount = 0;
+
+  // Read settings from storage (concurrency + range)
+  let concurrency = 5;
+  let rangeStart = 1;
+  let rangeEnd = 999999;
+  try {
+    const s = await browser.storage.local.get(['extractSettings']);
+    const es = s.extractSettings || {};
+    concurrency = Math.max(1, Math.min(20, parseInt(es.concurrency, 10) || 5));
+    rangeStart  = Math.max(1, parseInt(es.rangeStart, 10) || 1);
+    rangeEnd    = Math.max(rangeStart, parseInt(es.rangeEnd, 10) || 999999);
+  } catch (_) {}
+
+  // Slice chats to the requested range (1-based, inclusive)
+  const startIdx = rangeStart - 1;
+  const endIdx   = Math.min(rangeEnd, total);
+  const workingChats = chats.slice(startIdx, endIdx);
+
+  logger.info(`_extractChatsInTabs: platform=${platform} total=${total} ` +
+    `range=[${rangeStart}..${rangeEnd}] concurrency=${concurrency} ` +
+    `working=${workingChats.length} chats`);
+
+  _sendExtractProgress(0, workingChats.length, 'Starting parallel extraction…');
+
+  await _mapConcurrent(workingChats, async (chat) => {
+    if (!chat.url) {
+      logger.warn(`_extractChatsInTabs: "${chat.title}" has no URL — skipping`);
+      return;
+    }
+
+    let tab = null;
+    try {
+      // 1. Open the conversation URL in a new tab
+      tab = await browser.tabs.create({ url: chat.url, active: false });
+      const tabId = tab.id;
+      logger.info(`_extractChatsInTabs: opened tab ${tabId} for "${chat.title}" → ${chat.url}`);
+
+      // 2. Wait for the tab to finish loading
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error(`Timeout waiting for tab ${tabId} to load (60s)`));
+        }, 60_000);
+
+        const onUpdated = (updatedTabId, changeInfo) => {
+          if (updatedTabId !== tabId) return;
+          if (changeInfo.status === 'complete') {
+            cleanup();
+            resolve();
+          }
+        };
+
+        const onError = (erasedTabId) => {
+          if (erasedTabId === tabId) {
+            cleanup();
+            reject(new Error(`Tab ${tabId} was removed before loading`));
+          }
+        };
+
+        const cleanup = () => {
+          clearTimeout(timeout);
+          browser.tabs.onUpdated.removeListener(onUpdated);
+          browser.tabs.onRemoved.removeListener(onError);
+        };
+
+        browser.tabs.onUpdated.addListener(onUpdated);
+        browser.tabs.onRemoved.addListener(onError);
+      });
+
+      // Give content script a moment to initialise
+      await new Promise(r => setTimeout(r, 1500));
+
+      // 3. Send EXTRACT_CHAT message to the content script
+      const resp = await browser.tabs.sendMessage(tabId, { type: 'EXTRACT_CHAT' });
+      if (resp?.success && resp.data) {
+        // Use the full formatted markdown from prepareChatForSave() directly
+        // rather than rebuilding from messages — this preserves formatting
+        // (emoji roles, markdown structure) and avoids duplicating logic.
+        chat.content = resp.data.content || '';
+        chat.messages = resp.data.messages || [];
+        chat.messageCount = resp.data.messageCount || chat.messages.length;
+        chat.extractedAt = resp.data.metadata?.extractedAt || Date.now();
+        chat.chatDate = resp.data.metadata?.chatDate || null;
+        chat.source = resp.data.source || chat.source || platform;
+        logger.info(`_extractChatsInTabs: extracted ${chat.messages.length} messages from "${chat.title}"`);
+      } else {
+        logger.warn(`_extractChatsInTabs: EXTRACT_CHAT failed for "${chat.title}": ${resp?.error || 'unknown'}`);
+      }
+
+      // 4. Close the tab
+      await browser.tabs.remove(tabId).catch(() => {});
+      tab = null;
+    } catch (err) {
+      logger.warn(`_extractChatsInTabs: error processing "${chat.title}": ${err.message}`);
+      if (tab?.id) {
+        await browser.tabs.remove(tab.id).catch(() => {});
+      }
+    }
+
+    extractedCount++;
+    _sendExtractProgress(extractedCount, workingChats.length, `Extracted: ${chat.title}`);
+  }, concurrency); // concurrency from settings
+
+  // 5. Send final result to sidepanel
+  logger.info(`_extractChatsInTabs: done — ${extractedCount}/${workingChats.length} chats extracted`);
+  browser.runtime.sendMessage({
+    type: 'SIDEPANEL_FETCH_ALL_CHATS_RESULT',
+    data: { success: true, platform, chats: workingChats },
+  }).catch(() => {});
 }
 
 // Get storage usage

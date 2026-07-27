@@ -21,7 +21,7 @@ import { extractSourceLinks }                        from './extractors/source-l
 import { extractChatGPT }                            from './extractors/chatgpt.js';
 import { extractClaude }                             from './extractors/claude.js';
 import { extractGemini }                             from './extractors/gemini.js';
-import { extractCopilot }                            from './extractors/copilot.js';
+import { extractCopilot, scrollAndCollectCopilotMessages } from './extractors/copilot.js';
 import { extractPerplexity }                         from './extractors/perplexity.js';
 import { extractDeepSeek }                           from './extractors/deepseek.js';
 
@@ -37,6 +37,7 @@ export {
   extractClaude,
   extractGemini,
   extractCopilot,
+  scrollAndCollectCopilotMessages,
   extractPerplexity,
   extractDeepSeek,
 };

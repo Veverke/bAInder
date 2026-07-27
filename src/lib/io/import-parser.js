@@ -177,9 +177,12 @@ function parseDateToMs(dateStr) {
  * structured messages array.  Used during ZIP import so entity extractors can
  * re-run on the conversation content.
  *
- * The export format uses `### User` / `### Assistant` headings as role markers
- * and `---` separators between turns.  Excerpt-only files (no headings) return
- * an empty array.
+ * The export format may use either:
+ *   - `### User` / `### Assistant` headings as role markers (bAInder v1 / API-fetched chats)
+ *   - 🙋 / 🤖 emoji prefixes on the first content line (prepareChatForSave → messagesToMarkdown)
+ *
+ * In both formats, `---` separators appear between turns.
+ * Excerpt-only files (no role markers) return an empty array.
  *
  * @param {string} content  Full markdown content including frontmatter.
  * @returns {Array<{role: string, content: string}>}
@@ -194,42 +197,84 @@ export function parseMessagesFromExportMarkdown(content) {
     if (fmEnd !== -1) body = body.slice(fmEnd + 4);
   }
 
-  // Find every ### User / ### Assistant heading
+  body = body.trim();
+
+  // ── Strategy 1: ### User / ### Assistant headings ─────────────────────
   const HEADING_RE = /^###\s+(User|Assistant)\s*$/gim;
-  const headings = [];
   let m;
   HEADING_RE.lastIndex = 0;
-  while ((m = HEADING_RE.exec(body)) !== null) {
-    const eol = body.indexOf('\n', m.index);
-    headings.push({
-      role:         m[1].toLowerCase() === 'user' ? 'user' : 'assistant',
-      headingStart: m.index,
-      contentStart: eol === -1 ? body.length : eol + 1,
-    });
+  m = HEADING_RE.exec(body);
+  if (m) {
+    // Reset and collect all headings
+    HEADING_RE.lastIndex = 0;
+    const headings = [];
+    while ((m = HEADING_RE.exec(body)) !== null) {
+      const eol = body.indexOf('\n', m.index);
+      headings.push({
+        role:         m[1].toLowerCase() === 'user' ? 'user' : 'assistant',
+        headingStart: m.index,
+        contentStart: eol === -1 ? body.length : eol + 1,
+      });
+    }
+
+    const messages = [];
+    for (let i = 0; i < headings.length; i++) {
+      const from = headings[i].contentStart;
+      const to   = i + 1 < headings.length ? headings[i + 1].headingStart : body.length;
+      let text   = body.slice(from, to);
+
+      // Strip the export footer (*Exported from bAInder…*)
+      text = text.replace(/\n---\n\s*\*Exported from bAInder[\s\S]*$/, '');
+      // Strip the trailing turn separator
+      text = text.replace(/\n---\s*$/, '').trim();
+
+      if (text) messages.push({ role: headings[i].role, content: text });
+    }
+    return messages;
   }
 
-  if (headings.length === 0) return [];
+  // ── Strategy 2: 🙋 / 🤖 emoji prefixes ────────────────────────────────
+  const EMOJI_RE = /^[🙋🤖](?:\s|$)/gm;
+  EMOJI_RE.lastIndex = 0;
+  m = EMOJI_RE.exec(body);
+  if (m) {
+    EMOJI_RE.lastIndex = 0;
+    const markers = [];
+    while ((m = EMOJI_RE.exec(body)) !== null) {
+      markers.push({
+        index: m.index,
+        emoji: body[m.index],
+      });
+    }
 
-  const messages = [];
-  for (let i = 0; i < headings.length; i++) {
-    const from = headings[i].contentStart;
-    // Content ends immediately before the next heading (or at body end)
-    const to   = i + 1 < headings.length ? headings[i + 1].headingStart : body.length;
-    let text   = body.slice(from, to);
+    const messages = [];
+    for (let i = 0; i < markers.length; i++) {
+      const from  = markers[i].index;
+      const to    = i + 1 < markers.length ? markers[i + 1].index : body.length;
+      let segment = body.slice(from, to);
 
-    // Strip the export footer (*Exported from bAInder…*) which follows the
-    // final `---` separator in the last section.
-    text = text.replace(/\n---\n\s*\*Exported from bAInder[\s\S]*$/, '');
+      // First line of the segment contains the emoji prefix
+      const firstNl   = segment.indexOf('\n');
+      const firstLine = firstNl === -1 ? segment : segment.slice(0, firstNl);
+      const restLines = firstNl === -1 ? '' : segment.slice(firstNl + 1);
 
-    // Strip the trailing turn separator (`---`) that precedes each heading.
-    // A real horizontal rule inside message content would not be at the very
-    // end of the section, so this is safe to strip last.
-    text = text.replace(/\n---\s*$/, '').trim();
+      // Strip emoji from first line (emoji may be alone or inline)
+      const cleanFirst = firstLine.replace(/^[🙋�]\s*/, '').trim();
 
-    if (text) messages.push({ role: headings[i].role, content: text });
+      // Rejoin: cleaned first line + rest
+      let text = cleanFirst;
+      if (restLines) text += '\n' + restLines;
+
+      // Strip trailing turn separator
+      text = text.replace(/\n---\s*$/, '').trim();
+
+      const role = markers[i].emoji === '🙋' ? 'user' : 'assistant';
+      if (text) messages.push({ role, content: text });
+    }
+    return messages;
   }
 
-  return messages;
+  return [];
 }
 
 /**

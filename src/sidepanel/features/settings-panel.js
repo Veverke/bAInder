@@ -163,6 +163,39 @@ export function openSettingsPanel() {
     });
   }
 
+  // Wire bulk-export settings (idempotent)
+  const extractConcurrencyInput = document.getElementById('extractConcurrencyInput');
+  const extractRangeStartInput  = document.getElementById('extractRangeStartInput');
+  const extractRangeEndInput    = document.getElementById('extractRangeEndInput');
+
+  if (extractConcurrencyInput && !extractConcurrencyInput.dataset.wired) {
+    extractConcurrencyInput.dataset.wired = '1';
+
+    function _persistExtractSettings() {
+      const concurrency = Math.max(1, Math.min(20, parseInt(extractConcurrencyInput.value, 10) || 5));
+      const rangeStart  = Math.max(1, parseInt(extractRangeStartInput?.value, 10) || 1);
+      const rangeEnd    = Math.max(rangeStart, parseInt(extractRangeEndInput?.value, 10) || 999999);
+      extractConcurrencyInput.value = concurrency;
+      if (extractRangeStartInput) extractRangeStartInput.value = rangeStart;
+      if (extractRangeEndInput)   extractRangeEndInput.value   = rangeEnd;
+      browser.storage.local.set({
+        extractSettings: { concurrency, rangeStart, rangeEnd },
+      }).catch(() => {});
+    }
+
+    // Load saved settings
+    browser.storage.local.get(['extractSettings']).then(data => {
+      const s = data.extractSettings || {};
+      extractConcurrencyInput.value = s.concurrency ?? 5;
+      if (extractRangeStartInput) extractRangeStartInput.value = s.rangeStart ?? 1;
+      if (extractRangeEndInput)   extractRangeEndInput.value   = s.rangeEnd ?? 999999;
+    }).catch(() => {});
+
+    extractConcurrencyInput.addEventListener('change', _persistExtractSettings);
+    extractRangeStartInput?.addEventListener('change', _persistExtractSettings);
+    extractRangeEndInput?.addEventListener('change', _persistExtractSettings);
+  }
+
   // Wire auto-export settings (idempotent)
   const autoExportToggle          = document.getElementById('autoExportToggle');
   const autoExportThresholdInput  = document.getElementById('autoExportThresholdInput');

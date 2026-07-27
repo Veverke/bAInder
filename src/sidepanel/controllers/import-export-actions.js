@@ -178,11 +178,14 @@ export async function handleFetchAllChats() {
       };
       browser.runtime.onMessage.addListener(listener);
 
-      // Timeout after 10 minutes
+      // Timeout after 60 minutes (200+ Copilot chats with SPA navigation
+      // can take 20+ seconds each; 60 min = plenty of headroom).
+      // The progress bar keeps the user informed; they can close the dialog
+      // to cancel if they wish.
       setTimeout(() => {
         browser.runtime.onMessage.removeListener(listener);
-        reject(new Error('Fetch timed out after 10 minutes'));
-      }, 600_000);
+        reject(new Error('Fetch timed out after 60 minutes'));
+      }, 3_600_000);
 
       // ── Ask background to inject bulk-fetcher into the active tab ──────
       // (do this AFTER the listener is registered)
@@ -224,12 +227,14 @@ export async function handleFetchAllChats() {
     const rootDir = `bAInder-bulk-${platform}-${dateTag}`;
     const topicDir = `${rootDir}/${topicName}`; // subfolder = topic in import parser
     const zip = new JSZip();
+    const usedNames = new Map(); // safeName → count
 
     for (const chat of chats) {
       const title = chat.title || 'Untitled';
       const safeName = title.replace(/[<>:"/\\|?*]/g, '_').slice(0, 100);
+      const deduped = _deduplicateName(safeName, usedNames);
       const md = _buildBulkMarkdown(chat);
-      zip.file(`${topicDir}/${safeName}.md`, md);
+      zip.file(`${topicDir}/${deduped}.md`, md);
     }
 
     // Add a metadata file at the root
@@ -405,10 +410,23 @@ function _promptImportStrategy(count, platform) {
 }
 
 /**
+ * Deduplicate a filename within a ZIP by appending _1, _2, etc.
+ * when collisions occur.
+ * @param {string} name  Base filename (no extension)
+ * @param {Map<string, number>} used  Map tracking prior occurrences
+ * @returns {string}  Unique name
+ */
+function _deduplicateName(name, used) {
+  const count = (used.get(name) || 0) + 1;
+  used.set(name, count);
+  return count === 1 ? name : `${name}_${count - 1}`;
+}
+
+/**
  * Build markdown for a fetched chat, using the same format as buildExportMarkdown
  * so the ZIP can be re-imported via bAInder's native import pipeline.
  *
- * @param {{ title: string, messages: Array<{role: string, content: string}>, source: string, url: string }} chat
+ * @param {{ title: string, content?: string, messages: Array<{role: string, content: string}>, source: string, url: string, messageCount?: number, extractedAt?: number, chatDate?: string }} chat
  * @returns {string}
  */
 function _buildBulkMarkdown(chat) {
@@ -416,14 +434,34 @@ function _buildBulkMarkdown(chat) {
   const source = chat.source || 'unknown';
   const url = chat.url || '';
   const now = new Date().toISOString();
+  // Prefer chatDate (from date-divider on Copilot pages), then extractedAt, then now
+  const date = chat.chatDate
+    ? new Date(chat.chatDate).toISOString()
+    : chat.extractedAt
+      ? new Date(chat.extractedAt).toISOString()
+      : now;
 
+  // If we already have pre-formatted content from prepareChatForSave()
+  // (i.e. the chat was extracted via parallel tabs), use it directly.
+  // We only need to fix up the date in frontmatter if different from extractedAt.
+  if (chat.content && !chat._apiFetched) {
+    // Replace the date in the existing frontmatter with the original extractedAt
+    const updated = chat.content.replace(
+      /^date: .+$/m,
+      `date: ${date}`
+    );
+    return updated;
+  }
+
+  // Fallback for API-fetched chats (ChatGPT, Claude) — build from messages
   const lines = [
     '---',
     `title: "${title.replace(/[\\"]/g, '\\$&')}"`,
     `source: ${source}`,
   ];
   if (url) lines.push(`url: ${url}`);
-  lines.push('date: ' + now);
+  lines.push('date: ' + date);
+  lines.push(`messageCount: ${chat.messageCount || chat.messages?.length || 0}`);
   lines.push('contentFormat: markdown-v1');
   lines.push('---');
   lines.push('');

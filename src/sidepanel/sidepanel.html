@@ -714,6 +714,32 @@
 
         <!-- Export tab -->
         <section class="settings-tab-panel" id="settings-tab-export" aria-label="Export settings" hidden>
+          <h3 class="settings-section__title">Bulk Export</h3>
+          <div class="settings-row">
+            <label class="settings-row__label" for="extractConcurrencyInput">
+              Extraction concurrency
+              <span class="settings-row__hint">Number of parallel browser tabs used when extracting Copilot conversations. Higher = faster but more resource-intensive.</span>
+            </label>
+            <input type="number" id="extractConcurrencyInput" class="settings-input"
+              value="5" min="1" max="20" step="1" style="width:70px;text-align:right"
+              aria-label="Number of parallel extraction tabs">
+          </div>
+          <div class="settings-row">
+            <label class="settings-row__label" for="extractRangeStartInput">
+              Chat range
+              <span class="settings-row__hint">Only export chats within this range (1-based). Leave as 1–999999 to export all.</span>
+            </label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="extractRangeStartInput" class="settings-input"
+                value="1" min="1" step="1" style="width:60px;text-align:right"
+                aria-label="Start chat index">
+              <span style="font-size:0.8rem;color:var(--text-secondary)">to</span>
+              <input type="number" id="extractRangeEndInput" class="settings-input"
+                value="999999" min="1" step="1" style="width:70px;text-align:right"
+                aria-label="End chat index">
+            </div>
+          </div>
+          <hr class="settings-separator">
           <h3 class="settings-section__title">Auto Export</h3>
           <div class="settings-row">
             <label class="settings-row__label" for="autoExportToggle">

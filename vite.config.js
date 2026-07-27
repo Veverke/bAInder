@@ -81,6 +81,32 @@ function extensionManifestPlugin(browser, outDir) {
   };
 }
 
+/**
+ * Wrap the bulk-fetcher bundle in an IIFE to prevent its top-level const
+ * declarations (minified from inlined imports like html-to-markdown.js)
+ * from clashing with page-level variables when injected via executeScript.
+ *
+ * Without this, Vite emits e.g. "const H=new Set([...])" at the top level,
+ * causing "SyntaxError: Identifier 'H' has already been declared".
+ *
+ * This plugin must run AFTER closeBundle so the file already exists on disk.
+ */
+function wrapBulkFetcherPlugin(outDir) {
+  return {
+    name: 'wrap-bulk-fetcher-iife',
+    closeBundle() {
+      const filePath = `${outDir}/bulk-fetcher.js`;
+      if (!existsSync(filePath)) return;
+      let code = readFileSync(filePath, 'utf8');
+      // Strip an existing leading "use strict" so it moves inside the IIFE
+      code = code.replace(/^['"]use strict['"];\s*/i, '');
+      code = `(function(){\n'use strict';\n${code}\n})();\n`;
+      writeFileSync(filePath, code, 'utf8');
+      console.log(`[bAInder] ✓ wrapped bulk-fetcher.js in IIFE → ${filePath}`);
+    },
+  };
+}
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 export default defineConfig(({ mode }) => {
@@ -114,7 +140,10 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
     },
 
-    plugins: [extensionManifestPlugin(browser, outDir)],
+    plugins: [
+      extensionManifestPlugin(browser, outDir),
+      wrapBulkFetcherPlugin(outDir),
+    ],
   };
 });
 
