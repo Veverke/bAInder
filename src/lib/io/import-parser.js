@@ -243,7 +243,7 @@ export function parseMessagesFromExportMarkdown(content) {
     while ((m = EMOJI_RE.exec(body)) !== null) {
       markers.push({
         index: m.index,
-        emoji: body[m.index],
+        emoji: m[0][0],  // first char of match (full emoji with /u flag)
       });
     }
 
@@ -259,7 +259,7 @@ export function parseMessagesFromExportMarkdown(content) {
       const restLines = firstNl === -1 ? '' : segment.slice(firstNl + 1);
 
       // Strip emoji from first line (emoji may be alone or inline)
-      const cleanFirst = firstLine.replace(/^[🙋�]\s*/, '').trim();
+      const cleanFirst = firstLine.replace(/^[🙋🤖]\s*/u, '').trim();
 
       // Rejoin: cleaned first line + rest
       let text = cleanFirst;

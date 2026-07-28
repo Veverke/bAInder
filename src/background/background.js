@@ -460,20 +460,8 @@ async function _extractChatsInTabs(data) {
       _sendTabStateUpdate();
       logger.info(`_extractChatsInTabs: opened tab ${tabId} (idx=${tabIndex}) for "${chat.title}" → ${chat.url}`);
 
-      // Set tab title to include the extraction index for easy identification
-      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] tab ${tabId} finished loading`);
-
-      // Set tab title to include the extraction index for easy identification
-      // Chrome's tabs.update() does NOT support a 'title' property (Firefox-only).
-      browser.scripting.executeScript({
-        target: { tabId },
-        func: (t) => { document.title = t; },
-        args: [`#${tabIndex} - ${chat.title}`],
-      }).catch(e => {
-        logger.warn(`_extractChatsInTabs: [idx=${tabIndex}] title injection failed: ${e.message}`);
-      });
-
-      // Give content script a moment to initialise
+      // 2. Wait for the tab to finish loading
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] waiting for tab ${tabId} to load…`);
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           cleanup();
@@ -509,6 +497,17 @@ async function _extractChatsInTabs(data) {
 
       // Give content script a moment to initialise
       await new Promise(r => setTimeout(r, 1500));
+
+      // ── Inject tab title ────────────────────────────────────────────────
+      // Set the tab title to the extraction index + chat name so the user
+      // can identify which chat is being extracted at a glance.
+      browser.scripting.executeScript({
+        target: { tabId },
+        func: (t) => { document.title = t; },
+        args: [`#${tabIndex} - ${chat.title}`],
+      }).catch(e => {
+        logger.warn(`_extractChatsInTabs: [idx=${tabIndex}] title injection failed: ${e.message}`);
+      });
 
       // ── Activate tab to wake up virtual-list rendering ──────────────────
       // Chrome throttles hidden/inactive tabs severely:

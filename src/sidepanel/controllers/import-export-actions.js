@@ -468,7 +468,7 @@ function _formatTabStatus(st) {
     case 'saving':
       return '💾 Saving…';
     case 'done':
-      return '✅ All done';
+      return '✅ Done';
     case 'error':
       return '❌ Error';
     default:
