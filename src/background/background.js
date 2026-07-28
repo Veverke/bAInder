@@ -22,6 +22,11 @@ const _chatRepo = new ChatRepository(browser.storage.local);
 // An in-memory mirror is kept for the fast (non-restart) path.
 let _excerptCache = null;
 
+// ─── Tab state tracking for bulk-fetch extraction ────────────────────────────
+// Maps tabIndex → { phase, remaining, title, error? }
+const _tabStates = new Map();
+let _tabStateSeq = 0; // monotonic counter for tabIndex assignment
+
 // ─── Context Menu ────────────────────────────────────────────────────────────
 
 const SUPPORTED_URL_PATTERNS = [
@@ -156,6 +161,23 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const fwd = { type: `SIDEPANEL_${message.type}`, data: message.data };
     logger.info(`Relaying ${message.type} → sidepanel (${JSON.stringify(message.data).slice(0, 120)})`);
     browser.runtime.sendMessage(fwd).catch(() => {});
+    sendResponse({ success: true });
+    return;
+  }
+
+  // ── Per-tab extraction progress from content scripts ────────────────────
+  if (sender.tab && message.type === 'EXTRACT_CHAT_PROGRESS') {
+    const { tabIndex, phase, remaining, error } = message.data || {};
+    const key = tabIndex != null ? tabIndex : _tabStateSeq;
+    _tabStates.set(key, { phase, remaining, title: message.data?.title || '', error });
+    // Forward aggregated tab states to sidepanel
+    const states = Array.from(_tabStates.entries()).map(([idx, st]) => ({
+      tabIndex: idx, phase: st.phase, remaining: st.remaining, title: st.title, error: st.error,
+    }));
+    browser.runtime.sendMessage({
+      type: 'SIDEPANEL_EXTRACT_CHAT_PROGRESS',
+      data: { states },
+    }).catch(() => {});
     sendResponse({ success: true });
     return;
   }
@@ -371,6 +393,19 @@ function _sendExtractProgress(current, total, title) {
 }
 
 /**
+ * Broadcast the current _tabStates to the sidepanel.
+ */
+function _sendTabStateUpdate() {
+  const states = Array.from(_tabStates.entries()).map(([idx, st]) => ({
+    tabIndex: idx, phase: st.phase, remaining: st.remaining, title: st.title, error: st.error,
+  }));
+  browser.runtime.sendMessage({
+    type: 'SIDEPANEL_EXTRACT_CHAT_PROGRESS',
+    data: { states },
+  }).catch(() => {});
+}
+
+/**
  * Open each chat URL in a new tab, send EXTRACT_CHAT to the content script,
  * collect messages, close the tab — all with bounded concurrency.
  *
@@ -410,14 +445,35 @@ async function _extractChatsInTabs(data) {
       return;
     }
 
+    // Assign a unique tabIndex for progress tracking
+    const tabIndex = ++_tabStateSeq;
+    _tabStates.set(tabIndex, { phase: 'waiting', remaining: 60, title: chat.title || '' });
+    logger.info(`_extractChatsInTabs: [idx=${tabIndex}] starting "${chat.title}" url=${chat.url}`);
+
     let tab = null;
     try {
       // 1. Open the conversation URL in a new tab
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] creating tab for "${chat.title}" → ${chat.url}`);
       tab = await browser.tabs.create({ url: chat.url, active: false });
       const tabId = tab.id;
-      logger.info(`_extractChatsInTabs: opened tab ${tabId} for "${chat.title}" → ${chat.url}`);
+      _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'loading' });
+      _sendTabStateUpdate();
+      logger.info(`_extractChatsInTabs: opened tab ${tabId} (idx=${tabIndex}) for "${chat.title}" → ${chat.url}`);
 
-      // 2. Wait for the tab to finish loading
+      // Set tab title to include the extraction index for easy identification
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] tab ${tabId} finished loading`);
+
+      // Set tab title to include the extraction index for easy identification
+      // Chrome's tabs.update() does NOT support a 'title' property (Firefox-only).
+      browser.scripting.executeScript({
+        target: { tabId },
+        func: (t) => { document.title = t; },
+        args: [`#${tabIndex} - ${chat.title}`],
+      }).catch(e => {
+        logger.warn(`_extractChatsInTabs: [idx=${tabIndex}] title injection failed: ${e.message}`);
+      });
+
+      // Give content script a moment to initialise
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           cleanup();
@@ -449,11 +505,37 @@ async function _extractChatsInTabs(data) {
         browser.tabs.onRemoved.addListener(onError);
       });
 
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] tab ${tabId} finished loading`);
+
       // Give content script a moment to initialise
       await new Promise(r => setTimeout(r, 1500));
 
-      // 3. Send EXTRACT_CHAT message to the content script
-      const resp = await browser.tabs.sendMessage(tabId, { type: 'EXTRACT_CHAT' });
+      // ── Activate tab to wake up virtual-list rendering ──────────────────
+      // Chrome throttles hidden/inactive tabs severely:
+      //   - requestAnimationFrame is paused
+      //   - scroll events are coalesced or dropped
+      //   - setTimeout is clamped to ≥ 1s
+      // The Copilot SPA virtual list relies on rAF + scroll handlers to
+      // render off-screen messages.  Without activation, our scroll-to-
+      // trigger fix in the content script has no effect and only the first
+      // 1-2 visible messages are mounted in the DOM.
+      //
+      // We activate the tab briefly, wait for the virtual list to finish
+      // rendering, send EXTRACT_CHAT, then close the tab immediately.
+      // Since extraction runs with bounded concurrency (default 5), at most
+      // 5 brief tab-switches happen at once.
+      _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'activating' });
+      _sendTabStateUpdate();
+      await browser.tabs.update(tabId, { active: true }).catch(e => {
+        logger.warn(`_extractChatsInTabs: [idx=${tabIndex}] tab activation failed: ${e.message}`);
+      });
+      // Wait for the virtual list to render all items (rAF + scroll handlers
+      // fire when the tab is active)
+      await new Promise(r => setTimeout(r, 3000));
+
+      // 3. Send EXTRACT_CHAT message to the content script with tabIndex
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] sending EXTRACT_CHAT to tab ${tabId}`);
+      const resp = await browser.tabs.sendMessage(tabId, { type: 'EXTRACT_CHAT', tabIndex });
       if (resp?.success && resp.data) {
         // Use the full formatted markdown from prepareChatForSave() directly
         // rather than rebuilding from messages — this preserves formatting
@@ -464,22 +546,42 @@ async function _extractChatsInTabs(data) {
         chat.extractedAt = resp.data.metadata?.extractedAt || Date.now();
         chat.chatDate = resp.data.metadata?.chatDate || null;
         chat.source = resp.data.source || chat.source || platform;
+
+        // Preserve the original sidebar chat name (from bulk-fetcher's
+        // discovery phase) instead of the derived title that extractCopilot
+        // generates from the first user prompt.  The derived title is embedded
+        // in the frontmatter of resp.data.content — replace it.
+        if (chat.title && chat.content) {
+          chat.content = chat.content.replace(
+            /^title: \".*\"$/m,
+            `title: "${chat.title.replace(/[\\"]/g, '\\$&')}"`
+          );
+        }
+
         logger.info(`_extractChatsInTabs: extracted ${chat.messages.length} messages from "${chat.title}"`);
+        _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'done' });
+        _sendTabStateUpdate();
       } else {
-        logger.warn(`_extractChatsInTabs: EXTRACT_CHAT failed for "${chat.title}": ${resp?.error || 'unknown'}`);
+        logger.warn(`_extractChatsInTabs: [idx=${tabIndex}] EXTRACT_CHAT failed for "${chat.title}": resp=${JSON.stringify(resp)}`);
+        _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'error' });
+        _sendTabStateUpdate();
       }
 
       // 4. Close the tab
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] closing tab ${tabId}`);
       await browser.tabs.remove(tabId).catch(() => {});
       tab = null;
     } catch (err) {
-      logger.warn(`_extractChatsInTabs: error processing "${chat.title}": ${err.message}`);
+      logger.warn(`_extractChatsInTabs: error processing "${chat.title}" [idx=${tabIndex}]: ${err.message}`, err.stack);
+      _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'error' });
+      _sendTabStateUpdate();
       if (tab?.id) {
         await browser.tabs.remove(tab.id).catch(() => {});
       }
     }
 
     extractedCount++;
+    logger.info(`_extractChatsInTabs: [idx=${tabIndex}] completed (${extractedCount}/${workingChats.length})`);
     _sendExtractProgress(extractedCount, workingChats.length, `Extracted: ${chat.title}`);
   }, concurrency); // concurrency from settings
 

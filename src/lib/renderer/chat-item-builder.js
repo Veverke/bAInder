@@ -74,7 +74,15 @@ function _buildChatInfoOverlay(chat) {
 
   // ── Prompt / response split ─────────────────────────────────────────────
   if (msgCount > 0) {
-    const promptCount   = chat.prompt?.length ?? 0;
+    // Count prompts from messages if available, falling back to entity-
+    // extracted chat.prompt (which may be empty if entity extraction
+    // hasn't run or hasn't been persisted yet).
+    let promptCount = 0;
+    if (Array.isArray(chat.messages) && chat.messages.length > 0) {
+      promptCount = chat.messages.filter(m => m.role === 'user').length;
+    } else {
+      promptCount = chat.prompt?.length ?? 0;
+    }
     const responseCount = msgCount - promptCount;
     addRow('hover-row--turns',
       `${promptCount} ${promptCount === 1 ? 'prompt' : 'prompts'} · ` +

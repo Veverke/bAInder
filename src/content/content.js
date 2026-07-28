@@ -892,9 +892,28 @@ const logger = {
       }
     }
 
-    // Try absolute date parsing
-    const parsed = Date.parse(txt);
-    if (!isNaN(parsed)) return new Date(parsed).toISOString();
+    // Try absolute date parsing — but first with the current year, because
+    // Copilot date dividers often omit the year (e.g. "January 15") and
+    // Date.parse in V8 defaults to year 2001 for month+day-only strings.
+    let parsed = Date.parse(txt);
+    if (!isNaN(parsed)) {
+      const d = new Date(parsed);
+      // If the parsed year is 2001 (the V8 spec fallback for yearless dates),
+      // re-parse with the current year prepended.
+      if (d.getFullYear() === 2001) {
+        const withYear = `${txt}, ${new Date().getFullYear()}`;
+        const reParsed = Date.parse(withYear);
+        if (!isNaN(reParsed)) {
+          const d2 = new Date(reParsed);
+          // If the result is in the future, it's from an earlier year
+          if (d2 > new Date()) {
+            d2.setFullYear(d2.getFullYear() - 1);
+          }
+          return d2.toISOString();
+        }
+      }
+      return d.toISOString();
+    }
 
     return null;
   }
@@ -2324,7 +2343,7 @@ const logger = {
     // When a new tab opens a Copilot chat URL, the SPA lazy-loads messages
     // into the DOM after document_idle. Poll for known message selectors
     // to appear before handing off to the platform-specific extractor.
-    async function _waitForContent(maxMs = 15_000) {
+    async function _waitForContent(maxMs = 15_000, tabIndex) {
       const selectors = [
         '[data-content="user-message"]',
         '[data-testid="user-message"]',
@@ -2341,6 +2360,12 @@ const logger = {
           if (document.querySelector(sel)) { found = true; break; }
         }
         if (found) break;
+        // Report live countdown
+        const remaining = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+        browser.runtime.sendMessage({
+          type: 'EXTRACT_CHAT_PROGRESS',
+          data: { tabIndex, phase: 'waiting', remaining },
+        }).catch(() => {});
         await new Promise(r => setTimeout(r, pollInterval));
       }
       if (!found) {
@@ -2357,8 +2382,49 @@ const logger = {
         }
         (async () => {
           try {
+            const tabIndex = message.tabIndex || 0;
+
             // Wait for content to render before extracting (critical for Copilot SPA)
-            await _waitForContent();
+            await _waitForContent(15_000, tabIndex);
+
+            // ── Trigger virtual list rendering for virtualised platforms ────
+            // The Copilot SPA virtualises its message list — only the first few
+            // visible messages are mounted in the DOM.  Scroll the chat container
+            // to the bottom to force the virtual list to render all items, then
+            // scroll back to top so the pre-pass or standard extraction sees them.
+            //
+            // NOTE: This is only a warm-up; extractCopilot() also runs
+            // _scrollAndCollectCopilotMessages() which does the thorough
+            // scroll-to-load.  The tab must be active (see background.js tab
+            // activation step) for scroll events to fire — Chrome throttles
+            // scroll in hidden tabs.
+            if (platform === 'copilot') {
+              browser.runtime.sendMessage({
+                type: 'EXTRACT_CHAT_PROGRESS',
+                data: { tabIndex, phase: 'scrolling' },
+              }).catch(() => {});
+              const scrollCandidates = [
+                '[data-testid="chat-page"]',
+                'main',
+                '[role="main"]',
+                '[class*="conversation"][class*="container"]',
+              ];
+              for (const sel of scrollCandidates) {
+                const el = document.querySelector(sel);
+                if (el && el.scrollHeight > el.clientHeight) {
+                  el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
+                  await new Promise(r => setTimeout(r, 2000));
+                  el.scrollTo({ top: 0, behavior: 'instant' });
+                  await new Promise(r => setTimeout(r, 500));
+                  break;
+                }
+              }
+            }
+
+            browser.runtime.sendMessage({
+              type: 'EXTRACT_CHAT_PROGRESS',
+              data: { tabIndex, phase: 'scraping' },
+            }).catch(() => {});
 
             let chatData;
             if (platform === 'claude') {
@@ -2374,6 +2440,12 @@ const logger = {
             } else {
               chatData = await extractChat(platform, document);
             }
+
+            browser.runtime.sendMessage({
+              type: 'EXTRACT_CHAT_PROGRESS',
+              data: { tabIndex, phase: 'saving' },
+            }).catch(() => {});
+
             sendResponse({ success: true, data: prepareChatForSave(chatData) });
           } catch (err) {
             sendResponse({ success: false, error: err.message });

@@ -149,10 +149,25 @@ export async function handleFetchAllChats() {
       <div class="modal-header">
         <h2>Fetching all chats…</h2>
       </div>
-      <div class="modal-body">
-        <p id="fetchProgressMsg">Starting…</p>
-        <div class="progress-bar" style="background:var(--bg-tertiary);border-radius:4px;height:8px;overflow:hidden">
-          <div id="fetchProgressFill" style="background:var(--accent);width:0%;height:100%;transition:width .3s"></div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:var(--space-md)">
+        <div style="flex-shrink:0">
+          <p id="fetchProgressMsg">Starting…</p>
+          <div class="progress-bar" style="background:var(--bg-tertiary);border-radius:4px;height:8px;overflow:hidden">
+            <div id="fetchProgressFill" style="background:var(--accent);width:0%;height:100%;transition:width .3s"></div>
+          </div>
+        </div>
+        <div style="flex:1;max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">
+          <table id="extractTabTable" style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead style="position:sticky;top:0;z-index:1">
+              <tr style="background:var(--bg-secondary);border-bottom:1px solid var(--border)">
+                <th style="padding:6px 8px;text-align:left;width:60px">Tab #</th>
+                <th style="padding:6px 8px;text-align:left">Status</th>
+              </tr>
+            </thead>
+            <tbody id="extractTabBody">
+              <tr><td colspan="2" style="padding:12px;text-align:center;color:var(--text-tertiary)">Waiting for tabs…</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     `);
@@ -170,6 +185,30 @@ export async function handleFetchAllChats() {
           const fillEl = document.getElementById('fetchProgressFill');
           if (msgEl) msgEl.textContent = title ? `${current} of ${total} — ${title}` : `Fetched ${current} of ${total}`;
           if (fillEl) fillEl.style.width = `${pct}%`;
+        } else if (msg.type === 'SIDEPANEL_EXTRACT_CHAT_PROGRESS') {
+          const { states } = msg.data || {};
+          if (!Array.isArray(states)) return;
+          const tbody = document.getElementById('extractTabBody');
+          if (!tbody) return;
+          // Clear placeholder row if present
+          if (tbody.children.length === 1 && tbody.children[0].colSpan) {
+            tbody.innerHTML = '';
+          }
+          // Ensure we have a row for every known state
+          for (const st of states) {
+            let row = document.getElementById(`tabrow-${st.tabIndex}`);
+            if (!row) {
+              row = document.createElement('tr');
+              row.id = `tabrow-${st.tabIndex}`;
+              row.style.borderBottom = '1px solid var(--border)';
+              row.innerHTML = `<td style="padding:4px 8px;font-weight:500">#${st.tabIndex}</td><td style="padding:4px 8px" id="tabstatus-${st.tabIndex}"></td>`;
+              tbody.appendChild(row);
+            }
+            const statusEl = document.getElementById(`tabstatus-${st.tabIndex}`);
+            if (statusEl) {
+              statusEl.textContent = _formatTabStatus(st);
+            }
+          }
         } else if (msg.type === 'SIDEPANEL_FETCH_ALL_CHATS_RESULT') {
           console.log(`[bAInder:sidepanel] Received result:`, JSON.stringify(msg.data).slice(0, 300));
           browser.runtime.onMessage.removeListener(listener);
@@ -407,6 +446,34 @@ function _promptImportStrategy(count, platform) {
       resolve(checked ? checked.value : 'merge');
     });
   });
+}
+
+/**
+ * Format a tab status object into a human-readable string for the progress table.
+ * @param {{ phase: string, remaining?: number, title?: string }} st
+ * @returns {string}
+ */
+function _formatTabStatus(st) {
+  switch (st.phase) {
+    case 'waiting':
+      return `⏳ Waiting… ${st.remaining != null ? `${st.remaining}s` : ''}`;
+    case 'loading':
+      return '🔄 Loading tab…';
+    case 'activating':
+      return '⚡ Activating tab…';
+    case 'scrolling':
+      return '📜 Scrolling to load messages…';
+    case 'scraping':
+      return '🔍 Extracting messages…';
+    case 'saving':
+      return '💾 Saving…';
+    case 'done':
+      return '✅ All done';
+    case 'error':
+      return '❌ Error';
+    default:
+      return st.phase || '…';
+  }
 }
 
 /**
