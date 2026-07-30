@@ -167,6 +167,7 @@ export function openSettingsPanel() {
   const extractConcurrencyInput = document.getElementById('extractConcurrencyInput');
   const extractRangeStartInput  = document.getElementById('extractRangeStartInput');
   const extractRangeEndInput    = document.getElementById('extractRangeEndInput');
+  const extractTimeoutInput     = document.getElementById('extractTimeoutInput');
 
   if (extractConcurrencyInput && !extractConcurrencyInput.dataset.wired) {
     extractConcurrencyInput.dataset.wired = '1';
@@ -175,11 +176,13 @@ export function openSettingsPanel() {
       const concurrency = Math.max(1, Math.min(20, parseInt(extractConcurrencyInput.value, 10) || 5));
       const rangeStart  = Math.max(1, parseInt(extractRangeStartInput?.value, 10) || 1);
       const rangeEnd    = Math.max(rangeStart, parseInt(extractRangeEndInput?.value, 10) || 999999);
+      const timeoutMin  = Math.max(1, parseInt(extractTimeoutInput?.value, 10) || 90);
       extractConcurrencyInput.value = concurrency;
       if (extractRangeStartInput) extractRangeStartInput.value = rangeStart;
       if (extractRangeEndInput)   extractRangeEndInput.value   = rangeEnd;
+      if (extractTimeoutInput)    extractTimeoutInput.value    = timeoutMin;
       browser.storage.local.set({
-        extractSettings: { concurrency, rangeStart, rangeEnd },
+        extractSettings: { concurrency, rangeStart, rangeEnd, timeoutMin },
       }).catch(() => {});
     }
 
@@ -189,11 +192,13 @@ export function openSettingsPanel() {
       extractConcurrencyInput.value = s.concurrency ?? 5;
       if (extractRangeStartInput) extractRangeStartInput.value = s.rangeStart ?? 1;
       if (extractRangeEndInput)   extractRangeEndInput.value   = s.rangeEnd ?? 999999;
+      if (extractTimeoutInput)    extractTimeoutInput.value    = s.timeoutMin ?? 90;
     }).catch(() => {});
 
     extractConcurrencyInput.addEventListener('change', _persistExtractSettings);
     extractRangeStartInput?.addEventListener('change', _persistExtractSettings);
     extractRangeEndInput?.addEventListener('change', _persistExtractSettings);
+    extractTimeoutInput?.addEventListener('change', _persistExtractSettings);
   }
 
   // Wire auto-export settings (idempotent)

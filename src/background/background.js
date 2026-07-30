@@ -169,10 +169,11 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.tab && message.type === 'EXTRACT_CHAT_PROGRESS') {
     const { tabIndex, phase, remaining, error } = message.data || {};
     const key = tabIndex != null ? tabIndex : _tabStateSeq;
-    _tabStates.set(key, { phase, remaining, title: message.data?.title || '', error });
+    const existing = _tabStates.get(key) || {};
+    _tabStates.set(key, { ...existing, phase, remaining, title: message.data?.title || existing.title, error, url: existing.url });
     // Forward aggregated tab states to sidepanel
     const states = Array.from(_tabStates.entries()).map(([idx, st]) => ({
-      tabIndex: idx, phase: st.phase, remaining: st.remaining, title: st.title, error: st.error,
+      tabIndex: idx, phase: st.phase, remaining: st.remaining, title: st.title, error: st.error, url: st.url,
     }));
     browser.runtime.sendMessage({
       type: 'SIDEPANEL_EXTRACT_CHAT_PROGRESS',
@@ -200,7 +201,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     // No extraction needed (e.g. ChatGPT/Claude already fully fetched via API).
-    const fwd = { type: `SIDEPANEL_${message.type}`, data: data };
+    const fwd = { type: `SIDEPANEL_${message.type}`, data: { ...data, totalOriginalChats: data?.chats?.length || 0, errors: [], tabStates: [] } };
     logger.info(`Relaying ${message.type} → sidepanel (no extraction needed, ${data?.chats?.length || 0} chats)`);
     browser.runtime.sendMessage(fwd).catch(() => {});
     sendResponse({ success: true });
@@ -397,7 +398,7 @@ function _sendExtractProgress(current, total, title) {
  */
 function _sendTabStateUpdate() {
   const states = Array.from(_tabStates.entries()).map(([idx, st]) => ({
-    tabIndex: idx, phase: st.phase, remaining: st.remaining, title: st.title, error: st.error,
+    tabIndex: idx, phase: st.phase, remaining: st.remaining, title: st.title, error: st.error, url: st.url,
   }));
   browser.runtime.sendMessage({
     type: 'SIDEPANEL_EXTRACT_CHAT_PROGRESS',
@@ -447,7 +448,7 @@ async function _extractChatsInTabs(data) {
 
     // Assign a unique tabIndex for progress tracking
     const tabIndex = ++_tabStateSeq;
-    _tabStates.set(tabIndex, { phase: 'waiting', remaining: 60, title: chat.title || '' });
+    _tabStates.set(tabIndex, { phase: 'waiting', remaining: 60, title: chat.title || '', url: chat.url || '' });
     logger.info(`_extractChatsInTabs: [idx=${tabIndex}] starting "${chat.title}" url=${chat.url}`);
 
     let tab = null;
@@ -583,7 +584,7 @@ async function _extractChatsInTabs(data) {
         _sendTabStateUpdate();
       } else {
         logger.warn(`_extractChatsInTabs: [idx=${tabIndex}] EXTRACT_CHAT failed for "${chat.title}": resp=${JSON.stringify(resp)}`);
-        _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'error' });
+        _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'error', error: resp?.error || 'EXTRACT_CHAT returned no data' });
         _sendTabStateUpdate();
       }
 
@@ -593,7 +594,7 @@ async function _extractChatsInTabs(data) {
       tab = null;
     } catch (err) {
       logger.warn(`_extractChatsInTabs: error processing "${chat.title}" [idx=${tabIndex}]: ${err.message}`, err.stack);
-      _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'error' });
+      _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'error', error: err.message });
       _sendTabStateUpdate();
       if (tab?.id) {
         await browser.tabs.remove(tab.id).catch(() => {});
@@ -605,12 +606,34 @@ async function _extractChatsInTabs(data) {
     _sendExtractProgress(extractedCount, workingChats.length, `Extracted: ${chat.title}`);
   }, concurrency); // concurrency from settings
 
-  // 5. Send final result to sidepanel
+  // 5. Send final result to sidepanel — includes error log, tab states, and totals
   logger.info(`_extractChatsInTabs: done — ${extractedCount}/${workingChats.length} chats extracted`);
+
+  // Collect errors from tab states
+  const errors = [];
+  const tabStatesFinal = [];
+  for (const [idx, st] of _tabStates) {
+    tabStatesFinal.push({ tabIndex: idx, phase: st.phase, title: st.title, error: st.error, url: st.url });
+    if (st.phase === 'error') {
+      errors.push({ tabIndex: idx, title: st.title, url: st.url, error: st.error });
+    }
+  }
+
   browser.runtime.sendMessage({
     type: 'SIDEPANEL_FETCH_ALL_CHATS_RESULT',
-    data: { success: true, platform, chats: workingChats },
+    data: {
+      success: true,
+      platform,
+      chats: workingChats,
+      totalOriginalChats: total,
+      errors,
+      tabStates: tabStatesFinal,
+    },
   }).catch(() => {});
+
+  // Clear tab states for next run
+  _tabStates.clear();
+  _tabStateSeq = 0;
 }
 
 // Get storage usage

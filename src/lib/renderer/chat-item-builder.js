@@ -50,7 +50,7 @@ const _ENTITY_OVERLAY_LABELS = {
  * @param {Object} chat — chat entry from state.chats
  * @returns {DocumentFragment|null}
  */
-function _buildChatInfoOverlay(chat) {
+export function buildChatInfoOverlay(chat) {
   const frag = document.createDocumentFragment();
   let rowCount = 0;
 
@@ -272,7 +272,7 @@ export function buildChatItem(chat, level, ctx) {
   }
 
   // C.25 — Rich hover overlay: size, message counts, code breakdown, entity counts, tags
-  const _overlayContent = _buildChatInfoOverlay(chat);
+  const _overlayContent = buildChatInfoOverlay(chat);
   if (_overlayContent) {
     let _overlay = null;
     let _docOverListener = null;

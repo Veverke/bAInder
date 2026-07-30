@@ -24,6 +24,7 @@
  */
 
 import { getTagColor } from './tag-color.js';
+import { buildChatInfoOverlay } from './chat-item-builder.js';
 
 const SOURCE_LABELS = {
   chatgpt: 'ChatGPT',
@@ -116,7 +117,7 @@ export function renderVirtualRow(item, ctx) {
     });
 
   } else {
-    // Chat row — source chip, title, date badge
+    // Chat row — source chip, title, date badge, hover overlay, more-actions
     const chat = item.data;
     const source = chat.source || 'unknown';
 
@@ -136,10 +137,15 @@ export function renderVirtualRow(item, ctx) {
     sourceChip.textContent = SOURCE_LABELS[source] || source;
     row.appendChild(sourceChip);
 
-    // Title
+    // Title with tooltip on overflow
     const name = document.createElement('span');
     name.className   = 'tree-virtual-row__name';
     name.textContent = chat.title || 'Untitled';
+    name.addEventListener('mouseenter', () => {
+      name.title = name.scrollWidth > name.clientWidth
+        ? (chat.title || 'Untitled')
+        : '';
+    });
     row.appendChild(name);
 
     // Date badge
@@ -151,6 +157,50 @@ export function renderVirtualRow(item, ctx) {
       );
       row.appendChild(dateBadge);
     }
+
+    // C.25 — Rich hover overlay: size, message counts, code breakdown, entity counts, tags
+    const _overlayContent = buildChatInfoOverlay(chat);
+    if (_overlayContent) {
+      let _overlay = null;
+      let _docOverListener = null;
+      const _hideOverlay = () => {
+        if (_overlay) { _overlay.remove(); _overlay = null; }
+        if (_docOverListener) {
+          document.removeEventListener('mouseover', _docOverListener);
+          _docOverListener = null;
+        }
+      };
+      const _showOverlay = (anchorRect) => {
+        if (_overlay) return;
+        _overlay = document.createElement('div');
+        _overlay.className = 'tree-chat-hover-overlay';
+        _overlay.appendChild(_overlayContent.cloneNode(true));
+        document.body.appendChild(_overlay);
+        const left = Math.min(anchorRect.left, window.innerWidth - 260);
+        const top  = anchorRect.bottom + 4;
+        _overlay.style.left = `${left}px`;
+        _overlay.style.top  = `${top}px`;
+        _docOverListener = (e) => {
+          if (!document.contains(row) || !row.contains(e.target)) {
+            _hideOverlay();
+          }
+        };
+        document.addEventListener('mouseover', _docOverListener);
+      };
+      row.addEventListener('mouseenter', () => _showOverlay(row.getBoundingClientRect()));
+      row.addEventListener('mouseleave', _hideOverlay);
+    }
+
+    // ⋮ more-actions button (visible on hover)
+    const moreBtn = document.createElement('button');
+    moreBtn.className = 'tree-virtual-row__more-btn';
+    moreBtn.setAttribute('aria-label', 'More actions');
+    moreBtn.textContent = '⋮';
+    moreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (ctx.onChatContextMenu) ctx.onChatContextMenu(e, item.id);
+    });
+    row.appendChild(moreBtn);
 
     row.addEventListener('click', (e) => {
       e.stopPropagation();

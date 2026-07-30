@@ -196,6 +196,12 @@ export async function handleFetchAllChats() {
           }
           // Ensure we have a row for every known state
           for (const st of states) {
+            // Remove row if tab is done — keep the table clean
+            if (st.phase === 'done') {
+              const row = document.getElementById(`tabrow-${st.tabIndex}`);
+              if (row) row.remove();
+              continue;
+            }
             let row = document.getElementById(`tabrow-${st.tabIndex}`);
             if (!row) {
               row = document.createElement('tr');
@@ -217,14 +223,24 @@ export async function handleFetchAllChats() {
       };
       browser.runtime.onMessage.addListener(listener);
 
-      // Timeout after 60 minutes (200+ Copilot chats with SPA navigation
-      // can take 20+ seconds each; 60 min = plenty of headroom).
+      // Timeout after user-configurable minutes (default 90).
       // The progress bar keeps the user informed; they can close the dialog
       // to cancel if they wish.
-      setTimeout(() => {
-        browser.runtime.onMessage.removeListener(listener);
-        reject(new Error('Fetch timed out after 60 minutes'));
-      }, 3_600_000);
+      browser.storage.local.get(['extractSettings']).then(s => {
+        const es = s.extractSettings || {};
+        const timeoutMin = Math.max(1, parseInt(es.timeoutMin, 10) || 90);
+        const timeoutMs = timeoutMin * 60 * 1000;
+        setTimeout(() => {
+          browser.runtime.onMessage.removeListener(listener);
+          reject(new Error(`Fetch timed out after ${timeoutMin} minutes`));
+        }, timeoutMs);
+      }).catch(() => {
+        // Fallback to 90 minutes if storage read fails
+        setTimeout(() => {
+          browser.runtime.onMessage.removeListener(listener);
+          reject(new Error('Fetch timed out after 90 minutes'));
+        }, 5_400_000);
+      });
 
       // ── Ask background to inject bulk-fetcher into the active tab ──────
       // (do this AFTER the listener is registered)
@@ -243,11 +259,90 @@ export async function handleFetchAllChats() {
       return;
     }
 
-    const { platform, chats, needsExtract } = result;
+    const { platform, chats, needsExtract, errors = [], tabStates = [], totalOriginalChats } = result;
 
     if (!chats || chats.length === 0) {
       await _state.dialog.alert('No conversations found on this platform.', 'Fetch All Chats');
       return;
+    }
+
+    // ── Validate message counts ───────────────────────────────────────────
+    // After extraction, check that each chat's messageCount matches the
+    // actual number of messages in the scraped data.
+    const validationWarnings = [];
+    for (const chat of chats) {
+      if (chat.messageCount != null && chat.messages && chat.messageCount !== chat.messages.length) {
+        validationWarnings.push({
+          title: chat.title || 'Untitled',
+          url: chat.url || '',
+          expected: chat.messageCount,
+          actual: chat.messages.length,
+        });
+      }
+    }
+
+    // ── Build error log entries ───────────────────────────────────────────
+    const logLines = [];
+    logLines.push('=== bAInder Bulk Export Log ===');
+    logLines.push(`Date: ${new Date().toISOString()}`);
+    logLines.push(`Platform: ${platform}`);
+    logLines.push(`Total chats discovered in cloud: ${totalOriginalChats != null ? totalOriginalChats : 'N/A'}`);
+    logLines.push(`Chats processed (after range filter): ${chats.length}`);
+    logLines.push('');
+
+    if (errors.length > 0) {
+      logLines.push('--- ERRORS ---');
+      for (const e of errors) {
+        const urlStr = e.url ? ` (${e.url})` : '';
+        const errStr = e.error ? `: ${e.error}` : '';
+        logLines.push(`  [#${e.tabIndex}] "${e.title}"${urlStr}${errStr}`);
+      }
+      logLines.push('');
+    }
+
+    if (validationWarnings.length > 0) {
+      logLines.push('--- MESSAGE COUNT MISMATCHES ---');
+      logLines.push('The following chats have a different number of messages than expected:');
+      for (const v of validationWarnings) {
+        logLines.push(`  "${v.title}"${v.url ? ` (${v.url})` : ''}: expected ${v.expected} messages, got ${v.actual}`);
+      }
+      logLines.push('');
+    }
+
+    // Determine which chats are missing (those in the original list but not extracted)
+    const missingChats = [];
+    if (totalOriginalChats != null && totalOriginalChats > chats.length) {
+      logLines.push('--- MISSING CHATS ---');
+      logLines.push(`Original cloud total: ${totalOriginalChats}, exported: ${chats.length}`);
+      logLines.push(`Missing chats: ${totalOriginalChats - chats.length}`);
+      // Collect missing chat info from tabStates that errored
+      for (const st of tabStates) {
+        if (st.phase === 'error') {
+          missingChats.push({ title: st.title, url: st.url, error: st.error });
+        }
+      }
+      if (missingChats.length > 0) {
+        logLines.push('Chats that failed to export:');
+        for (const m of missingChats) {
+          const urlStr = m.url ? ` (${m.url})` : '';
+          const errStr = m.error ? `: ${m.error}` : '';
+          logLines.push(`  - "${m.title}"${urlStr}${errStr}`);
+        }
+      }
+      logLines.push('');
+    }
+
+    if (errors.length === 0 && validationWarnings.length === 0 && missingChats.length === 0) {
+      logLines.push('No errors or warnings. All chats exported successfully.');
+    } else {
+      logLines.push(`Summary: ${errors.length} error(s), ${validationWarnings.length} message count mismatch(es), ${missingChats.length} missing chat(s).`);
+    }
+
+    const logContent = logLines.join('\n');
+
+    // Log to console for debugging
+    if (errors.length > 0 || validationWarnings.length > 0 || missingChats.length > 0) {
+      logger.warn(`Bulk export completed with issues:\n${logContent}`);
     }
 
     // ── Build ZIP from fetched chats ───────────────────────────────────────
@@ -284,6 +379,11 @@ export async function handleFetchAllChats() {
       needsExtract,
     };
     zip.file(`${rootDir}/_metadata.json`, JSON.stringify(meta, null, 2));
+
+    // Add error/warning log to the ZIP
+    if (logContent) {
+      zip.file(`${rootDir}/_export-log.txt`, logContent);
+    }
 
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
 

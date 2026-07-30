@@ -3175,6 +3175,44 @@ ul.tree-root.drop-target {
   font-size: 14px;
   line-height: 1;
 }
+/* Virtual-scroll more-actions (⋮) button — hidden until row is hovered */
+.tree-virtual-row__more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+  pointer-events: none;
+}
+
+.tree-virtual-row:hover .tree-virtual-row__more-btn,
+.tree-virtual-row:focus-within .tree-virtual-row__more-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tree-virtual-row__more-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.tree-virtual-row__more-btn:active {
+  background: var(--border-primary);
+}
+
+
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    C.9 â€” Topic Sort Order Control
