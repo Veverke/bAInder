@@ -23,7 +23,18 @@
  *   onChatContextMenu {Function|null}
  */
 
-const ITEM_HEIGHT = 36;
+import { getTagColor } from './tag-color.js';
+
+const SOURCE_LABELS = {
+  chatgpt: 'ChatGPT',
+  claude:  'Claude',
+  gemini:  'Gemini',
+  copilot: 'Copilot',
+  perplexity: 'Perplexity',
+  deepseek:   'DeepSeek',
+};
+
+const ITEM_HEIGHT = 40;
 const BUFFER      = 5;
 const INDENT_PX   = 16;
 
@@ -58,11 +69,28 @@ export function renderVirtualRow(item, ctx) {
     chevron.textContent = hasChildren ? (isExpanded ? '▼' : '▶') : ' ';
     row.appendChild(chevron);
 
+    // Folder icon
+    const icon = document.createElement('span');
+    icon.className   = 'tree-virtual-row__icon';
+    icon.textContent = '📁';
+    row.appendChild(icon);
+
     // Name
     const name = document.createElement('span');
     name.className   = 'tree-virtual-row__name';
     name.textContent = item.data.name || 'Untitled';
     row.appendChild(name);
+
+    // Timespan / date-range badge
+    if (item.data.getDateRangeString) {
+      const timespan = item.data.getDateRangeString();
+      if (timespan) {
+        const badge = document.createElement('span');
+        badge.className   = 'tree-virtual-row__timespan';
+        badge.textContent = timespan;
+        row.appendChild(badge);
+      }
+    }
 
     // Chat count badge
     if (chatCount > 0) {
@@ -88,11 +116,41 @@ export function renderVirtualRow(item, ctx) {
     });
 
   } else {
-    // Chat row — name only, no chevron
+    // Chat row — source chip, title, date badge
+    const chat = item.data;
+    const source = chat.source || 'unknown';
+
+    // Left-border accent via data-source attribute
+    row.setAttribute('data-source', source);
+
+    // Source chip
+    const sourceChip = document.createElement('span');
+    if (SOURCE_LABELS[source] || source === 'unknown') {
+      sourceChip.className = `tree-virtual-row__source-chip tree-virtual-row__source-chip--${source}`;
+    } else {
+      const hue = getTagColor(source);
+      sourceChip.className = 'tree-virtual-row__source-chip tree-virtual-row__source-chip--dynamic';
+      sourceChip.style.setProperty('--source-hue', hue);
+      row.style.setProperty('--source-hue', hue);
+    }
+    sourceChip.textContent = SOURCE_LABELS[source] || source;
+    row.appendChild(sourceChip);
+
+    // Title
     const name = document.createElement('span');
     name.className   = 'tree-virtual-row__name';
-    name.textContent = item.data.title || 'Untitled';
+    name.textContent = chat.title || 'Untitled';
     row.appendChild(name);
+
+    // Date badge
+    if (chat.timestamp) {
+      const dateBadge = document.createElement('span');
+      dateBadge.className   = 'tree-virtual-row__date';
+      dateBadge.textContent = new Date(chat.timestamp).toLocaleDateString(
+        'en-US', { month: 'short', day: 'numeric', year: 'numeric' }
+      );
+      row.appendChild(dateBadge);
+    }
 
     row.addEventListener('click', (e) => {
       e.stopPropagation();
