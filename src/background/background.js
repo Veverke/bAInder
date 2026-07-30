@@ -533,8 +533,29 @@ async function _extractChatsInTabs(data) {
       await new Promise(r => setTimeout(r, 3000));
 
       // 3. Send EXTRACT_CHAT message to the content script with tabIndex
+      // ── Periodic tab re-activation keepalive ──────────────────────────
+      // With concurrent extraction (default 8 workers), when worker B
+      // activates tab B, worker A's tab becomes inactive.  Chrome throttles
+      // inactive tabs severely — setTimeout clamped to ≥1s, rAF paused,
+      // scroll events dropped.  The content script stalls mid-extraction
+      // and never sends its response back, leaving the tab open forever.
+      //
+      // We set up a 2-second interval that re-activates this tab until the
+      // EXTRACT_CHAT response arrives, ensuring the content script always
+      // runs in an active tab regardless of other workers.
       logger.info(`_extractChatsInTabs: [idx=${tabIndex}] sending EXTRACT_CHAT to tab ${tabId}`);
-      const resp = await browser.tabs.sendMessage(tabId, { type: 'EXTRACT_CHAT', tabIndex });
+      // Re-activate right before sending, in case another worker stole
+      // active status during the 3s render wait.
+      await browser.tabs.update(tabId, { active: true }).catch(() => {});
+      const _keepAlive = setInterval(() => {
+        browser.tabs.update(tabId, { active: true }).catch(() => {});
+      }, 2000);
+      let resp;
+      try {
+        resp = await browser.tabs.sendMessage(tabId, { type: 'EXTRACT_CHAT', tabIndex });
+      } finally {
+        clearInterval(_keepAlive);
+      }
       if (resp?.success && resp.data) {
         // Use the full formatted markdown from prepareChatForSave() directly
         // rather than rebuilding from messages — this preserves formatting
