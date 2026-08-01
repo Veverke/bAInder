@@ -610,14 +610,19 @@ function _buildBulkMarkdown(chat) {
 
   // If we already have pre-formatted content from prepareChatForSave()
   // (i.e. the chat was extracted via parallel tabs), use it directly.
-  // We only need to fix up the date in frontmatter if different from extractedAt.
+  // Only fix up the date in frontmatter if we have a better source than
+  // what the content script already wrote (chatDate from date-divider).
   if (chat.content && !chat._apiFetched) {
-    // Replace the date in the existing frontmatter with the original extractedAt
-    const updated = chat.content.replace(
-      /^date: .+$/m,
-      `date: ${date}`
-    );
-    return updated;
+    if (chat.chatDate) {
+      // Replace the date in the existing frontmatter with the original chatDate
+      const updated = chat.content.replace(
+        /^date: .+$/m,
+        `date: ${new Date(chat.chatDate).toISOString()}`
+      );
+      return updated;
+    }
+    // No better date source — keep the content-script's original date as-is
+    return chat.content;
   }
 
   // Fallback for API-fetched chats (ChatGPT, Claude) — build from messages

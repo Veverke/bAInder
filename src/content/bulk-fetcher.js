@@ -159,11 +159,16 @@ async function _fetchChatGPT() {
         if (content.trim()) messages.push({ role, content: content.trim() });
       }
       if (messages.length === 0) return null;
+      // ChatGPT API returns create_time as unix seconds (float); convert to ISO
+      const chatDate = conv.create_time != null
+        ? new Date(conv.create_time * 1000).toISOString()
+        : null;
       return {
         title: conv.title || item.title || 'Untitled',
         messages,
         source: 'chatgpt',
         url: `https://chatgpt.com/chat/${convId}`,
+        chatDate,
       };
     } catch (err) {
       _log.warn(`ChatGPT: skip ${convId}: ${err.message}`);
@@ -209,7 +214,7 @@ async function _fetchClaude() {
       for (const conv of items) {
         const convId = conv.uuid;
         if (!convId) continue;
-        convRefs.push({ convId, orgUuid: org.uuid, name: conv.name || 'Untitled' });
+        convRefs.push({ convId, orgUuid: org.uuid, name: conv.name || 'Untitled', listCreatedAt: conv.created_at || null });
       }
       cursor = list.cursor || null;
       hasMore = list.has_more === true && cursor;
@@ -218,7 +223,7 @@ async function _fetchClaude() {
 
   // ── Phase 2: fetch conversation details concurrently (up to 5) ──────
   const total = convRefs.length;
-  const results = await _mapConcurrent(convRefs, async ({ convId, orgUuid, name }) => {
+  const results = await _mapConcurrent(convRefs, async ({ convId, orgUuid, name, listCreatedAt }) => {
     try {
       const resp = await fetch(
         `https://claude.ai/api/organizations/${orgUuid}/chat_conversations/${convId}?tree=True&rendering_mode=messages&render_all_tools=true`,
@@ -256,11 +261,14 @@ async function _fetchClaude() {
         if (content.trim()) messages.push({ role, content: content.trim() });
       }
       if (messages.length === 0) return null;
+      // Prefer detail-level created_at, fall back to listing-level
+      const chatDate = data.created_at || listCreatedAt;
       return {
         title: data.name || name,
         messages,
         source: 'claude',
         url: `https://claude.ai/chat/${convId}`,
+        chatDate,
       };
     } catch (err) {
       _log.warn(`Claude: skip ${convId}: ${err.message}`);
