@@ -28,6 +28,17 @@ export function buildExportMarkdown(chat, topicPath) {
   const dateStr    = chat.timestamp ? new Date(chat.timestamp).toISOString() : '';
   const tags       = Array.isArray(chat.tags) && chat.tags.length ? chat.tags.join(', ') : '';
 
+  // ── Diagnostics ──────────────────────────────────────────────────────────
+  const _messages = Array.isArray(chat.messages) ? chat.messages : [];
+  const _hasContent = typeof chat.content === 'string' && chat.content.length > 0;
+  console.log(
+    `[bAInder:export] buildExportMarkdown chat="${title}" id=${chat.id} ` +
+    `messages=${_messages.length} hasContent=${_hasContent} ` +
+    `contentLen=${typeof chat.content === 'string' ? chat.content.length : 'N/A'} ` +
+    `contentStart=${typeof chat.content === 'string' ? chat.content.slice(0, 80) : 'N/A'} ` +
+    `path=${_messages.length > 0 ? 'MESSAGES' : 'FALLBACK(content)'}`
+  );
+
   // ── Enriched frontmatter ───────────────────────────────────────────────────
   const fm = [
     '---',
@@ -65,8 +76,18 @@ export function buildExportMarkdown(chat, topicPath) {
     });
   } else {
     // Fall back to stored content (strip existing frontmatter first)
-    const body = stripFrontmatter(chat.content || '');
-    lines.push(body.trim());
+    let body = stripFrontmatter(chat.content || '').trim();
+    if (!body) {
+      // Both messages and content are unavailable (e.g. chat loaded from
+      // metadata-only index where toMeta stripped content, and messages
+      // were empty because an earlier import step failed to parse them).
+      // Emit a visible placeholder so the user knows this chat is broken.
+      body = `*[Chat data unavailable — try re-importing the original export file]*
+* Title: ${escapeYaml(title)}
+* Source: ${source}
+* Exported: ${exportedAt}`;
+    }
+    lines.push(body);
     lines.push('');
   }
 

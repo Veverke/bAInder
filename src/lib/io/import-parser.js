@@ -234,7 +234,7 @@ export function parseMessagesFromExportMarkdown(content) {
   }
 
   // ── Strategy 2: 🙋 / 🤖 emoji prefixes ────────────────────────────────
-  const EMOJI_RE = /^[🙋🤖](?:\s|$)/gm;
+  const EMOJI_RE = /^[🙋🤖](?:\s|$)/gmu;
   EMOJI_RE.lastIndex = 0;
   m = EMOJI_RE.exec(body);
   if (m) {
