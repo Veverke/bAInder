@@ -23,7 +23,8 @@ import { refresh as refreshEntityController } from './entity-controller.js';
 import { refreshEntityTypeChipVisibility } from './search-controller.js';
 import { extractChatEntities } from '../../lib/entities/entity-extractor.js';
 import '../../lib/entities/extractors/index.js'; // registers all extractors so re-extraction works in sidepanel context
-import { parseZipEntries, buildImportPlan, executeImport } from '../../lib/io/import-parser.js';
+import { normaliseMessages } from '../../background/chat-save-handler.js';
+import { generateId } from '../../lib/utils/search-utils.js';
 let _state = state;
 // ---------------------------------------------------------------------------
 // Test injection hook - lets unit tests provide a mock app context instead of
@@ -410,42 +411,92 @@ export async function handleFetchAllChats() {
     `);
 
     try {
-      // Load ZIP entries and build import plan
-      const jszip = await JSZip.loadAsync(blob);
-      const entryPromises = [];
-      jszip.forEach((relativePath, zipEntry) => {
-        if (!zipEntry.dir) {
-          entryPromises.push(
-            zipEntry.async('string').then((content) => ({ path: relativePath, content }))
-          );
+      // ── Direct in-memory save — bypass ZIP round-trip ────────────────
+      // Saves chats through the same pipeline as regular saves:
+      //   message normalisation → entity extraction → persist
+      // This ensures entities, audio markers, pagination stripping, and
+      // all other save-chat behaviours are applied identically.
+
+      // Resolve the target topic: "M365 Copilot", "ChatGPT", "Gemini", etc.
+      // For 'replace' strategy, start with a clean slate.
+      const topicName = {
+        copilot: 'M365 Copilot',
+        chatgpt: 'ChatGPT',
+        gemini: 'Gemini',
+        perplexity: 'Perplexity',
+        deepseek: 'DeepSeek',
+        claude: 'Claude',
+      }[platform] || platform.charAt(0).toUpperCase() + platform.slice(1);
+
+      if (strategy === 'replace') {
+        _state.tree  = new TopicTree();
+        _state.chats = [];
+      }
+
+      // Find or create the platform topic at the root level.
+      let topicId = null;
+      const rootTopics = _state.tree.getRootTopics();
+      const existingPlatformTopic = rootTopics.find(t => t.name === topicName);
+      if (existingPlatformTopic) {
+        topicId = existingPlatformTopic.id;
+      } else {
+        topicId = _state.tree.addTopic(topicName, null);
+      }
+
+      // Build full chat entries from the in-memory data — same pipeline as
+      // buildChatEntry() in chat-save-handler.js (message normalisation +
+      // entity extraction), but here we do it for bulk.
+      const newChats = [];
+      for (const chat of chats) {
+        const id = generateId();
+        const source = chat.source || platform;
+
+        // Message normalisation (audio markers, pagination stripping)
+        const messages = normaliseMessages(
+          chat.messages ? chat.messages.map(m => ({ role: m.role, content: m.content })) : [],
+          source
+        );
+
+        // Entity extraction — identical to buildChatEntry()
+        const entities = await extractChatEntities(messages, null, id);
+
+        newChats.push({
+          id,
+          title: chat.title || 'Untitled',
+          content: chat.content || '',
+          url: chat.url || '',
+          source,
+          timestamp: chat.chatDate
+            ? new Date(chat.chatDate).getTime()
+            : chat.extractedAt || Date.now(),
+          topicId,
+          messageCount: messages.length,
+          messages,
+          metadata: {
+            contentFormat: 'markdown-v1',
+            ...chat.metadata,
+          },
+          ...entities,
+        });
+      }
+
+      // Assign chat IDs to the topic
+      const topic = _state.tree.topics[topicId];
+      if (topic) {
+        for (const c of newChats) {
+          if (!topic.chatIds.includes(c.id)) {
+            topic.chatIds.push(c.id);
+          }
         }
-      });
-      const entries = await Promise.all(entryPromises);
-      const parsed = parseZipEntries(entries);
-      const plan = buildImportPlan(parsed, _state.tree, strategy === 'new-root' ? 'create_root' : strategy);
-
-      // Execute import
-      const treeObj = strategy === 'replace' ? null : _state.tree;
-      const chatArr = strategy === 'replace' ? [] : _state.chats;
-      const result = executeImport(plan, treeObj ? treeObj.toObject() : null, chatArr);
-
-      // Rebuild tree from imported data
-      _state.tree  = TopicTree.fromObject({ topics: result.updatedTopics, rootTopicIds: result.updatedRootTopics });
-      _state.chats = result.updatedChats;
+      }
 
       // Keep dialog instances' tree reference in sync
       _state.topicDialogs.tree = _state.tree;
       _state.chatDialogs.tree  = _state.tree;
 
       // Persist
+      _state.chats = [..._state.chats, ...newChats];
       await saveTree();
-      // Re-extract entities from imported chats
-      for (const chat of _state.chats) {
-        if (!chat.metadata?.importedAt) continue;
-        if (!Array.isArray(chat.messages) || chat.messages.length === 0) continue;
-        const entities = await extractChatEntities(chat.messages, null, chat.id);
-        Object.assign(chat, entities);
-      }
       _state.chats = await _state.chatRepo.replaceAll(_state.chats);
 
       // Refresh UI
@@ -457,7 +508,7 @@ export async function handleFetchAllChats() {
       await updateStorageUsage();
 
       _state.dialog.close();
-      const msg = `Imported ${result.summary.chatsImported} chat(s) from ${platform}.`;
+      const msg = `Imported ${newChats.length} chat(s) to "${topicName}".`;
       showNotification(msg, 'success');
     } catch (err) {
       _state.dialog.close();
