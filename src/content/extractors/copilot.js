@@ -15,6 +15,9 @@ import { resolveImageBlobs }     from './image-resolver.js';
 import { extractSourceLinks, stripSourceContainers } from './source-links.js';
 import { formatMessage, generateTitle }              from './message-utils.js';
 import { removeDescendants }                         from './shared.js';
+import { scrollAndCollectCopilotMessages }           from './copilot-scroll.js';
+
+export { scrollAndCollectCopilotMessages } from './copilot-scroll.js';
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
@@ -49,6 +52,36 @@ export async function extractCopilot(doc) {
   if (!doc) throw new Error('Document is required');
 
   const messages = [];
+
+  // ── Virtual-scroll pre-pass ─────────────────────────────────────────────────
+  // M365 BizChat virtualises its message list: messages outside the viewport are
+  // unmounted.  Scroll the full conversation so every message is harvested before
+  // it can be evicted, then process the collected HTML snapshots.
+  const _prePassMsgs = await scrollAndCollectCopilotMessages(doc, { showOverlay: true });
+  if (_prePassMsgs && _prePassMsgs.length > 0) {
+    console.log('[bAInder] [copilot] processing', _prePassMsgs.length, 'pre-pass message(s)');
+    const bgFetch = (typeof chrome !== 'undefined' && chrome?.runtime?.sendMessage)
+      ? url => new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({ type: 'FETCH_IMAGE_AS_DATA_URL', url }, resp => {
+            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+            const du = resp?.dataUrl || '';
+            if (resp?.success && du.startsWith('data:')) resolve(du);
+            else reject(new Error(resp?.error || 'invalid dataUrl from background'));
+          });
+        })
+      : null;
+    for (const { role, innerHTML } of _prePassMsgs) {
+      const tempDiv = doc.createElement('div');
+      tempDiv.innerHTML = innerHTML;
+      const processEl  = role === 'assistant' ? stripSourceContainers(tempDiv) : tempDiv;
+      const resolvedEl = await resolveImageBlobs(processEl, bgFetch);
+      let content = stripRoleLabels(htmlToMarkdown(resolvedEl));
+      if (role === 'assistant') content += extractSourceLinks(tempDiv);
+      if (content) messages.push(formatMessage(role, content));
+    }
+    return { title: generateTitle(messages, doc.location?.href || ''), messages, messageCount: messages.length };
+  }
+  console.log('[bAInder] [copilot] scroll pre-pass not triggered (fits on screen); using standard DOM extraction');
 
   // Scope to the main conversation area so sidebar history items
   // (which may share the same class patterns) are not included.

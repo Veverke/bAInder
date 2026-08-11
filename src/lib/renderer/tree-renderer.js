@@ -456,8 +456,16 @@ export class TreeRenderer {
       flattenVisible:  () => this._flattenVisible(),
       onTopicClick:        (id)       => this.onTopicClick?.(id),
       onTopicContextMenu:  (e, id)    => this.onTopicContextMenu?.(e, id),
-      onChatClick:         (id, tid)  => this.onChatClick?.(id, tid),
-      onChatContextMenu:   (e, id)    => this.onChatContextMenu?.(e, id),
+      onChatClick:         (id, tid)  => {
+        // Virtual-scroll passes (id, topicId) — look up the full chat object
+        // so the handler receives the same shape as the non-virtual path.
+        const chat = this.chats.find(c => c.id === id);
+        if (chat) this.onChatClick?.(chat);
+      },
+      onChatContextMenu:   (e, id)    => {
+        const chat = this.chats.find(c => c.id === id);
+        if (chat) this.onChatContextMenu?.(chat, e);
+      },
     };
   }
 }

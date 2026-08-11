@@ -3070,7 +3070,7 @@ ul.tree-root.drop-target {
   will-change: transform;
 }
 .tree-virtual-row {
-  height: 36px;
+  height: 40px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -3110,6 +3110,109 @@ ul.tree-root.drop-target {
   background: var(--badge-bg, rgba(88,166,255,0.15));
   color: var(--muted, #8b949e);
 }
+
+/* Virtual-scroll topic timespan badge */
+.tree-virtual-row__timespan {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 0 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Virtual-scroll chat source chip */
+.tree-virtual-row__source-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+.tree-virtual-row__source-chip--chatgpt   { background: #dcfce7; color: #15803d; }
+.tree-virtual-row__source-chip--claude    { background: #fef3c7; color: #92400e; }
+.tree-virtual-row__source-chip--gemini    { background: #dbeafe; color: #1e40af; }
+.tree-virtual-row__source-chip--copilot   { background: #ede9fe; color: #5b21b6; }
+.tree-virtual-row__source-chip--perplexity { background: #f0e0c8; color: #6b4620; }
+.tree-virtual-row__source-chip--deepseek   { background: #ddd6fe; color: #2e1065; }
+.tree-virtual-row__source-chip--unknown   { background: var(--bg-tertiary); color: var(--text-tertiary); }
+.tree-virtual-row__source-chip--dynamic   {
+  background: hsl(var(--source-hue), 50%, 88%);
+  color:       hsl(var(--source-hue), 50%, 25%);
+}
+
+/* Virtual-scroll chat date badge */
+.tree-virtual-row__date {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 0 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Virtual-scroll chat row left-border accent by source */
+.tree-virtual-row--chat[data-source="chatgpt"]     { box-shadow: inset 3px 0 0 0 #15803d; }
+.tree-virtual-row--chat[data-source="claude"]       { box-shadow: inset 3px 0 0 0 #92400e; }
+.tree-virtual-row--chat[data-source="gemini"]       { box-shadow: inset 3px 0 0 0 #1e40af; }
+.tree-virtual-row--chat[data-source="copilot"]      { box-shadow: inset 3px 0 0 0 #5b21b6; }
+.tree-virtual-row--chat[data-source="perplexity"]   { box-shadow: inset 3px 0 0 0 #6b4620; }
+.tree-virtual-row--chat[data-source="deepseek"]     { box-shadow: inset 3px 0 0 0 #2e1065; }
+
+/* Virtual-scroll chat icon */
+.tree-virtual-row__icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+/* Virtual-scroll more-actions (⋮) button — hidden until row is hovered */
+.tree-virtual-row__more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+  pointer-events: none;
+}
+
+.tree-virtual-row:hover .tree-virtual-row__more-btn,
+.tree-virtual-row:focus-within .tree-virtual-row__more-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tree-virtual-row__more-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.tree-virtual-row__more-btn:active {
+  background: var(--border-primary);
+}
+
+
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    C.9 â€” Topic Sort Order Control

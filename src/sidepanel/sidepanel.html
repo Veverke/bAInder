@@ -165,6 +165,7 @@
               <option value="alpha-desc">Chats: Z → A</option>
               <option value="date-desc">Chats: Newest</option>
               <option value="date-asc">Chats: Oldest</option>
+              <option value="messageCount">Chats: Most messages</option>
             </select>
             <span id="itemCount" class="badge">0 topics</span>
             <span id="chatCount" class="badge">0 chats</span>
@@ -361,6 +362,11 @@
         <span id="storageUsage">Loading...</span>
       </div>
       <div class="footer-actions">
+        <button id="fetchAllBtn" class="btn-icon" title="Fetch all chats from current platform">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 1V10M8 10L11 7M8 10L5 7M2 11V13C2 13.6 2.4 14 3 14H13C13.6 14 14 13.6 14 13V11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <button id="importBtn" class="btn-icon" title="Import from ZIP">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 3V11M8 11L5 8M8 11L11 8M3 13H13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -709,6 +715,41 @@
 
         <!-- Export tab -->
         <section class="settings-tab-panel" id="settings-tab-export" aria-label="Export settings" hidden>
+          <h3 class="settings-section__title">Bulk Export</h3>
+          <div class="settings-row">
+            <label class="settings-row__label" for="extractConcurrencyInput">
+              Extraction concurrency
+              <span class="settings-row__hint">Number of parallel browser tabs used when extracting Copilot conversations. Higher = faster but more resource-intensive.</span>
+            </label>
+            <input type="number" id="extractConcurrencyInput" class="settings-input"
+              value="5" min="1" max="20" step="1" style="width:70px;text-align:right"
+              aria-label="Number of parallel extraction tabs">
+          </div>
+          <div class="settings-row">
+            <label class="settings-row__label" for="extractRangeStartInput">
+              Chat range
+              <span class="settings-row__hint">Only export chats within this range (1-based). Leave as 1–999999 to export all.</span>
+            </label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="extractRangeStartInput" class="settings-input"
+                value="1" min="1" step="1" style="width:60px;text-align:right"
+                aria-label="Start chat index">
+              <span style="font-size:0.8rem;color:var(--text-secondary)">to</span>
+              <input type="number" id="extractRangeEndInput" class="settings-input"
+                value="999999" min="1" step="1" style="width:70px;text-align:right"
+                aria-label="End chat index">
+            </div>
+          </div>
+          <div class="settings-row">
+            <label class="settings-row__label" for="extractTimeoutInput">
+              Fetch timeout (minutes)
+              <span class="settings-row__hint">Maximum time to wait for all chats to be fetched. Default 90 minutes.</span>
+            </label>
+            <input type="number" id="extractTimeoutInput" class="settings-input"
+              value="90" min="1" max="999" step="1" style="width:70px;text-align:right"
+              aria-label="Fetch timeout in minutes">
+          </div>
+          <hr class="settings-separator">
           <h3 class="settings-section__title">Auto Export</h3>
           <div class="settings-row">
             <label class="settings-row__label" for="autoExportToggle">

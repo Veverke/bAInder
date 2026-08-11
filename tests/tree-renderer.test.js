@@ -1189,9 +1189,10 @@ describe('TreeRenderer – virtual scroll', () => {
     const renderer = new TreeRenderer(container, tree);
     const fn = vi.fn();
     renderer.onChatClick = fn;
+    renderer.chats = [{ id: 'cid' }];
     const ctx = renderer._makeVirtualCtx();
     ctx.onChatClick('cid', 'tid');
-    expect(fn).toHaveBeenCalledWith('cid', 'tid');
+    expect(fn).toHaveBeenCalledWith({ id: 'cid' });
   });
 });
 
@@ -1576,10 +1577,11 @@ describe('TreeRenderer – internal delegates', () => {
     const fn = vi.fn();
     const renderer = new TreeRenderer(container, tree);
     renderer.onChatContextMenu = fn;
+    renderer.chats = [{ id: 'chat-1' }];
     const ctx = renderer._makeVirtualCtx();
     const evt = new MouseEvent('contextmenu');
     ctx.onChatContextMenu(evt, 'chat-1');
-    expect(fn).toHaveBeenCalledWith(evt, 'chat-1');
+    expect(fn).toHaveBeenCalledWith({ id: 'chat-1' }, evt);
   });
 });
 

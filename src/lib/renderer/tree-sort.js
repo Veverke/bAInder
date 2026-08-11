@@ -43,7 +43,7 @@ export function sortTopics(topics, mode) {
 
 /**
  * Return a comparator for the given chat sort mode.
- * @param {'date-desc'|'date-asc'|'alpha-asc'|'alpha-desc'} mode
+ * @param {'date-desc'|'date-asc'|'alpha-asc'|'alpha-desc'|'messageCount'} mode
  * @returns {(a: Object, b: Object) => number}
  */
 function getChatModeComparator(mode) {
@@ -54,6 +54,8 @@ function getChatModeComparator(mode) {
       return (a, b) => (a.title || '').toLowerCase().localeCompare((b.title || '').toLowerCase());
     case 'alpha-desc':
       return (a, b) => (b.title || '').toLowerCase().localeCompare((a.title || '').toLowerCase());
+    case 'messageCount':
+      return (a, b) => (b.messageCount || 0) - (a.messageCount || 0);
     case 'date-desc':
     default:
       return (a, b) => (b.timestamp || 0) - (a.timestamp || 0);

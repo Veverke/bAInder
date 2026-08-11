@@ -97,7 +97,7 @@ import {
   handleChatSaved,
   checkAndTriggerAutoExport,
 } from './controllers/chat-actions.js';
-import { handleExportAll, handleImport, handleClearAll } from './controllers/import-export-actions.js';
+import { handleExportAll, handleImport, handleClearAll, handleFetchAllChats } from './controllers/import-export-actions.js';
 
 import { initSaveBanner, setSaveBtnState, handlePanelSave } from './features/save-banner.js';
 import { initBackupReminder }  from './features/backup-reminder.js';
@@ -246,6 +246,7 @@ function setupEventListeners() {
 
   // Toolbar: import / export / clear
   elements.importBtn?.addEventListener('click', handleImport);
+  elements.fetchAllBtn?.addEventListener('click', handleFetchAllChats);
   elements.exportAllBtn?.addEventListener('click', handleExportAll);
   elements.clearAllBtn?.addEventListener('click', handleClearAll);
 

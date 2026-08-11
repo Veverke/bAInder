@@ -284,7 +284,7 @@ describe('startVirtualScroll', () => {
     startVirtualScroll(container, flatNodes, null, makeCtx());
     const sizer = container.querySelector('.tree-virtual-sizer');
     expect(sizer).not.toBeNull();
-    expect(sizer.style.height).toBe(`${10 * 36}px`);
+    expect(sizer.style.height).toBe(`${10 * 40}px`);
   });
 
   it('creates a viewport div', () => {
@@ -328,7 +328,7 @@ describe('startVirtualScroll', () => {
     const initialCount = viewport.children.length;
 
     // "Scroll" down
-    Object.defineProperty(container, 'scrollTop', { value: 360, configurable: true });
+    Object.defineProperty(container, 'scrollTop', { value: 400, configurable: true });
     handler();
 
     // Slice should shift — content might change

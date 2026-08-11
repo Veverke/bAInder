@@ -22,6 +22,11 @@ const _chatRepo = new ChatRepository(browser.storage.local);
 // An in-memory mirror is kept for the fast (non-restart) path.
 let _excerptCache = null;
 
+// ─── Tab state tracking for bulk-fetch extraction ────────────────────────────
+// Maps tabIndex → { phase, remaining, title, error? }
+const _tabStates = new Map();
+let _tabStateSeq = 0; // monotonic counter for tabIndex assignment
+
 // ─── Context Menu ────────────────────────────────────────────────────────────
 
 const SUPPORTED_URL_PATTERNS = [
@@ -149,6 +154,60 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   logger.debug('Runtime message received:', message.type);
 
+  // ── Bulk fetch: forward content-script messages to the sidepanel ──────────
+  // Content-script messages have sender.tab set; extension pages don't.
+  if (sender.tab && message.type === 'FETCH_ALL_CHATS_PROGRESS') {
+    // Progress messages always forward directly.
+    const fwd = { type: `SIDEPANEL_${message.type}`, data: message.data };
+    logger.info(`Relaying ${message.type} → sidepanel (${JSON.stringify(message.data).slice(0, 120)})`);
+    browser.runtime.sendMessage(fwd).catch(() => {});
+    sendResponse({ success: true });
+    return;
+  }
+
+  // ── Per-tab extraction progress from content scripts ────────────────────
+  if (sender.tab && message.type === 'EXTRACT_CHAT_PROGRESS') {
+    const { tabIndex, phase, remaining, error } = message.data || {};
+    const key = tabIndex != null ? tabIndex : _tabStateSeq;
+    const existing = _tabStates.get(key) || {};
+    _tabStates.set(key, { ...existing, phase, remaining, title: message.data?.title || existing.title, error, url: existing.url });
+    // Forward aggregated tab states to sidepanel
+    const states = Array.from(_tabStates.entries()).map(([idx, st]) => ({
+      tabIndex: idx, phase: st.phase, remaining: st.remaining, title: st.title, error: st.error, url: st.url,
+    }));
+    browser.runtime.sendMessage({
+      type: 'SIDEPANEL_EXTRACT_CHAT_PROGRESS',
+      data: { states },
+    }).catch(() => {});
+    sendResponse({ success: true });
+    return;
+  }
+
+  if (sender.tab && message.type === 'FETCH_ALL_CHATS_RESULT') {
+    const { data } = message;
+    if (data?.needsExtract && Array.isArray(data?.chats) && data.chats.length > 0) {
+      // ── Parallel tab extraction ─────────────────────────────────────────
+      // The bulk-fetcher collected only URLs (needsExtract = true).
+      // Open each URL in its own tab, send EXTRACT_CHAT, collect messages,
+      // close tab — all with bounded concurrency (5 parallel).
+      logger.info(`FETCH_ALL_CHATS_RESULT: needsExtract — starting parallel tab extraction for ${data.chats.length} chats (platform=${data.platform})`);
+      sendResponse({ success: true }); // ack immediately
+
+      // Kick off async extraction — do not await inside the listener.
+      _extractChatsInTabs(data).catch(err => {
+        logger.error('Parallel tab extraction failed:', err.message);
+      });
+      return false; // sendResponse already called
+    }
+
+    // No extraction needed (e.g. ChatGPT/Claude already fully fetched via API).
+    const fwd = { type: `SIDEPANEL_${message.type}`, data: { ...data, totalOriginalChats: data?.chats?.length || 0, errors: [], tabStates: [] } };
+    logger.info(`Relaying ${message.type} → sidepanel (no extraction needed, ${data?.chats?.length || 0} chats)`);
+    browser.runtime.sendMessage(fwd).catch(() => {});
+    sendResponse({ success: true });
+    return;
+  }
+
   // Forward logs from content scripts (tab console → SW console).
   if (message.type === 'CONTENT_LOG') {
     const lvl = message.level || 'info';
@@ -249,7 +308,44 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
-      
+
+    case 'FETCH_ALL_CHATS':
+      // Sidepanel requests injection of bulk-fetcher into the active tab.
+      logger.info('FETCH_ALL_CHATS received from sidepanel');
+      (async () => {
+        try {
+          const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+          const tab = tabs?.[0];
+          if (!tab || !tab.id) {
+            logger.warn('FETCH_ALL_CHATS: no active tab');
+            sendResponse({ success: false, error: 'No active tab found' });
+            return;
+          }
+          const url = tab.url || '';
+          logger.info(`FETCH_ALL_CHATS: active tab url = ${url}`);
+          const supported = [
+            'chat.openai.com', 'chatgpt.com', 'claude.ai',
+            'gemini.google.com', 'copilot.microsoft.com',
+            'm365.cloud.microsoft', 'chat.deepseek.com', 'perplexity.ai'
+          ];
+          if (!supported.some(h => url.includes(h))) {
+            sendResponse({ success: false, error: 'Active tab is not on a supported AI chat platform' });
+            return;
+          }
+          logger.info('FETCH_ALL_CHATS: injecting bulk-fetcher.js into tab', tab.id);
+          await browser.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['bulk-fetcher.js'],
+          });
+          logger.info('FETCH_ALL_CHATS: bulk-fetcher.js injected successfully');
+          sendResponse({ success: true });
+        } catch (err) {
+          logger.error('FETCH_ALL_CHATS injection error:', err.message);
+          sendResponse({ success: false, error: err.message });
+        }
+      })();
+      return true;
+
     default:
       logger.warn('Unknown message type:', message.type);
       sendResponse({ success: false, error: 'Unknown message type' });
@@ -260,6 +356,284 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Delegates to the testable handler module, passing the shared ChatRepository
 async function handleSaveChat(chatData, sender) {
   return _handleSaveChat(chatData, sender, _chatRepo);
+}
+
+// ─── Parallel tab extraction for bulk-fetcher ────────────────────────────────
+
+/**
+ * Map an array concurrently with bounded parallelism, preserving insertion order.
+ * @template T, R
+ * @param {T[]} items
+ * @param {(item: T, index: number) => Promise<R>} fn
+ * @param {number} [concurrency=5]
+ * @returns {Promise<R[]>}
+ */
+async function _mapConcurrent(items, fn, concurrency = 5) {
+  const results = [];
+  const queue = items.entries();
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    for (const [i, item] of queue) {
+      results[i] = await fn(item, i);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+/**
+ * Send a progress update to the sidepanel during parallel tab extraction.
+ * @param {number} current
+ * @param {number} total
+ * @param {string} [title]
+ */
+function _sendExtractProgress(current, total, title) {
+  browser.runtime.sendMessage({
+    type: 'SIDEPANEL_FETCH_ALL_CHATS_PROGRESS',
+    data: { current, total, title },
+  }).catch(() => {});
+}
+
+/**
+ * Broadcast the current _tabStates to the sidepanel.
+ */
+function _sendTabStateUpdate() {
+  const states = Array.from(_tabStates.entries()).map(([idx, st]) => ({
+    tabIndex: idx, phase: st.phase, remaining: st.remaining, title: st.title, error: st.error, url: st.url,
+  }));
+  browser.runtime.sendMessage({
+    type: 'SIDEPANEL_EXTRACT_CHAT_PROGRESS',
+    data: { states },
+  }).catch(() => {});
+}
+
+/**
+ * Open each chat URL in a new tab, send EXTRACT_CHAT to the content script,
+ * collect messages, close the tab — all with bounded concurrency.
+ *
+ * @param {{ platform: string, chats: Array<{title: string, url: string, messages: Array}> }} data
+ */
+async function _extractChatsInTabs(data) {
+  const { platform, chats } = data;
+  const total = chats.length;
+  let extractedCount = 0;
+
+  // Read settings from storage (concurrency + range)
+  let concurrency = 5;
+  let rangeStart = 1;
+  let rangeEnd = 999999;
+  try {
+    const s = await browser.storage.local.get(['extractSettings']);
+    const es = s.extractSettings || {};
+    concurrency = Math.max(1, Math.min(20, parseInt(es.concurrency, 10) || 5));
+    rangeStart  = Math.max(1, parseInt(es.rangeStart, 10) || 1);
+    rangeEnd    = Math.max(rangeStart, parseInt(es.rangeEnd, 10) || 999999);
+  } catch (_) {}
+
+  // Slice chats to the requested range (1-based, inclusive)
+  const startIdx = rangeStart - 1;
+  const endIdx   = Math.min(rangeEnd, total);
+  const workingChats = chats.slice(startIdx, endIdx);
+
+  logger.info(`_extractChatsInTabs: platform=${platform} total=${total} ` +
+    `range=[${rangeStart}..${rangeEnd}] concurrency=${concurrency} ` +
+    `working=${workingChats.length} chats`);
+
+  _sendExtractProgress(0, workingChats.length, 'Starting parallel extraction…');
+
+  await _mapConcurrent(workingChats, async (chat) => {
+    if (!chat.url) {
+      logger.warn(`_extractChatsInTabs: "${chat.title}" has no URL — skipping`);
+      return;
+    }
+
+    // Assign a unique tabIndex for progress tracking
+    const tabIndex = ++_tabStateSeq;
+    _tabStates.set(tabIndex, { phase: 'waiting', remaining: 60, title: chat.title || '', url: chat.url || '' });
+    logger.info(`_extractChatsInTabs: [idx=${tabIndex}] starting "${chat.title}" url=${chat.url}`);
+
+    let tab = null;
+    try {
+      // 1. Open the conversation URL in a new tab
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] creating tab for "${chat.title}" → ${chat.url}`);
+      tab = await browser.tabs.create({ url: chat.url, active: false });
+      const tabId = tab.id;
+      _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'loading' });
+      _sendTabStateUpdate();
+      logger.info(`_extractChatsInTabs: opened tab ${tabId} (idx=${tabIndex}) for "${chat.title}" → ${chat.url}`);
+
+      // 2. Wait for the tab to finish loading
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] waiting for tab ${tabId} to load…`);
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error(`Timeout waiting for tab ${tabId} to load (60s)`));
+        }, 60_000);
+
+        const onUpdated = (updatedTabId, changeInfo) => {
+          if (updatedTabId !== tabId) return;
+          if (changeInfo.status === 'complete') {
+            cleanup();
+            resolve();
+          }
+        };
+
+        const onError = (erasedTabId) => {
+          if (erasedTabId === tabId) {
+            cleanup();
+            reject(new Error(`Tab ${tabId} was removed before loading`));
+          }
+        };
+
+        const cleanup = () => {
+          clearTimeout(timeout);
+          browser.tabs.onUpdated.removeListener(onUpdated);
+          browser.tabs.onRemoved.removeListener(onError);
+        };
+
+        browser.tabs.onUpdated.addListener(onUpdated);
+        browser.tabs.onRemoved.addListener(onError);
+      });
+
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] tab ${tabId} finished loading`);
+
+      // Give content script a moment to initialise
+      await new Promise(r => setTimeout(r, 1500));
+
+      // ── Inject tab title ────────────────────────────────────────────────
+      // Set the tab title to the extraction index + chat name so the user
+      // can identify which chat is being extracted at a glance.
+      browser.scripting.executeScript({
+        target: { tabId },
+        func: (t) => { document.title = t; },
+        args: [`#${tabIndex} - ${chat.title}`],
+      }).catch(e => {
+        logger.warn(`_extractChatsInTabs: [idx=${tabIndex}] title injection failed: ${e.message}`);
+      });
+
+      // ── Activate tab to wake up virtual-list rendering ──────────────────
+      // Chrome throttles hidden/inactive tabs severely:
+      //   - requestAnimationFrame is paused
+      //   - scroll events are coalesced or dropped
+      //   - setTimeout is clamped to ≥ 1s
+      // The Copilot SPA virtual list relies on rAF + scroll handlers to
+      // render off-screen messages.  Without activation, our scroll-to-
+      // trigger fix in the content script has no effect and only the first
+      // 1-2 visible messages are mounted in the DOM.
+      //
+      // We activate the tab briefly, wait for the virtual list to finish
+      // rendering, send EXTRACT_CHAT, then close the tab immediately.
+      // Since extraction runs with bounded concurrency (default 5), at most
+      // 5 brief tab-switches happen at once.
+      _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'activating' });
+      _sendTabStateUpdate();
+      await browser.tabs.update(tabId, { active: true }).catch(e => {
+        logger.warn(`_extractChatsInTabs: [idx=${tabIndex}] tab activation failed: ${e.message}`);
+      });
+      // Wait for the virtual list to render all items (rAF + scroll handlers
+      // fire when the tab is active)
+      await new Promise(r => setTimeout(r, 3000));
+
+      // 3. Send EXTRACT_CHAT message to the content script with tabIndex
+      // ── Periodic tab re-activation keepalive ──────────────────────────
+      // With concurrent extraction (default 8 workers), when worker B
+      // activates tab B, worker A's tab becomes inactive.  Chrome throttles
+      // inactive tabs severely — setTimeout clamped to ≥1s, rAF paused,
+      // scroll events dropped.  The content script stalls mid-extraction
+      // and never sends its response back, leaving the tab open forever.
+      //
+      // We set up a 2-second interval that re-activates this tab until the
+      // EXTRACT_CHAT response arrives, ensuring the content script always
+      // runs in an active tab regardless of other workers.
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] sending EXTRACT_CHAT to tab ${tabId}`);
+      // Re-activate right before sending, in case another worker stole
+      // active status during the 3s render wait.
+      await browser.tabs.update(tabId, { active: true }).catch(() => {});
+      const _keepAlive = setInterval(() => {
+        browser.tabs.update(tabId, { active: true }).catch(() => {});
+      }, 2000);
+      let resp;
+      try {
+        resp = await browser.tabs.sendMessage(tabId, { type: 'EXTRACT_CHAT', tabIndex });
+      } finally {
+        clearInterval(_keepAlive);
+      }
+      if (resp?.success && resp.data) {
+        // Use the full formatted markdown from prepareChatForSave() directly
+        // rather than rebuilding from messages — this preserves formatting
+        // (emoji roles, markdown structure) and avoids duplicating logic.
+        chat.content = resp.data.content || '';
+        chat.messages = resp.data.messages || [];
+        chat.messageCount = resp.data.messageCount || chat.messages.length;
+        chat.extractedAt = resp.data.metadata?.extractedAt || Date.now();
+        chat.chatDate = resp.data.metadata?.chatDate || null;
+        chat.source = resp.data.source || chat.source || platform;
+
+        // Preserve the original sidebar chat name (from bulk-fetcher's
+        // discovery phase) instead of the derived title that extractCopilot
+        // generates from the first user prompt.  The derived title is embedded
+        // in the frontmatter of resp.data.content — replace it.
+        if (chat.title && chat.content) {
+          chat.content = chat.content.replace(
+            /^title: \".*\"$/m,
+            `title: "${chat.title.replace(/[\\"]/g, '\\$&')}"`
+          );
+        }
+
+        logger.info(`_extractChatsInTabs: extracted ${chat.messages.length} messages from "${chat.title}"`);
+        _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'done' });
+        _sendTabStateUpdate();
+      } else {
+        logger.warn(`_extractChatsInTabs: [idx=${tabIndex}] EXTRACT_CHAT failed for "${chat.title}": resp=${JSON.stringify(resp)}`);
+        _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'error', error: resp?.error || 'EXTRACT_CHAT returned no data' });
+        _sendTabStateUpdate();
+      }
+
+      // 4. Close the tab
+      logger.info(`_extractChatsInTabs: [idx=${tabIndex}] closing tab ${tabId}`);
+      await browser.tabs.remove(tabId).catch(() => {});
+      tab = null;
+    } catch (err) {
+      logger.warn(`_extractChatsInTabs: error processing "${chat.title}" [idx=${tabIndex}]: ${err.message}`, err.stack);
+      _tabStates.set(tabIndex, { ..._tabStates.get(tabIndex), phase: 'error', error: err.message });
+      _sendTabStateUpdate();
+      if (tab?.id) {
+        await browser.tabs.remove(tab.id).catch(() => {});
+      }
+    }
+
+    extractedCount++;
+    logger.info(`_extractChatsInTabs: [idx=${tabIndex}] completed (${extractedCount}/${workingChats.length})`);
+    _sendExtractProgress(extractedCount, workingChats.length, `Extracted: ${chat.title}`);
+  }, concurrency); // concurrency from settings
+
+  // 5. Send final result to sidepanel — includes error log, tab states, and totals
+  logger.info(`_extractChatsInTabs: done — ${extractedCount}/${workingChats.length} chats extracted`);
+
+  // Collect errors from tab states
+  const errors = [];
+  const tabStatesFinal = [];
+  for (const [idx, st] of _tabStates) {
+    tabStatesFinal.push({ tabIndex: idx, phase: st.phase, title: st.title, error: st.error, url: st.url });
+    if (st.phase === 'error') {
+      errors.push({ tabIndex: idx, title: st.title, url: st.url, error: st.error });
+    }
+  }
+
+  browser.runtime.sendMessage({
+    type: 'SIDEPANEL_FETCH_ALL_CHATS_RESULT',
+    data: {
+      success: true,
+      platform,
+      chats: workingChats,
+      totalOriginalChats: total,
+      errors,
+      tabStates: tabStatesFinal,
+    },
+  }).catch(() => {});
+
+  // Clear tab states for next run
+  _tabStates.clear();
+  _tabStateSeq = 0;
 }
 
 // Get storage usage

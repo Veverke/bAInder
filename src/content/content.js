@@ -842,6 +842,82 @@ const logger = {
     return { role: role || 'unknown', content: (content || '').trim() };
   }
 
+  /**
+   * Parse a Copilot date-divider text into an ISO date string.
+   * Handles:
+   *   - Absolute dates: "July 27, 2026", "2026-07-27"
+   *   - Relative: "Today", "Yesterday", "Last Monday", "Monday"
+   *   - Anything unparseable returns null (caller uses extractedAt fallback)
+   */
+  function _parseCopilotChatDate(dateDividerText) {
+    if (!dateDividerText) return null;
+    const txt = dateDividerText.trim();
+    if (!txt) return null;
+
+    const lower = txt.toLowerCase();
+
+    // "Today"
+    if (lower === 'today') return new Date().toISOString();
+
+    // "Yesterday"
+    if (lower === 'yesterday') {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      return d.toISOString();
+    }
+
+    // "Last Monday", "Last Tuesday", etc.
+    const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const lastDayMatch = lower.match(/^last\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/);
+    if (lastDayMatch) {
+      const targetIdx = DAYS.indexOf(lastDayMatch[1]);
+      const now = new Date();
+      const currentDay = now.getDay(); // 0=Sun
+      let diff = currentDay - targetIdx;
+      if (diff <= 0) diff += 7; // go back to the *previous* occurrence
+      const d = new Date(now);
+      d.setDate(d.getDate() - diff);
+      return d.toISOString();
+    }
+
+    // "Monday" (this week's Monday — only if it's in the past)
+    const dayMatch = DAYS.indexOf(lower);
+    if (dayMatch !== -1 && !lower.startsWith('last')) {
+      const now = new Date();
+      const currentDay = now.getDay();
+      if (currentDay > dayMatch) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - (currentDay - dayMatch));
+        return d.toISOString();
+      }
+    }
+
+    // Try absolute date parsing — but first with the current year, because
+    // Copilot date dividers often omit the year (e.g. "January 15") and
+    // Date.parse in V8 defaults to year 2001 for month+day-only strings.
+    let parsed = Date.parse(txt);
+    if (!isNaN(parsed)) {
+      const d = new Date(parsed);
+      // If the parsed year is 2001 (the V8 spec fallback for yearless dates),
+      // re-parse with the current year prepended.
+      if (d.getFullYear() === 2001) {
+        const withYear = `${txt}, ${new Date().getFullYear()}`;
+        const reParsed = Date.parse(withYear);
+        if (!isNaN(reParsed)) {
+          const d2 = new Date(reParsed);
+          // If the result is in the future, it's from an earlier year
+          if (d2 > new Date()) {
+            d2.setFullYear(d2.getFullYear() - 1);
+          }
+          return d2.toISOString();
+        }
+      }
+      return d.toISOString();
+    }
+
+    return null;
+  }
+
   function generateTitle(messages, url) {
     // Strategy 1: first complete sentence from the user's first message.
     const ROLE_LABEL_RE = /^(you said|i said|copilot said|copilot):?\s*$/i;
@@ -1348,9 +1424,242 @@ const logger = {
     return '\n\n**Sources:**\n\n' + lines.join('\n');
   }
 
+  // ─── Copilot scroll-to-load pre-pass (inlined for self-contained IIFE) ─────
+
+  /**
+   * Scroll the Copilot / M365 BizChat conversation container to trigger loading
+   * of all virtualised messages, collecting innerHTML snapshots along the way.
+   * Shows a progress overlay during the operation.
+   * @param {Document} doc
+   * @returns {Promise<Array<{role:string, innerHTML:string}>|null>}
+   */
+  async function _scrollAndCollectCopilotMessages(doc) {
+    const _sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    // ── Step 1: find the real scrollable container ──────────────────────────
+    const anchorEl =
+      doc.querySelector('[data-content="user-message"], [data-content="ai-message"]') ||
+      doc.querySelector('[data-testid="user-message"], [data-testid="ai-message"]') ||
+      doc.querySelector('[class*="user-message"], [class*="UserMessage"]');
+
+    let scrollEl = null;
+    if (anchorEl && typeof getComputedStyle !== 'undefined') {
+      let node = anchorEl.parentElement;
+      while (node && node !== doc.documentElement) {
+        const oy = getComputedStyle(node).overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight + 20) {
+          scrollEl = node;
+          break;
+        }
+        node = node.parentElement;
+      }
+    }
+
+    // Fallback: known BizChat / Copilot selectors
+    if (!scrollEl) {
+      for (const sel of [
+        '[data-testid="chat-page"]',
+        '[class*="conversation-list"]',
+        '[class*="conversationList"]',
+        'main',
+        '[role="main"]',
+      ]) {
+        const el = doc.querySelector(sel);
+        if (el && el.scrollHeight > el.clientHeight + 50) { scrollEl = el; break; }
+      }
+    }
+    if (!scrollEl) scrollEl = doc.scrollingElement || doc.documentElement;
+
+    if (scrollEl.scrollHeight <= scrollEl.clientHeight + 100) return null;
+
+    // ── Progress overlay ────────────────────────────────────────────────────
+    const ov = doc.createElement('div');
+    ov.id = 'bainder-scroll-overlay';
+    ov.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:2147483647',
+      'background:rgba(0,0,0,0.35)',
+      'display:flex', 'align-items:center', 'justify-content:center',
+    ].join(';');
+    const ovBox = doc.createElement('div');
+    ovBox.style.cssText = [
+      'background:#fff', 'border-radius:14px', 'padding:28px 32px',
+      'width:340px', 'max-width:90vw',
+      'box-shadow:0 8px 40px rgba(0,0,0,0.28)',
+      'font-family:system-ui,-apple-system,sans-serif', 'color:#111827',
+      'display:flex', 'flex-direction:column', 'gap:12px',
+    ].join(';');
+    const ovHdg = doc.createElement('div');
+    ovHdg.style.cssText = 'font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;';
+    ovHdg.innerHTML = '<span style="font-size:20px;line-height:1">📥</span> Loading full conversation\u2026';
+    const ovPhase = doc.createElement('div');
+    ovPhase.style.cssText = 'font-size:13px;color:#6b7280;min-height:18px;';
+    ovPhase.textContent = 'Starting\u2026';
+    const ovTrack = doc.createElement('div');
+    ovTrack.style.cssText = 'height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden;';
+    const ovFill = doc.createElement('div');
+    ovFill.style.cssText = [
+      'height:100%', 'width:0%', 'background:#818cf8',
+      'border-radius:99px', 'transition:width 0.35s ease',
+    ].join(';');
+    ovTrack.appendChild(ovFill);
+    const ovCounter = doc.createElement('div');
+    ovCounter.style.cssText = 'font-size:12px;color:#9ca3af;text-align:right;';
+    ovCounter.textContent = 'Starting\u2026';
+    ovBox.appendChild(ovHdg);
+    ovBox.appendChild(ovPhase);
+    ovBox.appendChild(ovTrack);
+    ovBox.appendChild(ovCounter);
+    ov.appendChild(ovBox);
+    doc.body.appendChild(ov);
+    function updateProgress(count, phase) {
+      ovPhase.textContent = phase;
+      ovCounter.textContent = count + '\u202fmessages loaded';
+    }
+    function updateProgressScroll(scrollPct, count, phase) {
+      const current = parseFloat(ovFill.style.width) || 0;
+      ovFill.style.width = Math.max(current, Math.min(scrollPct, 99)) + '%';
+      ovPhase.textContent = phase;
+      ovCounter.textContent = count + '\u202fmessages loaded';
+    }
+
+    const savedTop  = scrollEl.scrollTop;
+    const collected = [];
+    const seenFps   = new Set();
+
+    function harvest() {
+      let userEls   = Array.from(doc.querySelectorAll('[data-content="user-message"]'));
+      let assistEls = Array.from(doc.querySelectorAll('[data-content="ai-message"]'));
+      if (userEls.length === 0 && assistEls.length === 0) {
+        userEls = Array.from(doc.querySelectorAll(
+          '[class~="group/user-message"], [data-testid="user-message"], ' +
+          '.UserMessage, [class*="UserMessage"], [class*="user-message"]'
+        ));
+        assistEls = Array.from(doc.querySelectorAll(
+          '[class~="group/ai-message-item"], [class~="group/ai-message"], ' +
+          '[data-testid="ai-message"], [data-testid="copilot-message"], ' +
+          '[data-testid="assistant-message"], [class*="CopilotMessage"], ' +
+          '[class*="AssistantMessage"], [class*="ai-message"]'
+        ));
+      }
+      const deNested = els => els.filter(el => !els.some(o => o !== el && o.contains(el)));
+      userEls   = deNested(userEls);
+      assistEls = deNested(assistEls);
+      const allEls = [
+        ...userEls.map(el  => ({ el, role: 'user' })),
+        ...assistEls.map(el => ({ el, role: 'assistant' })),
+      ].sort((a, b) =>
+        a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+      );
+      for (const { el, role } of allEls) {
+        const fp = role + '::' + (el.textContent || '').trim().slice(0, 120);
+        if (seenFps.has(fp)) continue;
+        seenFps.add(fp);
+        collected.push({ role, innerHTML: el.innerHTML });
+      }
+    }
+
+    try {
+      // ── Phase 1: scroll UP to load older messages ──────────────────────────
+      const MAX_UP_PASSES = 30;
+      for (let i = 0; i < MAX_UP_PASSES; i++) {
+        const prevH = scrollEl.scrollHeight;
+        scrollEl.scrollTo({ top: 0, behavior: 'instant' });
+        await _sleep(600);
+        harvest();
+        updateProgress(collected.length, 'Fetching older messages\u2026');
+        if (scrollEl.scrollHeight === prevH) break;
+      }
+
+      // ── Phase 2: scroll DOWN to collect all messages ───────────────────────
+      const STEP_PX   = Math.max(300, Math.floor((scrollEl.clientHeight || 600) * 0.7));
+      const MAX_STEPS = 200;
+      let lastTop   = -1;
+      let sameCount = 0;
+      for (let step = 0; step < MAX_STEPS; step++) {
+        scrollEl.scrollBy({ top: STEP_PX, behavior: 'instant' });
+        await _sleep(350);
+        harvest();
+        const top = scrollEl.scrollTop;
+        const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight;
+        const scrollPct = maxScroll > 0 ? (top / maxScroll) * 100 : 100;
+        updateProgressScroll(scrollPct, collected.length, 'Reading messages\u2026');
+        if (top === lastTop) { if (++sameCount >= 3) break; }
+        else                 { sameCount = 0; lastTop = top; }
+      }
+
+      // ── Phase 3: final bottom sweep ─────────────────────────────────────────
+      for (let extra = 0; extra < 5; extra++) {
+        const prevCount = collected.length;
+        const prevH     = scrollEl.scrollHeight;
+        scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'instant' });
+        await _sleep(500);
+        harvest();
+        updateProgress(collected.length, 'Finishing\u2026');
+        if (collected.length === prevCount && scrollEl.scrollHeight === prevH) break;
+      }
+
+      // ── Restore position ───────────────────────────────────────────────────
+      scrollEl.scrollTo({ top: savedTop, behavior: 'instant' });
+      const raf = typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame : fn => setTimeout(fn, 16);
+      await new Promise(r => raf(() => raf(r)));
+
+      // Done flash
+      ovFill.style.width = '100%';
+      ovHdg.innerHTML = '<span style="font-size:20px;line-height:1">✅</span> Conversation loaded';
+      ovPhase.textContent = collected.length + '\u202fmessages captured';
+      ovCounter.style.display = 'none';
+      await _sleep(600);
+      ov.remove();
+
+      logger.info('[_scrollAndCollectCopilotMessages] captured ' + collected.length + ' message(s)',
+        '(scrollEl:', (scrollEl.tagName || 'document') + '#' + (scrollEl.id || ''),
+        'scrollH=' + scrollEl.scrollHeight, 'clientH=' + scrollEl.clientHeight + ')');
+      return collected;
+    } catch (err) {
+      logger.warn('[_scrollAndCollectCopilotMessages] error:', err.message);
+      ov.remove();
+      scrollEl.scrollTo({ top: savedTop, behavior: 'instant' });
+      return null;
+    }
+  }
+
   async function extractCopilot(doc) {
     const messages = [];
     const DBG = '[extractCopilot]';
+
+    // Try to extract original chat date from the Copilot date-divider
+    const dateDivider = doc.querySelector('[data-testid="date-divider"]');
+    const chatDate = dateDivider ? _parseCopilotChatDate(dateDivider.textContent) : null;
+    if (chatDate) logger.info('[extractCopilot] chatDate from date-divider:', chatDate);
+
+    // ── Virtual-scroll pre-pass ─────────────────────────────────────────────────
+    // M365 BizChat virtualises its message list: messages outside the viewport are
+    // unmounted.  Scroll the full conversation so every message is harvested before
+    // it can be evicted, then process the collected HTML snapshots.
+    const _prePassMsgs = await _scrollAndCollectCopilotMessages(doc);
+    if (_prePassMsgs && _prePassMsgs.length > 0) {
+      logger.info('[extractCopilot] scroll pre-pass: processing ' + _prePassMsgs.length + ' message(s)');
+      const bgFetchPre = url => new Promise((resolve, reject) => {
+        logger.info('[bAInder] Copilot bgFetch(pre-pass) → background:', url.slice(0, 80));
+        browser.runtime.sendMessage({ type: 'FETCH_IMAGE_AS_DATA_URL', url }, resp => {
+          if (browser.runtime.lastError) return reject(new Error(browser.runtime.lastError.message));
+          const du = resp?.dataUrl || '';
+          if (resp?.success && du.startsWith('data:')) resolve(du);
+          else reject(new Error(resp?.error || 'invalid dataUrl from background'));
+        });
+      });
+      for (const { role, innerHTML } of _prePassMsgs) {
+        const tempDiv = doc.createElement('div');
+        tempDiv.innerHTML = innerHTML;
+        const processEl  = role === 'assistant' ? stripSourceContainers(tempDiv) : tempDiv;
+        const resolvedEl = await resolveImageBlobs(processEl, bgFetchPre);
+        let content = stripRoleLabels(htmlToMarkdown(resolvedEl));
+        if (role === 'assistant') content += extractSourceLinks(tempDiv);
+        if (content) messages.push(formatMessage(role, content));
+      }
+      return { title: generateTitle(messages, doc.location?.href || ''), messages, messageCount: messages.length, chatDate };
+    }
+    logger.info('[extractCopilot] scroll pre-pass not triggered (fits on screen); using standard DOM extraction');
 
     // Scope to the main conversation area so sidebar history items are excluded.
     const scopeCandidates = [
@@ -1641,7 +1950,7 @@ const logger = {
       if (content) messages.push(formatMessage(role, content));
     }
 
-    return { title: generateTitle(messages, doc.location?.href || ''), messages, messageCount: messages.length };
+    return { title: generateTitle(messages, doc.location?.href || ''), messages, messageCount: messages.length, chatDate };
   }
 
   async function extractPerplexity(doc) {
@@ -1757,7 +2066,8 @@ const logger = {
       title:        result.title,
       messages:     result.messages,
       messageCount: result.messageCount,
-      extractedAt:  Date.now()
+      extractedAt:  Date.now(),
+      chatDate:     result.chatDate || null,
     };
   }
 
@@ -1782,7 +2092,9 @@ const logger = {
     }
 
     const title = chatData.title || 'Untitled Chat';
-    const ts = chatData.extractedAt ? toISO(chatData.extractedAt) : '';
+    // Prefer the original chatDate (from date-divider on Copilot pages) over extractedAt
+    const dateSrc = chatData.chatDate || chatData.extractedAt;
+    const ts = dateSrc ? toISO(dateSrc) : '';
     const headerLines = ['---', `title: "${escYaml(title)}"`, `source: ${chatData.platform || ''}`];
     if (chatData.url) headerLines.push(`url: ${chatData.url}`);
     if (ts) headerLines.push(`date: ${ts}`);
@@ -1804,6 +2116,7 @@ const logger = {
       messages:     chatData.messages,
       metadata: {
         extractedAt:   chatData.extractedAt,
+        chatDate:      chatData.chatDate || null,
         messageCount:  chatData.messageCount,
         contentFormat: 'markdown-v1',
       }
@@ -2026,8 +2339,41 @@ const logger = {
   browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const platform = detectPlatform(window.location.hostname);
 
-    switch (message.type) {
+    // ── Helper: wait for content to render before extracting ──────────────
+    // When a new tab opens a Copilot chat URL, the SPA lazy-loads messages
+    // into the DOM after document_idle. Poll for known message selectors
+    // to appear before handing off to the platform-specific extractor.
+    async function _waitForContent(maxMs = 15_000, tabIndex) {
+      const selectors = [
+        '[data-content="user-message"]',
+        '[data-testid="user-message"]',
+        '[class~="group/user-message"]',
+        '[data-testid="ai-message"]',
+        '[data-testid="copilot-message"]',
+        '.UserMessage',
+      ];
+      const pollInterval = 400;
+      const deadline = Date.now() + maxMs;
+      let found = false;
+      while (Date.now() < deadline) {
+        for (const sel of selectors) {
+          if (document.querySelector(sel)) { found = true; break; }
+        }
+        if (found) break;
+        // Report live countdown
+        const remaining = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+        browser.runtime.sendMessage({
+          type: 'EXTRACT_CHAT_PROGRESS',
+          data: { tabIndex, phase: 'waiting', remaining },
+        }).catch(() => {});
+        await new Promise(r => setTimeout(r, pollInterval));
+      }
+      if (!found) {
+        logger.warn('[EXTRACT_CHAT] waitForContent: no message DOM found within ' + maxMs + 'ms');
+      }
+    }
 
+    switch (message.type) {
 
       case 'EXTRACT_CHAT': {
         if (!platform) {
@@ -2036,6 +2382,50 @@ const logger = {
         }
         (async () => {
           try {
+            const tabIndex = message.tabIndex || 0;
+
+            // Wait for content to render before extracting (critical for Copilot SPA)
+            await _waitForContent(15_000, tabIndex);
+
+            // ── Trigger virtual list rendering for virtualised platforms ────
+            // The Copilot SPA virtualises its message list — only the first few
+            // visible messages are mounted in the DOM.  Scroll the chat container
+            // to the bottom to force the virtual list to render all items, then
+            // scroll back to top so the pre-pass or standard extraction sees them.
+            //
+            // NOTE: This is only a warm-up; extractCopilot() also runs
+            // _scrollAndCollectCopilotMessages() which does the thorough
+            // scroll-to-load.  The tab must be active (see background.js tab
+            // activation step) for scroll events to fire — Chrome throttles
+            // scroll in hidden tabs.
+            if (platform === 'copilot') {
+              browser.runtime.sendMessage({
+                type: 'EXTRACT_CHAT_PROGRESS',
+                data: { tabIndex, phase: 'scrolling' },
+              }).catch(() => {});
+              const scrollCandidates = [
+                '[data-testid="chat-page"]',
+                'main',
+                '[role="main"]',
+                '[class*="conversation"][class*="container"]',
+              ];
+              for (const sel of scrollCandidates) {
+                const el = document.querySelector(sel);
+                if (el && el.scrollHeight > el.clientHeight) {
+                  el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
+                  await new Promise(r => setTimeout(r, 2000));
+                  el.scrollTo({ top: 0, behavior: 'instant' });
+                  await new Promise(r => setTimeout(r, 500));
+                  break;
+                }
+              }
+            }
+
+            browser.runtime.sendMessage({
+              type: 'EXTRACT_CHAT_PROGRESS',
+              data: { tabIndex, phase: 'scraping' },
+            }).catch(() => {});
+
             let chatData;
             if (platform === 'claude') {
               const result = await extractClaudeViaApi();
@@ -2050,6 +2440,12 @@ const logger = {
             } else {
               chatData = await extractChat(platform, document);
             }
+
+            browser.runtime.sendMessage({
+              type: 'EXTRACT_CHAT_PROGRESS',
+              data: { tabIndex, phase: 'saving' },
+            }).catch(() => {});
+
             sendResponse({ success: true, data: prepareChatForSave(chatData) });
           } catch (err) {
             sendResponse({ success: false, error: err.message });
