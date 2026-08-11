@@ -20,6 +20,52 @@ import { removeDescendants }                         from './shared.js';
 const _GEMINI_LABEL_RE = /^#{0,6}\s*gemini said:?\s*$/i;
 const _STOPPED_TEXT_RE = /^you stopped this response\.?\s*$/i;
 
+// ─── Date parsing ────────────────────────────────────────────────────────────
+// Gemini shows date dividers between conversations in the history sidebar and
+// may include a <time> element or date-divider in the conversation view.
+const _DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+/**
+ * Parse a Gemini date-divider text or <time> datetime attribute into an ISO string.
+ * @param {string} text
+ * @returns {string|null}
+ */
+function _parseGeminiDate(text) {
+  if (!text) return null;
+  const t = text.trim();
+  if (!t) return null;
+  const lower = t.toLowerCase();
+
+  // "Today"
+  if (lower === 'today') return new Date().toISOString();
+  // "Yesterday"
+  if (lower === 'yesterday') {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString();
+  }
+  // "Last Monday", "Monday", etc.
+  const dayMatch = lower.match(/^(last\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/);
+  if (dayMatch) {
+    const targetDay = _DAYS.indexOf(dayMatch[2]);
+    const now = new Date();
+    const diff = (now.getDay() - targetDay + 7) % 7;
+    const d = new Date(now);
+    if (dayMatch[1]) {
+      // "Last Monday" → go back 7 days + diff
+      d.setDate(d.getDate() - diff - 7);
+    } else {
+      // "Monday" → most recent past Monday (not today)
+      d.setDate(d.getDate() - (diff === 0 ? 7 : diff));
+    }
+    return d.toISOString();
+  }
+  // Absolute date: "July 27, 2026" or "2026-07-27"
+  const parsed = new Date(t);
+  if (!isNaN(parsed.getTime())) return parsed.toISOString();
+  return null;
+}
+
 /**
  * Strip Gemini UI labels ("Gemini said") and interrupted-generation markers
  * ("You stopped this response") from extracted markdown content.
@@ -157,5 +203,34 @@ export async function extractGemini(doc) {
   }
 
   const title = generateTitle(messages, doc.location?.href || '');
-  return { title, messages, messageCount: messages.length };
+
+  // ── Date extraction ──────────────────────────────────────────────────
+  // Try to get a meaningful date from the Gemini page. Sources in priority:
+  //   1. <time datetime="..."> element in the conversation header
+  //   2. Date-divider text ("Today", "Yesterday", "Monday", etc.)
+  //   3. Timestamp embedded in the page head via <meta> or JSON-LD
+  let chatDate = null;
+  const timeEl = doc.querySelector('time[datetime]');
+  if (timeEl) {
+    const parsed = _parseGeminiDate(timeEl.getAttribute('datetime'));
+    if (parsed) chatDate = parsed;
+  }
+  if (!chatDate) {
+    const dividerEl = doc.querySelector(
+      '[class*="date-divider"], [class*="DateDivider"], ' +
+      '[class*="divider"], [class*="separator"], ' +
+      '[data-testid*="date"], [data-testid*="Date"], ' +
+      'h2, h3, [class*="timestamp"], [class*="time"]'
+    );
+    if (dividerEl) {
+      // Filter out UI headings that aren't dates
+      const text = (dividerEl.textContent || '').trim();
+      if (text && text.length < 60 && !text.includes('Gemini') && !text.includes('said')) {
+        const parsed = _parseGeminiDate(text);
+        if (parsed) chatDate = parsed;
+      }
+    }
+  }
+
+  return { title, messages, messageCount: messages.length, chatDate };
 }
